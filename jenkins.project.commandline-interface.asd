@@ -22,13 +22,15 @@
   :license     "GPLv3" ; see COPYING file for details.
   :description "Commandline interface of the generator program."
   :depends-on  (:alexandria
-                (:version :let-plus        "0.2")
+                (:version :let-plus                         "0.2")
                 :iterate
-                (:version :more-conditions "0.2")
+                (:version :more-conditions                  "0.2")
 
                 :net.didierverna.clon
+                (:version :configuration.options            "0.1")
+                (:version :configuration.options-syntax-ini "0.1")
 
-                (:version :jenkins.project #.(jenkins.project-system:version/string)))
+                (:version :jenkins.project                  #.(jenkins.project-system:version/string)))
   :components  ((:file       "more-conditions-patch"
                  :pathname   "src/commandline-interface/more-conditions-patch")
 
@@ -37,5 +39,6 @@
                  :serial     t
                  :components ((:file       "package")
                               (:file       "conditions")
+                              (:file       "configuration")
                               (:file       "main"))))
   :entry-point "JENKINS.PROJECT.COMMANDLINE-INTERFACE:MAIN")

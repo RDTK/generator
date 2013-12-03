@@ -562,32 +562,27 @@
               (lispobj :long-name    "num-processes"
                        :short-name   "j"
                        :typespec     'positive-integer
-                       :default-value 8
                        :argument-name "NUMBER-OF-PROCESSES"
                        :description
                        "Number of processes to execute in parallel when checking out from repositories and analyzing working copies.")
               (enum    :long-name     "on-error"
                        :enum          '(:abort :continue)
                        :argument-name "POLICY"
-                       :default-value :abort
                        :description
                        "Abort when encountering errors? Either \"abort\" or \"continue\".")
               (path    :long-name    "cache-directory"
                        :type         :directory
                        :argument-name "DIRECTORY"
-                       :default-value nil
                        :description
                        "Directory into which repository mirrors should be written.")
               (path    :long-name    "temp-directory"
                        :type         :directory
                        :argument-name "DIRECTORY"
-                       :default-value #P"/tmp/"
                        :description
                        "Directory into which temporary files should be written during analysis step.")
               (path    :long-name    "report-directory"
                        :type         :directory
                        :argument-name "DIRECTORY"
-                       :default-value nil
                        :description
                        "Write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results.")
               (flag    :long-name    "dry-run"
@@ -617,7 +612,6 @@
               (stropt :long-name     "base-uri"
                       :short-name    "b"
                       :argument-name "URI"
-                      :default-value "https://localhost:8080"
                       :description
                       "Jenkins base URI.")
               (stropt :long-name     "username"
@@ -637,7 +631,6 @@
                       "Delete previously automatically generated jobs when they are not re-created in this generation run.")
               (stropt :long-name     "delete-other-pattern"
                       :argument-name "REGEX"
-                      :default-value ".*"
                       :description
                       "When deleting previously automatically generated jobs, only consider jobs whose name matches the regular expression REGEX.
 
@@ -717,11 +710,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
 ;;; Main
 
-(defun collect-option-values (&rest args &key &allow-other-keys)
-  (iter (for spec next (apply #'clon:getopt args))
-        (while spec)
-        (collect spec)))
-
 (defun locate-specifications (kind namestrings)
   (restart-case
       (or (iter (for namestring in namestrings)
@@ -785,32 +773,79 @@ A common case, deleting only jobs belonging to the distribution being generated,
   `(call-with-phase-error-check
     ',phase ,errors ,set-errors ,report ,continuable? (lambda () ,@body)))
 
-(defun main ()
-  (update-synopsis)
-  (clon:make-context)
-  (when (or (emptyp (uiop:command-line-arguments))
-            (clon:getopt :long-name "help"))
-    (clon:help)
-    (uiop:quit))
-  (when (clon:getopt :long-name "version")
-    (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
-      (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
-              "build-generator" (stringp version) version))
-    (uiop:quit))
+(defun configure ()
+  (let+ ((*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS"))) ; TODO
+                                   (parse-integer value)
+                                   100))
+         (schema        *schema*)
+         (configuration (configuration.options:make-configuration schema))
+         (source        (configuration.options.sources:make-source
+                         :common-cascade ; TODO environment variables
+                         :basename "build-generator"
+                         :syntax   :ini))
+         (synchronizer  (make-instance 'configuration.options:standard-synchronizer
+                                       :target configuration))
+         ((&flet option-value (section name)
+            (let+ ((option (configuration.options:find-option
+                            (list section name) configuration))
+                   ((&values value source)
+                    (if (typep (configuration.options:option-type option)
+                               '(cons (eql list)))
+                        (iter (for spec next (clon:getopt :long-name name))
+                              (while spec)
+                              (collect spec :into values)
+                              (finally (when values (return (values values t)))))
+                        (clon:getopt :long-name name))))
+              (if source
+                  (values value t)
+                  (configuration.options:option-value
+                   option :if-does-not-exist nil))))))
+    ;; Process configuration options.
+    (handler-case
+        (progn
+          (configuration.options.sources:initialize source schema)
+          (configuration.options.sources:process source synchronizer))
+      (error (condition)
+        (format t "Configuration error:~%~A~%" condition)
+        (uiop:quit 3)))
 
-  (let+ ((debug?                 (clon:getopt :long-name "debug"))
-         (progress-style         (clon:getopt :long-name "progress-style"))
+    ;; Process commandline options.
+    (update-synopsis)
+    (clon:make-context)
+
+    (when (option-value "general" "debug") ; TODO does this consume the clon value?
+      (describe configuration)
+      (fresh-line))
+
+    (when (or (emptyp (uiop:command-line-arguments))
+              (option-value "general" "help"))
+      (clon:help)
+      (uiop:quit))
+    (when (option-value "general" "version")
+      (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
+        (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
+                "build-generator" (stringp version) version))
+      (uiop:quit))
+
+    (values #'option-value configuration)))
+
+(defun main ()
+  (let+ ((option-value (configure))
+         ((&flet option-value (&rest args)
+            (apply option-value args)))
+         (debug?                 (option-value "general" "debug"))
+         (progress-style         (option-value "general" "progress-style"))
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
                                    200))
-         (non-interactive        (clon:getopt :long-name "non-interactive"))
-         (num-processes          (clon:getopt :long-name "num-processes"))
+         (non-interactive        (option-value "general" "non-interactive"))
+         (num-processes          (option-value "general" "num-processes"))
          ((&flet restart/condition (name)
             (lambda (condition)
               (when-let ((restart (find-restart name condition)))
                 (invoke-restart restart condition)))))
          (non-dependency-errors? nil)
-         (error-policy           (case (clon:getopt :long-name "on-error")
+         (error-policy           (case (option-value "general" "on-error")
                                    (:continue #'continue)
                                    (t         (restart/condition 'abort))))
          (effective-error-policy (lambda (condition)
@@ -824,10 +859,10 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                            nil))
                                      ((funcall (restart/condition 'defer) condition))
                                      ((funcall (restart/condition 'abort) condition)))))
-         (cache-directory        (clon:getopt :long-name "cache-directory"))
-         (temp-directory         (clon:getopt :long-name "temp-directory"))
-         (report-directory       (clon:getopt :long-name "report-directory"))
-         (dry-run?               (clon:getopt :long-name "dry-run"))
+         (cache-directory        (option-value "general" "cache-directory"))
+         (temp-directory         (option-value "general" "temp-directory"))
+         (report-directory       (option-value "general" "report-directory"))
+         (dry-run?               (option-value "general" "dry-run"))
 
          (main (bt:current-thread))
          (lock (bt:make-lock)))
@@ -852,27 +887,26 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                             main (lambda () (signal condition))))))
             (with-delayed-error-reporting (:debug? debug?)
 
-              (let* ((jenkins.api:*base-url*       (clon:getopt :long-name "base-uri"))
-                     (jenkins.api:*username*       (clon:getopt :long-name "username"))
-                     (jenkins.api:*password*       (or (clon:getopt :long-name "password")
-                                                       (clon:getopt :long-name "api-token")))
-                     (delete-other?                (clon:getopt :long-name "delete-other"))
-                     (delete-other-pattern         (clon:getopt :long-name "delete-other-pattern"))
-                     (build-flow-ignores-failures? (not (clon:getopt :long-name "build-flow-fail")))
+              (let* ((jenkins.api:*base-url*       (option-value "jenkins" "base-uri"))
+                     (jenkins.api:*username*       (option-value "jenkins" "username"))
+                     (jenkins.api:*password*       (or (option-value "jenkins" "password")
+                                                       (option-value "jenkins" "api-token")))
+                     (delete-other?                (option-value "generation" "delete-other"))
+                     (delete-other-pattern         (option-value "generation" "delete-other-pattern"))
+                     (build-flow-ignores-failures? (not (option-value "generation" "build-flow-fail")))
 
                      (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
                                       (sort (locate-specifications
-                                             :template (collect-option-values :long-name "template"))
+                                             :template (option-value "generation" "template"))
                                             #'string< :key #'pathname-name)))
                      (distributions (with-phase-error-check
                                         (:locate/distribution #'errors #'(setf errors) #'report)
                                       (locate-specifications
-                                       :distribution (collect-option-values :long-name "distribution"))))
-                     (overwrites    (mapcar #'parse-overwrite
-                                            (collect-option-values :long-name "set"))))
+                                       :distribution (option-value "generation" "distribution"))))
+                     (overwrites    (mapcar #'parse-overwrite (option-value "generation" "set"))))
                 (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
-                                                 (collect-option-values :long-name "trace-variable")))
+                                                 (option-value "general" "trace-variable")))
                 (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
                 (with-trivial-progress (:jobs)

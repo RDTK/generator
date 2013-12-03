@@ -52,25 +52,27 @@
 ;;; Redmine aspect
 
 (define-aspect (redmine) () ()
-  (setf (jenkins.api::redmine-instance job)
-        (format nil "~A/" (var :aspect.redmine.instance))
-        (jenkins.api::redmine-version job)  (var :aspect.redmine.version)
-        (jenkins.api::redmine-project job)  (var :aspect.redmine.project)))
+  (when-let* ((instance (var :aspect.redmine.instance nil))
+              (project  (var :aspect.redmine.project nil)))
+    (setf (jenkins.api::redmine-instance job) (format nil "~A/" instance)
+          (jenkins.api::redmine-project job) project)
+    (when-let ((version (var :aspect.redmine.version nil)))
+      (setf (jenkins.api::redmine-version job) version))))
 
 (define-aspect (redmine-and-git
                 :job-var     job
                 :constraints ((:after aspect-git)))
-    ()
-    ()
-  (let ((repository (repository job)))
-    (unless (typep repository 'scm/git)
-      (error "~@<Could not find git repository in ~A.~@:>" job))
-    (setf (browser-kind repository) :redmine-web
-          (browser-url  repository)
-          (format nil "~A/projects/~A/repository/~@[~A/~]"
-                  (var :aspect.redmine.instance)
-                  (var :aspect.redmine.project)
-                  (var :aspect.redmine.repository-id nil)))))
+    () ()
+  (when-let* ((instance (var :aspect.redmine.instance nil))
+              (project  (var :aspect.redmine.project nil)))
+    (let ((repository (repository job)))
+      (unless (typep repository 'scm/git)
+        (error "~@<Could not find git repository in ~A.~@:>" job))
+      (setf (browser-kind repository) :redmine-web
+            (browser-url  repository)
+            (format nil "~A/projects/~A/repository/~@[~A/~]"
+                    instance project
+                    (var :aspect.redmine.repository-id nil))))))
 
 ;;; SCM aspects
 

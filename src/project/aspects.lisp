@@ -93,6 +93,8 @@
               :branches             (var :aspect.git.branches)
               :wipe-out-workspace?  (var :aspect.git.wipe-out-workspace? t)
               :checkout-submodules? nil
+              :shallow?             (var :aspect.git.shallow? nil)
+              :local-branch         (first (var :aspect.git.branches))
               :skip-internal-tag?   t))))
 
 (define-aspect (subversion) () ()

@@ -6,7 +6,8 @@
 
 (cl:defpackage #:jenkins.project.commandline-interface
   (:use
-   #:cl)
+   #:cl
+   #:let-plus)
 
   #+sbcl (:local-nicknames
           (#:clon #:com.dvlsoft.clon))

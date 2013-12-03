@@ -22,6 +22,9 @@
               (flag   :long-name     "swank"
                       :description
                       "Start a swank server.")
+              (flag   :long-name     "debug"
+                      :description
+                      "Enable debug mode.")
               (enum   :long-name     "progress-style"
                       :enum          '(:cmake :vertical)
                       :default-value :vertical
@@ -72,6 +75,43 @@
                       :description
                       "Password for Drupal authentication."))))
 
+(defun report-error (condition)
+  (ignore-errors
+   (format *error-output* "~&~A:~&~A~2%"
+           (type-of condition) condition)))
+
+(defun call-with-delayed-error-reporting (thunk
+                                          &key
+                                          debug?
+                                          (report-function #'report-error))
+  (let+ ((errors      '())
+         (errors-lock (bt:make-lock))
+         ((&flet collect-error (condition)
+            (when debug?
+              (terpri)
+              (princ condition)
+              (terpri)
+              (sb-debug:print-backtrace))
+            (bt:with-lock-held (errors-lock)
+              (push condition errors))
+            (continue))))
+    ;; Execute THUNK collecting errors.
+    (lparallel:task-handler-bind ((error #'collect-error))
+      (handler-bind ((error #'collect-error))
+        (funcall thunk)))
+
+    ;; Report collected errors.
+    (mapc (lambda (condition)
+            (ignore-errors (funcall report-function condition)))
+          errors)))
+
+(defmacro with-delayed-error-reporting ((&key debug? report-function)
+                                        &body body)
+  `(call-with-delayed-error-reporting
+    (lambda () ,@body)
+    ,@(when debug? `(:debug? ,debug?))
+    ,@(when report-function `(:report-function ,report-function))))
+
 (defun main ()
   (log:config :thread :info)
 
@@ -81,5 +121,5 @@
     (clon:help)
     (uiop:quit))
 
-
-  )
+  (with-delayed-error-reporting (:debug? (clon:getopt :long-name "debug"))
+    (cerror "continue" "nothing here, yet")))

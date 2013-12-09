@@ -1,6 +1,6 @@
 ;;;; git.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -28,41 +28,43 @@
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory)))
 
-    (with-sequence-progress (:analyze/branch branches)
-      (inferior-shell:run/lines
-       `(inferior-shell:&host (inferior-shell:local ,temp-directory)
-          (git "clone" :quiet ,repository/string ,clone-directory)))
+    (unwind-protect
+         (progn
+           (with-trivial-progress (:clone "~A" repository/string)
+             (inferior-shell:run/lines
+              `(inferior-shell:&host (inferior-shell:local ,temp-directory)
+                 (git "clone" :quiet :depth "10" ,repository/string ,clone-directory))))
 
-      (unwind-protect
-           (iter (for branch in (append branches tags))
-                 (progress "~A" branch)
+           (with-sequence-progress (:analyze/branch branches)
+             (iter (for branch in (append branches tags))
+                   (progress "~A" branch)
 
-                 (restart-case
-                     (progn
-                       (inferior-shell:run/lines
-                        `(inferior-shell:&host (inferior-shell:local ,clone-directory)
-                           (git :work-tree ,clone-directory
-                                :git-dir ,(merge-pathnames ".git/" clone-directory)
-                                "checkout" :quiet ,branch)))
+                   (restart-case
+                       (progn
+                         (inferior-shell:run/lines
+                          `(inferior-shell:&host (inferior-shell:local ,clone-directory)
+                             (git :work-tree ,clone-directory
+                                  :git-dir ,(merge-pathnames ".git/" clone-directory)
+                                  "checkout" :quiet ,branch)))
 
-                       (let ((result (list* :scm              :git
-                                            :branch-directory nil
-                                            (analyze analyze-directory :auto))))
-                         (unless (getf result :authors)
-                           (setf (getf result :authors)
-                                 (analyze clone-directory :git/authors)))
-                         (collect (cons branch result))))
-                   (continue (&optional condition)
-                     :report (lambda (stream)
-                               (format stream "~<Ignore ~A and ~
+                         (let ((result (list* :scm              :git
+                                              :branch-directory nil
+                                              (analyze analyze-directory :auto))))
+                           (unless (getf result :authors)
+                             (setf (getf result :authors)
+                                   (analyze clone-directory :git/authors)))
+                           (collect (cons branch result))))
+                     (continue (&optional condition)
+                       :report (lambda (stream)
+                                 (format stream "~<Ignore ~A and ~
                                                continue with the next ~
                                                branch.~@:>"
-                                       branch))
-                     (declare (ignore condition)))))
+                                         branch))
+                       (declare (ignore condition)))))))
 
-        (inferior-shell:run/lines
-         `(inferior-shell:&host (inferior-shell:local ,temp-directory)
-            (rm "-rf" ,clone-directory)))))))
+      (inferior-shell:run/lines
+       `(inferior-shell:&host (inferior-shell:local ,temp-directory)
+          (rm "-rf" ,clone-directory))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/authors))
                     &key

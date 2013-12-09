@@ -1,6 +1,6 @@
 ;;;; subversion.lisp --- Analyze subversion repositories.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -27,10 +27,11 @@
                            (make-pathname :directory (list :relative project-name))
                            temp-directory)))
 
-    (inferior-shell:run/lines
-     `(inferior-shell:&host (inferior-shell:local ,temp-directory)
-        (,@(%svn-and-global-options username password)
-         "co" ,(princ-to-string source) ,clone-directory)))
+    (with-trivial-progress (:checkout "~A" source)
+      (inferior-shell:run/lines
+       `(inferior-shell:&host (inferior-shell:local ,temp-directory)
+          (,@(%svn-and-global-options username password)
+           "co" ,(princ-to-string source) ,clone-directory))))
 
     (unwind-protect
          (let+ (((&flet find-branches (directory &optional pattern)
@@ -84,7 +85,7 @@
                                  (format stream "~<Ignore ~A and ~
                                                  continue with the ~
                                                  next branch.~@:>"
-                                                 name))
+                                         name))
                        (declare (ignore condition)))))))
 
       (inferior-shell:run/lines

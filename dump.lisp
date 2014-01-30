@@ -415,10 +415,9 @@
          (delete-other?          (clon:getopt :long-name "delete-other"))
          (errors                 '())
          (errors-lock            (bt:make-lock))
-         (*print-miser-width*    (if-let ((value (sb-posix:getenv "COLUMNS")))
+         (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
-                                   200))
-        (*print-right-margin*   *print-miser-width*))
+                                   200)))
     (user-interface.progress:with-progress-report (*standard-output* :style (ecase (clon:getopt :long-name "progress-style")
                                                                               (:cmake    (make-instance 'user-interface.progress::cmake))
                                                                               (:vertical (make-instance 'user-interface.progress::vertical)))
@@ -448,19 +447,21 @@
                                       spec)))))
           (lparallel:task-handler-bind
               ((error (lambda (condition)
-                        (terpri)
-                        (princ condition)
-                        (terpri)
-                        (sb-debug:print-backtrace)
+                        (when nil
+                          (terpri)
+                          (princ condition)
+                          (terpri)
+                          (sb-debug:print-backtrace))
                         (bt:with-lock-held (errors-lock)
                           (push condition errors))
                         (continue))))
             (handler-bind
                 ((error (lambda (condition)
-                          (terpri)
-                          (princ condition)
-                          (terpri)
-                          (sb-debug:print-backtrace)
+                          (when nil
+                            (terpri)
+                            (princ condition)
+                            (terpri)
+                            (sb-debug:print-backtrace))
                           (bt:with-lock-held (errors-lock)
                             (push condition errors))
                           (continue))))
@@ -514,8 +515,8 @@
     ;; Report errors.
     (mapc (lambda (error)
             (ignore-errors
-             (warn "~A" error)
-             (format *error-output* "~2%")))
+             (format *error-output* "~&~A:~&~A~2%"
+                     (type-of error) error)))
           errors)))
 
 #+no (trace jenkins.api:relate)

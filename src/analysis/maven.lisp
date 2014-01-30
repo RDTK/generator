@@ -37,9 +37,9 @@
       (let+ ((license (or license (analyze directory :license)))
              ((&flet+ process-dependency ((kind name version))
                 (list kind name
-                      (parse-version (resolve-value version properties))))))
+                      (parse-version (%resolve-maven-version version properties))))))
         (append
-         (list :versions `((:main ,version))
+         (list :versions `((:main ,version)) ; TODO remove
                :provides `(,(process-dependency version))
                :requires (mapcar #'process-dependency dependencies))
          (when description `(:description ,description))
@@ -49,7 +49,7 @@
 
 ;;; Utility functions
 
-(defun resolve-value (spec properties)
+(defun %resolve-maven-value (spec properties)
   (let+ (((&flet lookup (name)
             (cdr (find name properties :key #'car :test #'string=))))
          ((&labels replace1 (value)
@@ -63,6 +63,16 @@
                      :simple-calls t)))
               (if match? (replace1 result) result)))))
     (replace1 spec)))
+
+(defun %parse-maven-version-spec (string)
+  (or (ppcre:register-groups-bind (open version close) ("(\\[)?([^]]*)(\\])?" string)
+        (when (or (and open close) (not (or open close)))
+          version))
+      (error "~@<Invalid version specification: ~S.~@:>"
+             string)))
+
+(defun %resolve-maven-version (spec properties)
+  (%parse-maven-version-spec (%resolve-maven-value spec properties)))
 
 ;;; Conversion helpers
 

@@ -1,0 +1,285 @@
+(require :asdf)
+
+
+;;; Utility functions
+;;
+
+(setf *terminal-io* (make-two-way-stream
+		     (make-synonym-stream '*standard-input*)
+		     (make-synonym-stream '*standard-output*)))
+
+(setf *print-right-margin* most-positive-fixnum
+      *print-miser-width*  most-positive-fixnum)
+
+(defun %load-silently (system)
+  (let ((*compile-verbose* nil)
+	(*compile-print*   nil)
+	(*load-verbose*    nil)
+	(*load-print*      nil))
+    (tagbody
+     retry
+       (handler-bind
+	   ((warning                #'muffle-warning)
+	    (sb-ext:compiler-note   #'muffle-warning)
+	    (asdf:missing-component #'(lambda (condition)
+					;; defined below
+					(funcall
+					 (intern "%LOAD-SYSTEM-FROM-ARTIFACT")
+					 (asdf::missing-requires condition))
+					(go retry))))
+	 (asdf:load-system system :verbose nil)))))
+
+(defun %load-dependencies-silently (system)
+  (let* ((system (asdf:find-system system))
+	 (deps   (remove-duplicates
+		  (apply #'append
+			 (map 'list #'rest
+			      (rest (asdf:component-depends-on
+				     'asdf:load-op system)))))))
+    (map 'nil #'%load-silently deps)))
+
+
+;;; Systems from
+;; + ~/.sbcl/site
+;; + ~/code
+;; + ~/.local/share/common-lisp/quicklisp/dists/quicklisp/software
+;;
+
+(%load-silently :sb-cover) ;; force ASDF init
+
+(let ((asds (mapcar #'pathname-name
+		    (mapcan (lambda (d) (directory (merge-pathnames "*.asd" d)))
+			    (asdf::source-registry)))))
+  (flet ((add-system-directory (asd)
+	   (unless (member (pathname-name asd) asds
+			   :test #'string=)
+	     (pushnew (make-pathname :directory (pathname-directory asd))
+		      (asdf::source-registry)
+		      :test #'string=
+		      :key  #'namestring))))
+    (map nil #'add-system-directory
+	 (append
+	  (directory "~/.sbcl/site/*/*.asd")
+	  (directory "~/.local/share/common-lisp/quicklisp/dists/quicklisp/software/**/*.asd")
+	  (directory "~/code/trivial-coverage/trunk/*.asd")
+	  (directory "~/code/metacopy/*.asd")
+	  (directory "~/code/lift/*.asd")
+	  (directory "~/code/lisplab-0.1.0/**/*.asd")
+	  (directory "~/code/tpapp-cl-cairo2-ab67c6e/*.asd")
+	  (directory "~/code/cl-graph/*.asd")
+	  (directory "~/code/log5/*.asd")
+	  (directory "~/code/iterate-1.4.3/*.asd")))))
+
+
+;;; Swank Listeners
+;;
+
+(%load-silently :swank)
+(swank:start-server "./swank-port.txt")
+
+
+;;; Downloading Artifacts
+;;
+
+(%load-silently :sb-posix)
+(%load-silently :alexandria)
+(%load-silently :drakma)
+
+(defvar *jenkins-base-url*
+  (let ((url (sb-posix:getenv "HUDSON_URL")))
+    (subseq url 0 (position #\/ url :from-end t)))
+  "Base URL of the jenkins instance that has the artifacts.")
+
+(defvar *job-name* (sb-posix:getenv "JOB_NAME")
+  "Our job name.")
+
+(defvar *job-workspace* (sb-posix:getenv "WORKSPACE")
+  "Our workspace.")
+
+(defun %download-project-artifact (name destination-directory)
+  (let ((url         (format nil "~A/job/~A/lastSuccessfulBuild/artifact/~:*~A.tar.gz"
+			     *jenkins-base-url* name))
+	(destination (make-pathname
+		      :name     (concatenate 'string name ".tar")
+		      :type     "gz"
+		      :defaults destination-directory)))
+    ;;
+    (ensure-directories-exist destination-directory)
+
+    ;; Download the artifact archive.
+    (format t "~&~@<; ~@;fetching ~S~@:>" url)
+    (alexandria:with-output-to-file (stream destination
+					    :if-does-not-exist :create
+					    :if-exists         :supersede
+					    :element-type      '(unsigned-byte 8))
+      (let ((http-stream (drakma:http-request url :want-stream t)))
+	(alexandria:copy-stream http-stream stream
+				:element-type '(unsigned-byte 8))))
+
+    ;; Extract the archive.
+    (format t "~&~@<; ~@;extracting ~A~@:>" destination)
+    (sb-posix:chdir (namestring destination-directory)) ;; really? :(
+    (unless (zerop
+	     (sb-ext:process-exit-code
+	      (sb-ext:run-program
+	       "tar" (list "-xzf" (namestring destination))
+	       :search t
+	       :wait   t)))
+      (error "~@<Could not extract artifact archive ~A~@:>"
+	     destination))))
+
+(defun %load-system-from-artifact (system-name)
+  (let ((name (string-downcase (string system-name)))
+	(deps (format nil "~A/deps/" *job-workspace*)))
+    (format t "~&~@<; ~@;loading system from artifact ~A~@:>"
+	    system-name)
+    (%download-project-artifact name deps)
+
+    (let ((asd (first (directory (merge-pathnames
+				  (make-pathname
+				   :directory (list :relative name :wild-inferiors)
+				   :name      name
+				   :type      "asd")
+				  deps)))))
+      (format t "~&~@<; ~@;loading system definition from ~A~@:>" asd)
+      (load asd))))
+
+
+;;; ASDF System Connections
+;;
+
+(%load-silently :sb-posix)
+
+(if (asdf:find-system :asdf-system-connections nil)
+    (progn
+      (%load-silently :asdf-system-connections)
+
+      ;; Disable automatic loading of our system in case it is a
+      ;; system connection.
+      (fmakunbound 'asdf::required-systems-loaded-p)
+      (defun asdf::required-systems-loaded-p (connection)
+	(unless (string-equal (asdf:component-name connection)
+			      *job-name*)
+	  (every #'asdf::system-loaded-p (asdf::systems-required connection))))
+
+      (format *trace-output* "~&~@<; ~@;loading system connection definitions~@:>")
+      (let ((system-connections
+	     (remove-duplicates
+	      (mapcan
+	       (lambda (dir)
+		 (directory (merge-pathnames "*-and-*.asd" dir)))
+	       (asdf::source-registry))
+	      :test #'string= :key #'pathname-name)))
+	(dolist (path system-connections)
+	  (format *trace-output*
+		  "~&~@<; ~@;loading system connection definition ~A from ~A~@:>"
+		  (pathname-name path) path)
+	  (handler-case
+	      (load path)
+	    (error (condition)
+	      (warn "~@<Could not load system connection ~A: ~A~@:>"
+		    (pathname-name path) condition))))))
+    (warn "Could not load system connections"))
+
+
+;;; Iterate should always declare variables
+;;
+
+(%load-silently :iterate)
+(setf iterate::*always-declare-variables* t)
+
+
+;;; Mainly for LispLab
+;;
+
+(setf *read-default-float-format* 'double-float)
+
+(defvar *lisplab-libblas-path*   #P"/usr/lib/libblas.so")
+(defvar *lisplab-liblapack-path* #P"/usr/lib/liblapack.so")
+(defvar *lisplab-libfftw-path*   #P"/usr/lib/libfftw3.so")
+
+
+;;; Instrumentation and testing
+;;
+
+(%load-silently :sb-cover)
+(%load-silently :trivial-coverage)
+
+(defun %strip-lisp-pathname (pathname system)
+  (let* ((system-path      (asdf:component-pathname
+			    (asdf:find-system system)))
+	 (system-directory (pathname-directory system-path)))
+    (namestring
+     (make-pathname
+      :directory (cons :relative
+		       (nthcdr (length system-directory)
+			       (pathname-directory pathname)))
+      :defaults pathname))))
+
+(defun %strip-fasl-pathname (pathname system)
+  (let* ((system-path      (asdf:component-pathname
+			    (asdf:find-system system)))
+	 (system-directory (pathname-directory system-path)))
+    (namestring
+     (make-pathname
+      :type      "lisp"
+      :directory (cons :relative
+		       (nthcdr (+ 1 (* 2 (1- (length system-directory))) 2)
+			       (pathname-directory pathname)))
+      :defaults pathname))))
+
+(defun %format-warning-parsebly (system)
+  #'(lambda (warning)
+      (let* ((*print-right-margin* most-positive-fixnum)
+	     (*print-miser-width*  most-positive-fixnum)
+	     (file                 (cond
+				     (*compile-file-truename*
+				      (%strip-lisp-pathname
+				       *compile-file-truename* system))
+				     (*load-truename*
+				      (%strip-fasl-pathname
+				       *load-truename* system))))
+	     (message              (format nil "~A" warning)))
+	(format t "~&[~S|~A] ~S~%" (type-of warning) file message))))
+
+(defun load-system-for-test (system test-system &rest extra-systems)
+  ;; First, pull in all dependencies. This prevents dependencies from
+  ;; being loaded when recording of warnings and coverage
+  ;; instrumentation are enabled.
+  (mapc #'%load-silently extra-systems)
+  (%load-dependencies-silently system)
+
+  ;; Load SYSTEM with:
+  ;; + dependencies preloaded
+  ;; + parseble printing of warning messages
+  ;; + coverage instrumentation enabled
+  (handler-bind ((warning (%format-warning-parsebly system)))
+    (let ((asdf:*compile-file-warnings-behaviour* :ignore))
+      (trivial-coverage:with-instrumentation
+	(asdf:load-system system))))
+
+  ;; Load the test system
+  (%load-silently test-system))
+
+(defun test-system-with-coverage-report (system)
+  (let ((system1 (asdf:find-system system)))
+    ;; Run the SYSTEM's unit tests
+    (asdf:test-system system1)
+
+    ;; This automatically includes system connections since they have
+    ;; been included in the instrumentation.
+    (let ((report (asdf:system-relative-pathname
+		   system1 "doc/coverage-report/")))
+      (sb-cover:report (namestring report)))
+
+    ;; Collect source and coverage information
+    ;; TODO this does currently not include system connections
+    (let ((system (trivial-coverage.model::load-source system1))
+	  (report (asdf:system-relative-pathname
+		   system1 "doc/test-coverage" :type "xml")))
+      (trivial-coverage.model::assign-coverage! system (trivial-coverage.backend::coverage-data t))
+      (trivial-coverage.report::emit system `(:cobertura :pathname ,report)))))
+
+(defun test-system (system test-system &rest extra-systems)
+  (apply #'load-system-for-test system test-system extra-systems)
+  (test-system-with-coverage-report system))

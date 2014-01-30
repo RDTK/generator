@@ -1,0 +1,67 @@
+#+TITLE:       jenkins.api README
+#+AUTHOR:      Jan Moringen
+#+EMAIL:       jmoringe@techfak.uni-bielefeld.de
+#+DESCRIPTION: README for jenkins.api system
+#+KEYWORDS:    jenkins, rest, api
+#+LANGUAGE:    en
+
+* Introduction
+  The =jenkins.api= system provides Common Lisp bindings for the REST
+  API of the [[http://jenkins-ci.org/][Jenkins CI Server]]. It goals is to allow the enumeration,
+  inspectation and mutation of the most important aspect of a Jenkins
+  instance:
+  + Nodes
+  + Jobs
+  + Builds
+* Tutorial
+  This tutorial briefly demonstates how to establish a connection to a
+  Jenkins server and how access the Jenkins objects mentioned above.
+** URL and Credentials
+   The following special variables are used to control
+   authentication to the server:
+   + =jenkins.api:*base-url*=
+   + =jenkins.api:*username*=
+   + =jenkins.api:*password*=
+
+   API tokens are not yet supported but will probably be implemented.
+** Nodes
+*** Finding Nodes
+    #+BEGIN_SRC common-lisp
+    CL-USER> (jenkins.api:all-nodes)
+    (#<JENKINS.API:NODE 192.168.100.120 {1014B3CFD3}>
+     #<JENKINS.API:NODE 192.168.100.121 {1014B3D2D3}>
+     #<JENKINS.API:NODE archlinux_64bit {1014B3D5D3}>
+     #<JENKINS.API:NODE MAC_OS_lion_64bit {1014B3D8D3}>
+     #<JENKINS.API:NODE ubuntu_lucid_32bit {1014B3DBD3}>
+     #<JENKINS.API:NODE ubuntu_lucid_64bit {1014B3DED3}>
+     #<JENKINS.API:NODE ubuntu_oneiric_32bit {1014B3E1D3}>
+     #<JENKINS.API:NODE ubuntu_oneiric_64bit {1014B3E4D3}>
+     #<JENKINS.API:NODE ubuntu_precise_32bit {1014B3E7D3}>
+     #<JENKINS.API:NODE ubuntu_precise_64bit {1014B3EAD3}>)
+    #+END_SRC
+
+    #+BEGIN_SRC common-lisp
+    CL-USER> (mapcar #'jenkins.api:online? (jenkins.api:all-nodes))
+    (T T T T T T T T T T)
+    #+END_SRC
+*** TODO Modifying Nodes
+** Jobs
+*** TODO Finding Jobs
+*** Modifying Jobs
+    Jobs are ordinary instances of the class =jenkins.api.job= and can
+    thus be manipulated using slot readers and writers. Such changes
+    only affect the respective object, making it go out of sync with
+    the server. To persist changes, it is necessary to call
+    =jenkins.api:commit!=.
+
+    Typically =jenkins.api:commit!= will be called after performing a
+    batch of changes:
+    #+BEGIN_SRC common-lisp
+    CL-USER> (let ((job (jenkins.api:job "foo")))
+               (setf (jenkins.api:keep/days  job) 30
+                     (jenkins.api:keep/count job) 10)
+               (jenkins.api:commit! job))
+    #<JENKINS.API:JOB foo {1015899ED3}>
+    #+END_SRC
+** Builds
+*** TODO Finding Builds

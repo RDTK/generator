@@ -42,12 +42,13 @@
   :version     #.(version/string)
   :license     "LLGPLv3; see COPYING file for details."
   :description "TODO"
-  :depends-on  (:alexandria #+maybe-later (:version :alexandria      "0.0.0")
+  :depends-on  (:alexandria
                 (:version :split-sequence        "1.1")
-                :iterate #+maybe-later (:version :iterate         "1.4.4")
+                :iterate
                 (:version :let-plus              "0.1")
                 (:version :more-conditions       "0.1.0")
                 (:version :utilities.print-items "0.1.0")
+                :lparallel
                 :log4cl
 
                 :puri
@@ -56,8 +57,9 @@
                 (:version :esrap                 "0.9")
                 (:version :cl-ppcre              "2.0.3")
                 (:version :cl-json               "0.4.1")
-                :inferior-shell #+no (:version :inferior-shell  )
-                :rosetta ;; TODO temp
+                :inferior-shell
+
+                (:version :rosetta               "0.2")
 
                 (:version :jenkins.api           "0.1"))
   :components  ((:module     "analysis"

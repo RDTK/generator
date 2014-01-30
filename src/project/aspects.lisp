@@ -297,7 +297,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
     (mapc (compose #'add-target #'ensure-list)
           (var :aspect.setuptools.targets))
     (push (constraint! (((:after dependency-download)))
-           (shell (:command #?"PYTHON=python${(var :python.version)}
+           (shell (:command #?"PYTHON=${(var :python.binary)}
 mkdir -p \"${(var :python.site-packages-dir)}\"
 export PYTHONPATH=\${PYTHONPATH}:\"${(var :python.site-packages-dir)}\"
 

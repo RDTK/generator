@@ -6,6 +6,9 @@
 
 ;;; The object-aggregation hierarchies are as follows:
 ;;;
+;;; distribution-spec
+;;;   -> version-spec
+;;;
 ;;; project-spec
 ;;;   -> template
 ;;;   version-spec
@@ -16,6 +19,23 @@
 ;;;   job-spec
 
 (cl:in-package #:jenkins.project)
+
+;;; `distribution-spec' class
+
+(defclass distribution-spec (named-mixin
+                             direct-variables-mixin)
+  ((versions :initarg  :versions
+             :type     list ; of version-spec
+             :reader   versions
+             :documentation
+             "TODO"))
+  (:documentation
+   "TODO(jmoringe): document"))
+
+(defmethod direct-variables ((thing distribution-spec))
+  (append (list :distribution-name (name thing))
+          (when (next-method-p)
+            (call-next-method))))
 
 ;;; `project-spec' class
 
@@ -212,16 +232,38 @@
           :key  #'first))
 
 (defmethod instantiate ((spec version-spec))
-  (let+ (((&flet make-job (spec parent)
-            (when (instantiate? spec parent)
-              (when-let ((job (instantiate spec)))
+  (let+ (((&flet make-job (job-spec parent)
+            (when (instantiate? job-spec parent)
+              (when-let ((job (instantiate job-spec)))
                 (list (reinitialize-instance job :parent parent))))))
+         ((&flet prepare-job-spec (job-spec parent &optional variables)
+            (let ((job-spec/copy (clone job-spec)))
+              (reinitialize-instance
+               job-spec/copy
+               :parent    (parent job-spec)
+               :variables (append (direct-variables job-spec/copy)
+                                  (direct-variables parent)
+                                  variables)))))
+         ((&flet make-jobs (job-spec parent)
+            (if-let ((variants (ignore-errors (value (prepare-job-spec job-spec parent) :variants))) ; TODO avoid this
+                     (variant-parents (ignore-errors (value (prepare-job-spec job-spec parent) :variant-parents))))
+              (mapcan (lambda (variant variant-parent)
+                        (log:trace "~@<Instantiating variant ~S of ~A~@:>" variant job-spec)
+                        (make-job (prepare-job-spec job-spec parent
+                                                    (append
+                                                     (list :variant variant)
+                                                     (direct-variables variant-parent)))
+                                  parent))
+                      variants variant-parents)
+              (progn
+                (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
+                (make-job (prepare-job-spec job-spec parent) parent)))))
          (version (make-instance 'version
                                  :name      (name spec)
                                  :variables (direct-variables spec))))
     (reinitialize-instance
      version
-     :jobs (mapcan (rcurry #'make-job version) (jobs spec)))))
+     :jobs (mapcan (rcurry #'make-jobs version) (jobs spec)))))
 
 ;;; `job-spec' class
 
@@ -245,8 +287,10 @@
               (when-let ((aspect (instantiate spec)))
                 (list (reinitialize-instance aspect :parent parent))))))
          (job (make-instance 'job
-                             :name      (name spec)
-                             :variables (direct-variables spec))))
+                             :name      (format nil "~A~@[-~A~]"
+                                                (name spec)
+                                                (ignore-errors (lookup spec :variant)))
+                             :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
      job
      :aspects   (mapcan (rcurry #'make-aspect job)

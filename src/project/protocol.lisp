@@ -192,7 +192,7 @@
     Signal `instantiation-condition's such as `instantiation-error'
     when conditions such as errors are encountered."))
 
-(defgeneric add-dependencies! (thing spec)
+(defgeneric add-dependencies! (thing spec &key providers)
   (:documentation
    "TODO(jmoringe): document"))
 
@@ -207,8 +207,8 @@
         :specification spec))
     (restart-case
         (let ((implementation (call-next-method)))
-          (setf (%specification  implementation) spec
-                (%implementation spec)           implementation)
+          (setf (%specification implementation) spec)
+          (push implementation (%implementations spec))
           (assert implementation)
           implementation)
       (continue (&optional condition)
@@ -218,7 +218,9 @@
         (declare (ignore condition))
         nil))))
 
-(defmethod add-dependencies! :around ((thing t) (spec t))
+(defmethod add-dependencies! :around ((thing t) (spec t)
+                                      &key providers)
+  (declare (ignore providers))
   (with-condition-translation
       (((error instantiation-error)
         :specification spec))

@@ -64,15 +64,20 @@
 ;;; `specification-mixin'
 
 (defclass specification-mixin ()
-  ((implementation :initarg  :implementation
-                   :reader   implementation
-                   :accessor %implementation
-                   :initform nil
-                   :documentation
-                   ""))
+  ((implementations :initarg  :implementation
+                    :type     list
+                    :reader   implementations
+                    :accessor %implementations
+                    :initform nil
+                    :documentation
+                    ""))
   (:documentation
    "Instances of this class have associated implementation objects for
     which they are the specifications."))
+
+(defmethod implementation ((specification specification-mixin))
+  (assert (<= (length (implementations specification)) 1))
+  (first (implementations specification)))
 
 ;;; `conditional-mixin'
 
@@ -96,12 +101,16 @@
                     (error () nil))
                   (handler-case
                       (value spec key)
-                    (error () nil)))))))
+                    (error () nil))))))
+         ((&labels matches? (regex value)
+            (etypecase value
+              (null   nil)
+              (string (ppcre:scan regex value))
+              (cons   (some (curry #'matches? regex) value))))))
     (iter (for (expression regex) on (conditions spec) :by #'cddr)
           (log:trace "~@<Checking ~S (=> ~S) against regex ~S.~@:>"
                      expression (value expression) regex)
-          (always (when-let ((value (value expression)))
-                    (ppcre:scan regex value))))))
+          (always (matches? regex (value expression))))))
 
 ;;; `direct-variables-mixin'
 

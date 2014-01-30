@@ -139,15 +139,52 @@
                         (format stream "~@<Skip ~S.~@:>" file))
               (declare (ignore condition)))))))
 
+(defun load-distributions (files)
+  (with-sequence-progress (:load/distribution files)
+    (mapcan
+     (lambda (file)
+       (progress "~S" file)
+       (restart-case
+           (list (load-distribution/json file))
+         (continue (&optional condition)
+           :report (lambda (stream)
+                     (format stream "~@<Skip distribution ~
+                                     specification ~S.~@:>"
+                             file))
+           (declare (ignore condition)))))
+     files)))
+
+(defun tag-project-versions (distributions)
+  (mapc (lambda (distribution)
+          (mapc (lambda (version)
+                  (handler-case (lookup version :distributions) (error () (setf (lookup version :distributions) '()))) ; TODO
+                  (push (name distribution) (lookup version :distributions))
+                  (handler-case (lookup version :variant-parents) (error () (setf (lookup version :variant-parents) '()))) ; TODO
+                  (push distribution (lookup version :variant-parents))) ; TODO hack
+                (versions distribution)))
+        distributions)
+  distributions)
+
 ;; Deployment
 
-(defun instantiate-projects (specs)
-  "TODO(jmoringe): document"
+(defun instantiate-projects (specs
+                             &optional
+                             (distributions nil distributions-supplied?))
   (let ((projects (mapcar #'instantiate specs)))
     (iter (for project in projects)
           (for spec    in specs)
           (when project
-            (add-dependencies! project spec)
+            (if distributions-supplied?
+                (add-dependencies!
+                 project spec
+                 :providers (lambda (version)
+                              (when-let ((dist (find version distributions
+                                                     :test #'member
+                                                     :key  #'versions)))
+                                (remove-if-not (rcurry #'member (versions dist))
+                                               (providers/alist)
+                                               :key #'cdr))))
+                (add-dependencies! project spec))
             (collect project)))))
 
 (defun deploy-projects (projects)
@@ -243,9 +280,9 @@
                           (lambda (component)
                             (mapcar (compose #'id #'implementation) component))
                           job-components)))
-         (script (format nil "build(\"toolkit-cleanup-~A\")~2%~
+         (script (format nil "build(\"toolkit-prepare-~A\", tag: build.id)~2%~
                               ~A~2%~
-                              build(\"toolkit-deploy-~2:*~A\", tag: build.id)"
+                              build(\"toolkit-finish-~2:*~A\", tag: build.id)"
                          version
                          #+no (print `(:parallel
                             ,@(mapcar
@@ -326,10 +363,47 @@
           #+no (configure-orchestration-jobs version jobs)
           (configure-buildflow-job version (schedule-jobs jobs)))))
 
+(defun configure-jobs (distribution)
+  (let ((name    (value distribution :distribution-name))
+        (prepare (or (ignore-errors (value distribution :prepare-hook/unix))
+                     "# Nothing to do"))
+        (finish  (or (ignore-errors (value distribution :finish-hook/unix))
+                     "# Nothing to do")))
+    (macrolet ((ensure-job ((kind name) &body body)
+                 `(let ((job (jenkins.dsl:job (,kind ,name) ,@body)))
+                    (if (jenkins.api:job? (id job))
+                        (setf (jenkins.api:job-config (id job)) (jenkins.api::%data job))
+                        (jenkins.api::make-job (id job) (jenkins.api::%data job)))
+                    (jenkins.api:enable! job))))
+
+      ;; Create helper jobs
+      (ensure-job ("project" (format nil "toolkit-prepare-~A" name))
+                  (jenkins.api:builders
+                   (jenkins.dsl::shell (:command prepare))))
+      (ensure-job ("project" (format nil "toolkit-finish-~A" name))
+                  (jenkins.api:builders
+                   (jenkins.dsl::shell (:command finish))))
+
+      ;; Create bluildflow job
+      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" . "build-flow-plugin@0.10")
+                    (format nil "toolkit-buildflow-~A" name))))))
+
+(defun configure-distribution (distribution)
+  (let ((name (value distribution :distribution-name))
+        (jobs (remove-if-not            ; TODO hack
+               (lambda (job)
+                 (equal (ignore-errors (value job :variant)) (name distribution)))
+               (mappend (compose #'jobs #'implementation) (versions distribution)))))
+    (log:debug "~@<Jobs in ~A: ~A~@:>" distribution jobs)
+    (configure-jobs distribution)
+    (configure-buildflow-job name (schedule-jobs jobs))))
+
+(defun configure-distributions (distributions)
+  (mapc #'configure-distribution distributions))
+
 ;;; Commandline interface
 
 (defun collect-inputs (spec)
-  "TODO(jmoringe): document"
   (cond
     ((wild-pathname-p spec)
      (directory spec))
@@ -364,7 +438,12 @@
                       :short-name    "t"
                       :argument-name "TEMPLATE"
                       :description
-                      "Load a template. This option can be supplied multiple times.")
+                      "Load one or more templates. This option can be supplied multiple times.")
+              (stropt :long-name     "distribution"
+                      :short-name    "d"
+                      :argument-name "DISTRIBUTION"
+                      :description
+                      "Load one or more distributions. This option can be supplied multiple times.")
               (stropt :long-name     "base-uri"
                       :short-name    "b"
                       :argument-name "URI"
@@ -384,7 +463,6 @@
                       :description
                       "API token for Jenkins authentication.")
               (flag   :long-name     "delete-other"
-                      :short-name    "d"
                       :description
                       "Delete previously automatically generated jobs when they are not re-created in this generation run."))
    :item    (clon:defgroup (:header "Drupal Options")
@@ -447,8 +525,15 @@
                               (if-let ((matches (collect-inputs
                                                  (parse-namestring spec))))
                                 (appending matches)
-                                (warn "~@<Project input ~S did not match anything.~@:>"
-                                      spec)))))
+                                (warn "~@<Project pattern ~S did not match anything.~@:>"
+                                      spec))))
+              (distributions (iter (for spec next (clon:getopt :long-name "distribution"))
+                                   (while spec)
+                                   (if-let ((matches (collect-inputs
+                                                      (parse-namestring spec))))
+                                     (appending matches)
+                                     (warn "~@<Distribution pattern ~S did not match anything.~@:>"
+                                           spec)))))
           (lparallel:task-handler-bind
               ((error (lambda (condition)
                         (when nil
@@ -469,11 +554,13 @@
                           (bt:with-lock-held (errors-lock)
                             (push condition errors))
                           (continue))))
-              (let* ((templates (load-templates templates))
-                     (specs     (load-projects projects))
-                     (projects  (instantiate-projects specs))
-                     (jobs/spec (flatten (deploy-projects projects)))
-                     (jobs      (mapcar #'implementation jobs/spec)))
+              (let* ((templates     (load-templates templates))
+                     (specs         (load-projects projects))
+                     (distributions (tag-project-versions
+                                     (load-distributions distributions)))
+                     (projects      (instantiate-projects specs distributions))
+                     (jobs/spec     (flatten (deploy-projects projects)))
+                     (jobs          (mappend #'implementations jobs/spec)))
                 (declare (ignore templates))
 
                 ;; Draw graphs
@@ -496,7 +583,14 @@
                   (with-sequence-progress (:graphs/dependencies projects)
                     (iter (for project in projects)
                           (progress "~A" project)
-                          (graph :jenkins.dependencies (versions project) (name project)))))
+                          (graph :jenkins.dependencies (versions project) (name project))))
+
+                  (with-sequence-progress (:graphs/dependencies/distribution distributions)
+                    (iter (for distribution in distributions)
+                          (progress "~A" distribution)
+                          (graph :jenkins.dependencies
+                                 (mappend #'implementations (versions distribution))
+                                 (name distribution)))))
 
                 ;; Delete automatically generated jobs found on the
                 ;; server for which no counterpart exists among the newly
@@ -512,7 +606,8 @@
 
                 ;; TODO explain
                 (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                  (configure-toolkit-versions jobs/spec))
+                  #+no (configure-toolkit-versions jobs/spec)
+                  (configure-distributions distributions))
 
                 (enable-jobs jobs)))))))
 

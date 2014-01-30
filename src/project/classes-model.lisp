@@ -34,8 +34,15 @@
           (when (next-method-p)
             (call-next-method))))
 
-(defmethod add-dependencies! ((thing project) (spec project-spec))
-  (mapc #'add-dependencies! (versions thing) (versions spec)))
+(defmethod add-dependencies! ((thing project) (spec project-spec)
+                              &key
+                              (providers nil providers-supplied?))
+  (mapc (if providers-supplied?
+            (lambda (version version-spec)
+              (add-dependencies! version version-spec
+                                 :providers (funcall providers version-spec)))
+            #'add-dependencies!)
+        (versions thing) (versions spec)))
 
 (defmethod deploy ((thing project))
   (mapcar #'deploy (versions thing)))
@@ -73,7 +80,9 @@
           (when (next-method-p)
             (call-next-method))))
 
-(defmethod add-dependencies! ((thing version) (spec version-spec))
+(defmethod add-dependencies! ((thing version) (spec version-spec)
+                              &key
+                              (providers nil providers-supplied?))
   (iter (for requires in (requires spec))
         (log:trace "~@<Trying to satisfy requirement ~S for ~A~:[~; ~
                     considering providers ~S~].~@:>"
@@ -88,9 +97,13 @@
                    ((&flet+ order ((&ign . left-provider) (&ign . right-provider))
                       (> (count-jobs left-provider) (count-jobs right-provider))))
                    (candidate (implementation
-                               (find-provider/version requires :order #'order))))
-              (unless (eq candidate thing) ; TODO temp; should not happen
-                (pushnew candidate (%dependencies thing))))
+                               (apply #'find-provider/version requires
+                                      (if providers-supplied?
+                                          (list :providers providers)
+                                          (list :order #'order))))))
+              (log:trace "~@<Best candidate is ~S.~@:>" candidate)
+              (assert (not (eq candidate thing))) ; TODO temp; should not happen
+              (pushnew candidate (%dependencies thing)))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Skip requirement ~S.~@:>"
@@ -131,7 +144,9 @@
           (when (next-method-p)
             (call-next-method))))
 
-(defmethod add-dependencies! ((thing job) (spec job-spec))
+(defmethod add-dependencies! ((thing job) (spec job-spec)
+                              &key providers)
+  (declare (ignore providers))
   (let ((dependency-name (or (ignore-errors
                               (value thing :dependency-job-name))
                              (name thing))))
@@ -172,7 +187,7 @@
          (kind (make-keyword (string-upcase (value thing :kind))))
          (job  (jenkins.dsl:job (kind (value thing :bla-name)
                                       :description (format-description)))))
-    (setf (%implementation thing) job)
+    (push job (%implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated
     ;; builders according to declared ordering.

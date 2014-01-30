@@ -58,9 +58,32 @@
   (bt:with-lock-held (*providers-lock*)
     (push new-value (gethash name *providers* '()))))
 
+(defun providers/alist ()
+  (expand-providers
+   (bt:with-lock-held (*providers-lock*)
+     (hash-table-alist *providers*))))
+
+(defun expand-providers (providers)
+  "Expand PROVIDERS from the form
+
+     ((VERSION1 . (PROVIDER11 PROVIDER12 …))
+      (VERSION2 . (PROVIDER21 PROVIDER22 …))
+      …)
+
+   to the form
+
+     ((VERSION1 . PROVIDER11) … (VERSION2 . PROVIDER21) …)
+
+   ."
+  (iter outer
+        (for (version . providers1) in providers)
+        (iter (for provider in providers1)
+              (in outer (collect (cons version provider))))))
+
 (defun find-provider/version (spec
                               &key
                               (if-does-not-exist #'error)
+                              (providers         (providers/alist) providers-supplied?)
                               order)
   (log:trace "~@<Trying to find provider of ~S~:[~; considering ~
               providers ~S~]~@:>"
@@ -68,34 +91,39 @@
   (let+ (((mechanism name &optional version) spec)
          ((&flet version-better (left right)
             (cond
-              ((equal version left)
+              ((equal version left) ; LEFT is an exact match => LEFT is best
                t)
-              ((equal version right)
+              ((equal version right) ; RIGHT is an exact match => LEFT is not better
                nil)
+              ;; VERSION is a prefix of LEFT but not of RIGHT => LEFT is better
               ((and (starts-with-subseq version left :test #'equal)
                     (not (starts-with-subseq version right :test #'equal)))
                t)
+              ;; VERSION is a prefix of RIGHT (and maybe a prefix of
+              ;; LEFT) => LEFT is not better
               ((starts-with-subseq version right :test #'equal)
                nil)
+              ;; LEFT is greater than RIGHT => LEFT is better
               ((version>= left right)))))
          ((&flet provider-better (left right)
+            ;; If ORDER is supplied, use it. If not (or ORDER returns
+            ;; nil), use VERSION-BETTER.
             (or (and order (funcall order left right))
                 (and (not (and order (funcall order right left)))
                      (version-better (provider-version (car left))
                                      (provider-version (car right)))))))
+         ;; Find providers in PROVIDERS which can provide the required
+         ;; MECHANISM, NAME and VERSION of SPEC.
          (candidates (remove-if-not (lambda+ ((mechanism1 name1 &optional version1))
                                       (and (eq              mechanism1 mechanism)
                                            (string=         name1      name)
                                            (version-matches version    version1)))
-                                    (bt:with-lock-held (*providers-lock*)
-                                      (hash-table-alist *providers*))
+                                    providers
                                     :key #'car))
-         (candidates
-          (iter outer
-                (for (version . providers) in candidates)
-                (iter (for provider in providers)
-                      (in outer (collect (cons version provider))))))
+         ;; Sort CANDIDATES according to PROVIDER-BETTER (which may
+         ;; use ORDER).
          (candidates (stable-sort candidates #'provider-better)))
+    ;; Take the best candidate or act according to IF-DOES-NOT-EXIST.
     (or (cdr (first candidates))
         (etypecase if-does-not-exist
           (null

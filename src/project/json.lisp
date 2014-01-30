@@ -81,3 +81,32 @@
                                   description from ~S: ~A~@:>"
                                   pathname condition))))
     (load-project-spec/json-1 pathname)))
+
+(defun load-distribution-spec/json-1 (pathname)
+  (let+ ((spec (json:decode-json-from-source pathname))
+         ((&flet lookup (name &optional (where spec))
+            (cdr (assoc name where))))
+         ((&flet+ resolve-version ((project version))
+            (let ((project (find-project project)))
+              (or (find version (versions project)
+                        :test #'string= :key #'name)
+                  (error "~@<Could not find version ~S in project ~A.~@:>"
+                         version project))))))
+    (make-instance 'distribution-spec
+                   :name      (lookup :name)
+                   :variables (alist-plist (lookup :variables))
+                   :versions  (mapcan (lambda (version)
+                                        (restart-case
+                                            (list (resolve-version version))
+                                          (continue (&optional condition)
+                                            :report (lambda (stream)
+                                                      (format stream "~@<Skip ~A.~@:>" version))
+                                            (declare (ignore condition)))))
+                                      (lookup :versions)))))
+
+(defun load-distribution/json (pathname)
+  (handler-bind ((error (lambda (condition)
+                          (error "~@<Error when loading distribution ~
+                                  description from ~S: ~A~@:>"
+                                 pathname condition))))
+    (load-distribution-spec/json-1 pathname)))

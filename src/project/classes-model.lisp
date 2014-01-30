@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -75,6 +75,9 @@
 
 (defmethod add-dependencies! ((thing version) (spec version-spec))
   (iter (for requires in (requires spec))
+        (log:trace "~@<Trying to satisfy requirement ~S for ~A~:[~; ~
+                    considering providers ~S~].~@:>"
+                   requires thing providers-supplied? providers)
         (restart-case
             (let+ (((&flet instantiable-jobs (spec)
                       (remove-if-not (rcurry #'instantiate? spec) (jobs spec))))
@@ -133,6 +136,7 @@
                               (value thing :dependency-job-name))
                              (name thing))))
     (iter (for dependency in (dependencies (parent thing)))
+          (log:trace "~@<Trying to add ~A to ~A~@:>" dependency thing)
           (restart-case
               (let ((dependency
                       (or (find dependency-name (jobs dependency)
@@ -176,13 +180,13 @@
           (aspects (sort-with-partial-order (copy-list (aspects thing)) #'aspect<)))
       (reduce (rcurry #'extend! thing) aspects :initial-value job)
 
-      (log:debug "Builder constraints: ~A" (hash-table-alist *builder-constraints*))
+      (log:trace "Builder constraints: ~A" (hash-table-alist *builder-constraints*))
 
       (setf (builders job)
             (sort-with-partial-order
              (builders job) (rcurry #'builder< *builder-constraints*)))
 
-      (log:debug "Sorted builders: ~A" (builders job)))
+      (log:trace "Sorted builders: ~A" (builders job)))
 
     ;; TODO temp
     (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)

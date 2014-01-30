@@ -225,7 +225,7 @@
     (restart-case (call-next-method)
       (continue (&optional condition)
         :report (lambda (stream)
-                  (format stream "~@<Skip adding dependencies to ~A
+                  (format stream "~@<Skip adding dependencies to ~A ~
                                   according to ~A.~@:>"
                           thing spec))
         (declare (ignore condition))

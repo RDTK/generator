@@ -1,6 +1,6 @@
 ;;;; variables.lisp --- Variables used by the project module.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -62,6 +62,9 @@
                               &key
                               (if-does-not-exist #'error)
                               order)
+  (log:trace "~@<Trying to find provider of ~S~:[~; considering ~
+              providers ~S~]~@:>"
+             spec providers-supplied? providers)
   (let+ (((mechanism name &optional version) spec)
          ((&flet version-better (left right)
             (cond

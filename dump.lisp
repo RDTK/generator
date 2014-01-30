@@ -39,7 +39,9 @@
           (load-template/json file)
         (continue (&optional condition)
           :report (lambda (stream)
-                    (format stream "~@<Skip ~S.~@:>" file))
+                    (format stream "~@<Skip template specification ~
+                                    ~S.~@:>"
+                            file))
           (declare (ignore condition)))))))
 
 (defun analyze-project (project)
@@ -118,7 +120,9 @@
             (analyze-project (load-project-spec/json file))
           (continue (&optional condition)
             :report (lambda (stream)
-                      (format stream "~@<Skip ~S.~@:>" file))
+                      (format stream "~@<Skip project specification ~
+                                      ~S.~@:>"
+                              file))
             (declare (ignore condition)))))
       :parts most-positive-fixnum files))
 
@@ -436,7 +440,7 @@
                                      (if-let ((matches (collect-inputs
                                                         (parse-namestring spec))))
                                        (appending matches)
-                                       (warn "~@<~S did not match anything.~@:>"
+                                       (warn "~@<Template pattern ~S did not match anything.~@:>"
                                              spec)))
                                #'string< :key #'pathname-name))
               (projects (iter (for spec in (clon:remainder))
@@ -548,6 +552,8 @@
 #+no (trace "JENKINS.ANALYSIS")
 
 #+no (trace rs.f::normalize-name)
+
+(log:config :thread :info)
 
 (sb-ext:save-lisp-and-die "projects"
                           :toplevel             'main

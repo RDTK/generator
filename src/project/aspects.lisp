@@ -138,7 +138,7 @@
                                       (let ((type-string (string builder-type)))
                                         (subseq type-string (length "builder/")))))
          (value  (ignore-errors (value aspect variable))))
-    (log:debug "Constraints for ~A in ~A: ~A" builder variable value)
+    (log:trace "Constraints for ~A in ~A: ~A" builder variable value)
     (mapcar (lambda+ ((kind &rest args))
               (list* (make-keyword (string-upcase kind))
                      (if (string= (first args) "<all>")

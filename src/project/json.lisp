@@ -41,8 +41,8 @@
 
 (defun load-template/json (pathname)
   (handler-bind ((error (lambda (condition)
-                          (error "~@<Failed to load template from ~S: ~
-                                  ~A~@:>"
+                          (error "~@<Error when loading template from ~
+                                  ~S: ~A~@:>"
                                  pathname condition))))
     (load-template/json-1 pathname)))
 
@@ -77,7 +77,7 @@
 
 (defun load-project-spec/json (pathname)
   (handler-bind ((error (lambda (condition)
-                          (error "~@<Failed to load project ~
+                          (error "~@<Error when loading project ~
                                   description from ~S: ~A~@:>"
                                   pathname condition))))
     (load-project-spec/json-1 pathname)))

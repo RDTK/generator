@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -87,6 +87,8 @@
    "TODO(jmoringe): document"))
 
 (defmethod instantiate? ((spec conditional-mixin) (parent t))
+  (log:debug "~@<Checking whether to instantiate ~A with parent ~A.~@:>"
+             spec parent)
   (let+ (((&flet value (name)
             (let ((key (make-keyword (string-upcase name))))
               (or (handler-case
@@ -96,6 +98,8 @@
                       (value spec key)
                     (error () nil)))))))
     (iter (for (expression regex) on (conditions spec) :by #'cddr)
+          (log:trace "~@<Checking ~S (=> ~S) against regex ~S.~@:>"
+                     expression (value expression) regex)
           (always (when-let ((value (value expression)))
                     (ppcre:scan regex value))))))
 

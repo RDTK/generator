@@ -227,7 +227,7 @@
                (format nil "~%~2@T~<~@;~{~A~^~%~}~:>~%"
                        (list (mapcar #'format-flow (rest jobs)))))
               (t
-               (format nil "~:[~:;ignore(FAILURE) {~%~2@T~]build(~S)~2:*~:[~:;~%}~]"
+               (format nil "~:[~:;ignore(FAILURE) {~%~2@T~]build(~S, tag: build.id)~2:*~:[~:;~%}~]"
                        ignore-failures? jobs)))))
          #+no (script (format nil "build(\"toolkit-cleanup-~A\")~2%~
                               parallel (~%~
@@ -245,7 +245,7 @@
                           job-components)))
          (script (format nil "build(\"toolkit-cleanup-~A\")~2%~
                               ~A~2%~
-                              build(\"toolkit-deploy-~2:*~A\")"
+                              build(\"toolkit-deploy-~2:*~A\", tag: build.id)"
                          version
                          #+no (print `(:parallel
                             ,@(mapcar

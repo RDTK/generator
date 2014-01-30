@@ -91,7 +91,7 @@
                       (list "MAJOR" "MINOR" "PATCH")
                       (list major minor patch))))))
 
-(defun resolve-version (spec versions)
+(defun %resolve-cmake-version (spec versions)
   (iter (repeat 32)
         (while (or (find #\$ spec) (find #\@ spec)))
         (iter (for (name . value) in versions)
@@ -161,17 +161,17 @@
             (when major
               (setf project-version (format-version major minor patch)))))
 
-        `((:main ,(resolve-version project-version versions))))
+        `((:main ,(%resolve-cmake-version project-version versions))))
 
       :provides
       (append
        (iter (for file in config-files)
              (collect (list :cmake
                             (cmake-config-file->project-name/dont-normalize file)
-                            (parse-version (resolve-version project-version versions)))))
+                            (parse-version (%resolve-cmake-version project-version versions)))))
        (iter (for file in pkg-config-template-files)
              (let* ((content (read-file-into-string file))
-                    (content (resolve-version content variables)))
+                    (content (%resolve-cmake-version content variables)))
                (when-let ((provides
                            (with-input-from-string (stream content)
                              (getf (analyze stream :pkg-config) :provides))))
@@ -182,8 +182,8 @@
             (let ((content (read-file-into-string file)))
               (ppcre:do-register-groups (name version)
                   (*find-package-scanner* content)
-                (collect (list* :cmake (resolve-version name versions)
-                                (when version (list (parse-version (resolve-version version versions)))))))
+                (collect (list* :cmake (%resolve-cmake-version name versions)
+                                (when version (list (parse-version (%resolve-cmake-version version versions)))))))
               (ppcre:do-register-groups (variable modules)
                   (*pkg-check-modules-scanner* content)
                 (declare (ignore variable))
@@ -191,7 +191,7 @@
                                               "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
                                               modules)
                   (let+ ((module (string-trim '(#\") module))
-                         (resolved (resolve-version module variables))
+                         (resolved (%resolve-cmake-version module variables))
                          ((name &optional version)
                           (or (ppcre:register-groups-bind (name version)
                                   ("([^>=]+)>=(.*)" resolved)
@@ -228,9 +228,9 @@
                   (ppcre:register-groups-bind (name relation version)
                       ("([^ ]+)(?:[ ]+\\(([<>=]+)[ ]+([0-9.]+)\\))?" value)
                     (collect (list :debian
-                                   (resolve-version name versions)
+                                   (%resolve-cmake-version name versions)
                                    (when version
-                                     (resolve-version version versions))
+                                     (%resolve-cmake-version version versions))
                                    (when relation (find-symbol relation :cl))
                                    kind)))))))
 

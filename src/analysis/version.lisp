@@ -1,6 +1,6 @@
 ;;;; version.lisp --- Simple version model.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -38,8 +38,11 @@
             (etypecase thing
               (real   (princ-to-string thing))
               (string thing)))))
-    (or (and (realp left) (realp right) (< left right))
-        (string< (ensure-string left) (ensure-string right)))))
+    (cond
+      ((and (realp left) (realp right))
+       (< left right))
+      (t
+       (string< (ensure-string left) (ensure-string right))))))
 
 (defun version= (left right)
   (equal left right))
@@ -48,12 +51,14 @@
   "Example:
 
      (version< '(\"0\" \"8\" \"alpha\") '(\"0\" \"7\" \"beta\"))"
-  (cond
-    ((null left)  t)
-    ((null right) nil)
-    ((some #'version-component-< left right))
-    ((and (every #'equal left right)
-          (< (length left) (length right))))))
+  (let+ (((&labels+ rec ((&optional left &rest rest-left)
+                         (&optional right &rest rest-right))
+            (cond
+              ((null left)                      (not (null right)))
+              ((null right)                     nil)
+              ((version-component-< left right) t)
+              ((equal left right)               (rec rest-left rest-right))))))
+    (rec left right)))
 
 (defun version>= (left right)
   (not (version< left right)))

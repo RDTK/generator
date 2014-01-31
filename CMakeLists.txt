@@ -167,6 +167,9 @@ add_test(NAME    "${SYSTEM_NAME}"
          COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/sbcl.test.cmake")
 
 # Installation
+install(PROGRAMS    "${CMAKE_CURRENT_BINARY_DIR}/${MAIN_NAME}"
+        DESTINATION "bin")
+
 file(GLOB ASD_FILES
      RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
      "*.asd")

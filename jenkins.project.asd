@@ -129,4 +129,6 @@
                               (:file     "classes-spec")
                               (:file     "classes-model")
 
-                              (:file     "json")))))
+                              (:file     "json")
+
+                              (:file     "progress")))))

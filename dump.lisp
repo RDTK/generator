@@ -12,22 +12,6 @@
 
 (sb-ext:add-package-local-nickname '#:clon '#:com.dvlsoft.clon)
 
-;;; Progress stuff
-
-#+no (defmethod jenkins.analysis:analyze :before ((source t) (schema t) &key)
-  (progress :analyze/branch nil "Analyzing ~A branch ~A" schema source))
-
-(defmethod deploy :around ((thing project))
-  (with-sequence-progress (:deploy/version (versions thing))
-    (call-next-method)))
-
-(defmethod deploy :around ((thing version))
-  (progress :deploy/version nil "~A" thing)
-  (with-sequence-progress (:deploy/job (jobs thing))
-    (call-next-method)))
-
-(defmethod deploy :before ((thing job))
-  (progress :deploy/job nil "~A" thing))
 
 ;;; Input
 

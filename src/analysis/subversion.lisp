@@ -28,10 +28,10 @@
                            temp-directory)))
 
     (with-trivial-progress (:checkout "~A" source)
-      (inferior-shell:run/lines
-       `(inferior-shell:&host (inferior-shell:local ,temp-directory)
-          (,@(%svn-and-global-options username password)
-           "co" ,(princ-to-string source) ,clone-directory))))
+      (inferior-shell:run
+       `(,@(%svn-and-global-options username password)
+         "co" ,(princ-to-string source) ,clone-directory)
+       :directory temp-directory))
 
     (unwind-protect
          (let+ (((&flet find-branches (directory &optional pattern)
@@ -88,9 +88,8 @@
                                          name))
                        (declare (ignore condition)))))))
 
-      (inferior-shell:run/lines
-       `(inferior-shell:&host (inferior-shell:local ,temp-directory)
-          (rm "-rf" ,clone-directory))))))
+      (inferior-shell:run `(rm "-rf" ,clone-directory)
+                          :directory temp-directory))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/authors))
                     &key
@@ -100,9 +99,9 @@
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (inferior-shell:run/lines
-              `(inferior-shell:&host (inferior-shell:local ,directory)
-                 (,@(%svn-and-global-options username password)
-                  "log" ,directory))))
+              `(,@(%svn-and-global-options username password)
+                "log" ,directory)
+              :directory directory))
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)

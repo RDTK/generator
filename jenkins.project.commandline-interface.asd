@@ -1,6 +1,6 @@
 ;;;; jenkins.project.commandline-interface.asd --- System definition for generator binary.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -21,7 +21,12 @@
   :version     #.(jenkins.project-system:version/string)
   :license     "GPLv3; see COPYING file for details."
   :description "TIDE log file format backend for cl-rsbag."
-  :depends-on  (:com.dvlsoft.clon
+  :depends-on  (:alexandria
+                (:version :let-plus        "0.2")
+                :iterate
+                (:version :more-conditions "0.2")
+
+                :com.dvlsoft.clon
 
                 (:version :jenkins.project #.(jenkins.project-system:version/string)))
   :components  ((:module     "commandline-interface"

@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -47,9 +47,11 @@
    #:versions
    #:jobs)
 
-  ;; Version specification protocol
+  ;; Version specification protocol and class
   (:export
-   #:dependencies)
+   #:dependencies
+
+   #:version-spec)
 
   ;; Job specification protocol
   (:export
@@ -73,6 +75,49 @@
   ;; Instance protocol
   (:export
    #:find-instance)
+
+  ;; Provider registry
+  (:export
+   #:find-provider
+   #:find-provider/version
+   #:providers/alist)
+
+  ;; Instantiation protocol
+  (:export
+   #:instantiate?
+   #:instantiate
+   #:add-dependencies!)
+
+  ;; Deployment protocol
+  (:export
+   #:deploy
+   #:deploy-dependencies)
+
+  ;; Implementation protocol
+  (:export
+   #:specification)
+
+  ;; Specification protocol
+  (:export
+   #:implementation
+   #:implementations)
+
+  ;; Name protocol
+  (:export
+   #:name)
+
+  ;; Variable protocol
+  (:export
+   #:direct-variables
+   #:variables
+   #:lookup
+   #:value)
+
+  ;; JSON stuff
+  (:export
+   #:load-template/json
+   #:load-project-spec/json
+   #:load-distribution/json)
 
   (:documentation
    "TODO"))

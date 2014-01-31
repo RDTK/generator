@@ -376,8 +376,10 @@
 
 (defun report-error (condition)
   (ignore-errors
-   (format *error-output* "~&~A:~&~A~2%"
-           (type-of condition) condition)))
+   (format *error-output* "~&~@<~A:~
+                           ~@:_~2@T~<~A~:>~
+                           ~:>~2%"
+           (type-of condition) (list condition))))
 
 (defun call-with-delayed-error-reporting (thunk
                                           &key

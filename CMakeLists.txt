@@ -144,9 +144,14 @@ endif()
 message(STATUS "Project is ${CMAKE_PROJECT_NAME} (${VERSION_FROM_LISP})")
 
 # Create binary.
-set(MAIN_NAME "tool")
+set(MAIN_NAME "build-generator")
+set(MAIN_SYSTEM_NAME "jenkins.project.commandline-interface")
 configure_lisp_redirect("${MAIN_NAME}"
-                        "--eval \"(asdf:oos (quote asdf:program-op) :jenkins.project.commandline-interface)\"")
+                        "--eval \"(asdf:oos (quote asdf:program-op) :${MAIN_SYSTEM_NAME})\"
+                         --eval \"(rename-file (asdf:output-file 'asdf:program-op :${MAIN_SYSTEM_NAME})
+                                               (make-pathname :name     \\\"${MAIN_NAME}\\\"
+                                                              :type     :unspecific
+                                                              :defaults #P\\\"${CMAKE_CURRENT_BINARY_DIR}/\\\"))\"")
 add_custom_command(OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/${MAIN_NAME}"
                    COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/sbcl.${MAIN_NAME}.cmake"
                    COMMENT "Creating Lisp image ${MAIN_NAME} (this can take a long time)")

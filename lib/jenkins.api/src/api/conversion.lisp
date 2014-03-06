@@ -26,6 +26,39 @@
 		       &key &allow-other-keys)
   (if value "true" "false"))
 
+;;; Boolean encoded by presence of an Element
+
+(deftype boolean/element (local-name)
+  (declare (ignore local-name))
+  '(member t nil))
+
+(defun local-name-and-child (element type-spec)
+  (let+ (((local-name) type-spec)
+         ((&flet local-name-matches? (child)
+            (and (typep child 'stp:element)
+                 (string= (stp:local-name child) local-name)))))
+    (values local-name (stp:find-child-if #'local-name-matches? element))))
+
+(defmethod xloc:xml-> ((value stp:element)
+		       (type  (eql 'boolean/element))
+		       &key inner-types &allow-other-keys)
+  (let+ (((&values &ign child) (local-name-and-child value inner-types)))
+    (when child t)))
+
+(defmethod xloc:->xml ((value t)
+		       (dest  stp:element)
+		       (type  (eql 'boolean/element))
+		       &key inner-types &allow-other-keys)
+  (let+ (((&values local-name child)
+          (local-name-and-child dest inner-types)))
+    (cond
+      ((not value)
+       (when child
+         (stp:delete-child child dest)))
+      ((not child)
+       (stp:append-child dest (stp:make-element local-name)))))
+  value)
+
 ;;; Keyword
 
 (defmethod xloc:xml-> ((value string)

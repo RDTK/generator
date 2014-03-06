@@ -382,14 +382,30 @@
 				     (t
 				      "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"))
 			  :initform nil)
-    (wipe-out-workspace?  :type     boolean
-			  :xpath    "wipeOutWorkspace/text()")
+    (wipe-out-workspace?  :type     (boolean/element "hudson.plugins.git.extensions.impl.WipeWorkspace")
+			  :xpath    (:version
+                                     ("git@1.1.26"
+                                      "wipeOutWorkspace/text()")
+                                     (t
+                                      "extensions")))
     (checkout-submodules? :type     boolean
-			  :xpath    "recursiveSubmodules/text()")
+			  :xpath    (:version
+                                     ("git@1.1.26"
+                                      "recursiveSubmodules/text()")
+                                     (t
+                                      "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")))
     (shallow?             :type     boolean
-			  :xpath    "useShallowClone/text()")
-    (skip-internal-tag?   :type     boolean
-			  :xpath    "skipTag/text()")
+			  :xpath    (:version
+                                     ("git@1.1.26"
+                                      "useShallowClone/text()")
+                                     (t
+                                      "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")))
+    (internal-tag?        :type     (boolean/element "hudson.plugins.git.extensions.impl.PerBuildTag")
+			  :xpath    (:version
+                                     ("git@1.1.26"
+                                      "skipTag/text()")
+                                     (t
+                                      "extensions")))
     (browser-kind         :type     git-browser
 			  :xpath    "browser/@class"
 			  :initform nil)

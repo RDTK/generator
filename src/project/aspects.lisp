@@ -1,6 +1,6 @@
 ;;;; aspects.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -95,7 +95,7 @@
               :checkout-submodules? nil
               :shallow?             (var :aspect.git.shallow? nil)
               :local-branch         (first (var :aspect.git.branches))
-              :skip-internal-tag?   t))))
+              :internal-tag?        nil))))
 
 (define-aspect (subversion) () ()
   (setf (repository job)

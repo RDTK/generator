@@ -92,7 +92,7 @@
    #:local-branch
    #:wipe-out-workspace?
    #:checkout-submodules?
-   #:skip-internal-tag?
+   #:internal-tag?
    #:browser-kind
    #:browser-url
 

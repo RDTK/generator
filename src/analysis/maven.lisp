@@ -1,6 +1,6 @@
 ;;;; maven.lisp --- Analysis of maven projects.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -65,7 +65,7 @@
     (replace1 spec)))
 
 (defun %parse-maven-version-spec (string)
-  (or (ppcre:register-groups-bind (open version close) ("(\\[)?([^]]*)(\\])?" string)
+  (or (ppcre:register-groups-bind (open version close) ("(\\[|\\()?([^])]*)(\\]|\\))?" string)
         (when (or (and open close) (not (or open close)))
           version))
       (error "~@<Invalid version specification: ~S.~@:>"

@@ -69,13 +69,13 @@
                 (declare (ignore condition)))))))
 
     (mapc #'do-branch1 (jenkins.analysis:analyze
-                        (puri:uri (lookup project :repository)) :auto
-                        :scm           (ignore-errors (lookup project :scm))
-                        :username      (ignore-errors (lookup project :scm.username))
-                        :password      (ignore-errors (lookup project :scm.password))
-                        :branches      (ignore-errors (lookup project :branches))
-                        :tags          (ignore-errors (lookup project :tags))
-                        :sub-directory (ignore-errors (lookup project :sub-directory)))))
+                        (puri:uri (value project :repository)) :auto
+                        :scm           (ignore-errors (value project :scm))
+                        :username      (ignore-errors (value project :scm.username))
+                        :password      (ignore-errors (value project :scm.password))
+                        :branches      (ignore-errors (value project :branches))
+                        :tags          (ignore-errors (value project :tags))
+                        :sub-directory (ignore-errors (value project :sub-directory)))))
 
   project)
 

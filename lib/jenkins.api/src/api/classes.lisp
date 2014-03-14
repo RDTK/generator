@@ -515,6 +515,47 @@
 
 ;;; builder interface
 
+(macrolet
+    ((define-maven-settings-type (name default-provider file-path-provider)
+       `(progn
+	  (deftype ,name ()
+	    '(or (eql :default) string))
+
+	  (defmethod xloc:xml-> ((value stp:element)
+				 (type  (eql ',name))
+				 &key &allow-other-keys)
+	    (xloc:with-locations-r/o (((:@ class) ".")
+				      (path       "path/text()" :if-no-match :do-nothing))
+		value
+	      (cond
+		((string= class ,default-provider)
+		 :default)
+		((string= class ,file-path-provider)
+		 path))))
+
+	  (defmethod xloc:->xml ((value t)
+				 (dest  stp:element)
+				 (type  (eql ',name))
+				 &key &allow-other-keys)
+	    (xloc:with-locations (((:@ class) ".")
+				  (path       "path/text()")) dest
+	      (etypecase value
+		((eql :default)
+		 (setf class ,default-provider)
+		 (stp:delete-children dest))
+		(string
+		 (setf class ,file-path-provider)
+		 (setf path value))))
+	    dest))))
+
+  (define-maven-settings-type maven-settings
+    "jenkins.mvn.DefaultSettingsProvider"
+    "jenkins.mvn.FilePathSettingsProvider")
+
+  (define-maven-settings-type maven-global-settings
+    "jenkins.mvn.DefaultGlobalSettingsProvider"
+    "jenkins.mvn.FilePathGlobalSettingsProvider"))
+
 (define-interface-implementations (builder)
   ((shell "hudson.tasks.Shell")
    ((command :type  string))
@@ -542,7 +583,13 @@
 			 :initform '())
     (private-repository? :type     boolean
 			 :xpath    "usePrivateRepository/text()"
-			 :initform nil))
+			 :initform nil)
+    (settings            :type     maven-settings
+			 :xpath    "settings"
+			 :initform :default)
+    (global-settings     :type     maven-global-settings
+			 :xpath    "globalSettings"
+			 :initform :default))
    (:name-slot targets))
 
   ((copy-artifact "hudson.plugins.copyartifact.CopyArtifact"

@@ -280,7 +280,9 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
                                                   (list (make-keyword name) value)))
                                               (var :aspect.maven.properties))
                  :targets             (var :aspect.maven.targets)
-                 :private-repository? (var :aspect.maven.private-repository?))))
+                 :private-repository? (var :aspect.maven.private-repository?)
+                 :settings            (var :aspect.maven.settings-file :default)
+                 :global-settings     (var :aspect.maven.global-settings-file :default))))
         (builders job)))
 
 ;;; Setuptools aspect

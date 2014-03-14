@@ -426,7 +426,7 @@
 ;;; property interface
 
 (deftype cons/parameter-definition ()
-  cons)
+  'cons)
 
 (defmethod xloc:xml-> ((value stp:element)
 		       (type  (eql 'cons/parameter-definition))

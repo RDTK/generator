@@ -330,7 +330,14 @@
                       :enum          '(:cmake :vertical)
                       :default-value :vertical
                       :description
-                      "Progress display style."))
+                      "Progress display style.")
+              (lispobj :long-name    "num-processes"
+                       :short-name   "j"
+                       :typespec     'positive-integer
+                       :default-value 8
+                       :argument-name "NUMBER-OF-PROCESSES"
+                       :description
+                       "Number of processes to execute in parallel when checking out from repositories and analyzing working copies."))
    :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "template"
                       :short-name    "t"
@@ -456,6 +463,7 @@
          (jenkins.api:*password* (or (clon:getopt :long-name "password")
                                      (clon:getopt :long-name "api-token")))
          (delete-other?          (clon:getopt :long-name "delete-other"))
+         (num-processes          (clon:getopt :long-name "num-processes"))
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
                                    200))
@@ -483,7 +491,7 @@
          (overwrites (mapcar #'parse-overwrite
                              (collect-option-values :long-name "set"))))
 
-    (setf lparallel:*kernel* (lparallel:make-kernel 8))
+    (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
     (with-delayed-error-reporting (:debug? (clon:getopt :long-name "debug"))
       (with-trivial-progress (:jobs)

@@ -7,9 +7,12 @@
 (cl:in-package #:jenkins.analysis)
 
 (defun %svn-and-global-options (&optional username password)
-  `(svn :non-interactive :quiet
-        ,@(when username `(:username ,username))
-        ,@(when password `(:password ,password))))
+  `("svn" "--non-interactive" "--quiet"
+          ,@(when username `("--username" ,username))
+          ,@(when password `("--password" ,password))))
+
+(defun %run-svn (spec directory &optional username password)
+  (run `(,@(%svn-and-global-options username password) ,@spec) directory))
 
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
                     &key
@@ -65,10 +68,8 @@
               (unwind-protect
                    (progn
                      (with-trivial-progress (:checkout "~A" source)
-                       (inferior-shell:run
-                        `(,@(%svn-and-global-options username password)
-                          "co" ,(princ-to-string repository-url) ,clone-directory)
-                        :directory temp-directory))
+                       (%run-svn `("co" ,(princ-to-string repository-url) ,clone-directory)
+                                 temp-directory username password))
 
                      (let* ((result (list* :scm              :svn
                                            :branch-directory directory
@@ -80,8 +81,7 @@
                                         :password password)))
                        (cons name result)))
 
-                (inferior-shell:run `(rm "-rf" ,clone-directory)
-                                    :directory temp-directory))))))
+                (run `("rm" "-rf" ,clone-directory) temp-directory))))))
 
     (with-sequence-progress (:analyze/branch locations)
       (iter (for (name directory) in locations)

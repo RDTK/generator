@@ -6,6 +6,9 @@
 
 (cl:in-package #:jenkins.analysis)
 
+(defun %run-git (spec directory)
+  (run `("git" ,@spec) directory))
+
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &key
                     username
@@ -31,9 +34,9 @@
     (unwind-protect
          (progn
            (with-trivial-progress (:clone "~A" repository/string)
-             (inferior-shell:run
-              `(git "clone" :quiet :depth "10" ,repository/string ,clone-directory)
-              :directory temp-directory))
+             (%run-git
+              `("clone" "--quiet" "--depth" "10" ,repository/string ,clone-directory)
+              temp-directory))
 
            (with-sequence-progress (:analyze/branch branches)
              (iter (for branch in (append branches tags))
@@ -41,10 +44,11 @@
 
                    (restart-case
                        (progn
-                         (inferior-shell:run
-                          `(git :work-tree ,clone-directory
-                                :git-dir ,(merge-pathnames ".git/" clone-directory)
-                                "checkout" :quiet ,branch))
+                         (%run-git
+                          `("--work-tree" ,clone-directory
+                            "--git-dir" ,(merge-pathnames ".git/" clone-directory)
+                            "checkout" "--quiet" ,branch)
+                          clone-directory)
 
                          (let ((result (list* :scm              :git
                                               :branch-directory nil
@@ -61,8 +65,7 @@
                                          branch))
                        (declare (ignore condition)))))))
 
-      (inferior-shell:run `(rm "-rf" ,clone-directory)
-                          :directory temp-directory))))
+      (run `("rm" "-rf" ,clone-directory) temp-directory))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/authors))
                     &key
@@ -70,8 +73,8 @@
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (inferior-shell:run/lines
-              `(git :no-pager ,(format nil "--git-dir=~A/.git" directory)
-                    "log" "--pretty=format:%an <%ae>")
+              `("git" "--no-pager" ,(format nil "--git-dir=~A/.git" directory)
+                      "log" "--pretty=format:%an <%ae>")
               :directory directory)) ; TODO is directory even needed?
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)

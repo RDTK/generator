@@ -104,6 +104,7 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "util")
+                              (:file     "conditions")
                               (:file     "protocol")
                               (:file     "analysis")
 

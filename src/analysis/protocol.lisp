@@ -9,3 +9,8 @@
 (defgeneric analyze (source kind &key &allow-other-keys)
   (:documentation
    "TODO"))
+
+(defmethod analyze :around ((source t) (kind t) &key &allow-other-keys)
+  (with-condition-translation (((error analysis-error)
+                                :specification source))
+    (call-next-method)))

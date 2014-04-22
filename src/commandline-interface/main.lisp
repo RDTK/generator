@@ -68,19 +68,24 @@
                           (format stream "~@<Skip branch ~A.~@:>" branch))
                 (declare (ignore condition)))))))
 
-    (mapc #'do-branch1 (jenkins.analysis:analyze
-                        (when-let ((value (ignore-errors (value project :repository))))
-                          (puri:uri value))
-                        :auto
-                        :scm           (ignore-errors (value project :scm))
-                        :username      (ignore-errors (value project :scm.username))
-                        :password      (ignore-errors (value project :scm.password))
-                        :branches      (ignore-errors (value project :branches))
-                        :tags          (ignore-errors (value project :tags))
-                        :sub-directory (when-let ((value
-                                                   (ignore-errors
-                                                    (value project :sub-directory))))
-                                         (parse-namestring (concatenate 'string value "/"))))))
+    (mapc #'do-branch1 (handler-bind
+                           ((error (lambda (condition)
+                                     (error 'jenkins.analysis:analysis-error
+                                            :specification project
+                                            :cause         condition))))
+                         (jenkins.analysis:analyze
+                          (when-let ((value (ignore-errors (value project :repository))))
+                            (puri:uri value))
+                          :auto
+                          :scm           (ignore-errors (value project :scm))
+                          :username      (ignore-errors (value project :scm.username))
+                          :password      (ignore-errors (value project :scm.password))
+                          :branches      (ignore-errors (value project :branches))
+                          :tags          (ignore-errors (value project :tags))
+                          :sub-directory (when-let ((value
+                                                     (ignore-errors
+                                                      (value project :sub-directory))))
+                                           (parse-namestring (concatenate 'string value "/")))))))
 
   project)
 

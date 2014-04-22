@@ -18,6 +18,13 @@
 
   ;; Conditions
   (:export
+   #:analysis-condition
+   #:analysis-condition-specification
+
+   #:analysis-error)
+
+  ;; Analysis protocol
+  (:export
    #:analyze)
 
   (:documentation

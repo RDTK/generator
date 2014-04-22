@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -37,9 +37,9 @@
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
-(defparameter *pkg-check-modules-scanner*
+(defparameter *pkg-check-modules-scanner* ; TODO semantics: check requires all modules; search requires at least one
   (ppcre:create-scanner
-   "^[ \\t]*pkg_check_modules?\\([ \\t\\n]*([^ \\t\\n)]*)(?:[ \\t\\n]+REQUIRED)?[ \\t\\n]*([^)]*)\\)"
+   "^[ \\t]*pkg_(?:check|search)_modules?\\([ \\t\\n]*([^ \\t\\n)]*)(?:[ \\t\\n]+REQUIRED)?[ \\t\\n]*([^)]*)\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")

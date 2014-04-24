@@ -75,7 +75,10 @@
                         :password      (ignore-errors (value project :scm.password))
                         :branches      (ignore-errors (value project :branches))
                         :tags          (ignore-errors (value project :tags))
-                        :sub-directory (ignore-errors (value project :sub-directory)))))
+                        :sub-directory (when-let ((value
+                                                   (ignore-errors
+                                                    (value project :sub-directory))))
+                                         (parse-namestring (concatenate 'string value "/"))))))
 
   project)
 

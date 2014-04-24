@@ -66,7 +66,7 @@
                        (let* ((directory/absolute (reduce #'merge-pathnames
                                                           (append
                                                            (when sub-directory
-                                                             (list (make-pathname :directory `(:relative ,sub-directory))))
+                                                             (list sub-directory))
                                                            (list
                                                             (parse-namestring directory)
                                                             clone-directory))))

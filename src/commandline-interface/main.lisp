@@ -434,6 +434,11 @@
 
 ;;; Main
 
+(defun collect-option-values (&rest args &key &allow-other-keys)
+  (iter (for spec next (apply #'clon:getopt args))
+        (while spec)
+        (collect spec)))
+
 (defun parse-overwrite (spec)
   (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
     (cons (make-keyword (string-upcase variable)) value)))

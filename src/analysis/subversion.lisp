@@ -22,74 +22,78 @@
                                      (sb-posix:mkdtemp "/tmp/project.XXXXXX")
                                      nil *default-pathname-defaults*
                                      :as-directory t)))
-  (let+ ((project-name    (lastcar (puri:uri-parsed-path source)))
-         (clone-directory (merge-pathnames
-                           (make-pathname :directory (list :relative project-name))
-                           temp-directory)))
+  (when sub-directory
+    (assert (eq :relative (first (pathname-directory sub-directory)))))
 
-    (with-trivial-progress (:checkout "~A" source)
-      (inferior-shell:run
-       `(,@(%svn-and-global-options username password)
-         "co" ,(princ-to-string source) ,clone-directory)
-       :directory temp-directory))
+  (let+ ((source (let ((source (puri:copy-uri source))) ; TODO make a function
+                   (when-let ((path (puri:uri-path source)))
+                     (unless (ends-with #\/ path)
+                       (setf (puri:uri-path source)
+                             (concatenate 'string path "/"))))
+                   source))
+         ((&flet list-directories (directory spec)
+            (mapcar (lambda (name)
+                      (if (and (string= directory "branches")
+                               (string= name "trunk"))
+                          (list "trunk" "trunk/")
+                          (list name (format nil "~A/~A/" directory name))))
+                    spec)))
+         (locations (append (when branches
+                              (list-directories "branches" branches))
+                            (when tags
+                              (list-directories "tags" tags))))
+         ((&flet analyze-branch (name directory)
+            (let ((repository-url  (reduce #'puri:merge-uris
+                                           (append
+                                            (when sub-directory
+                                              (list (puri:uri (let ((s (namestring sub-directory)))
+                                                                (if (ends-with #\/ s)
+                                                                    (subseq s 0 (1- (length s)))
+                                                                    s)))))
+                                            (list
+                                             (puri:uri directory)
+                                             source))
+                                           :from-end t))
+                  (clone-directory (reduce #'merge-pathnames
+                                           (append
+                                            (when sub-directory
+                                              (list sub-directory))
+                                            (list
+                                             (parse-namestring directory)
+                                             temp-directory)))))
+              (log:info "~@<Checking out ~S -> ~S~@:>" repository-url clone-directory)
+              (unwind-protect
+                   (progn
+                     (with-trivial-progress (:checkout "~A" source)
+                       (inferior-shell:run
+                        `(,@(%svn-and-global-options username password)
+                          "co" ,(princ-to-string repository-url) ,clone-directory)
+                        :directory temp-directory))
 
-    (unwind-protect
-         (let+ (((&flet find-branches (directory &optional pattern)
-                   (let ((pattern (format nil "~A/~:[*/~;~:*~A~]" directory pattern)))
-                     (mapcar
-                      (compose #'lastcar #'pathname-directory)
-                      (remove-if
-                       (lambda (candidate)
-                         (or (pathname-name candidate)
-                             (string= ".svn" (lastcar (pathname-directory candidate)))))
-                       (directory (merge-pathnames pattern clone-directory)))))))
-                ((&flet make-branch-list (directory spec)
-                   (mapcar (lambda (name)
-                             (if (and (string= directory "branches")
-                                      (string= name "trunk"))
-                                 (list "trunk" "trunk/")
-                                 (list name (format nil "~A/~A/" directory name))))
-                           (etypecase spec
-                             (null   (if (string= directory "branches")
-                                         (cons "trunk" (find-branches directory))
-                                         (find-branches directory)))
-                             (string (find-branches directory spec))
-                             (t      spec)))))
-                (locations (append
-                            (make-branch-list "branches" branches)
-                            (make-branch-list "tags" tags))))
+                     (let* ((result (list* :scm              :svn
+                                           :branch-directory directory
+                                           (analyze clone-directory :auto))))
+                       (unless (getf result :authors)
+                         (setf (getf result :authors)
+                               (analyze clone-directory :svn/authors
+                                        :username username
+                                        :password password)))
+                       (cons name result)))
 
-           (with-sequence-progress (:analyze/branch locations)
-             (iter (for (name directory) in locations)
-                   (progress "~A" name)
-                   (restart-case
-                       (let* ((directory/absolute (reduce #'merge-pathnames
-                                                          (append
-                                                           (when sub-directory
-                                                             (list sub-directory))
-                                                           (list
-                                                            (parse-namestring directory)
-                                                            clone-directory))))
-                              (result
-                                (list* :scm              :svn
-                                       :branch-directory directory
-                                       (analyze directory/absolute :auto))))
-                         (unless (getf result :authors)
-                           (setf (getf result :authors)
-                                 (analyze (parse-namestring directory/absolute) :svn/authors
-                                          :username username
-                                          :password password)))
-                         (collect (cons name result)))
-                     (continue (&optional condition)
-                       :report (lambda (stream)
-                                 (format stream "~<Ignore ~A and ~
-                                                 continue with the ~
-                                                 next branch.~@:>"
-                                         name))
-                       (declare (ignore condition)))))))
+                (inferior-shell:run `(rm "-rf" ,clone-directory)
+                                    :directory temp-directory))))))
 
-      (inferior-shell:run `(rm "-rf" ,clone-directory)
-                          :directory temp-directory))))
+    (with-sequence-progress (:analyze/branch locations)
+      (iter (for (name directory) in locations)
+            (progress "~A" name)
+            (restart-case
+                (collect (analyze-branch name directory))
+              (continue (&optional condition)
+                :report (lambda (stream)
+                          (format stream "~<Ignore ~A and continue ~
+                                          with the next branch.~@:>"
+                                  name))
+                (declare (ignore condition))))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/authors))
                     &key

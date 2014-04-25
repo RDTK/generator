@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:jenkins.version)
 
 (defun parse-version (string)
   "Example:

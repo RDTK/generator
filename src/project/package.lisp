@@ -20,7 +20,8 @@
   (:shadowing-import-from #:jenkins.dsl
    #:job)
 
-  (:import-from #:jenkins.analysis
+  (:import-from #:jenkins.version
+   #:parse-version
    #:version>=
    #:version-matches)
 

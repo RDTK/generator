@@ -92,14 +92,20 @@
                 (:version :rosetta               "0.2")
 
                 (:version :jenkins.api           "0.1"))
-  :components  ((:module     "analysis"
+  :components  ((:module     "version"
+                 :pathname   "src/version"
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "version")))
+
+                (:module     "analysis"
                  :pathname   "src/analysis"
+                 :depends-on ("version")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "util")
                               (:file     "protocol")
                               (:file     "analysis")
-                              (:file     "version")
 
                               ;; Version control systems
                               (:file     "scm-null")
@@ -116,7 +122,7 @@
 
                 (:module     "project"
                  :pathname   "src/project"
-                 :depends-on ("analysis")
+                 :depends-on ("version" "analysis") ; TODO
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")

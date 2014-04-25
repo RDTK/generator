@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -12,16 +12,9 @@
    #:iterate
    #:let-plus
    #:more-conditions
-   #:print-items)
+   #:print-items
 
-  ;; Versions
-  (:export
-   #:parse-version
-   #:print-version
-   #:version=
-   #:version<
-   #:version>=
-   #:version-matches)
+   #:jenkins.version)
 
   ;; Conditions
   (:export

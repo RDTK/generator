@@ -211,7 +211,7 @@
                  name
                  (etypecase version
                    (list   version)
-                   (string (list (jenkins.analysis:parse-version version))))))))
+                   (string (list (parse-version version))))))))
 
   (defmethod requires ((spec version-spec))
     (append (mapcar #'parse-spec (ignore-errors (value spec :extra-requires)))

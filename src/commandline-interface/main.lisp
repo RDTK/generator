@@ -356,6 +356,12 @@
                        :argument-name "NUMBER-OF-PROCESSES"
                        :description
                        "Number of processes to execute in parallel when checking out from repositories and analyzing working copies.")
+              (enum    :long-name     "on-error"
+                       :enum          '(:abort :continue)
+                       :argument-name "POLICY"
+                       :default-value :abort
+                       :description
+                       "Abort when encountering errors? Either \"abort\" or \"continue\".")
               (path    :long-name    "temp-directory"
                        :type         :directory
                        :argument-name "DIRECTORY"
@@ -461,13 +467,11 @@
               (funcall thunk)))))
     (unwind-protect ; TODO probably not a good idea
          ;; Execute THUNK collecting errors.
-         (lparallel:task-handler-bind ((error (lambda (condition) (invoke-restart 'defer condition))))
-           (lparallel:task-handler-bind ((error (lambda (condition)
-                                                  (call-with-deferrable-conditions
-                                                   (lambda () (error condition))))))
-             (handler-bind ((error (lambda (condition) (invoke-restart 'defer condition))))
-               (call-with-deferrable-conditions
-                (lambda () (funcall thunk #'errors #'(setf errors) #'report))))))
+         (lparallel:task-handler-bind ((error (lambda (condition)
+                                                (call-with-deferrable-conditions
+                                                 (lambda () (error condition))))))
+           (call-with-deferrable-conditions
+            (lambda () (funcall thunk #'errors #'(setf errors) #'report))))
 
       ;; Report collected errors.
       (report))))
@@ -527,7 +531,7 @@
           :report (lambda (stream)
                     (format stream "~@<Ignore the error:P in phase ~A ~
                                     and continue.~@:>"
-                           (length phase-errors) phase))
+                            (length phase-errors) phase))
           (declare (ignore condition))
           (funcall set-errors
                    (append (set-difference errors phase-errors)
@@ -549,86 +553,100 @@
     (clon:help)
     (uiop:quit))
 
-  (let* ((debug?               (clon:getopt :long-name "debug"))
-         (*print-right-margin* (if-let ((value (sb-posix:getenv "COLUMNS")))
-                                 (parse-integer value)
-                                 200))
-         (num-processes        (clon:getopt :long-name "num-processes"))
-         (temp-directory       (clon:getopt :long-name "temp-directory")))
+  (let* ((debug?                 (clon:getopt :long-name "debug"))
+         (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
+                                   (parse-integer value)
+                                   200))
+         (num-processes          (clon:getopt :long-name "num-processes"))
+         (error-policy           (case (clon:getopt :long-name "on-error")
+                                   (:continue #'continue)
+                                   (t         #'abort)))
+         (effective-error-policy (lambda (condition)
+                                   (cond
+                                     ((typep condition 'simple-phase-error)
+                                      (funcall error-policy condition))
+                                     ((when-let ((restart (find-restart 'defer condition)))
+                                        (invoke-restart restart condition)))
+                                     (t
+                                      (abort condition)))))
+         (temp-directory         (clon:getopt :long-name "temp-directory")))
     (log:config :thread (if debug? :trace :warn))
 
     (restart-case
 
-        (with-delayed-error-reporting (:debug? debug?)
+        (lparallel:task-handler-bind ((error effective-error-policy))
+          (handler-bind ((error effective-error-policy))
 
-          (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
-                 (jenkins.api:*username* (clon:getopt :long-name "username"))
-                 (jenkins.api:*password* (or (clon:getopt :long-name "password")
-                                             (clon:getopt :long-name "api-token")))
-                 (delete-other?          (clon:getopt :long-name "delete-other"))
+            (with-delayed-error-reporting (:debug? debug?)
 
-                 (templates     (with-phase-error-check
-                                    (:locate/template #'errors #'(setf errors) #'report)
-                                  (sort (locate-specifications
-                                         :template (collect-option-values :long-name "template"))
-                                        #'string< :key #'pathname-name)))
-                 (projects      (with-phase-error-check
-                                    (:locate/project #'errors #'(setf errors) #'report)
-                                  (locate-specifications :project (clon:remainder))))
-                 (distributions (with-phase-error-check
-                                    (:locate/distribution #'errors #'(setf errors) #'report)
-                                  (locate-specifications
-                                   :distribution (collect-option-values :long-name "distribution"))))
-                 (overwrites    (mapcar #'parse-overwrite
-                                        (collect-option-values :long-name "set"))))
+              (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
+                     (jenkins.api:*username* (clon:getopt :long-name "username"))
+                     (jenkins.api:*password* (or (clon:getopt :long-name "password")
+                                                 (clon:getopt :long-name "api-token")))
+                     (delete-other?          (clon:getopt :long-name "delete-other"))
 
-            (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+                     (templates     (with-phase-error-check
+                                        (:locate/template #'errors #'(setf errors) #'report)
+                                      (sort (locate-specifications
+                                             :template (collect-option-values :long-name "template"))
+                                            #'string< :key #'pathname-name)))
+                     (projects      (with-phase-error-check
+                                        (:locate/project #'errors #'(setf errors) #'report)
+                                      (locate-specifications :project (clon:remainder))))
+                     (distributions (with-phase-error-check
+                                        (:locate/distribution #'errors #'(setf errors) #'report)
+                                      (locate-specifications
+                                       :distribution (collect-option-values :long-name "distribution"))))
+                     (overwrites    (mapcar #'parse-overwrite
+                                            (collect-option-values :long-name "set"))))
 
-            (with-trivial-progress (:jobs)
+                (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
-              (let* ((templates         (with-phase-error-check
-                                            (:load/template #'errors #'(setf errors) #'report)
-                                          (load-templates templates)))
-                     (projects/raw      (with-phase-error-check
-                                            (:load/project #'errors #'(setf errors) #'report)
-                                          (remove nil (load-projects projects))))
-                     (projects/specs    (with-phase-error-check
-                                            (:analyze/project #'errors #'(setf errors) #'report)
-                                          (apply #'analyze-projects projects/raw
-                                                 (when temp-directory
-                                                   (list :temp-directory temp-directory)))))
-                     (distributions/raw (with-phase-error-check
-                                            (:load/distribution #'errors #'(setf errors) #'report)
-                                          (load-distributions distributions overwrites)))
-                     (distributions     (with-phase-error-check
-                                            (:resolve/distribution #'errors #'(setf errors) #'report)
-                                          (tag-project-versions distributions/raw)))
-                     (projects          (with-phase-error-check
-                                            (:instantiate/project #'errors #'(setf errors) #'report)
-                                          (instantiate-projects projects/specs distributions)))
-                     (jobs/spec         (with-phase-error-check
-                                            (:deploy/project #'errors #'(setf errors) #'report)
-                                          (flatten (deploy-projects projects))))
-                     (jobs              (mappend #'implementations jobs/spec)))
-                (declare (ignore templates))
+                (with-trivial-progress (:jobs)
 
-                ;; Delete automatically generated jobs found on the
-                ;; server for which no counterpart exists among the newly
-                ;; generated jobs. This is necessary to get rid of
-                ;; leftover jobs when projects (or project versions) are
-                ;; deleted or renamed.
-                (when delete-other?
-                  (let ((other-jobs (set-difference (generated-jobs) jobs
-                                                    :key #'jenkins.api:id :test #'string=)))
-                    (with-sequence-progress (:delete-other other-jobs)
-                      (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                            other-jobs))))
+                  (let* ((templates         (with-phase-error-check
+                                                (:load/template #'errors #'(setf errors) #'report)
+                                              (load-templates templates)))
+                         (projects/raw      (with-phase-error-check
+                                                (:load/project #'errors #'(setf errors) #'report)
+                                              (remove nil (load-projects projects))))
+                         (projects/specs    (with-phase-error-check
+                                                (:analyze/project #'errors #'(setf errors) #'report)
+                                              (apply #'analyze-projects projects/raw
+                                                     (when temp-directory
+                                                       (list :temp-directory temp-directory)))))
+                         (distributions/raw (with-phase-error-check
+                                                (:load/distribution #'errors #'(setf errors) #'report)
+                                              (load-distributions distributions overwrites)))
+                         (distributions     (with-phase-error-check
+                                                (:resolve/distribution #'errors #'(setf errors) #'report)
+                                              (tag-project-versions distributions/raw)))
+                         (projects          (with-phase-error-check
+                                                (:instantiate/project #'errors #'(setf errors) #'report)
+                                              (instantiate-projects projects/specs distributions)))
+                         (jobs/spec         (with-phase-error-check
+                                                (:deploy/project #'errors #'(setf errors) #'report)
+                                              (flatten (deploy-projects projects))))
+                         (jobs              (mappend #'implementations jobs/spec)))
+                    (declare (ignore templates))
 
-                ;; TODO explain
-                (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                  (configure-distributions distributions))
+                    ;; Delete automatically generated jobs found on the
+                    ;; server for which no counterpart exists among the newly
+                    ;; generated jobs. This is necessary to get rid of
+                    ;; leftover jobs when projects (or project versions) are
+                    ;; deleted or renamed.
+                    (when delete-other?
+                      (let ((other-jobs (set-difference (generated-jobs) jobs
+                                                        :key #'jenkins.api:id :test #'string=)))
+                        (with-sequence-progress (:delete-other other-jobs)
+                          (mapc (progressing #'jenkins.api::delete-job :delete-other)
+                                other-jobs))))
 
-                (enable-jobs jobs)))))
+                    ;; TODO explain
+                    (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+                      (configure-distributions distributions))
+
+                    (enable-jobs jobs)))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

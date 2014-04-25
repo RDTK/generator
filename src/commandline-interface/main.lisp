@@ -102,12 +102,15 @@
             (declare (ignore condition)))))
       :parts most-positive-fixnum files))))
 
-(defun load-distributions (files)
+(defun load-distributions (files &optional (overwrites '()))
   (with-sequence-progress (:load/distribution files)
     (mapcan (lambda (file)
               (progress "~S" file)
               (restart-case
-                  (list (load-distribution/json file))
+                  (let ((distribution (load-distribution/json file)))
+                    (iter (for (name . value) in overwrites)
+                          (setf (lookup distribution name) value))
+                    (list distribution))
                 (continue (&optional condition)
                   :report (lambda (stream)
                             (format stream "~@<Skip distribution ~
@@ -334,6 +337,11 @@
                       :argument-name "DISTRIBUTION"
                       :description
                       "Load one or more distributions. This option can be supplied multiple times.")
+              (stropt :long-name     "set"
+                      :short-name    "D"
+                      :argument-name "VARIABLE-NAME=VALUE"
+                      :description
+                      "Overwrite a variable after loading the distribution. Arguments to this option have to be of the form VARIABLE-NAME=VALUE. This option can be supplied multiple times.")
               (stropt :long-name     "base-uri"
                       :short-name    "b"
                       :argument-name "URI"
@@ -355,6 +363,7 @@
               (flag   :long-name     "delete-other"
                       :description
                       "Delete previously automatically generated jobs when they are not re-created in this generation run."))
+
    :item    (clon:defgroup (:header "Drupal Options")
               (stropt :long-name     "drupal-base-uri"
                       :argument-name "URI"
@@ -420,6 +429,9 @@
 
 ;;; Main
 
+(defun parse-overwrite (spec)
+  (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
+    (cons (make-keyword (string-upcase variable)) value)))
 (defun main ()
   (log:config :thread :info)
 
@@ -457,7 +469,9 @@
                                                  (parse-namestring spec))))
                                 (appending matches)
                                 (warn "~@<Distribution pattern ~S did not match anything.~@:>"
-                                      spec)))))
+                                      spec))))
+         (overwrites (mapcar #'parse-overwrite
+                             (collect-option-values :long-name "set"))))
 
     (setf lparallel:*kernel* (lparallel:make-kernel 8))
 

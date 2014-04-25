@@ -450,75 +450,77 @@
   (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
     (cons (make-keyword (string-upcase variable)) value)))
 (defun main ()
-  (log:config :thread :info)
-
   (update-synopsis)
   (clon:make-context)
   (when (clon:getopt :long-name "help")
     (clon:help)
     (uiop:quit))
 
-  (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
-         (jenkins.api:*username* (clon:getopt :long-name "username"))
-         (jenkins.api:*password* (or (clon:getopt :long-name "password")
-                                     (clon:getopt :long-name "api-token")))
-         (delete-other?          (clon:getopt :long-name "delete-other"))
-         (num-processes          (clon:getopt :long-name "num-processes"))
-         (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
-                                   (parse-integer value)
-                                   200))
+  (let ((debug?               (clon:getopt :long-name "debug"))
+        (*print-right-margin* (if-let ((value (sb-posix:getenv "COLUMNS")))
+                                (parse-integer value)
+                                200)))
+    (log:config :thread (if debug? :trace :warn))
 
-         (templates (sort (iter (for spec next (clon:getopt :long-name "template"))
+    (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
+           (jenkins.api:*username* (clon:getopt :long-name "username"))
+           (jenkins.api:*password* (or (clon:getopt :long-name "password")
+                                       (clon:getopt :long-name "api-token")))
+           (delete-other?          (clon:getopt :long-name "delete-other"))
+           (num-processes          (clon:getopt :long-name "num-processes"))
+
+
+           (templates (sort (iter (for spec next (clon:getopt :long-name "template"))
+                                  (while spec)
+                                  (if-let ((matches (collect-inputs
+                                                     (parse-namestring spec))))
+                                    (appending matches)
+                                    (warn "~@<Template pattern ~S did not match anything.~@:>"
+                                          spec)))
+                            #'string< :key #'pathname-name))
+           (projects (iter (for spec in (clon:remainder))
+                           (if-let ((matches (collect-inputs (parse-namestring spec))))
+                             (appending matches)
+                             (warn "~@<Project pattern ~S did not match anything.~@:>"
+                                   spec))))
+           (distributions (iter (for spec next (clon:getopt :long-name "distribution"))
                                 (while spec)
                                 (if-let ((matches (collect-inputs
                                                    (parse-namestring spec))))
                                   (appending matches)
-                                  (warn "~@<Template pattern ~S did not match anything.~@:>"
-                                        spec)))
-                          #'string< :key #'pathname-name))
-         (projects (iter (for spec in (clon:remainder))
-                         (if-let ((matches (collect-inputs (parse-namestring spec))))
-                           (appending matches)
-                           (warn "~@<Project pattern ~S did not match anything.~@:>"
-                                 spec))))
-         (distributions (iter (for spec next (clon:getopt :long-name "distribution"))
-                              (while spec)
-                              (if-let ((matches (collect-inputs
-                                                 (parse-namestring spec))))
-                                (appending matches)
-                                (warn "~@<Distribution pattern ~S did not match anything.~@:>"
-                                      spec))))
-         (overwrites (mapcar #'parse-overwrite
-                             (collect-option-values :long-name "set"))))
+                                  (warn "~@<Distribution pattern ~S did not match anything.~@:>"
+                                        spec))))
+           (overwrites (mapcar #'parse-overwrite
+                               (collect-option-values :long-name "set"))))
 
-    (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+      (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
-    (with-delayed-error-reporting (:debug? (clon:getopt :long-name "debug"))
-      (with-trivial-progress (:jobs)
+      (with-delayed-error-reporting (:debug? debug?)
+        (with-trivial-progress (:jobs)
 
-        (let* ((templates     (load-templates templates))
-               (specs         (load-projects projects))
-               (distributions (tag-project-versions
-                               (load-distributions distributions)))
-               (projects      (instantiate-projects specs distributions))
-               (jobs/spec     (flatten (deploy-projects projects)))
-               (jobs          (mappend #'implementations jobs/spec)))
-          (declare (ignore templates))
+          (let* ((templates     (load-templates templates))
+                 (specs         (load-projects projects))
+                 (distributions (tag-project-versions
+                                 (load-distributions distributions)))
+                 (projects      (instantiate-projects specs distributions))
+                 (jobs/spec     (flatten (deploy-projects projects)))
+                 (jobs          (mappend #'implementations jobs/spec)))
+            (declare (ignore templates))
 
-          ;; Delete automatically generated jobs found on the
-          ;; server for which no counterpart exists among the newly
-          ;; generated jobs. This is necessary to get rid of
-          ;; leftover jobs when projects (or project versions) are
-          ;; deleted or renamed.
-          (when delete-other?
-            (let ((other-jobs (set-difference (generated-jobs) jobs
-                                              :key #'jenkins.api:id :test #'string=)))
-              (with-sequence-progress (:delete-other other-jobs)
-                (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                      other-jobs))))
+            ;; Delete automatically generated jobs found on the
+            ;; server for which no counterpart exists among the newly
+            ;; generated jobs. This is necessary to get rid of
+            ;; leftover jobs when projects (or project versions) are
+            ;; deleted or renamed.
+            (when delete-other?
+              (let ((other-jobs (set-difference (generated-jobs) jobs
+                                                :key #'jenkins.api:id :test #'string=)))
+                (with-sequence-progress (:delete-other other-jobs)
+                  (mapc (progressing #'jenkins.api::delete-job :delete-other)
+                        other-jobs))))
 
-          ;; TODO explain
-          (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-            (configure-distributions distributions))
+            ;; TODO explain
+            (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+              (configure-distributions distributions))
 
-          (enable-jobs jobs))))))
+            (enable-jobs jobs)))))))

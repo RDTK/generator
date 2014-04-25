@@ -91,25 +91,39 @@
 
   project)
 
-(defun load-projects (files &key temp-directory)
+(defun load-projects (files)
   (with-sequence-progress (:load/project files)
+    (lparallel:pmapcar
+     (lambda (file)
+       (restart-case
+           (load-project-spec/json file)
+         (continue (&optional condition)
+           :report (lambda (stream)
+                     (format stream "~@<Skip project specification ~
+                                      ~S.~@:>"
+                             file))
+           (declare (ignore condition)))))
+     :parts most-positive-fixnum files)))
+
+(defun analyze-projects (projects &key temp-directory)
+  (with-sequence-progress (:analyze/project projects)
     (mapcan
      (lambda (project)
        (when project
          (list (setf (find-project (name project)) project))))
      (lparallel:pmapcar
-      (lambda (file)
+      (lambda (project)
         (restart-case
-            (apply #'analyze-project (load-project-spec/json file)
+            (apply #'analyze-project project
                    (when temp-directory
                      (list :temp-directory temp-directory)))
           (continue (&optional condition)
             :report (lambda (stream)
-                      (format stream "~@<Skip project specification ~
-                                      ~S.~@:>"
-                              file))
+                      (format stream "~@<Skip analyzing project ~
+                                      ~A.~@:>"
+                              project))
             (declare (ignore condition)))))
-      :parts most-positive-fixnum files))))
+      :parts most-positive-fixnum projects))))
 
 (defun load-distributions (files &optional (overwrites '()))
   (with-sequence-progress (:load/distribution files)
@@ -447,11 +461,13 @@
               (funcall thunk)))))
     (unwind-protect ; TODO probably not a good idea
          ;; Execute THUNK collecting errors.
-         (lparallel:task-handler-bind ((error (lambda (condition)
-                                                (call-with-deferrable-conditions
-                                                 (lambda () (error condition))))))
-           (call-with-deferrable-conditions
-            (lambda () (funcall thunk #'errors #'(setf errors) #'report))))
+         (lparallel:task-handler-bind ((error (lambda (condition) (invoke-restart 'defer condition))))
+           (lparallel:task-handler-bind ((error (lambda (condition)
+                                                  (call-with-deferrable-conditions
+                                                   (lambda () (error condition))))))
+             (handler-bind ((error (lambda (condition) (invoke-restart 'defer condition))))
+               (call-with-deferrable-conditions
+                (lambda () (funcall thunk #'errors #'(setf errors) #'report))))))
 
       ;; Report collected errors.
       (report))))
@@ -478,6 +494,36 @@
 (defun parse-overwrite (spec)
   (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
     (cons (make-keyword (string-upcase variable)) value)))
+
+(defun call-with-phase-error-check (phase errors set-errors report thunk)
+  (prog1
+      (funcall thunk)
+    (when-let* ((errors       (funcall errors))
+                (phase-errors (remove-if (of-type 'phase-condition) errors)))
+      (restart-case
+          (error 'simple-phase-error
+                 :phase            phase
+                 :format-control   "~@<~D error~:P during ~A phase.~@:>"
+                 :format-arguments (list (length phase-errors) phase))
+        (continue (&optional condition)
+          :report (lambda (stream)
+                    (format stream "~@<Ignore the error:P in phase ~A ~
+                                    and continue.~@:>"
+                           (length phase-errors) phase))
+          (declare (ignore condition))
+          (funcall set-errors
+                   (append (set-difference errors phase-errors)
+                           (list (make-condition 'deferred-phase-error
+                                                 :phase      phase
+                                                 :conditions phase-errors))))
+          (funcall report)
+          (funcall set-errors '()))))))
+
+(defmacro with-phase-error-check ((phase errors set-errors report)
+                                  &body body)
+  `(call-with-phase-error-check ',phase ,errors ,set-errors ,report
+                                (lambda () ,@body)))
+
 (defun main ()
   (update-synopsis)
   (clon:make-context)
@@ -485,74 +531,104 @@
     (clon:help)
     (uiop:quit))
 
-  (let ((debug?               (clon:getopt :long-name "debug"))
-        (*print-right-margin* (if-let ((value (sb-posix:getenv "COLUMNS")))
-                                (parse-integer value)
-                                200)))
+  (let* ((debug?               (clon:getopt :long-name "debug"))
+         (*print-right-margin* (if-let ((value (sb-posix:getenv "COLUMNS")))
+                                 (parse-integer value)
+                                 200))
+         (num-processes        (clon:getopt :long-name "num-processes"))
+         (temp-directory       (clon:getopt :long-name "temp-directory")))
     (log:config :thread (if debug? :trace :warn))
 
-    (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
-           (jenkins.api:*username* (clon:getopt :long-name "username"))
-           (jenkins.api:*password* (or (clon:getopt :long-name "password")
-                                       (clon:getopt :long-name "api-token")))
-           (delete-other?          (clon:getopt :long-name "delete-other"))
-           (num-processes          (clon:getopt :long-name "num-processes"))
-           (temp-directory         (clon:getopt :long-name "temp-directory"))
+    (restart-case
 
+        (with-delayed-error-reporting (:debug? debug?)
 
-           (templates (sort (iter (for spec next (clon:getopt :long-name "template"))
-                                  (while spec)
-                                  (if-let ((matches (collect-inputs
-                                                     (parse-namestring spec))))
-                                    (appending matches)
-                                    (warn "~@<Template pattern ~S did not match anything.~@:>"
-                                          spec)))
-                            #'string< :key #'pathname-name))
-           (projects (iter (for spec in (clon:remainder))
-                           (if-let ((matches (collect-inputs (parse-namestring spec))))
-                             (appending matches)
-                             (warn "~@<Project pattern ~S did not match anything.~@:>"
-                                   spec))))
-           (distributions (iter (for spec next (clon:getopt :long-name "distribution"))
-                                (while spec)
-                                (if-let ((matches (collect-inputs
-                                                   (parse-namestring spec))))
-                                  (appending matches)
-                                  (warn "~@<Distribution pattern ~S did not match anything.~@:>"
-                                        spec))))
-           (overwrites (mapcar #'parse-overwrite
-                               (collect-option-values :long-name "set"))))
+          (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
+                 (jenkins.api:*username* (clon:getopt :long-name "username"))
+                 (jenkins.api:*password* (or (clon:getopt :long-name "password")
+                                             (clon:getopt :long-name "api-token")))
+                 (delete-other?          (clon:getopt :long-name "delete-other"))
 
-      (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+                 (templates     (with-phase-error-check
+                                    (:locate/template #'errors #'(setf errors) #'report)
+                                  (sort (iter (for spec next (clon:getopt :long-name "template"))
+                                              (while spec)
+                                              (if-let ((matches (collect-inputs
+                                                                 (parse-namestring spec))))
+                                                (appending matches)
+                                                (warn "~@<Template pattern ~S did not match anything.~@:>"
+                                                      spec)))
+                                        #'string< :key #'pathname-name)))
+                 (projects      (with-phase-error-check
+                                    (:locate/project #'errors #'(setf errors) #'report)
+                                  (iter (for spec in (clon:remainder))
+                                        (if-let ((matches (collect-inputs (parse-namestring spec))))
+                                          (appending matches)
+                                          (warn "~@<Project pattern ~S did not match anything.~@:>"
+                                                spec)))))
+                 (distributions (with-phase-error-check
+                                    (:locate/distribution #'errors #'(setf errors) #'report)
+                                  (iter (for spec next (clon:getopt :long-name "distribution"))
+                                        (while spec)
+                                        (if-let ((matches (collect-inputs
+                                                           (parse-namestring spec))))
+                                          (appending matches)
+                                          (warn "~@<Distribution pattern ~S did not match anything.~@:>"
+                                                spec)))))
+                 (overwrites    (mapcar #'parse-overwrite
+                                        (collect-option-values :long-name "set"))))
 
-      (with-delayed-error-reporting (:debug? debug?)
-        (with-trivial-progress (:jobs)
+            (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
-          (let* ((templates     (load-templates templates))
-                 (specs         (apply #'load-projects projects
-                                       (when temp-directory
-                                         (list :temp-directory temp-directory))))
-                 (distributions (tag-project-versions
-                                 (load-distributions distributions)))
-                 (projects      (instantiate-projects specs distributions))
-                 (jobs/spec     (flatten (deploy-projects projects)))
-                 (jobs          (mappend #'implementations jobs/spec)))
-            (declare (ignore templates))
+            (with-trivial-progress (:jobs)
 
-            ;; Delete automatically generated jobs found on the
-            ;; server for which no counterpart exists among the newly
-            ;; generated jobs. This is necessary to get rid of
-            ;; leftover jobs when projects (or project versions) are
-            ;; deleted or renamed.
-            (when delete-other?
-              (let ((other-jobs (set-difference (generated-jobs) jobs
-                                                :key #'jenkins.api:id :test #'string=)))
-                (with-sequence-progress (:delete-other other-jobs)
-                  (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                        other-jobs))))
+              (let* ((templates         (with-phase-error-check
+                                            (:load/template #'errors #'(setf errors) #'report)
+                                          (load-templates templates)))
+                     (projects/raw      (with-phase-error-check
+                                            (:load/project #'errors #'(setf errors) #'report)
+                                          (remove nil (load-projects projects))))
+                     (projects/specs    (with-phase-error-check
+                                            (:analyze/project #'errors #'(setf errors) #'report)
+                                          (apply #'analyze-projects projects/raw
+                                                 (when temp-directory
+                                                   (list :temp-directory temp-directory)))))
+                     (distributions/raw (with-phase-error-check
+                                            (:load/distribution #'errors #'(setf errors) #'report)
+                                          (load-distributions distributions overwrites)))
+                     (distributions     (with-phase-error-check
+                                            (:resolve/distribution #'errors #'(setf errors) #'report)
+                                          (tag-project-versions distributions/raw)))
+                     (projects          (with-phase-error-check
+                                            (:instantiate/project #'errors #'(setf errors) #'report)
+                                          (instantiate-projects projects/specs distributions)))
+                     (jobs/spec         (with-phase-error-check
+                                            (:deploy/project #'errors #'(setf errors) #'report)
+                                          (flatten (deploy-projects projects))))
+                     (jobs              (mappend #'implementations jobs/spec)))
+                (declare (ignore templates))
 
-            ;; TODO explain
-            (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-              (configure-distributions distributions))
+                ;; Delete automatically generated jobs found on the
+                ;; server for which no counterpart exists among the newly
+                ;; generated jobs. This is necessary to get rid of
+                ;; leftover jobs when projects (or project versions) are
+                ;; deleted or renamed.
+                (when delete-other?
+                  (let ((other-jobs (set-difference (generated-jobs) jobs
+                                                    :key #'jenkins.api:id :test #'string=)))
+                    (with-sequence-progress (:delete-other other-jobs)
+                      (mapc (progressing #'jenkins.api::delete-job :delete-other)
+                            other-jobs))))
 
-            (enable-jobs jobs)))))))
+                ;; TODO explain
+                (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+                  (configure-distributions distributions))
+
+                (enable-jobs jobs)))))
+
+      (abort (&optional condition)
+        :report (lambda (stream)
+                  (format stream "~@<Abort execution.~@:>"))
+        (when condition
+          (report-error *error-output* condition))
+        (sb-ext:exit :code 1)))))

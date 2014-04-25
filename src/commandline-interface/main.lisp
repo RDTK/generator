@@ -69,7 +69,9 @@
                 (declare (ignore condition)))))))
 
     (mapc #'do-branch1 (jenkins.analysis:analyze
-                        (puri:uri (value project :repository)) :auto
+                        (when-let ((value (ignore-errors (value project :repository))))
+                          (puri:uri value))
+                        :auto
                         :scm           (ignore-errors (value project :scm))
                         :username      (ignore-errors (value project :scm.username))
                         :password      (ignore-errors (value project :scm.password))

@@ -99,12 +99,13 @@
                     &key
                     username
                     password
-                    (max-authors 5))
+                    (max-revisions 20)
+                    (max-authors   5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (inferior-shell:run/lines
               `(,@(%svn-and-global-options username password)
-                "log" ,directory)
+                "log" "--limit" ,max-revisions ,directory)
               :directory directory))
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)

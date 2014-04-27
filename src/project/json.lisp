@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Minimal JSON import for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -46,7 +46,7 @@
                                  pathname condition))))
     (load-template/json-1 pathname)))
 
-(defun load-project-spec/json-1 (pathname)
+(defun load-project-spec/json-1 (pathname &key version-test)
   (let+ ((spec (json:decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
@@ -70,39 +70,31 @@
              :templates (mapcar #'find-template (lookup :templates))
              :variables (alist-plist (lookup :variables))
              :versions  (mapcar (rcurry #'make-version-spec instance)
-                                (lookup :versions))
+                                (if version-test
+                                    (remove-if (lambda (version)
+                                                 (let ((name (lookup :name version)))
+                                                   (not (funcall version-test name))))
+                                               (lookup :versions))
+                                    (lookup :versions)))
              :jobs      (mapcar (rcurry #'make-job-spec instance)
                                 (lookup :jobs))))))
     project-spec))
 
-(defun load-project-spec/json (pathname)
+(defun load-project-spec/json (pathname &key version-test)
   (handler-bind ((error (lambda (condition)
                           (error "~@<Error when loading project ~
                                   description from ~S: ~A~@:>"
                                   pathname condition))))
-    (load-project-spec/json-1 pathname)))
+    (load-project-spec/json-1 pathname :version-test version-test)))
 
 (defun load-distribution-spec/json-1 (pathname)
   (let+ ((spec (json:decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where))))
-         ((&flet+ resolve-version ((project version))
-            (let ((project (find-project project)))
-              (or (find version (versions project)
-                        :test #'string= :key #'name)
-                  (error "~@<Could not find version ~S in project ~A.~@:>"
-                         version project))))))
+            (cdr (assoc name where)))))
     (make-instance 'distribution-spec
                    :name      (lookup :name)
                    :variables (alist-plist (lookup :variables))
-                   :versions  (mapcan (lambda (version)
-                                        (restart-case
-                                            (list (resolve-version version))
-                                          (continue (&optional condition)
-                                            :report (lambda (stream)
-                                                      (format stream "~@<Skip ~A.~@:>" version))
-                                            (declare (ignore condition)))))
-                                      (lookup :versions)))))
+                   :versions  (lookup :versions))))
 
 (defun load-distribution/json (pathname)
   (handler-bind ((error (lambda (condition)

@@ -22,6 +22,28 @@
                   (declare (ignore condition)))))
             files)))
 
+(defun locate-projects (distribution-pathnames distributions)
+  (remove-duplicates
+   (mappend
+    (lambda (distribution-pathname distribution)
+      (let ((projects-directory
+              (merge-pathnames
+               "../projects/"
+               (make-pathname :name     nil
+                              :type     "project"
+                              :defaults distribution-pathname))))
+        (mapcan
+         (lambda+ ((name version))
+           (when-let ((location
+                       (first
+                        (locate-specifications
+                         :project
+                         (list (merge-pathnames name projects-directory))))))
+             (list (list location (list version)))))
+         (jenkins.project::versions distribution))))
+    distribution-pathnames distributions)
+   :test #'equalp))
+
 (defun analyze-project (project &key temp-directory)
   (let+ (((&labels+ do-branch ((branch . info))
             (let+ (((&plist-r/o (scm              :scm)
@@ -91,19 +113,31 @@
 
   project)
 
-(defun load-projects (files)
-  (with-sequence-progress (:load/project files)
+(defun load-projects/versioned (files-and-versions)
+  (with-sequence-progress (:load/project files-and-versions)
     (lparallel:pmapcar
-     (lambda (file)
+     (lambda+ ((file versions))
        (restart-case
-           (load-project-spec/json file)
+           (let* ((project  (load-project-spec/json
+                             file :version-test (lambda (version)
+                                                  (member version versions :test #'string=))))
+                  (branches (intersection versions (ignore-errors (lookup project :branches))
+                                          :test #'string=))
+                  (tags     (intersection versions (ignore-errors (lookup project :tags))
+                                          :test #'string=)))
+             (unless (set-equal versions (union branches tags) :test #'string=)
+               (error "~@<Could not find version~P ~S in project ~A.~@:>"
+                      (length versions) versions project))
+             (setf (lookup project :branches) branches
+                   (lookup project :tags)     tags)
+             project)
          (continue (&optional condition)
            :report (lambda (stream)
                      (format stream "~@<Skip project specification ~
                                       ~S.~@:>"
                              file))
            (declare (ignore condition)))))
-     :parts most-positive-fixnum files)))
+     :parts most-positive-fixnum files-and-versions)))
 
 (defun analyze-projects (projects &key temp-directory)
   (with-sequence-progress (:analyze/project projects)
@@ -124,6 +158,23 @@
                               project))
             (declare (ignore condition)))))
       :parts most-positive-fixnum projects))))
+
+(defun resolve-project-version (project version)
+  (let ((project (find-project project)))
+    (or (find version (versions project)
+              :test #'string= :key #'name)
+        (error "~@<Could not find version ~S in project ~A.~@:>"
+               version project))))
+
+(defun resolve-project-versions (versions)
+  (mapcan (lambda (version)
+            (restart-case
+                (list (apply #'resolve-project-version version))
+              (continue (&optional condition)
+                :report (lambda (stream)
+                          (format stream "~@<Skip ~A.~@:>" version))
+                (declare (ignore condition)))))
+          versions))
 
 (defun load-distributions (files &optional (overwrites '()))
   (with-sequence-progress (:load/distribution files)
@@ -329,7 +380,6 @@
   "Create and return a commandline option tree."
   (clon:make-synopsis
    ;; Basic usage and specific options.
-   :postfix "(INPUT-SPEC)+"
    :item    (clon:defgroup (:header "General Options")
               (flag   :long-name     "version"
                       :description
@@ -590,9 +640,6 @@
                                       (sort (locate-specifications
                                              :template (collect-option-values :long-name "template"))
                                             #'string< :key #'pathname-name)))
-                     (projects      (with-phase-error-check
-                                        (:locate/project #'errors #'(setf errors) #'report)
-                                      (locate-specifications :project (clon:remainder))))
                      (distributions (with-phase-error-check
                                         (:locate/distribution #'errors #'(setf errors) #'report)
                                       (locate-specifications
@@ -607,20 +654,29 @@
                   (let* ((templates         (with-phase-error-check
                                                 (:load/template #'errors #'(setf errors) #'report)
                                               (load-templates templates)))
+                         (distributions/raw (with-phase-error-check
+                                                (:load/distribution #'errors #'(setf errors) #'report)
+                                              (load-distributions distributions overwrites)))
+                         (projects          (with-phase-error-check
+                                                (:locate/project #'errors #'(setf errors) #'report)
+                                              (locate-projects distributions distributions/raw)))
                          (projects/raw      (with-phase-error-check
                                                 (:load/project #'errors #'(setf errors) #'report)
-                                              (remove nil (load-projects projects))))
+                                              (load-projects/versioned projects)))
                          (projects/specs    (with-phase-error-check
                                                 (:analyze/project #'errors #'(setf errors) #'report)
                                               (apply #'analyze-projects projects/raw
                                                      (when temp-directory
                                                        (list :temp-directory temp-directory)))))
-                         (distributions/raw (with-phase-error-check
-                                                (:load/distribution #'errors #'(setf errors) #'report)
-                                              (load-distributions distributions overwrites)))
                          (distributions     (with-phase-error-check
                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
-                                              (tag-project-versions distributions/raw)))
+                                              (tag-project-versions
+                                               (mapcar (lambda (distribution)
+                                                         (reinitialize-instance
+                                                          distribution
+                                                          :versions (resolve-project-versions
+                                                                     (jenkins.project::versions distribution))))
+                                                       distributions/raw))))
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
                                               (instantiate-projects projects/specs distributions)))

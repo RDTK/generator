@@ -166,9 +166,12 @@
       :provides
       (append
        (iter (for file in config-files)
-             (collect (list :cmake
-                            (string-downcase (cmake-config-file->project-name/dont-normalize file))
-                            (parse-version (%resolve-cmake-version project-version versions)))))
+             (let* ((name            (cmake-config-file->project-name/dont-normalize file))
+                    (name/lower-case (string-downcase name))
+                    (version         (parse-version (%resolve-cmake-version project-version versions))))
+               (collect (list :cmake name version))
+               (unless (string= name/lower-case name)
+                 (collect (list :cmake name/lower-case version)))))
        (iter (for file in pkg-config-template-files)
              (let* ((content (read-file-into-string file))
                     (content (%resolve-cmake-version content variables)))
@@ -183,7 +186,7 @@
               (ppcre:do-register-groups (name version)
                   (*find-package-scanner* content)
                 (collect (list* :cmake
-                                (string-downcase (%resolve-cmake-version name versions))
+                                (%resolve-cmake-version name versions)
                                 (when version (list (parse-version (%resolve-cmake-version version versions)))))))
               (ppcre:do-register-groups (variable modules)
                   (*pkg-check-modules-scanner* content)

@@ -222,7 +222,7 @@ move ..\*.zip .
          (dependencies (mapcar #'second
                                (requires-of-kind :cmake (specification (parent spec)))))
          (finds   (iter (for dependency in dependencies)
-                        (collect #?"${(shellify dependency)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f -name \"${dependency}Config.cmake\" -exec dirname {} \\;)\"\n")) )
+                        (collect #?"${(shellify dependency)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${dependency}Config.cmake\" -o -name \"${(string-downcase dependency)}-config.cmake\" \\) -exec dirname {} \\;)\"\n")) )
          (options (mapcar
                    #'format-option
                    (append

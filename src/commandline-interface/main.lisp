@@ -411,19 +411,18 @@
 
 ;;; Error handling stuff
 
-(defun report-error (condition)
-  (ignore-errors
-   (format *error-output* "~&~@<~A:~
-                           ~@:_~2@T~<~A~:>~
-                           ~:>~2%"
-           (type-of condition) (list condition))))
-
 (defun call-with-delayed-error-reporting (thunk
                                           &key
                                           debug?
                                           (report-function #'report-error))
   (let+ ((errors      '())
          (errors-lock (bt:make-lock))
+         ((&flet errors ()
+            (bt:with-lock-held (errors-lock)
+              (copy-list errors))))
+         ((&flet (setf errors) (new-value)
+            (bt:with-lock-held (errors-lock)
+              (setf errors new-value))))
          ((&flet collect-error (condition)
             (when debug?
               (terpri)
@@ -431,24 +430,43 @@
               (terpri)
               (sb-debug:print-backtrace))
             (bt:with-lock-held (errors-lock)
-              (push condition errors))
-            (continue))))
-    ;; Execute THUNK collecting errors.
-    (lparallel:task-handler-bind ((error #'collect-error))
-      (handler-bind ((error #'collect-error))
-        (funcall thunk)))
+              (appendf errors (list condition)))))
+         ((&flet report ()
+            (mapc (lambda (condition)
+                    (ignore-errors
+                     (funcall report-function *error-output* condition))
+                    (format *error-output* "~2%"))
+                  errors)))
+         ((&flet call-with-deferrable-conditions (thunk)
+            (restart-bind ((defer (lambda (condition)
+                                    (collect-error condition)
+                                    (continue)
+                                    (abort))
+                             :test-function (lambda (condition)
+                                              (find-restart 'continue condition))))
+              (funcall thunk)))))
+    (unwind-protect ; TODO probably not a good idea
+         ;; Execute THUNK collecting errors.
+         (lparallel:task-handler-bind ((error (lambda (condition)
+                                                (call-with-deferrable-conditions
+                                                 (lambda () (error condition))))))
+           (call-with-deferrable-conditions
+            (lambda () (funcall thunk #'errors #'(setf errors) #'report))))
 
-    ;; Report collected errors.
-    (mapc (lambda (condition)
-            (ignore-errors (funcall report-function condition)))
-          errors)))
+      ;; Report collected errors.
+      (report))))
 
 (defmacro with-delayed-error-reporting ((&key debug? report-function)
                                         &body body)
-  `(call-with-delayed-error-reporting
-    (lambda () ,@body)
-    ,@(when debug? `(:debug? ,debug?))
-    ,@(when report-function `(:report-function ,report-function))))
+  (with-unique-names (errors set-errors report)
+    `(call-with-delayed-error-reporting
+      (lambda (,errors ,set-errors ,report)
+        (flet ((errors () (funcall ,errors))
+               ((setf errors) (new-value) (funcall ,set-errors new-value))
+               (report () (funcall ,report)))
+          ,@body))
+      ,@(when debug? `(:debug? ,debug?))
+      ,@(when report-function `(:report-function ,report-function)))))
 
 ;;; Main
 

@@ -33,5 +33,6 @@
                  :pathname   "src/commandline-interface"
                  :serial     t
                  :components ((:file       "package")
+                              (:file       "conditions")
                               (:file       "main"))))
   :entry-point "JENKINS.PROJECT.COMMANDLINE-INTERFACE:MAIN")

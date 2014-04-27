@@ -491,6 +491,24 @@
         (while spec)
         (collect spec)))
 
+(defun locate-specifications (kind namestrings)
+  (restart-case
+      (or (iter (for namestring in namestrings)
+                (if-let ((matches (collect-inputs (parse-namestring namestring))))
+                  (appending matches)
+                  (warn "~@<~A pattern ~S did not match anything.~@:>"
+                        kind namestring)))
+          (error "~@<None of the ~A patterns ~{~S~^, ~} matched ~
+                  anything.~@:>"
+                 kind namestrings))
+    (continue (&optional condition)
+      :report (lambda (stream)
+                (format stream "~@<Continue without loading ~A ~
+                                specifications.~@:>"
+                        kind))
+      (declare (ignore condition))
+      '())))
+
 (defun parse-overwrite (spec)
   (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
     (cons (make-keyword (string-upcase variable)) value)))
@@ -551,30 +569,16 @@
 
                  (templates     (with-phase-error-check
                                     (:locate/template #'errors #'(setf errors) #'report)
-                                  (sort (iter (for spec next (clon:getopt :long-name "template"))
-                                              (while spec)
-                                              (if-let ((matches (collect-inputs
-                                                                 (parse-namestring spec))))
-                                                (appending matches)
-                                                (warn "~@<Template pattern ~S did not match anything.~@:>"
-                                                      spec)))
+                                  (sort (locate-specifications
+                                         :template (collect-option-values :long-name "template"))
                                         #'string< :key #'pathname-name)))
                  (projects      (with-phase-error-check
                                     (:locate/project #'errors #'(setf errors) #'report)
-                                  (iter (for spec in (clon:remainder))
-                                        (if-let ((matches (collect-inputs (parse-namestring spec))))
-                                          (appending matches)
-                                          (warn "~@<Project pattern ~S did not match anything.~@:>"
-                                                spec)))))
+                                  (locate-specifications :project (clon:remainder))))
                  (distributions (with-phase-error-check
                                     (:locate/distribution #'errors #'(setf errors) #'report)
-                                  (iter (for spec next (clon:getopt :long-name "distribution"))
-                                        (while spec)
-                                        (if-let ((matches (collect-inputs
-                                                           (parse-namestring spec))))
-                                          (appending matches)
-                                          (warn "~@<Distribution pattern ~S did not match anything.~@:>"
-                                                spec)))))
+                                  (locate-specifications
+                                   :distribution (collect-option-values :long-name "distribution"))))
                  (overwrites    (mapcar #'parse-overwrite
                                         (collect-option-values :long-name "set"))))
 

@@ -274,7 +274,7 @@
 ;;; Toolkit specific stuff
 
 (defun configure-buildflow-job (version jobs &key (ignore-failures? t))
-  (let+ ((name   (format nil "toolkit-buildflow-~A" version))
+  (let+ ((name   (format nil "distribution-buildflow.~A" version))
          (job    (first (jenkins.api:all-jobs name)))
          ((&labels format-flow (jobs)
             (etypecase jobs
@@ -287,9 +287,9 @@
               (t
                (format nil "~:[~:;ignore(FAILURE) {~%~2@T~]build(~S, tag: build.id)~2:*~:[~:;~%}~]"
                        ignore-failures? jobs)))))
-         (script (format nil "build(\"toolkit-prepare-~A\", tag: build.id)~2%~
+         (script (format nil "build(\"distribution-prepare.~A\", tag: build.id)~2%~
                               ~A~2%~
-                              build(\"toolkit-finish-~2:*~A\", tag: build.id)"
+                              build(\"distribution-finish.~2:*~A\", tag: build.id)"
                          version (format-flow jobs))))
     (setf (jenkins.api::dsl job) script)
     (jenkins.api:commit! job)))
@@ -350,16 +350,16 @@
                     (jenkins.api:enable! job))))
 
       ;; Create helper jobs
-      (ensure-job ("project" (format nil "toolkit-prepare-~A" name))
+      (ensure-job ("project" (format nil "distribution-prepare.~A" name))
                   (jenkins.api:builders
                    (jenkins.dsl::shell (:command prepare))))
-      (ensure-job ("project" (format nil "toolkit-finish-~A" name))
+      (ensure-job ("project" (format nil "distribution-finish.~A" name))
                   (jenkins.api:builders
                    (jenkins.dsl::shell (:command finish))))
 
       ;; Create bluildflow job
       (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" . "build-flow-plugin@0.10")
-                    (format nil "toolkit-buildflow-~A" name))))))
+                    (format nil "distribution-buildflow.~A" name))))))
 
 (defun configure-distribution (distribution)
   (let ((name (value distribution :distribution-name))

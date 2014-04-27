@@ -21,10 +21,7 @@
                     branches
                     tags
                     sub-directory
-                    (temp-directory (sb-ext:parse-native-namestring
-                                     (sb-posix:mkdtemp "/tmp/project.XXXXXX")
-                                     nil *default-pathname-defaults*
-                                     :as-directory t)))
+                    (temp-directory (default-temporary-directory)))
   (when sub-directory
     (assert (eq :relative (first (pathname-directory sub-directory)))))
 

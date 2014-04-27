@@ -22,7 +22,7 @@
                   (declare (ignore condition)))))
             files)))
 
-(defun analyze-project (project)
+(defun analyze-project (project &key temp-directory)
   (let+ (((&labels+ do-branch ((branch . info))
             (let+ (((&plist-r/o (scm              :scm)
                                 (branch-directory :branch-directory)
@@ -73,23 +73,25 @@
                                      (error 'jenkins.analysis:analysis-error
                                             :specification project
                                             :cause         condition))))
-                         (jenkins.analysis:analyze
-                          (when-let ((value (ignore-errors (value project :repository))))
-                            (puri:uri value))
-                          :auto
-                          :scm           (ignore-errors (value project :scm))
-                          :username      (ignore-errors (value project :scm.username))
-                          :password      (ignore-errors (value project :scm.password))
-                          :branches      (ignore-errors (value project :branches))
-                          :tags          (ignore-errors (value project :tags))
-                          :sub-directory (when-let ((value
-                                                     (ignore-errors
-                                                      (value project :sub-directory))))
-                                           (parse-namestring (concatenate 'string value "/")))))))
+                         (apply #'jenkins.analysis:analyze
+                                (when-let ((value (ignore-errors (value project :repository))))
+                                  (puri:uri value))
+                                :auto
+                                :scm           (ignore-errors (value project :scm))
+                                :username      (ignore-errors (value project :scm.username))
+                                :password      (ignore-errors (value project :scm.password))
+                                :branches      (ignore-errors (value project :branches))
+                                :tags          (ignore-errors (value project :tags))
+                                :sub-directory (when-let ((value
+                                                           (ignore-errors
+                                                            (value project :sub-directory))))
+                                                 (parse-namestring (concatenate 'string value "/")))
+                                (when temp-directory
+                                  (list :temp-directory temp-directory))))))
 
   project)
 
-(defun load-projects (files)
+(defun load-projects (files &key temp-directory)
   (with-sequence-progress (:load/project files)
     (mapcan
      (lambda (project)
@@ -98,7 +100,9 @@
      (lparallel:pmapcar
       (lambda (file)
         (restart-case
-            (analyze-project (load-project-spec/json file))
+            (apply #'analyze-project (load-project-spec/json file)
+                   (when temp-directory
+                     (list :temp-directory temp-directory)))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Skip project specification ~
@@ -337,7 +341,14 @@
                        :default-value 8
                        :argument-name "NUMBER-OF-PROCESSES"
                        :description
-                       "Number of processes to execute in parallel when checking out from repositories and analyzing working copies."))
+                       "Number of processes to execute in parallel when checking out from repositories and analyzing working copies.")
+              (path    :long-name    "temp-directory"
+                       :type         :directory
+                       :argument-name "DIRECTORY"
+                       :default-value #P"/tmp/"
+                       :description
+                       "Directory into which temporary files should be written during analysis step."))
+
    :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "template"
                       :short-name    "t"
@@ -468,6 +479,7 @@
                                        (clon:getopt :long-name "api-token")))
            (delete-other?          (clon:getopt :long-name "delete-other"))
            (num-processes          (clon:getopt :long-name "num-processes"))
+           (temp-directory         (clon:getopt :long-name "temp-directory"))
 
 
            (templates (sort (iter (for spec next (clon:getopt :long-name "template"))
@@ -499,7 +511,9 @@
         (with-trivial-progress (:jobs)
 
           (let* ((templates     (load-templates templates))
-                 (specs         (load-projects projects))
+                 (specs         (apply #'load-projects projects
+                                       (when temp-directory
+                                         (list :temp-directory temp-directory))))
                  (distributions (tag-project-versions
                                  (load-distributions distributions)))
                  (projects      (instantiate-projects specs distributions))

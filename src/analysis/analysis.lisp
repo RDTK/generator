@@ -1,6 +1,6 @@
 ;;;; analysis.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -34,7 +34,8 @@
                     &rest args
                     &key
                     scm
-                    (branches (puri:uri-fragment source)))
+                    (branches       (puri:uri-fragment source))
+                    (temp-directory #P"/tmp/"))
   (setf (puri:uri-fragment source) nil)
 
   (let+ (((&accessors-r/o (scheme puri:uri-scheme)) source)
@@ -47,10 +48,13 @@
                                   ((search "git" source/string :test #'char-equal) :git)
                                   ((search "svn" source/string :test #'char-equal) :svn)
                                   (t (error "~@<Cannot handle URI ~A.~@:>"
-                                            source)))))))
+                                            source))))))
+         (temp-directory (default-temporary-directory
+                          :base temp-directory :hint "project")))
     (apply #'analyze source scheme
-           :branches branches
-           (remove-from-plist args :branches))))
+           :branches       branches
+           :temp-directory temp-directory
+           (remove-from-plist args :branches :temp-directory))))
 
 (defmethod analyze ((source pathname) (kind (eql :auto))
                     &key)

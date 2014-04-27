@@ -6,6 +6,23 @@
 
 (cl:in-package #:jenkins.analysis)
 
+(defun default-temporary-directory (&key
+                                    (base #P"/tmp/")
+                                    (hint "build-generator"))
+  (assert (not (find #\/ hint)))
+
+  (ensure-directories-exist base)
+  (let* ((hint-pathname (make-pathname :name hint
+                                       :type "XXXXXX"))
+         (template      (namestring
+                         (if hint
+                             (merge-pathnames hint-pathname
+                                              (parse-namestring base))
+                             (parse-namestring base)))))
+   (sb-ext:parse-native-namestring (sb-posix:mkdtemp template)
+                                   nil *default-pathname-defaults*
+                                   :as-directory t)))
+
 (defun find-files (pattern &key (exclude "\.svn"))
   "TODO(jmoringe): document"
   (let ((candidates (directory pattern)))

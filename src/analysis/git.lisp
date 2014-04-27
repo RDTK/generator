@@ -16,10 +16,7 @@
                     branches
                     tags
                     sub-directory
-                    (temp-directory (sb-ext:parse-native-namestring
-                                     (sb-posix:mkdtemp "/tmp/project.XXXXXX")
-                                     nil *default-pathname-defaults*
-                                     :as-directory t)))
+                    (temp-directory (default-temporary-directory)))
   "TODO(jmoringe): document"
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
   (let* ((project-name      (lastcar (puri:uri-parsed-path source)))

@@ -22,6 +22,7 @@
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
   (let* ((project-name      (lastcar (puri:uri-parsed-path source)))
          (repository/string (format-git-url source username password))
+         (branches          (append branches tags))
          (clone-directory   (merge-pathnames
                              (make-pathname :directory (list :relative project-name))
                              temp-directory))
@@ -39,7 +40,7 @@
               temp-directory))
 
            (with-sequence-progress (:analyze/branch branches)
-             (iter (for branch in (append branches tags))
+             (iter (for branch in branches)
                    (progress "~A" branch)
 
                    (restart-case

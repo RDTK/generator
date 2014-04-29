@@ -39,10 +39,19 @@
 
 (defparameter *pkg-check-modules-scanner* ; TODO semantics: check requires all modules; search requires at least one
   (ppcre:create-scanner
-   "^[ \\t]*pkg_(?:check|search)_modules?\\([ \\t\\n]*([^ \\t\\n)]*)(?:[ \\t\\n]+REQUIRED)?[ \\t\\n]*([^)]*)\\)"
+   "^[ \\t]*pkg_(?:check|search)_modules?\\([ \\t\\n]*([^ \\t\\n)]*)(?:[ \\t\\n]+(?:REQUIRED|QUIET))*[ \\t\\n]*([^)]*)\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
+
+(mapc (lambda+ ((input expected))
+        (assert (equalp expected
+                        (nth-value 1 (ppcre:scan-to-strings
+                                      *pkg-check-modules-scanner* input)))))
+      '(("pkg_check_modules(FOO REQUIRED QUIET bar)"
+         #("FOO" "bar"))
+        ("pkg_check_modules(BIOROB_CPP REQUIRED biorob-cpp-0.3>=0.3.1)"
+         #("BIOROB_CPP" "biorob-cpp-0.3>=0.3.1"))))
 
 (defparameter *project-version-scanner*
   (ppcre:create-scanner

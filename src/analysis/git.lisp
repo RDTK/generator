@@ -16,6 +16,7 @@
                     branches
                     tags
                     sub-directory
+                    history-limit
                     (temp-directory (default-temporary-directory)))
   "TODO(jmoringe): document"
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
@@ -32,7 +33,9 @@
          (progn
            (with-trivial-progress (:clone "~A" repository/string)
              (%run-git
-              `("clone" "--quiet" "--depth" "10" ,repository/string ,clone-directory)
+              `("clone" "--quiet"
+                ,@(when history-limit `("--depth" ,history-limit))
+                ,repository/string ,clone-directory)
               temp-directory))
 
            (with-sequence-progress (:analyze/branch branches)

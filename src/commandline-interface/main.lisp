@@ -108,6 +108,7 @@
                                                            (ignore-errors
                                                             (value project :sub-directory))))
                                                  (parse-namestring (concatenate 'string value "/")))
+                                :history-limit (ignore-errors (value project :scm.history-limit))
                                 (when temp-directory
                                   (list :temp-directory temp-directory))))))
 

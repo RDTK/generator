@@ -362,7 +362,9 @@
       (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" . "build-flow-plugin@0.10")
                     (format nil "distribution-buildflow.~A" name))))))
 
-(defun configure-distribution (distribution)
+(defun configure-distribution (distribution
+                               &key
+                               (build-flow-ignores-failures? t))
   (let ((name (value distribution :distribution-name))
         (jobs (remove-if-not            ; TODO hack
                (lambda (job)
@@ -370,10 +372,15 @@
                (mappend (compose #'jobs #'implementation) (versions distribution)))))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
     (configure-jobs distribution)
-    (configure-buildflow-job name (schedule-jobs jobs))))
+    (configure-buildflow-job name (schedule-jobs jobs)
+                             :ignore-failures? build-flow-ignores-failures?)))
 
-(defun configure-distributions (distributions)
-  (mapc #'configure-distribution distributions))
+(defun configure-distributions (distributions
+                                &key
+                                (build-flow-ignores-failures? t))
+  (mapc (rcurry #'configure-distribution
+                :build-flow-ignores-failures? build-flow-ignores-failures?)
+        distributions))
 
 ;;; Commandline options
 
@@ -456,7 +463,10 @@
                       "API token for Jenkins authentication.")
               (flag   :long-name     "delete-other"
                       :description
-                      "Delete previously automatically generated jobs when they are not re-created in this generation run."))
+                      "Delete previously automatically generated jobs when they are not re-created in this generation run.")
+              (flag   :long-name     "build-flow-fail"
+                      :description
+                      "Configure build-flow to fail when one of the jobs coordinated by it fails."))
 
    :item    (clon:defgroup (:header "Drupal Options")
               (stropt :long-name     "drupal-base-uri"
@@ -627,14 +637,14 @@
 
         (lparallel:task-handler-bind ((error effective-error-policy))
           (handler-bind ((error effective-error-policy))
-
             (with-delayed-error-reporting (:debug? debug?)
 
-              (let* ((jenkins.api:*base-url* (clon:getopt :long-name "base-uri"))
-                     (jenkins.api:*username* (clon:getopt :long-name "username"))
-                     (jenkins.api:*password* (or (clon:getopt :long-name "password")
-                                                 (clon:getopt :long-name "api-token")))
-                     (delete-other?          (clon:getopt :long-name "delete-other"))
+              (let* ((jenkins.api:*base-url*       (clon:getopt :long-name "base-uri"))
+                     (jenkins.api:*username*       (clon:getopt :long-name "username"))
+                     (jenkins.api:*password*       (or (clon:getopt :long-name "password")
+                                                       (clon:getopt :long-name "api-token")))
+                     (delete-other?                (clon:getopt :long-name "delete-other"))
+                     (build-flow-ignores-failures? (not (clon:getopt :long-name "build-flow-fail")))
 
                      (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
@@ -701,7 +711,9 @@
 
                     ;; TODO explain
                     (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                      (configure-distributions distributions))
+                      (configure-distributions
+                       distributions
+                       :build-flow-ignores-failures? build-flow-ignores-failures?))
 
                     (enable-jobs jobs)))))))
 

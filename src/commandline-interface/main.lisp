@@ -613,6 +613,11 @@
   (when (clon:getopt :long-name "help")
     (clon:help)
     (uiop:quit))
+  (when (clon:getopt :long-name "version")
+    (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
+      (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
+              "build-generator" (stringp version) version))
+    (uiop:quit))
 
   (let* ((debug?                 (clon:getopt :long-name "debug"))
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))

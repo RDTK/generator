@@ -804,19 +804,30 @@
                     ;; leftover jobs when projects (or project versions) are
                     ;; deleted or renamed.
                     (when delete-other?
-                      (let ((other-jobs (set-difference (generated-jobs) jobs
-                                                        :key #'jenkins.api:id :test #'string=)))
-                        (with-sequence-progress (:delete-other other-jobs)
-                          (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                                other-jobs))))
+                      (with-phase-error-check
+                          (:delete-other-jobs #'errors #'(setf errors) #'report)
+                        (let ((other-jobs (set-difference (generated-jobs) jobs
+                                                          :key #'jenkins.api:id :test #'string=)))
+                          (with-sequence-progress (:delete-other other-jobs)
+                            (mapc (progressing #'jenkins.api::delete-job :delete-other)
+                                  other-jobs)))))
 
                     ;; TODO explain
-                    (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                      (configure-distributions
-                       distributions
-                       :build-flow-ignores-failures? build-flow-ignores-failures?))
+                    (with-phase-error-check
+                        (:orchestration #'errors #'(setf errors) #'report)
+                      (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+                        (restart-case
+                         (configure-distributions
+                          distributions
+                          :build-flow-ignores-failures? build-flow-ignores-failures?)
+                          (continue (&optional condition)
+                            :report (lambda (stream)
+                                      (format stream "~@<Continue without configuring orchestration jobs~@:>"))
+                            (declare (ignore condition))))))
 
-                    (enable-jobs jobs)
+                    (with-phase-error-check
+                        (:enable-jobs #'errors #'(setf errors) #'report)
+                      (enable-jobs jobs))
 
                     (with-phase-error-check
                         (:list-credentials #'errors #'(setf errors) #'report)

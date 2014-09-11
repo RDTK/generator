@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -77,7 +77,7 @@
         (error "~@<Undefined variable: ~S.~@:>" name))))
 
 (esrap:defrule escaped-syntactic-character
-    (and #\\ (or #\$ #\@))
+    (and #\\ (or #\$ #\@ #\}))
   (:function second))
 
 (esrap:defrule uninterpreted-$-or-@
@@ -94,10 +94,25 @@
     (+ (not (or #\| #\} #\$ #\@)))
   (:text t))
 
+(esrap:defrule text/ended-by-}
+    (and (+ (or escaped-syntactic-character (not (or #\$ #\@ #\}))))
+         (esrap:& #\}))
+  (:function first)
+  (:text t))
+
+(esrap:defrule text/not-started-by-{
+    (and (esrap:! #\}) text)
+  (:function second))
+
+(esrap:defrule default-expr
+    (and (+ (or variable-reference text/ended-by-} text/not-started-by-{))
+         (esrap:& #\}))
+  (:function first))
+
 (esrap:defrule variable-reference
     (and (or #\$ #\@) #\{
          (+ (or variable-reference/content variable-reference))
-         (esrap:? (and #\| (esrap:? variable-reference/content)))
+         (esrap:? (and #\| (esrap:? default-expr)))
          #\})
   (:destructure (kind open content default close)
     (declare (ignore open close))
@@ -108,11 +123,11 @@
       ((string= kind "@")
        (list* :ref/list content
               (when default
-                (list :default (unless (string= (second default) "[]")
+                (list :default (unless (equal (first (second default)) "[]")
                                  (second default)))))))))
 
 (esrap:defrule expr
-    (* (or text variable-reference)))
+    (* (or variable-reference text)))
 
 (defun parse (expr &key (parse-strings? t))
   (let+ (((&labels recur (expr)
@@ -126,6 +141,26 @@
               (list   (list* :list (mapcar #'recur expr)))
               (t      expr)))))
     (recur expr)))
+
+(mapc (lambda+ ((input expected))
+        (assert (equal (parse input) expected)))
+      '((""          nil)
+        ("foo"       "foo")
+        ("foo$bar"   "foo$bar")
+        ("foo{bar"   "foo{bar")
+        ("foo}bar"   "foo}bar")
+        ("${a}"      (:ref ("a")))
+        ("${a|}"     (:ref ("a") :default nil))
+        ("${a|b}"    (:ref ("a") :default ("b")))
+        ("${a|{b}}"  ((:ref ("a") :default ("{b")) "}"))
+        ("${a|${b}}" (:ref ("a") :default ((:ref ("b")))))
+        ("${${a}}"   (:ref ((:ref ("a")))))
+        ("@{a}"      (:ref/list ("a")))
+        ("@{a|}"     (:ref/list ("a") :default nil))
+        ("@{a|b}"    (:ref/list ("a") :default ("b")))
+        ("@{a|{b}}"  ((:ref/list ("a") :default ("{b")) "}"))
+        ("@{a|${b}}" (:ref/list ("a") :default ((:ref ("b")))))
+        ("@{@{a}}"   (:ref/list ((:ref/list ("a")))))))
 
 (declaim (special *seen*))
 
@@ -150,20 +185,25 @@
                       (mapcar #'ensure-list thing))))))
          ((&labels recur (pattern)
             (optima:ematch pattern
-              ((list* (or :ref :ref/list) (optima:guard pattern (stringp pattern))
-                      (or () (list (optima:guard keyword (eq keyword :default)) default)))
-               (recur (if keyword
-                          (or (ignore-errors (lookup pattern)) default)
-                          (lookup pattern))))
+              ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
+                     :default default)
+               (recur (or (ignore-errors (lookup pattern)) default)))
+
+              ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
+               (recur (lookup pattern)))
+
               ((list* :ref pattern rest)
                (recur (list* :ref (first (recur pattern)) rest)))
+
               ((list* :ref/list pattern rest)
                (first (recur (list* :ref/list (first (recur pattern)) rest))))
 
               ((optima:guard pattern (atom pattern))
                (list pattern))
+
               ((list* :list subpatterns)
                (list (mappend #'recur subpatterns)))
+
               ((list* first rest)
                (let ((result (mappend #'recur (cons first rest))))
                  (list (collapse result))))))))

@@ -35,9 +35,12 @@
          :namespaces `((nil . ,+pom-namespace+)))
         document
       (let+ ((license (or license (analyze directory :license)))
-             ((&flet+ process-dependency ((kind name version))
+             ((&flet+ process-dependency ((kind name version1))
                 (list kind name
-                      (parse-version (%resolve-maven-version version properties))))))
+                      (parse-version
+                       (%resolve-maven-version
+                        version1 (acons "project.version" (third version)
+                                        properties)))))))
         (append
          (list :versions `((:main ,version)) ; TODO remove
                :provides `(,(process-dependency version))
@@ -52,16 +55,19 @@
 (defun %resolve-maven-value (spec properties)
   (let+ (((&flet lookup (name)
             (cdr (find name properties :key #'car :test #'string=))))
-         ((&labels replace1 (value)
+         ((&labels replace1 (value &optional (depth 10))
+            (when (zerop depth)
+              (error "~@<Failed to expand property reference ~S~@:>"
+                     spec))
             (let+ (((&values result match?)
                     (ppcre:regex-replace-all
                      "\\${([^${}]+)}" value
                      (lambda (expression name)
                        (if-let ((value (lookup name)))
-                         (replace1 value)
+                         (replace1 value (1- depth))
                          expression))
                      :simple-calls t)))
-              (if match? (replace1 result) result)))))
+              (if match? (replace1 result (1- depth)) result)))))
     (replace1 spec)))
 
 (defun %parse-maven-version-spec (string)

@@ -330,6 +330,9 @@
 
 ;;; TODO(jmoringe, 2013-01-16): move to correct file
 
+(defmethod variables append ((thing template))
+  (mappend #'variables (inherit thing)))
+
 (defmethod direct-aspects ((thing template))
   (copy-list (%direct-aspects thing)))
 

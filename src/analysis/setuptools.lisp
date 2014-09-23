@@ -1,6 +1,6 @@
 ;;;; setuptools.lisp ---
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -84,7 +84,7 @@
 (defmethod analyze ((directory pathname)
                     (kind      (eql :setuptools))
                     &key)
-  (let+ ((content    (read-file-into-string (merge-pathnames "setup.py" directory)))
+  (let+ ((content    (read-file-into-string* (merge-pathnames "setup.py" directory)))
          (globals    (extract-global-variables content))
          (setup-call (ppcre:scan-to-strings "setup\\((?:.|\\n)*\\)" content))
          (arguments  (extract-keyword-arguments setup-call))

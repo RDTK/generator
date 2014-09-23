@@ -118,7 +118,7 @@
          (variables '())
          ((&values main-file extra-files) (find-cmake-files directory))
          (pkg-config-template-files (find-pkg-config-template-files directory))
-         (source (read-file-into-string main-file))
+         (source (read-file-into-string* main-file))
 
          (config-files (find-cmake-config-files directory))
 

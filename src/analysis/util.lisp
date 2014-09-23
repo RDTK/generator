@@ -31,6 +31,14 @@
                    :key #'namestring)
         candidates)))
 
+(defun safe-external-format-argument ()
+  #+sbcl '(:external-format (:utf-8 :replacement #\?)))
+
+(defun read-file-into-string* (filename &rest args &key external-format)
+  (apply #'read-file-into-string filename
+         (append (or external-format (safe-external-format-argument))
+                 (remove-from-plist args :external-format))))
+
 (defun edit-distance (str1 str2
                       &key
                       (window      1000)

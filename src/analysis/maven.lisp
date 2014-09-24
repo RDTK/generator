@@ -33,22 +33,35 @@
                                                      :if-multiple-matches :all)
          ((:val dependencies :type 'list/dependency) "project/dependencies/dependency"
                                                      :if-multiple-matches :all)
+         (modules                                    "project/modules/module/text()"
+                                                     :if-multiple-matches :all)
          :namespaces `((nil . ,+pom-namespace+)))
         document
       (let+ ((id           (if id/parent (merge-ids id id/parent) id))
              (name+version (id->name+version id))
-             (license (or license (analyze directory :license)))
+             (license      (or license (analyze directory :license)))
+             (sub-provides '())
+             (sub-requires '())
+             ((&flet process-sub-project (name)
+                (let+ ((sub-directory (merge-pathnames (concatenate 'string name "/") directory))
+                       ((&plist-r/o (provides :provides) (requires :requires))
+                        (analyze sub-directory :maven)))
+                  (appendf sub-provides provides)
+                  (appendf sub-requires requires))))
              ((&flet+ process-dependency ((name version1))
                 (list :maven name
                       (parse-version
                        (%resolve-maven-version
                         version1 (acons "project.version" (fourth id)
                                         properties)))))))
+        (mapc #'process-sub-project modules)
         (append
          (list :versions `((:main ,name+version)) ; TODO remove
-               :provides `(,(process-dependency name+version))
-               :requires (mapcar (compose #'process-dependency #'id->name+version)
-                                 dependencies))
+               :provides `(,(process-dependency name+version)
+                           ,@sub-provides)
+               :requires `(,@(mapcar (compose #'process-dependency #'id->name+version)
+                                     dependencies)
+                           ,@sub-requires))
          (when description `(:description ,description))
          (when url         `(:url         ,url))
          (when license     `(:license     ,license))

@@ -18,10 +18,11 @@
                     (kind      (eql :maven))
                     &key)
   (let* ((maven-file (merge-pathnames "pom.xml" directory))
-         (document (cxml:parse maven-file (stp:make-builder))))
+         (document   (cxml:parse maven-file (stp:make-builder))))
     (xloc:with-locations-r/o
-        ((name                                       "project/name/text()")
-         ((:val version :type 'list/dependency)      "project")
+        (((:val id :type 'list/dependency)           "project")
+         ((:val id/parent :type 'list/dependency)    "project/parent"
+                                                     :if-no-match :do-nothing)
          (description                                "project/description/text()"
                                                      :if-no-match :do-nothing)
          (url                                        "project/url/text()"
@@ -29,22 +30,25 @@
          (license                                    "licenses/license/name/text()"
                                                      :if-no-match :do-nothing)
          ((:val properties :type 'cons/property)     "project/properties/*"
-          :if-multiple-matches :all)
+                                                     :if-multiple-matches :all)
          ((:val dependencies :type 'list/dependency) "project/dependencies/dependency"
-          :if-multiple-matches :all)
+                                                     :if-multiple-matches :all)
          :namespaces `((nil . ,+pom-namespace+)))
         document
-      (let+ ((license (or license (analyze directory :license)))
-             ((&flet+ process-dependency ((kind name version1))
-                (list kind name
+      (let+ ((id           (if id/parent (merge-ids id id/parent) id))
+             (name+version (id->name+version id))
+             (license (or license (analyze directory :license)))
+             ((&flet+ process-dependency ((name version1))
+                (list :maven name
                       (parse-version
                        (%resolve-maven-version
-                        version1 (acons "project.version" (third version)
+                        version1 (acons "project.version" (fourth id)
                                         properties)))))))
         (append
-         (list :versions `((:main ,version)) ; TODO remove
-               :provides `(,(process-dependency version))
-               :requires (mapcar #'process-dependency dependencies))
+         (list :versions `((:main ,name+version)) ; TODO remove
+               :provides `(,(process-dependency name+version))
+               :requires (mapcar (compose #'process-dependency #'id->name+version)
+                                 dependencies))
          (when description `(:description ,description))
          (when url         `(:url         ,url))
          (when license     `(:license     ,license))
@@ -94,15 +98,40 @@
     (cons name value)))
 
 (deftype list/dependency ()
-  '(cons string (cons string)))
+  '(cons (or null string)
+             (cons (or null string)
+                   (cons (or null string)
+                         (cons (or null string) null)))))
 
 (defmethod xloc:xml-> ((value stp:element) (type (eql 'list/dependency))
                        &key
                        inner-types)
   (declare (ignore inner-types))
-  (xloc:with-locations-r/o ((group   "groupId/text()")
-                            (name    "artifactId/text()")
-                            (version "version/text()")
-                            :namespaces `((nil . ,+pom-namespace+)))
+  (xloc:with-locations-r/o
+      ((group   "groupId/text()"    :if-no-match :do-nothing) ; TODO which of these are actually optional?
+       (name    "artifactId/text()" :if-no-match :do-nothing)
+       (version "version/text()"    :if-no-match :do-nothing)
+       #+not-used (type    "type/text()"       :if-no-match :do-nothing)
+       (scope   "scope/text()"      :if-no-match :do-nothing)
+       :namespaces `((nil . ,+pom-namespace+)))
       value
-    (list :maven (format nil "~A/~A" group name) version)))
+    (list group name scope version)))
+
+(declaim (ftype (function (list/dependency) (values (cons string (cons string null)) &optional))
+                id->name+version))
+(defun+ id->name+version ((group name scope version))
+  (list (format nil "~A/~A~@[/~A~]" group name scope) version))
+
+(declaim (ftype (function (list/dependency list/dependency)
+                          (values list/dependency &optional))
+                merge-ids))
+(defun+ merge-ids ((&whole id1 group1 name1 scope1 version1)
+                   (&whole id2 group2 name2 scope2 version2))
+  (let+ (((&flet fail (component)
+            (error "~@<None of the ids, ~A and ~A supplied for ~
+                    merging, contain a ~S component.~@:>"
+                   id1 id2 component))))
+    (list (or group1   group2   (fail :group))
+          (or name1    name2    (fail :name))
+          (or scope1   scope2)
+          (or version1 version2))))

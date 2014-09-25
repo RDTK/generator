@@ -50,10 +50,11 @@
                   (appendf sub-requires requires))))
              ((&flet+ process-dependency ((name version1))
                 (list :maven name
-                      (parse-version
-                       (%resolve-maven-version
-                        version1 (acons "project.version" (fourth id)
-                                        properties)))))))
+                      (when version1
+                        (parse-version
+                         (%resolve-maven-version
+                          version1 (acons "project.version" (fourth id)
+                                          properties))))))))
         (mapc #'process-sub-project modules)
         (append
          (list :versions `((:main ,name+version)) ; TODO remove
@@ -130,7 +131,7 @@
       value
     (list group name scope version)))
 
-(declaim (ftype (function (list/dependency) (values (cons string (cons string null)) &optional))
+(declaim (ftype (function (list/dependency) (values (cons string (cons (or null string) null)) &optional))
                 id->name+version))
 (defun+ id->name+version ((group name scope version))
   (list (format nil "~A/~A~@[/~A~]" group name scope) version))

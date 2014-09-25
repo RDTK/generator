@@ -102,8 +102,8 @@
                                           (list :providers providers)
                                           (list :order #'order))))))
               (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-              (assert (not (eq candidate thing))) ; TODO temp; should not happen
-              (pushnew candidate (%dependencies thing)))
+              (unless (eq candidate thing)
+                (pushnew candidate (%dependencies thing))))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Skip requirement ~S.~@:>"

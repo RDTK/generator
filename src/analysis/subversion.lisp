@@ -100,10 +100,12 @@
                     (max-authors   5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
-             (inferior-shell:run/lines
-              `(,@(%svn-and-global-options username password)
-                "log" "--limit" ,max-revisions ,directory)
-              :directory directory))
+             (apply #'inferior-shell:run/nil
+                    `(,@(%svn-and-global-options username password)
+                      "log" "--limit" ,max-revisions ,directory)
+                    :directory directory
+                    :output    :lines
+                    (safe-external-format-argument)))
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)

@@ -73,10 +73,12 @@
                     (max-authors 5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
-             (inferior-shell:run/lines
-              `("git" "--no-pager" ,(format nil "--git-dir=~A/.git" directory)
-                      "log" "--pretty=format:%an <%ae>")
-              :directory directory)) ; TODO is directory even needed?
+             (apply #'inferior-shell:run/nil
+                    `("git" "--no-pager" ,(format nil "--git-dir=~A/.git" directory)
+                            "log" "--pretty=format:%an <%ae>")
+                    :directory directory ; TODO is directory even needed?
+                    :output    :lines
+                    (safe-external-format-argument)))
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)
         (incf (gethash line frequencies 0)))

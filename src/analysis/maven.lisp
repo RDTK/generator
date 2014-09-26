@@ -37,24 +37,42 @@
                                                      :if-multiple-matches :all)
          :namespaces `((nil . ,+pom-namespace+)))
         document
-      (let+ ((id           (if id/parent (merge-ids id id/parent) id))
-             (name+version (id->name+version id))
+      (let+ ((id/merged    (if id/parent (merge-ids id id/parent) id))
+             (name+version (id->name+version id/merged))
              (license      (or license (analyze directory :license)))
              (sub-provides '())
              (sub-requires '())
+             ((&flet project-property (name prefix id)
+                (when (starts-with-subseq prefix name)
+                  (let ((name (subseq name (1+ (length prefix)))))
+                    (cond
+                      ((and (string= name "groupId")    (first id)))
+                      ((and (string= name "artifactId") (second id)))
+                      ((and (string= name "version")    (fourth id))))))))
+             ((&flet property-value (name)
+                (cond
+                  ((when-let ((value (project-property name "parent" id/parent)))
+                     (warn "~@<The property name \"~A\" is deprecated; ~
+                            use \"project.~:*~A\" instead.~@:>"
+                           name)
+                     value))
+                  ((project-property name "project.parent" id/parent))
+                  ((project-property name "project"        id/merged))
+                  ((cdr (assoc name properties :test #'string=)))
+                  (t (error "~@<Could not resolve reference to property ~S.~@:>"
+                            name)))))
              ((&flet process-sub-project (name)
                 (let+ ((sub-directory (merge-pathnames (concatenate 'string name "/") directory))
                        ((&plist-r/o (provides :provides) (requires :requires))
                         (analyze sub-directory :maven)))
-                  (appendf sub-provides provides)
-                  (appendf sub-requires requires))))
+                  (unionf sub-provides provides :test #'equal)
+                  (unionf sub-requires requires :test #'equal))))
              ((&flet+ process-dependency ((name version1))
-                (list :maven name
+                (list :maven (%resolve-maven-value name #'property-value)
                       (when version1
                         (parse-version
                          (%resolve-maven-version
-                          version1 (acons "project.version" (fourth id)
-                                          properties))))))))
+                          version1 #'property-value)))))))
         (mapc #'process-sub-project modules)
         (append
          (list :versions `((:main ,name+version)) ; TODO remove
@@ -70,10 +88,8 @@
 
 ;;; Utility functions
 
-(defun %resolve-maven-value (spec properties)
-  (let+ (((&flet lookup (name)
-            (cdr (find name properties :key #'car :test #'string=))))
-         ((&labels replace1 (value &optional (depth 10))
+(defun %resolve-maven-value (spec lookup)
+  (let+ (((&labels replace1 (value &optional (depth 10))
             (when (zerop depth)
               (error "~@<Failed to expand property reference ~S~@:>"
                      spec))
@@ -81,9 +97,8 @@
                     (ppcre:regex-replace-all
                      "\\${([^${}]+)}" value
                      (lambda (expression name)
-                       (if-let ((value (lookup name)))
-                         (replace1 value (1- depth))
-                         expression))
+                       (declare (ignore expression))
+                       (replace1 (funcall lookup name) (1- depth)))
                      :simple-calls t)))
               (if match? (replace1 result (1- depth)) result)))))
     (replace1 spec)))
@@ -95,8 +110,8 @@
       (error "~@<Invalid version specification: ~S.~@:>"
              string)))
 
-(defun %resolve-maven-version (spec properties)
-  (%parse-maven-version-spec (%resolve-maven-value spec properties)))
+(defun %resolve-maven-version (spec lookup)
+  (%parse-maven-version-spec (%resolve-maven-value spec lookup)))
 
 ;;; Conversion helpers
 

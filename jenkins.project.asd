@@ -110,6 +110,7 @@
 
                               ;; Version control systems
                               (:file     "scm-null")
+                              (:file     "archive")
                               (:file     "git")
                               (:file     "subversion")
 

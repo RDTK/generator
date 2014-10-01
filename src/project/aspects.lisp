@@ -76,6 +76,34 @@
 
 ;;; SCM aspects
 
+(define-aspect (archive)
+    ()
+    ()
+  (let* ((url/string (var :aspect.archive.url))
+         (url        (puri:uri url/string))
+         (archive    (var :aspect.archive.filename
+                          (lastcar (puri:uri-parsed-path url)))))
+    (push (constraint! (((:before t)))
+            (shell (:command #?"
+# Clean workspace.
+rm -rf *
+
+# Unpack archive.
+wget \"${url/string}\" --output-document=\"${archive}\"
+unp -U \"${archive}\"
+rm \"${archive}\"
+directory=\$(find . -mindepth 1 -maxdepth 1)
+
+# Uniquely rename directory.
+temp=\$(mktemp ./XXXXXXXX)
+rm \"\${temp}\"
+mv \"\${directory}\" \"\${temp}\"
+
+# Move contents to toplevel workspace directory.
+find . -mindepth 2 -maxdepth 2 -exec mv {} . \\;
+rmdir \"\${temp}\"")))
+          (builders job))))
+
 (define-aspect (git)
     ()
     ()

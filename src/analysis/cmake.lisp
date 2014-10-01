@@ -76,7 +76,7 @@
           (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
 
 (defun find-pkg-config-template-files (directory)
-  (find-files (merge-pathnames #P"**/*.pc.in" directory)))
+  (find-files (merge-pathnames #P"**/*.pc.*" directory)))
 
 (defun cmake-config-file->project-name/dont-normalize (pathname)
   (ppcre:regex-replace "(.*)(?:Config|-config)(?:\\..+)"
@@ -184,9 +184,9 @@
        (iter (for file in pkg-config-template-files)
              (let* ((content (read-file-into-string file))
                     (content (%resolve-cmake-version content variables)))
-               (when-let ((provides
-                           (with-input-from-string (stream content)
-                             (getf (analyze stream :pkg-config) :provides))))
+               (when-let* ((result (with-input-from-string (stream content)
+                                     (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
+                           (provides (getf result :provides)))
                  (appending provides)))))
 
       :requires

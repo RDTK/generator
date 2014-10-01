@@ -9,12 +9,12 @@
 (defmethod analyze ((source pathname) (kind (eql :pkg-config))
                     &key)
   (with-open-stream (stream (apply #'open source (safe-external-format-argument)))
-    (analyze stream kind)))
+    (analyze stream kind :name (pathname-name source))))
 
 (defmethod analyze ((source stream) (kind (eql :pkg-config))
-                    &key)
-  (let+ ((name)
-         (version)
+                    &key
+                    (name (missing-required-argument :name)))
+  (let+ ((version)
          ((&flet parse-requires (value)
             (iter (for spec in (split-sequence-if
                                 (rcurry #'member '(#\Space #\Tab)) value
@@ -24,8 +24,6 @@
          (ppcre:register-groups-bind (key value)
              ("[ \\t]*([^:]+):[ \\t]*([^ \\t#]*)" line)
            (cond
-             ((string= key "Name")
-              (setf name value))
              ((string= key "Version")
               (setf version (parse-version value)))
              ((string= key "Requires")

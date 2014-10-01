@@ -113,6 +113,7 @@
                               (:file     "archive")
                               (:file     "git")
                               (:file     "subversion")
+                              (:file     "mercurial")
 
                               ;; Build systems
                               (:file     "license")

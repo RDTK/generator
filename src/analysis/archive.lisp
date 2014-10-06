@@ -7,7 +7,7 @@
 (cl:in-package #:jenkins.analysis)
 
 (defmethod analyze ((source puri:uri) (kind (eql :archive))
-                    &key
+                    &rest args &key
                     username
                     password
                     (branches       (missing-required-argument :branches))
@@ -49,7 +49,9 @@
                                            temp-directory))
                        (result            (list* :scm              :archive
                                                  :branch-directory nil
-                                                 (analyze analyze-directory :auto))))
+                                                 (apply #'analyze analyze-directory :auto
+                                                        (remove-from-plist args :username :password :branches :tags
+                                                                                :sub-directory :temp-directory)))))
                   (collect (cons branch result))))
             (continue (&optional condition)
               :report (lambda (stream)

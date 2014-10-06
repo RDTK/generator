@@ -10,7 +10,7 @@
   (run `("git" ,@spec) directory))
 
 (defmethod analyze ((source puri:uri) (schema (eql :git))
-                    &key
+                    &rest args &key
                     username
                     password
                     branches
@@ -20,7 +20,7 @@
                     (temp-directory (default-temporary-directory)))
   "TODO(jmoringe): document"
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
-  (let* ((project-name      (lastcar (puri:uri-parsed-path source)))
+  (let+ ((project-name      (lastcar (puri:uri-parsed-path source)))
          (repository/string (format-git-url source username password))
          (branches          (append branches tags))
          (clone-directory   (merge-pathnames
@@ -28,7 +28,12 @@
                              temp-directory))
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
-                                clone-directory)))
+                                clone-directory))
+         ((&flet analyze-directory (directory)
+            (apply #'analyze directory :auto
+                   (remove-from-plist args :username :password :branches :tags
+                                           :sub-directory :history-limit
+                                           :temp-directory)))))
 
     (unwind-protect
          (progn
@@ -53,7 +58,7 @@
 
                          (let ((result (list* :scm              :git
                                               :branch-directory nil
-                                              (analyze analyze-directory :auto))))
+                                              (analyze-directory analyze-directory))))
                            (unless (getf result :authors)
                              (setf (getf result :authors)
                                    (analyze clone-directory :git/authors)))

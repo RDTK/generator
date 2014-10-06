@@ -15,7 +15,7 @@
   (run `(,@(%svn-and-global-options username password) ,@spec) directory))
 
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
-                    &key
+                    &rest args &key
                     username
                     password
                     branches
@@ -31,6 +31,10 @@
                        (setf (puri:uri-path source)
                              (concatenate 'string path "/"))))
                    source))
+         ((&flet analyze-directory (directory)
+            (apply #'analyze directory :auto
+                   (remove-from-plist args :username :password :branches :tags
+                                           :sub-directory :temp-directory))))
          ((&flet list-directories (directory spec)
             (mapcar (lambda (name)
                       (if (and (string= directory "branches")
@@ -70,7 +74,7 @@
 
                      (let* ((result (list* :scm              :svn
                                            :branch-directory directory
-                                           (analyze clone-directory :auto))))
+                                           (analyze-directory clone-directory))))
                        (unless (getf result :authors)
                          (setf (getf result :authors)
                                (analyze clone-directory :svn/authors

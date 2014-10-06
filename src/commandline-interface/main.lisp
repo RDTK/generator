@@ -109,8 +109,11 @@
                                                             (value project :sub-directory))))
                                                  (parse-namestring (concatenate 'string value "/")))
                                 :history-limit (ignore-errors (value project :scm.history-limit))
-                                (when temp-directory
-                                  (list :temp-directory temp-directory))))))
+                                (append
+                                 (when-let ((natures (ignore-errors (value project :natures))))
+                                   (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures)))
+                                 (when temp-directory
+                                   (list :temp-directory temp-directory)))))))
 
   project)
 

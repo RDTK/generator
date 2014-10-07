@@ -115,8 +115,9 @@
 (define-aspect (timeout)
     ()
     ()
-  (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
-    (setf (timeout/minutes timeout) (var :aspect.timeout.timeout/minutes))))
+  (when-let ((value (var :aspect.timeout.timeout/minutes)))
+    (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
+      (setf (timeout/minutes timeout) value))))
 
 ;;; Tasks aspect
 

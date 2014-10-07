@@ -286,7 +286,9 @@
                (format nil "~%~2@T~<~@;~{~A~^~%~}~:>~%"
                        (list (mapcar #'format-flow (rest jobs)))))
               (t
-               (format nil "~:[~:;ignore(FAILURE) {~%~2@T~]build(~S, tag: build.id)~2:*~:[~:;~%}~]"
+               (format nil "~:[~:;ignore(ABORTED) {~%~2@T~]~
+                            build(~S, tag: build.id)~
+                            ~2:*~:[~:;~%}~]"
                        ignore-failures? jobs)))))
          (script (format nil "build(\"distribution-prepare.~A\", tag: build.id)~2%~
                               ~A~2%~

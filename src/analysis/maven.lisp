@@ -148,8 +148,8 @@
 
 (declaim (ftype (function (list/dependency) (values (cons string (cons (or null string) null)) &optional))
                 id->name+version))
-(defun+ id->name+version ((group name scope version))
-  (list (format nil "~A/~A~@[/~A~]" group name scope) version))
+(defun+ id->name+version ((group name &ign #+later scope version))
+  (list (format nil "~A/~A" #+later ~@[/~A~] group name #+later scope) version))
 
 (declaim (ftype (function (list/dependency list/dependency)
                           (values list/dependency &optional))

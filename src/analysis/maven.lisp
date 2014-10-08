@@ -73,18 +73,32 @@
                         (parse-version
                          (%resolve-maven-version
                           version1 #'property-value)))))))
+        ;; Analyse sub-modules, populating `sub-provides' and
+        ;; `sub-requires'.
         (mapc #'process-sub-project modules)
-        (append
-         (list :versions `((:main ,name+version)) ; TODO remove
-               :provides `(,(process-dependency name+version)
-                           ,@sub-provides)
-               :requires `(,@(mapcar (compose #'process-dependency #'id->name+version)
-                                     dependencies)
-                           ,@sub-requires))
-         (when description `(:description ,description))
-         (when url         `(:url         ,url))
-         (when license     `(:license     ,license))
-         (when properties  `(:properties  ,properties)))))))
+        ;; Combine results for "main module" and sub-modules.
+        (let ((provides `(,(process-dependency name+version)
+                          ,@sub-provides))
+              (requires `(,@(mapcar (compose #'process-dependency #'id->name+version)
+                                    dependencies)
+                          ,@sub-requires)))
+          ;; Since sub-modules can depend on each other, remove
+          ;; requirements that are provided by the project (including
+          ;; sub-modules).
+          (setf requires (set-difference
+                          requires provides
+                          :test (lambda+ ((mechanism1 name1 &optional version1)
+                                          (mechanism2 name2 &optional version2))
+                                  (and (eq              mechanism1 mechanism2)
+                                       (string=         name1      name2)
+                                       (version-matches version1   version2)))))
+          (append (list :versions `((:main ,name+version)) ; TODO remove
+                        :provides provides
+                        :requires requires)
+                  (when description `(:description ,description))
+                  (when url         `(:url         ,url))
+                  (when license     `(:license     ,license))
+                  (when properties  `(:properties  ,properties))))))))
 
 ;;; Utility functions
 

@@ -48,16 +48,44 @@
 (defmethod analyze ((directory pathname)
                     (kind      (eql :asdf))
                     &key)
-  "TODO(jmoringe): document"
-  ;;; TODO(jmoringe, 2013-03-11): not just first
-  (first (iter (for file in (find-files (merge-pathnames "*.asd" directory)))
-               (restart-case
-                   (collect (analyze file :asdf/one-file))
-                 (continue (&optional condition)
-                   :report (lambda (stream)
-                             (format stream "~@<Skip file ~S.~@:>"
-                                     file))
-                   (declare (ignore condition)))))))
+  (let+ ((systems
+          (iter (for file in (find-files (merge-pathnames "*.asd" directory)))
+                (log:info "~@<Analyzing ~S.~@:>" file)
+                (restart-case
+                    (appending (analyze file :asdf/one-file))
+                  (continue (&optional condition)
+                    :report (lambda (stream)
+                              (format stream "~@<Skip file ~S.~@:>"
+                                      file))
+                    (declare (ignore condition))))))
+         ((&flet property-values (name)
+            (remove nil (mapcar (rcurry #'getf name) systems))))
+         ((&flet property-value/first (name)
+            (first (property-values name))))
+         ((&flet maybe-property/first (name)
+            (when-let ((value (property-value/first name)))
+              `(,name ,value))))
+         ((&flet property-value/append (name)
+            (remove-duplicates (apply #'append (property-values name))
+                               :test #'equal)))
+         ((&flet maybe-property/append (name)
+            (when-let ((value (property-value/append name)))
+              `(,name ,value))))
+         (requires (property-value/append :requires))
+         (provides (property-value/append :provides)))
+    (setf requires (set-difference
+                    requires provides
+                    :test (lambda+ ((&ign required-name &optional required-version)
+                                    (&ign provided-name &optional provided-version))
+                            (and (string= required-name provided-name)
+                                 (version-matches required-version provided-version)))))
+    (append (list :versions (property-value/first :versions)
+                  :provides provides
+                  :requires requires)
+            (maybe-property/first  :description)
+            (maybe-property/append :authors)
+            (maybe-property/append :maintainers)
+            (maybe-property/first  :license))))
 
 ;;; Utility functions
 

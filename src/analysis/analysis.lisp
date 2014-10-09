@@ -68,9 +68,9 @@
                     (error "~@<Could not automatically determine the ~
                             project nature of ~S.~@:>"
                            source)))))
-    (log:info "~@<Analyzing ~A ~:[without natures~:;with nature~:P ~
-               ~:*~{~A~^, ~}~]~@:>"
-              source natures)
+    (log:info "~@<Analyzing ~A ~:[without natures~:;with nature~*~:P ~
+               ~2:*~{~A~^, ~}~]~@:>"
+              source natures (length natures))
     (cond
       ((emptyp natures)
        (mapcar (lambda (branch) (cons branch '())) branches))
@@ -81,7 +81,7 @@
          (dolist (result (analyze source natures))
            (loop :for (key value) :on result :by #'cddr :do
              (appendf (gethash key merged) (ensure-list value))))
-         (hash-table-alist merged))))))
+         (hash-table-plist merged))))))
 
 (defmethod analyze ((source pathname) (kind cons) &rest args &key)
   (mapcan (lambda (kind)

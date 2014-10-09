@@ -7,7 +7,7 @@
 (cl:in-package #:jenkins.analysis)
 
 (defun %svn-and-global-options (&optional username password)
-  `("svn" "--non-interactive" "--quiet"
+  `("svn" "--quiet"
           ,@(when username `("--username" ,username))
           ,@(when password `("--password" ,password))))
 

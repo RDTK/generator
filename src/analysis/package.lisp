@@ -27,5 +27,9 @@
   (:export
    #:analyze)
 
+  (:export
+   #:current-platform
+   #:installed-packages)
+
   (:documentation
    "TODO"))

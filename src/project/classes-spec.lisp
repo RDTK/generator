@@ -37,6 +37,13 @@
           (when (next-method-p)
             (call-next-method))))
 
+(defmethod platform-requires ((object distribution-spec) (platform t))
+  (remove-duplicates
+   (append (call-next-method)
+           (mappend (rcurry #'platform-requires platform)
+                    (versions object)))
+   :test #'string=))
+
 ;;; `project-spec' class
 
 (defclass project-spec (named-mixin

@@ -184,6 +184,34 @@
                         name)))))))
     (expand (parse raw) (make-lookup raw/next-values))))
 
+;;; Platform requirements protocol
+
+(defgeneric platform-requires (object platform)
+  (:documentation
+   "Return a list of \"platform requirements\" for OBJECT and PLATFORM
+    with elements of the form
+
+      (NAME VERSION)"))
+
+(defmethod platform-requires ((object t) (platform cons))
+  (let+ ((spec (ignore-errors (value object :platform-requires)))
+         ((&flet lookup (name &optional (where spec))
+            (cdr (assoc name where :test #'eq))))
+         ((&flet make-key (string)
+            (json:json-intern (json:camel-case-to-lisp string))))
+         (requiments '())
+         ((&labels+ collect (spec (&optional platform-first &rest platform-rest))
+            (appendf requiments (lookup :packages spec))
+            (when platform-first
+              (when-let ((child (lookup (make-key platform-first) spec)))
+                (collect child platform-rest))))))
+    (collect spec platform)
+    (remove-duplicates requiments :test #'string=)))
+
+(defmethod platform-requires ((object sequence) (platform cons))
+  (let ((requirements (mappend (rcurry #'platform-requires platform) object)))
+    (remove-duplicates requirements :test #'string=)))
+
 ;;; Instantiation protocol
 
 (defgeneric instantiate? (spec parent)

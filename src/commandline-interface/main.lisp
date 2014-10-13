@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -207,6 +207,31 @@
                   (push distribution (lookup version :variant-parents))) ; TODO hack
                 (versions distribution)))
         distributions)
+  distributions)
+
+(defun check-platform-requirements
+    (distributions
+     &key
+     (platform (multiple-value-list (jenkins.analysis:current-platform))))
+  (let ((installed-packages (jenkins.analysis:installed-packages))
+        (requirements       (platform-requires distributions platform)))
+    (log:info "~@<Found ~:D installed package~:P~@:>"
+              (length installed-packages))
+    (log:debug "~@<Found ~:D platform requirement~:P: ~{~A~^ ~}~@:>"
+               (length requirements) requirements)
+    (when (and platform installed-packages)
+      (dolist (requirement requirements)
+        (restart-case
+            (or (find requirement installed-packages
+                      :test #'string= :key #'first)
+                (error "~@<Missing platform requirement ~A.~@:>"
+                       requirement))
+          (continue (&optional condition)
+            :report (lambda (stream)
+                      (format stream "~@<Ignore the requirement ~A and ~
+                                      continue.~@:>"
+                              requirement))
+            (declare (ignore condition)))))))
   distributions)
 
 ;; Deployment
@@ -712,6 +737,9 @@
                                                           :versions (resolve-project-versions
                                                                      (jenkins.project::versions distribution))))
                                                        distributions/raw))))
+                         (distributions     (with-phase-error-check
+                                                (:check-platform-requirements #'errors #'(setf errors) #'report)
+                                              (check-platform-requirements distributions)))
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
                                               (instantiate-projects projects/specs distributions)))

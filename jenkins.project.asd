@@ -121,7 +121,10 @@
                               (:file     "cmake")
                               (:file     "asdf")
                               (:file     "maven")
-                              (:file     "setuptools")))
+                              (:file     "setuptools")
+
+                              ;; Platform analysis
+                              (:file     "platform")))
 
                 (:module     "project"
                  :pathname   "src/project"

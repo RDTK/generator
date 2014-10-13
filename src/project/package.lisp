@@ -83,6 +83,10 @@
    #:find-provider/version
    #:providers/alist)
 
+  ;; Platform requirements protocol
+  (:export
+   #:platform-requires)
+
   ;; Instantiation protocol
   (:export
    #:instantiate?

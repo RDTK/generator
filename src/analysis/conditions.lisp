@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the analysis module.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -30,3 +30,40 @@
   (:documentation
    "This error is signaled when an error is encountered during the
     analysis of a specification."))
+
+;;; Dependency conditions
+
+(define-condition dependency-condition ()
+  ((dependency :initarg  :dependency
+               :reader   dependency-condition-dependency))
+  (:default-initargs
+   :dependency (missing-required-initarg 'dependency-condition :dependency))
+  (:documentation
+   "Superclass for dependency-related conditions."))
+
+(define-condition unfulfilled-dependency-error (error
+                                                dependency-condition)
+  ()
+  (:documentation
+   "Generic error condition for signaling unfulfilled dependency
+    errors."))
+
+(define-condition unfulfilled-project-dependency-error (unfulfilled-dependency-error)
+  ((candidates :initarg  :candidates
+               :reader   unfulfilled-project-dependency-candidates
+               :initform '()))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<No provider for ~S.~@[ Candidates: ~{~A~^, ~
+                     ~}~]~@:>"
+             (dependency-condition-dependency           condition)
+             (unfulfilled-project-dependency-candidates condition))))
+  (:documentation
+   "This error is signaled if an unfulfilled dependency between
+    projects is detected."))
+
+(define-condition unfulfilled-platform-dependency-error (unfulfilled-dependency-error)
+  ()
+  (:documentation
+   "This error is signaled if an unfulfilled dependency of a project
+    on a platform package is detected."))

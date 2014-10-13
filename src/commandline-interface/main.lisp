@@ -224,8 +224,8 @@
         (restart-case
             (or (find requirement installed-packages
                       :test #'string= :key #'first)
-                (error "~@<Missing platform requirement ~A.~@:>"
-                       requirement))
+                (error 'jenkins.analysis:unfulfilled-platform-dependency-error
+                       :dependency requirement))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Ignore the requirement ~A and ~

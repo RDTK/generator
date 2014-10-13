@@ -21,7 +21,15 @@
    #:analysis-condition
    #:analysis-condition-specification
 
-   #:analysis-error)
+   #:analysis-error
+
+   #:dependency-condition
+   #:dependency-condition-dependency
+
+   #:unfulfilled-project-dependency-error
+   #:unfulfilled-project-dependency-candidates
+
+   #:unfulfilled-platform-dependency-error)
 
   ;; Analysis protocol
   (:export

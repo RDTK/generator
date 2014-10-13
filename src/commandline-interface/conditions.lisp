@@ -13,7 +13,7 @@
   (typecase condition
     (deferred-phase-problem-condition
      (princ condition stream))
-    (unfulfilled-dependency-condition
+    (unfulfilled-project-dependency-error
      (format stream "~@<~A: ~A~@:>"
              (instantiation-condition-specification condition)
              (root-cause condition)))
@@ -31,7 +31,18 @@
                (format stream "<error printing condition>~%"))))
            (output))))))
 
-(defun print-unfulfilled-dependency (stream dependency &optional colon? at?)
+;;; Dependency error reporting
+
+(defun print-unfulfilled-platform-dependencies (stream conditions &optional colon? at?)
+  (declare (ignore colon? at?))
+  (let ((dependencies (mapcar #'jenkins.analysis:dependency-condition-dependency
+                              conditions)))
+    (format stream "~@<~D missing platform dependenc~@:P:~
+                    ~@:_~2@T~@<~{~A~^ ~}~:>~
+                    ~:>"
+            (length dependencies) dependencies)))
+
+(defun print-unfulfilled-project-dependency (stream dependency &optional colon? at?)
   (declare (ignore colon? at?))
   (let+ (((object . conditions) dependency))
     (format stream "~@<~A (~D missing dependenc~@:P):~
@@ -39,28 +50,27 @@
                     ~:>"
             object (length conditions) conditions)))
 
-(defun print-unfulfilled-dependencies (stream conditions &optional colon? at?)
+(defun print-unfulfilled-project-dependencies (stream conditions &optional colon? at?)
   (declare (ignore colon? at?))
   (let+ ((table (make-hash-table :test #'eq)))
     (dolist (condition conditions)
       (let ((object (instantiation-condition-specification condition)))
         (appendf (gethash object table '()) (list (root-cause condition)))))
     (format stream "~@<~{~
-                      ~/jenkins.project.commandline-interface::print-unfulfilled-dependency/~
+                      ~/jenkins.project.commandline-interface::print-unfulfilled-project-dependency/~
                       ~^~@:_~@:_~
                     ~}~:>"
             (hash-table-alist table))))
 
 ;;; Unfulfilled dependencies
 
-(defun unfulfilled-dependency-condition? (condition)
+(defun unfulfilled-project-dependency-error? (condition)
   (when (typep condition 'instantiation-error)
     (let ((root-cause (root-cause condition)))
-      (when (typep root-cause 'simple-error)
-        (search "No provider" (simple-condition-format-control root-cause)))))) ; TODO do this properly
+      (typep root-cause 'jenkins.analysis:unfulfilled-project-dependency-error))))
 
-(deftype unfulfilled-dependency-condition ()
-  '(satisfies unfulfilled-dependency-condition?))
+(deftype unfulfilled-project-dependency-error ()
+  '(satisfies unfulfilled-project-dependency-error?))
 
 ;;; Phase conditions
 
@@ -98,14 +108,27 @@
    :problems (missing-required-initarg 'deferred-phase-error :conditions))
   (:report
    (lambda (condition stream)
-     (let+ (((&structure-r/o phase-condition- phase conditions) condition))
+     (let+ (((&structure-r/o phase-condition- phase conditions) condition)
+            ((&values platform-dependencies project-dependencies other)
+             (iter (for condition in conditions)
+                   (typecase condition
+                     (jenkins.analysis:unfulfilled-platform-dependency-error
+                      (collect condition :into platform-dependencies))
+                     (unfulfilled-project-dependency-error
+                      (collect condition :into project-dependencies))
+                     (t
+                      (collect condition :into other)))
+                   (finally (return (values platform-dependencies
+                                            project-dependencies
+                                            other))))))
        (format stream "~@<~D problem~:P during ~A phase:~@:_~@:_~
-                       ~2@T~<~{~
-                         ~:/jenkins.project.commandline-interface::report-error/~
-                         ~^~@:_~@:_~
+                       ~2@T~<~
+                         ~@[~/jenkins.project.commandline-interface::print-unfulfilled-platform-dependencies/~]~
+                         ~@[~/jenkins.project.commandline-interface::print-unfulfilled-project-dependencies/~]~
+                         ~{~
+                           ~:/jenkins.project.commandline-interface::report-error/~
+                           ~^~@:_~@:_~
                          ~}~
-                         ~/jenkins.project.commandline-interface::print-unfulfilled-dependencies/~
                        ~:>~@:>"
                (length conditions) phase
-               (list (remove-if #'unfulfilled-dependency-condition? conditions)
-                     (remove-if-not #'unfulfilled-dependency-condition? conditions)))))))
+               (list platform-dependencies project-dependencies other))))))

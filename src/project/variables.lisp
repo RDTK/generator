@@ -125,16 +125,12 @@
          (candidates (stable-sort candidates #'provider-better)))
     ;; Take the best candidate or act according to IF-DOES-NOT-EXIST.
     (or (cdr (first candidates))
-        (etypecase if-does-not-exist
-          (null
-           if-does-not-exist)
-          (function
-           (funcall
-            if-does-not-exist
-            (make-condition
-             'simple-error
-             :format-control   "~@<No provider for ~S.~@[ Candidates: ~{~A~^, ~}~]~@:>"
-             :format-arguments (list spec candidates))))))))
+        (error-behavior-restart-case
+            (if-does-not-exist
+             (jenkins.analysis:unfulfilled-project-dependency-error
+              :dependency spec
+              :candidates candidates)
+             :allow-other-values? t)))))
 
 ;;; Global instance registry
 

@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -80,8 +80,14 @@
     (and #\\ (or #\$ #\@))
   (:function second))
 
+(esrap:defrule uninterpreted-$-or-@
+    (and (or #\$ #\@) (not #\{))
+  (:function first))
+
 (esrap:defrule text
-    (+ (or escaped-syntactic-character (not (or #\$ #\@))))
+    (+ (or escaped-syntactic-character
+           uninterpreted-$-or-@
+           (not (or #\$ #\@))))
   (:text t))
 
 (esrap:defrule variable-reference/content

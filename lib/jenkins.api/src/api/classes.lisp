@@ -355,6 +355,8 @@
         :plugin "subversion@1.43")
    ((url               :type     string
                        :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/remote/text()")
+    (credentials       :type     string
+                       :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/credentialsId/text()")
     (local-directory   :type     string
                        :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/local/text()"
                        :initform ".")
@@ -367,6 +369,9 @@
         :plugin "git@2.0")
    ((url                  :type     string
                           :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/url/text()")
+    (credentials          :type     string
+                          :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/credentialsId/text()"
+                          :initform nil)
     (branches             :type     (singleton-element "name/text()")
                           :xpath    ("branches/hudson.plugins.git.BranchSpec"
                                      :if-multiple-matches :all))
@@ -877,6 +882,7 @@
   (define-of-type-methods property properties)
   (define-of-type-methods trigger)
   (define-of-type-methods build-wrapper)
+  (define-of-type-methods builder)
   (define-of-type-methods publisher))
 
 (defmethod downstream ((object job))

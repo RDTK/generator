@@ -90,6 +90,7 @@
   (:export
    #:scm/git
    #:url
+   #:credentials
    #:branches
    #:local-branch
    #:wipe-out-workspace?

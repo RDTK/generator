@@ -89,7 +89,7 @@
 rm -rf *
 
 # Unpack archive.
-wget \"${url/string}\" --output-document=\"${archive}\"
+wget --no-verbose \"${url/string}\" --output-document=\"${archive}\"
 unp -U \"${archive}\"
 rm \"${archive}\"
 directory=\$(find . -mindepth 1 -maxdepth 1)

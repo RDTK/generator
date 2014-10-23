@@ -76,6 +76,17 @@
 
 ;;; SCM aspects
 
+(defun make-move-stuff-upwards/unix (stuff)
+  "Move contents of STUFF which is usually one or multiple directories
+   to the current directory."
+  #?"# Uniquely rename directory.
+temp=\$(mktemp -d ./XXXXXXXX)
+mv ${stuff} \"\${temp}/\"
+
+# Move contents to toplevel workspace directory.
+find \"\${temp}\" -mindepth 2 -maxdepth 2 -exec mv {} . \\;
+rm -r \"\${temp}\"")
+
 (define-aspect (archive)
     ()
     ()
@@ -84,8 +95,7 @@
          (archive    (var :aspect.archive.filename
                           (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
-            (shell (:command #?"
-# Clean workspace.
+            (shell (:command #?"# Clean workspace.
 rm -rf *
 
 # Unpack archive.
@@ -94,25 +104,23 @@ unp -U \"${archive}\"
 rm \"${archive}\"
 directory=\$(find . -mindepth 1 -maxdepth 1)
 
-# Uniquely rename directory.
-temp=\$(mktemp ./XXXXXXXX)
-rm \"\${temp}\"
-mv \"\${directory}\" \"\${temp}\"
-
-# Move contents to toplevel workspace directory.
-find . -mindepth 2 -maxdepth 2 -exec mv {} . \\;
-rmdir \"\${temp}\"")))
+${(make-move-stuff-upwards/unix "\"${directory}\"")}")))
           (builders job))))
 
 (define-aspect (git)
     ()
     ()
+  ;; If a specific sub-directory of the repository has been requested,
+  ;; move the contents of that sub-directory to the top-level
+  ;; workspace directory before proceeding.
   (when-let ((sub-directory (var :sub-directory nil)))
     (push (constraint! (((:before cmake/unix)
                          (:before sloccount)))
-            (shell (:command #?"mv \$(find \"${sub-directory}\" -maxdepth 1 -mindepth 1) .")))
+            (shell (:command (make-move-stuff-upwards/unix
+                              (format nil "~S" sub-directory)))))
           (builders job)))
 
+  ;; Configure GIT scm plugin.
   (setf (repository job)
         (git (:url                  (jenkins.analysis::format-git-url
                                      (puri:uri (var :aspect.git.url))

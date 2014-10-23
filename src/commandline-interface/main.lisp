@@ -341,6 +341,12 @@
                                      (list right)))))))))))
     (find-components jobs)))
 
+(define-constant +description-automatically-generated+
+  "<span style=\"color: red; font-weight: bold\">
+     This job is automatically generated - do not modify by hand.
+   </span>"
+  :test #'string=)
+
 (defun configure-jobs (distribution jobs)
   (let* ((name    (value distribution :distribution-name))
          (prepare (or (ignore-errors (value distribution :prepare-hook/unix))
@@ -357,6 +363,9 @@
                         (setf (jenkins.api:job-config (jenkins.api:id job))
                               (jenkins.api::%data job))
                         (jenkins.api::make-job (jenkins.api:id job) (jenkins.api::%data job)))
+                    (setf (jenkins.api:description job)
+                          +description-automatically-generated+)
+                    (jenkins.api:commit! job)
                     (jenkins.api:enable! job))))
 
       ;; Create helper jobs

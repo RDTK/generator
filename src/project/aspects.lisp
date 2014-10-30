@@ -118,8 +118,9 @@ ${(make-move-stuff-upwards/unix "\"${directory}\"")}")))
                          (:before sloccount)
                          (:before setuptools)
                          (:before maven)))
-            (shell (:command (make-move-stuff-upwards/unix
-                              (format nil "~S" sub-directory)))))
+            (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${sub-directory}\" -exec rm -rf {} \\;
+
+${(make-move-stuff-upwards/unix (format nil "~S" sub-directory))}")))
           (builders job)))
 
   ;; Configure GIT scm plugin.

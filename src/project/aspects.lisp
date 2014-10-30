@@ -116,8 +116,9 @@ ${(make-move-stuff-upwards/unix "\"${directory}\"")}")))
   (when-let ((sub-directory (var :sub-directory nil)))
     (push (constraint! (((:before cmake/unix)
                          (:before sloccount)))
-            (shell (:command (make-move-stuff-upwards/unix
-                              (format nil "~S" sub-directory)))))
+            (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${sub-directory}\" -exec rm -rf {} \\;
+
+${(make-move-stuff-upwards/unix (format nil "~S" sub-directory))}")))
           (builders job)))
 
   ;; Configure GIT scm plugin.

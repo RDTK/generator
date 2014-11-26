@@ -79,18 +79,21 @@
 (defun make-move-stuff-upwards/unix (stuff)
   "Move contents of STUFF which is usually one or multiple directories
    to the current directory."
-  #?"# Uniquely rename directory.
+  (declare (type list stuff))
+  (let+ (((first &rest rest) stuff)
+         (rest/string (namestring (make-pathname :directory `(:relative ,@rest)))))
+    #?"# Uniquely rename directory.
 temp=\$(mktemp -d ./XXXXXXXX)
-mv ${stuff} \"\${temp}/\"
+mv -T \"${first}\" \"\${temp}/\"
 
 # Move contents to toplevel workspace directory.
-find \"\${temp}\" -mindepth 2 -maxdepth 2 -exec mv {} . \\;
-rm -r \"\${temp}\"")
+find \"\${temp}/${rest/string}\" -mindepth 1 -maxdepth 1 -exec mv {} . \\;
+rm -rf \"\${temp}\""))
 
-(defun deslashify (namestring)
+(defun slashify (namestring)
   (if (ends-with #\/ namestring)
-      (subseq namestring 0 (1- (length namestring)))
-      namestring))
+      namestring
+      (concatenate 'string namestring "/")))
 
 (define-aspect (archive)
     ()
@@ -109,7 +112,7 @@ unp -U \"${archive}\"
 rm \"${archive}\"
 directory=\$(find . -mindepth 1 -maxdepth 1)
 
-${(make-move-stuff-upwards/unix "\"${directory}\"")}")))
+${(make-move-stuff-upwards/unix '("${directory}"))}")))
           (builders job))))
 
 (define-aspect (git)
@@ -119,14 +122,16 @@ ${(make-move-stuff-upwards/unix "\"${directory}\"")}")))
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when-let ((sub-directory (var :sub-directory nil)))
-    (let ((sub-directory (deslashify sub-directory)))
+    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
+           ((&whole components first &rest &ign)
+            (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before cmake/unix)
                            (:before sloccount)
                            (:before setuptools)
                            (:before maven)))
-                         (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${sub-directory}\" -exec rm -rf {} \\;
+              (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${first}\" -exec rm -rf {} \\;
 
-${(make-move-stuff-upwards/unix (format nil "~S" sub-directory))}")))
+${(make-move-stuff-upwards/unix components)}")))
             (builders job))))
 
   ;; Configure GIT scm plugin.

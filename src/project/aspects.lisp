@@ -118,20 +118,6 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
 (define-aspect (git)
     ()
     ()
-  ;; If a specific sub-directory of the repository has been requested,
-  ;; move the contents of that sub-directory to the top-level
-  ;; workspace directory before proceeding.
-  (when-let ((sub-directory (var :sub-directory nil)))
-    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
-           ((&whole components first &rest &ign)
-            (rest (pathname-directory sub-directory))))
-      (push (constraint! (((:before cmake/unix)
-                           (:before sloccount)))
-        (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${first}\" -exec rm -rf {} \\;
-
-${(make-move-stuff-upwards/unix components)}")))
-            (builders job))))
-
   ;; Configure GIT scm plugin.
   (setf (repository job)
         (git (:url                  (jenkins.analysis::format-git-url
@@ -143,7 +129,20 @@ ${(make-move-stuff-upwards/unix components)}")))
               :checkout-submodules? (var :aspect.git.checkout-submodules? nil)
               :shallow?             (var :aspect.git.shallow? nil)
               :local-branch         (first (var :aspect.git.branches))
-              :internal-tag?        nil))))
+              :internal-tag?        nil)))
+
+  ;; If a specific sub-directory of the repository has been requested,
+  ;; move the contents of that sub-directory to the top-level
+  ;; workspace directory before proceeding.
+  (when-let ((sub-directory (var :sub-directory nil)))
+    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
+           ((&whole components first &rest &ign)
+            (rest (pathname-directory sub-directory))))
+      (push (constraint! (((:before t)))
+              (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${first}\" -exec rm -rf {} \\;
+
+${(make-move-stuff-upwards/unix components)}")))
+            (builders job)))))
 
 (define-aspect (subversion) () ()
   (setf (repository job)
@@ -208,6 +207,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 sloccount --datadir \"${TEMPDIR}\" --wide --details \"${WORKSPACE}\" > \"${WORKSPACE}/sloccount.sc\"
 rm -rf \"${TEMPDIR}\"")))
         (builders job))
+
   (push (sloccount (:pattern "sloccount.sc"))
         (publishers job)))
 
@@ -219,7 +219,8 @@ rm -rf \"${TEMPDIR}\"")))
 ;;; Dependency download aspect
 
 (define-aspect (dependency-download :job-var  job
-                                    :spec-var spec) () ()
+                                    :spec-var spec)
+    (builder-defining-mixin) ()
   (when-let ((dependencies (append
                             (mapcar (lambda (x) (value x :bla-name))
                                     (dependencies spec))
@@ -261,7 +262,8 @@ move ..\*.zip .
 ;;; CMake aspects
 
 (define-aspect (cmake/unix :job-var  job
-                           :spec-var spec) () ()
+                           :spec-var spec)
+    (builder-defining-mixin) ()
   (let+ (((&flet shellify (name)
             (string-upcase (substitute #\_ #\- name))))
          (variables (iter (for variable in (var :aspect.cmake.environment '()))
@@ -303,9 +305,9 @@ make @{targets}" ))))
         (pushnew #?"${(var :build-dir)}/*.tar.gz" (files archiver)
                  :test #'string=)))))
 
-(define-aspect (cmake/windows) () ()
-  (appendf (builders job)
-           (list (batch (:command "setlocal EnableDelayedExpansion
+(define-aspect (cmake/windows) (builder-defining-mixin) ()
+  (push (constraint! ()
+         (batch (:command "setlocal EnableDelayedExpansion
 
 SET COMMON_ROOT=VS%VS_VERSION%COMNTOOLS
 call \"!%COMMON_ROOT%!/vsvars32.bat\"
@@ -315,14 +317,15 @@ SET VOL_VAR=MSVC%VS_VERSION%_VOL
 
 SET /A TEST_PORT=5000+%VS_VERSION%
 
-call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!\protobuf\" \"-DRSC_DIR=%WORKSPACE%\upstream\RSC\share\rsc0.9\" \"-DRSBProtocol_DIR=%WORKSPACE%\upstream\RSBProtocol\share\rsbprotocol\" -DSPREAD_ROOT=!%VOL_VAR%!\spread -DTEST_SPREAD_PORT=%TEST_PORT%")))))
+call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!\protobuf\" \"-DRSC_DIR=%WORKSPACE%\upstream\RSC\share\rsc0.9\" \"-DRSBProtocol_DIR=%WORKSPACE%\upstream\RSBProtocol\share\rsbprotocol\" -DSPREAD_ROOT=!%VOL_VAR%!\spread -DTEST_SPREAD_PORT=%TEST_PORT%")))
+        (builders job)))
 
 (define-aspect (cmake/cpp :job-var job) (cmake/unix) ()
   )
 
 ;;; Maven aspect
 
-(define-aspect (maven :job-var job) () ()
+(define-aspect (maven :job-var job) (builder-defining-mixin) ()
   (push (constraint! ()
          (maven (:properties          (mapcan (lambda (spec)
                                                 (let+ (((name value) (split-sequence #\= spec)))
@@ -336,7 +339,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
 
 ;;; Setuptools aspect
 
-(define-aspect (setuptools :job-var job) () ()
+(define-aspect (setuptools :job-var job) (builder-defining-mixin) ()
   (let+ ((options '())
          ((&flet+ add-option ((section name value))
             (appendf options (list #?"\${PYTHON} ${(var :aspect.setuptools.script)} setopt -c ${section} -o ${name} -s \"${value}\"\n"))))
@@ -347,6 +350,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
     (mapc #'add-option (var :aspect.setuptools.options))
     (mapc (compose #'add-target #'ensure-list)
           (var :aspect.setuptools.targets))
+
     (push (constraint! (((:after dependency-download)))
            (shell (:command #?"PYTHON=${(var :python.binary)}
 mkdir -p \"${(var :python.site-packages-dir)}\"
@@ -387,7 +391,10 @@ export PYTHONPATH=\${PYTHONPATH}:\"${(var :python.site-packages-dir)}\"
     (pushnew #?"${(var :build-dir)}/*.deb" (files archiver)
              :test #'string=)))
 
-(define-aspect (debian-package/cmake) (debian-package) ()
+(define-aspect (debian-package/cmake)
+    (debian-package
+     builder-defining-mixin)
+    ()
   ;; TODO add PACKAGE_REVISION to environment
   (push (constraint! (((:after cmake/unix)))
           (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}

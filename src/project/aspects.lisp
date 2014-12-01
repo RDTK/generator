@@ -195,7 +195,7 @@ ${(make-move-stuff-upwards/unix components)}")))
               (list* (make-keyword (string-upcase kind))
                      (if (string= (first args) "<all>")
                          t
-                         (intern (first args) #.*package*))
+                         (intern (string-upcase (first args)) #.*package*))
                      (rest args)))
             value)))
 

@@ -98,12 +98,13 @@
                   (declare (ignorable #'var))
                   (macrolet
                       ((constraint! ((&optional constraints tag) &body builder)
-                         `(let ((builder (progn ,@builder)))
+                         `(let* ((builder (progn ,@builder))
+                                 (cell            (ensure-gethash
+                                                   builder *builder-constraints*
+                                                   (list ',(or tag ',name) '()))))
                             (iter (for constraint in (append ',constraints
                                                              (builder-constraints ,',aspect-var builder)))
-                                  (push constraint
-                                        (second (ensure-gethash builder *builder-constraints*
-                                                                (list ',(or tag ',name) '())))))
+                                  (push constraint (second cell)))
                             builder)))
                     ,@body))
                 ,job-var)))))))

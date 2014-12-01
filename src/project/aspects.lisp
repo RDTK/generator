@@ -183,21 +183,55 @@ ${(make-move-stuff-upwards/unix components)}")))
   (:documentation
    "TODO"))
 
+(defun+ parse-constraint ((&whole raw kind subject))
+  (let+ (((&flet parse-kind ()
+            (make-keyword (string-upcase kind))))
+         ((&flet parse-class-or-tag (value)
+            (if (or (equal value "<all>") (eq value t))
+                t
+                (intern (string-upcase value) #.*package*))))
+         ((&flet parse-name (value)
+            (if (or (equal value "<all>") (eq value t))
+                t
+                value))))
+    (cond
+      ((equal subject "<all>")
+       (list (parse-kind) t t))
+      ((stringp subject)
+       (list (parse-kind) (parse-class-or-tag subject) t))
+      ((consp subject)
+       (let+ (((&plist-r/o (class-or-tag :type t) (name :name t))
+               (alist-plist subject)))
+         (list (parse-kind)
+               (parse-class-or-tag class-or-tag)
+               (parse-name name))))
+      (t
+       (error 'type-error
+              :datum         raw
+              :expected-type '(or (eql "<all>") cons))))))
+
+(mapc (lambda+ ((json expected))
+        (assert (equal expected (parse-constraint
+                                 (json:decode-json-from-string json)))))
+      '(("[ \"before\", \"<all>\"               ]"                  (:before t t))
+        ("[ \"before\", \"foo\"                 ]"                  (:before foo t))
+        ("[ \"before\", { \"type\": \"foo\" }   ]"                  (:before foo t))
+        ("[ \"before\", { \"type\": \"<all>\" } ]"                  (:before t t))
+        ("[ \"before\", { \"name\": \"bar\" }   ]"                  (:before t "bar"))
+        ("[ \"before\", { \"name\": \"<all>\" } ]"                  (:before t t))
+        ("[ \"before\", { \"type\": \"fez\", \"name\": \"baz\" } ]" (:before fez "baz"))))
+
 (defmethod builder-constraints ((aspect  aspect-builder-defining-mixin)
                                 (builder t))
-  (let* ((builder-type (type-of builder))
-         (variable     (format-symbol :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
-                                      (let ((type-string (string builder-type)))
-                                        (subseq type-string (length "builder/")))))
-         (value  (ignore-errors (value aspect variable))))
-    (log:trace "Constraints for ~A in ~A: ~A" builder variable value)
-    (mapcar (lambda+ ((kind &rest args))
-              (list* (make-keyword (string-upcase kind))
-                     (if (string= (first args) "<all>")
-                         t
-                         (intern (first args) #.*package*))
-                     (rest args)))
-            value)))
+  (let+ ((builder-type    (type-of builder))
+         (variable        (format-symbol
+                           :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
+                           (let ((type-string (string builder-type)))
+                             (subseq type-string (length "builder/")))))
+         (constraints/raw (ignore-errors (lookup aspect variable)))
+         (constraints     (mapcar #'parse-constraint constraints/raw)))
+    (log:trace "Constraints for ~A in ~A: ~S" builder variable constraints)
+    constraints))
 
 ;;; SLOCcount aspect
 

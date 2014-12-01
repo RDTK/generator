@@ -197,10 +197,13 @@
     ;; builders according to declared ordering.
     (let ((*builder-constraints* (make-hash-table))
           (aspects (sort-with-partial-order (copy-list (aspects thing)) #'aspect<)))
+      ;; Methods on `extend!' add entries to `*builder-constraints*'
+      ;; and push builders onto (builders job).
       (reduce (rcurry #'extend! thing) aspects :initial-value job)
 
-      (log:trace "Builder constraints: ~A" (hash-table-alist *builder-constraints*))
+      (log:trace "Builder constraints: ~S" (hash-table-alist *builder-constraints*))
 
+      ;; Try to sort builders according to `*builder-constraints*'.
       (setf (builders job)
             (sort-with-partial-order
              (builders job) (rcurry #'builder< *builder-constraints*)))

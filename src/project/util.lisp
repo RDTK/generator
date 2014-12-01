@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities used in the project module.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2014 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,7 +16,8 @@
                           (rotatef (nth i list) (nth j list))
                           (return-from outer t))))
           (return-from sort-with-partial-order list)))
-  (error "~<~S does not define a partial order on ~S.~@:>~%Problems:~%~{* ~{~A - ~A~}~^~%~}"
+  (error "~<~S does not define a partial order on ~S.~@:>~%~
+          Problems:~%~{* ~{~A - ~A~}~^~%~}"
          (list predicate list)
          (iter outer
                (for i :below (length list))

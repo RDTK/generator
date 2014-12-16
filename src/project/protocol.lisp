@@ -81,7 +81,7 @@
   (:function second))
 
 (esrap:defrule uninterpreted-$-or-@
-    (and (or #\$ #\@) (not #\{))
+    (and (or #\$ #\@) (esrap:! #\{))
   (:function first))
 
 (esrap:defrule text

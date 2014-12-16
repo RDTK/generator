@@ -62,12 +62,6 @@
   <executionStrategy class=\"hudson.matrix.DefaultMatrixExecutionStrategyImpl\">
     <runSequentially>false</runSequentially>
   </executionStrategy>
-  <axes>
-    <hudson.matrix.LabelAxis>
-      <name>label</name>
-      <values><string>default</string></values>
-    </hudson.matrix.LabelAxis>
-  </axes>
   <keepDependencies>false</keepDependencies>
   <canRoam>true</canRoam>
   <disabled>true</disabled>

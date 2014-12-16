@@ -830,22 +830,22 @@
 (defmethod kind ((object job))
   (stp:local-name (stp:document-element (%data object))))
 
+(defmethod (setf kind) ((new-value (eql :project))
+			(object    job))
+  (setf (kind object) "project"))
+
 (defmethod (setf kind) ((new-value (eql :matrix))
 			(object    job))
-  (setf (kind object) "matrix-project"))
+  (setf (kind object) '("matrix-project" "matrix-project@1.4")))
 
 (defmethod (setf kind) ((new-value string)
 			(object    job))
-  (unless (member new-value '("project" "matrix-project")
-		  :test #'string=)
-    (cerror "Continue" "~@<Unknown job kind ~S.~@:>"
-	    new-value))
-  (setf (kind object) (cons new-value nil))
+  (setf (kind object) (list new-value))
   new-value)
 
 (defmethod (setf kind) ((new-value cons)
 			(object    job))
-  (let+ (((local-name . plugin) new-value)
+  (let+ (((local-name &optional plugin) new-value)
 	 (root (stp:document-element (%data object))))
     (setf (stp:local-name root) local-name)
     (when plugin

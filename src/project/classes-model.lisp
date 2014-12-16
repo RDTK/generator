@@ -184,7 +184,11 @@
                                     (value thing :description.footer))))
                   (fresh-line stream)
                   (format-description-part stream footer))))))
-         (kind (make-keyword (string-upcase (value thing :kind))))
+         (kind (let+ (((kind &optional plugin)
+                       (ensure-list (value thing :kind))))
+                 (if plugin
+                     (list kind plugin)
+                     (make-keyword (string-upcase kind)))))
          (job  (jenkins.dsl:job (kind (value thing :bla-name)
                                       :description (format-description)))))
     (push job (%implementations thing))

@@ -184,9 +184,11 @@ documents in a particular way."
 				   &key
 				   inner-types
 				   &allow-other-keys)
-	      (mapcar (compose (curry #'string-trim '(#\Space #\Tab #\Newline))
-			       (rcurry #'xloc:xml-> inner-types))
-		      (split-sequence ,separator value :remove-empty-subseqs t)))
+	      (let* ((chunks       (split-sequence ,separator value :remove-empty-subseqs t))
+		     (chunks/clean (mapcar (curry #'string-trim '(#\Space #\Tab #\Newline))
+					   chunks))
+		     (elements     (remove-if #'emptyp chunks/clean)))
+	       (mapcar (rcurry #'xloc:xml-> inner-types) elements)))
 
 	    (defmethod xloc:->xml ((value list)
 				   (dest  (eql 'string))
@@ -305,4 +307,50 @@ documents in a particular way."
 	dest
       (setf size  count
 	    items (mapcar #'string value))))
+  dest)
+
+;;; `stupid-threshold'
+
+(deftype stupid-threshold ()
+  '(member :success :unstable))
+
+(defmethod xloc:xml-> ((value stp:element)
+		       (type  (eql 'stupid-threshold))
+		       &key &allow-other-keys)
+  (xloc:with-locations-r/o
+      (((:val name            :type 'string)  "./name/text()")
+       #+later? ((:val ordinal         :type 'string)  "./ordinal/text()")
+       #+later? ((:val color           :type 'string)  "./color/text()")
+       #+later? ((:val complete-build? :type 'boolean) "./completeBuild/text()"))
+      value
+    (cond
+      ((string= name "SUCCESS")
+       :success)
+      ((string= name "UNSTABLE")
+       :unstable)
+      (t
+       (error "~@<Unknown threshold name: ~S~@:>" name)))))
+
+(defmethod xloc:->xml ((value symbol)
+		       (dest  stp:element)
+		       (type  (eql 'stupid-threshold))
+		       &key &allow-other-keys)
+  (check-type value stupid-threshold)
+  (xloc:with-locations
+      (((:val name            :type 'string)  "./name/text()")
+       ((:val ordinal         :type 'string)  "./ordinal/text()")
+       ((:val color           :type 'string)  "./color/text()")
+       ((:val complete-build? :type 'boolean) "./completeBuild/text()"))
+      dest
+    (ecase value
+      (:success
+       (setf name            (string value)
+	     ordinal         0
+	     color           "BLUE"
+	     complete-build? t))
+      (:unstable
+       (setf name            (string value)
+	     ordinal         1
+	     color           "YELLOW"
+	     complete-build? t))))
   dest)

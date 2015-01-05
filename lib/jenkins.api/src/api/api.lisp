@@ -1,8 +1,8 @@
 ;;;; api.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen;;
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
-;;;; Author: Jan Moringen <jmoringe@techfak.uni-biel;;efeld.de>
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.api)
 
@@ -256,18 +256,7 @@
   (let ((new/job (copy-job old new)))
     ;; Disable the new job to prevent it from building while we are
     ;; still setting it up.
-    (disable! new/job)
-
-    ;; Install OLD's upstream jobs as NEW's upstream jobs.
-    (dolist (upstream (mapcar #'job (upstream (job old))))
-      (format *trace-output* "~&Adjusting relation to upstream job ~A~&" upstream)
-      (push new (downstream upstream))
-      (commit! upstream))
-
-    ;; Remove any downstream jobs NEW might have copied from OLD.
-    (when remove-downstreams?
-      (setf (downstream new/job) '()))
-    (commit! new/job)))
+    (disable! new/job)))
 
 (define-operation/name-or-object
     (build! :path (format nil "job/~A/build" job))
@@ -287,46 +276,38 @@
   (request :method :post)
   (values))
 
-(defmethod relate ((parent string) (child string))
-  (relate (job parent) (job child)))
+(macrolet
+    ((define-name-resolving-methods (name)
+       `(progn
+	  (defmethod ,name ((parent string) (child string))
+	    (,name (job parent) (job child)))
 
-(defmethod relate ((parent string) (child job))
-  (relate (job parent) child))
+	  (defmethod ,name ((parent string) (child job))
+	    (,name (job parent) child))
 
-(defmethod relate ((parent job) (child string))
-  (relate parent (job child)))
+	  (defmethod ,name ((parent job) (child string))
+	    (,name parent (job child))))))
+
+  (define-name-resolving-methods relate)
+  (define-name-resolving-methods unrelate))
 
 ;; TODO :if-related
 (defmethod relate ((parent job) (child job))
-  (when (member (id child) (downstream parent) :test #'string=)
-    (error "~@<~A already is a downstream project of ~A~@:>"
-	   child parent))
+  (when (member (id parent) (upstream parent) :test #'string=)
+    (error "~@<~A already is an upstream project of ~A~@:>"
+	   parent child))
+  ;; Add PARENT the to list of upstream jobs of CHILD.
+  (push (id parent) (upstream child))
+  (commit! child))
 
-  (push (id child) (downstream parent))
-
-  #+no(progn
-    (xloc:->xml parent (%data parent) (class-name (class-of parent)))
-   (stp:serialize
-    (jenkins.api::%data parent)
-    (cxml:make-character-stream-sink *standard-output* :indentation 2)))
-
-  (commit! parent))
-
-(defmethod unrelate ((parent string) (child string))
-  (unrelate (job parent) (job child)))
-
-(defmethod unrelate ((parent string) (child job))
-  (unrelate (job parent) child))
-
-(defmethod unrelate ((parent job) (child string))
-  (unrelate parent (job child)))
-
+;; TODO if-not-related
 (defmethod unrelate ((parent job) (child job))
-  (unless (member (id child) (downstream parent) :test #'string=)
-    (error "~@<~A is not a downstream project of ~A~@:>"
-	   child parent))
-  (removef (downstream parent) (id child) :test #'string=)
-  (commit! parent))
+  (unless (member (id parent) (upstream child) :test #'string=)
+    (error "~@<~A is not an upstream project of ~A~@:>"
+	   parent child))
+  ;; Remove PARENT from the list of upstream jobs of CHILD.
+  (removef (upstream child) (id parent) :test #'string=)
+  (commit! child))
 
 (defmethod last-build ((job job))
   "TODO(jmoringe): document"

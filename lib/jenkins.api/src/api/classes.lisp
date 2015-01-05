@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -496,7 +496,19 @@
   ((github "com.cloudbees.jenkins.GitHubPushTrigger"
 	   :plugin "github@1.4")
    ((spec :type string))
-   (:name-slot spec)))
+   (:name-slot spec))
+
+  ((reverse "jenkins.triggers.ReverseBuildTrigger")
+   ((spec              :type     string ; seems to be unused in Jenkins
+		       :xpath    "spec/text()"
+		       :initform "")
+    (upstream-projects :type     (list/comma string)
+		       :xpath    "upstreamProjects/text()"
+		       :initform '())
+    (threshold         :type     stupid-threshold
+		       :xpath    "threshold"
+		       :initform :success))
+   (:name-slot upstream-projects)))
 
 ;;; build-wrapper interface
 
@@ -898,9 +910,17 @@
     (setf (children build) new-value)))
 
 (defmethod upstream ((object job))
-  (iter (for job in (all-jobs))
-	(when (find (id object) (downstream job) :test #'string=)
-	  (collect (id job)))))
+  (when-let ((reverse (trigger-of-type 'trigger/reverse object)))
+    (upstream-projects reverse)))
+
+(defmethod (setf upstream) ((new-value list) (object job))
+  (let ((reverse (or (trigger-of-type 'trigger/reverse object) ; TODO make a function or macro ensure-...
+		     (let ((instance (make-instance 'trigger/reverse)))
+		       (appendf (triggers object) (list instance))
+		       instance))))
+    (setf (upstream-projects reverse) new-value)))
+
+;;; Permissions
 
 (defmethod grant ((job job) (subject string) (action string))
   (pushnew (format nil "~A:~A" action subject)

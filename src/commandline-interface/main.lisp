@@ -371,14 +371,14 @@
 
       ;; Create helper jobs
       (ensure-job ("project" (format nil "distribution-prepare.~A" name))
-                  (jenkins.api:builders
-                   (jenkins.dsl::shell (:command prepare))))
+        (jenkins.api:builders
+         (jenkins.dsl::shell (:command prepare))))
       (ensure-job ("project" (format nil "distribution-finish.~A" name))
-                  (jenkins.api:builders
-                   (jenkins.dsl::shell (:command finish))))
+        (jenkins.api:builders
+         (jenkins.dsl::shell (:command finish))))
 
       ;; Create bluildflow job
-      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" . "build-flow-plugin@0.10")
+      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" "build-flow-plugin@0.10")
                     (format nil "distribution-buildflow.~A" name))))))
 
 (defun configure-distribution (distribution

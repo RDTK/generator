@@ -1,6 +1,6 @@
 ;;;; release.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -71,15 +71,22 @@
 (defun adapt-relations (job version)
   ;; Modify source projects of copy artifact build steps.
   (dolist (upstream/old (jenkins.api::upstream job))
-    (let ((upstream/new
-            (ppcre:regex-replace "(rs(?:b|c|t).*)-trunk" upstream/old
-                                 (format nil "\\1-~A" version))))
-      (when (string/= upstream/old upstream/new)
-        (with-modification (:upstream upstream/old upstream/new)
-          (progn #+true when #+true (member upstream/old (jenkins.api::upstream job) :test #'string=)
-                 (unrelate upstream/old job))
-          (unless (member upstream/new (jenkins.api::upstream job) :test #'string=)
-            (relate upstream/new job)))))))
+    (restart-case
+        (let ((upstream/new
+                (ppcre:regex-replace "(rs(?:b|c|t).*)-trunk" upstream/old
+                                     (format nil "\\1-~A" version))))
+          (when (string/= upstream/old upstream/new)
+            (with-modification (:upstream upstream/old upstream/new)
+              (progn #+true when #+true (member upstream/old (jenkins.api::upstream job) :test #'string=)
+                     (unrelate upstream/old job))
+              (unless (member upstream/new (jenkins.api::upstream job) :test #'string=)
+                (relate upstream/new job)))))
+      (continue (&optional condition)
+        :report (lambda (stream)
+                  (format stream "~@<Skip adapting the relation ~A - ~A.~@:>"
+                          job upstream/old))
+        (log:error "~@<Error adapting relation ~A - ~A~@[: ~A~].~@:>"
+                   job upstream/old condition)))))
 
 (defun release (version
                 &key
@@ -101,8 +108,7 @@
           (let* ((new/name (ppcre:regex-replace
                             replace-pattern (id job) replacement))
                  (messages (make-string-output-stream))
-                 (new/job  (let ((*trace-output* messages))
-                             (copy-job/fixup (id job) new/name))))
+                 (new/job  (copy-job/fixup (id job) new/name)))
             (format t "~A -> ~A~%~<  ~:;~A~:>~%"
                     job new/job
                     (list (get-output-stream-string messages)))

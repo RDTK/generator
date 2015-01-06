@@ -12,7 +12,7 @@
               :reader  unmapped-class-interface
               :documentation
               "Name of the interface for which the named
-implementation could not be found.")
+               implementation could not be found.")
    (name      :initarg :name
               :type    string
               :reader  unmapped-class-name
@@ -28,5 +28,5 @@ implementation could not be found.")
                      (unmapped-class-interface condition))))
   (:documentation
    "This condition is signaled when a named implementation of an
-interface cannot be found during deserializing of a model object from
-XML."))
+    interface cannot be found during deserializing of a model object
+    from XML."))

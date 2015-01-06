@@ -1,6 +1,6 @@
 ;;;; types.lisp --- Types used by the api module.
 ;;;;
-;;;; Copyright (C) 2013 Jan Moringen
+;;;; Copyright (C) 2013, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,5 +8,5 @@
 
 (deftype unmapped-marker ()
   "Objects of this type are used as placeholders for unmapped
-interface implementations."
+   interface implementations."
   `(cons (eql :unimplemented) (cons symbol (cons string (cons t null)))))

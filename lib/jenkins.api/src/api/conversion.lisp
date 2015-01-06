@@ -92,7 +92,7 @@
 
 (deftype equals-string/cons (&optional (key 'keyword) (value 'string))
   "A `cl:cons' which should be stored into certain locations of XML
-documents as a string of the form KEY=VALUE."
+   documents as a string of the form KEY=VALUE."
   `(cons ,key ,value))
 
 (defmethod xloc:xml-> ((value string)
@@ -121,7 +121,7 @@ documents as a string of the form KEY=VALUE."
 
 (deftype string/node ()
   "A `cl:string' which should be stored into certain locations of XML
-documents in a particular way."
+   documents in a particular way."
   'string)
 
 (defmethod xloc:xml-> ((value stp:element)

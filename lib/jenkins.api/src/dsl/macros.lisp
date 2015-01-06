@@ -119,7 +119,7 @@
                                      &key
                                      (class-name name)))
   "Define a macro named NAME which accepts attributes as a plist and
-returns an instance of the model class CLASS-NAME."
+   returns an instance of the model class CLASS-NAME."
   `(progn
      (defmacro ,name ((&rest attributes &key &allow-other-keys))
        (let+ (((&with-gensyms node))

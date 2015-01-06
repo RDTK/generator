@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -184,13 +184,13 @@
                                     (value thing :description.footer))))
                   (fresh-line stream)
                   (format-description-part stream footer))))))
+         (id   (value thing :bla-name))
          (kind (let+ (((kind &optional plugin)
                        (ensure-list (value thing :kind))))
                  (if plugin
                      (list kind plugin)
                      (make-keyword (string-upcase kind)))))
-         (job  (jenkins.dsl:job (kind (value thing :bla-name)
-                                      :description (format-description)))))
+         (job  (jenkins.dsl:job (kind id :description (format-description)))))
     (push job (%implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated
@@ -210,9 +210,25 @@
     ;; TODO temp
     (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)
 
-    (if (jenkins.api:job? (id job))
-        (setf (jenkins.api:job-config (id job)) (jenkins.api::%data job))
-        (jenkins.api::make-job (id job) (jenkins.api::%data job)))
+    (let* ((existing-job  (when (jenkins.api:job? (id job))
+                           (jenkins.api:job (id job))))
+           (existing-kind (when existing-job
+                            (jenkins.api:kind existing-job))))
+      (cond
+        ((not existing-job)
+         (log:info "~@<Creating new job ~A~@:>" job)
+         (jenkins.api::make-job (id job) (jenkins.api::%data job)))
+        ((or (equal kind existing-kind)
+             (case kind
+               (:project (string= existing-kind "project"))
+               (:matrix  (string= existing-kind "matrix-project"))))
+         (log:info "~@<Updating exiting job ~A~@:>" existing-job)
+         (setf (jenkins.api:job-config (id job)) (jenkins.api::%data job)))
+        (t
+         (log:warn "~@<Deleting job ~A to change kind ~A -> ~(~A~)~@:>"
+                   job (jenkins.api:kind existing-job) kind)
+         (jenkins.api:delete-job (id job))
+         (jenkins.api::make-job (id job) (jenkins.api::%data job)))))
 
     thing))
 

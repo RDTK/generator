@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -68,7 +68,7 @@
    (or (probe-file (merge-pathnames *main-cmake-file-name* directory))
        (error "~@<Could not find main ~S file in ~S.~@:>"
               *main-cmake-file-name* directory))
-   (find-files (merge-pathnames "*/**/CMakeLists.txt.*" directory))))
+   (find-files (merge-pathnames "*/**/CMakeLists.txt" directory))))
 
 (defun find-cmake-config-files (directory)
   "TODO(jmoringe): document"
@@ -173,45 +173,49 @@
         `((:main ,(%resolve-cmake-version project-version versions))))
 
       :provides
-      (append
-       (iter (for file in config-files)
-             (let* ((name            (cmake-config-file->project-name/dont-normalize file))
-                    (name/lower-case (string-downcase name))
-                    (version         (parse-version (%resolve-cmake-version project-version versions))))
-               (collect (list :cmake name version))
-               (unless (string= name/lower-case name)
-                 (collect (list :cmake name/lower-case version)))))
-       (iter (for file in pkg-config-template-files)
-             (let* ((content (read-file-into-string file))
-                    (content (%resolve-cmake-version content variables)))
-               (when-let* ((result (with-input-from-string (stream content)
-                                     (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
-                           (provides (getf result :provides)))
-                 (appending provides)))))
+      (remove-duplicates
+       (append
+        (iter (for file in config-files)
+              (let* ((name            (cmake-config-file->project-name/dont-normalize file))
+                     (name/lower-case (string-downcase name))
+                     (version         (parse-version (%resolve-cmake-version project-version versions))))
+                (collect (list :cmake name version))
+                (unless (string= name/lower-case name)
+                  (collect (list :cmake name/lower-case version)))))
+        (iter (for file in pkg-config-template-files)
+              (let* ((content (read-file-into-string file))
+                     (content (%resolve-cmake-version content variables)))
+                (when-let* ((result (with-input-from-string (stream content)
+                                      (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
+                            (provides (getf result :provides)))
+                  (appending provides)))))
+       :test #'equal)
 
       :requires
-      (iter (for file in (cons main-file extra-files))
-            (let ((content (read-file-into-string file)))
-              (ppcre:do-register-groups (name version)
-                  (*find-package-scanner* content)
-                (collect (list* :cmake
-                                (%resolve-cmake-version name versions)
-                                (when version (list (parse-version (%resolve-cmake-version version versions)))))))
-              (ppcre:do-register-groups (variable modules)
-                  (*pkg-check-modules-scanner* content)
-                (declare (ignore variable))
-                (ppcre:do-matches-as-strings (module
-                                              "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
-                                              modules)
-                  (let+ ((module (string-trim '(#\") module))
-                         (resolved (%resolve-cmake-version module variables))
-                         ((name &optional version)
-                          (or (ppcre:register-groups-bind (name version)
-                                  ("([^>=]+)>=(.*)" resolved)
-                                (list name version))
-                              (list resolved))))
-                    (collect (list* :pkg-config name
-                                    (when version (list (parse-version version))))))))))
+      (remove-duplicates
+       (iter (for file in (list* main-file extra-files))
+             (let ((content (read-file-into-string file)))
+               (ppcre:do-register-groups (name version)
+                   (*find-package-scanner* content)
+                 (collect (list* :cmake
+                                 (%resolve-cmake-version name versions)
+                                 (when version (list (parse-version (%resolve-cmake-version version versions)))))))
+               (ppcre:do-register-groups (variable modules)
+                   (*pkg-check-modules-scanner* content)
+                 (declare (ignore variable))
+                 (ppcre:do-matches-as-strings (module
+                                               "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
+                                               modules)
+                   (let+ ((module (string-trim '(#\") module))
+                          (resolved (%resolve-cmake-version module variables))
+                          ((name &optional version)
+                           (or (ppcre:register-groups-bind (name version)
+                                   ("([^>=]+)>=(.*)" resolved)
+                                 (list name version))
+                               (list resolved))))
+                     (collect (list* :pkg-config name
+                                     (when version (list (parse-version version))))))))))
+       :test #'equal)
 
       :properties
       (append

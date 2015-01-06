@@ -6,9 +6,7 @@
 
 (cl:in-package #:jenkins.api)
 
-
-;;; Generic modle object protocol
-;;
+;;; Generic model object protocol
 
 (defgeneric id (object)
   (:documentation
@@ -27,9 +25,7 @@ have them take effect and make them permanent."))
   (:documentation
    "TODO(jmoringe): document"))
 
-
 ;;; Node protocol
-;;
 
 #+no (defgeneric make-slave (name)
   (:documentation
@@ -51,9 +47,7 @@ have them take effect and make them permanent."))
   (:documentation
    "TODO"))
 
-
 ;;; Job protocol
-;;
 
 #+no (defgeneric make-job (name)
   (:documentation

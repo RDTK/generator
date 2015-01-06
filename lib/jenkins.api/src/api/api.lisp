@@ -8,7 +8,6 @@
 
 (defmacro define-operation ((name &key path) (&rest args)
                             &body body)
-  "TODO(jmoringe): document"
   `(defun ,name ,args
      (flet ((request (&rest args-and-parameters
                       &key
@@ -197,9 +196,7 @@
          (request :method :post)
          (values)))))
 
-
 ;;; Node-related operations
-;;
 
 (define-items node
   (:prefix "computer")
@@ -237,9 +234,7 @@
                                            :format-arguments (list node))))))
   (values))
 
-
 ;;; Job-related operations
-;;
 
 (define-items job
   (:prefix     "job")
@@ -310,12 +305,10 @@
   (commit! child))
 
 (defmethod last-build ((job job))
-  "TODO(jmoringe): document"
   ()
   )
 
-(defvar *job-cache* nil
-  "TODO(jmoringe): document")
+(defvar *job-cache* nil)
 
 (defun all-jobs/cache (&optional regex)
   (let ((jobs (or *job-cache*
@@ -325,9 +318,7 @@
                    :key #'id)
         jobs)))
 
-
 ;;; build
-;;
 
 (define-operation/json (all-builds :path "/api/json")
     (&optional regex)
@@ -374,9 +365,7 @@
   (request :method :post)
   (values))
 
-
 ;;; item (Queue item)
-;;
 
 (define-items item
   (:prefix      "queue")
@@ -394,9 +383,7 @@
   (request :method :post)
   (values))
 
-
 ;;; View-related operations
-;;
 
 (define-items view
   (:prefix      "view")

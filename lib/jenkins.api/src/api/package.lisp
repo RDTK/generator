@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -49,8 +49,8 @@
   (:export
    #:job
 
-   #:job ;; TODO find-job?
-   #:all-jobs ;; TODO jobs?
+   #:job ; TODO find-job?
+   #:all-jobs ; TODO jobs?
    #:job-config
    #:job?
    #:make-job

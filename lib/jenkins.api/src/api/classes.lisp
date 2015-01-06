@@ -51,9 +51,8 @@
     (update! instance))
   (call-next-method))
 
-;;; TODO(jmoringe, 2013-02-21): rename root? -> toplevel? ? make option?
+;; TODO(jmoringe, 2013-02-21): rename root? -> toplevel? ? make option?
 (defmacro define-model-class (name () (&rest slots) &body options)
-  "TODO(jmoringe): document"
   (let+ (((&flet maybe-version-case (spec &key (transform #'identity))
             (typecase spec
               ((cons (eql :version))
@@ -101,7 +100,7 @@
          ((&flet+ make-xml->slot ((name
                                    &key
                                    (type      t)
-                                   (xpath     (format (cdr '(1)) "./~(~A~)/text()" name)) ;;; TODO(jmoringe, 2012-12-21): let+ workaround
+                                   (xpath     (format (cdr '(1)) "./~(~A~)/text()" name)) ; TODO(jmoringe, 2012-12-21): let+ workaround
                                    (optional? t)
                                    &allow-other-keys))
             `(let ((loc (apply #'xloc:loc value
@@ -153,7 +152,7 @@
                                       :default-initargs)))
                       options :key #'first))
 
-       ;;; TODO(jmoringe, 2013-01-03): get rid of this
+       ;; TODO(jmoringe, 2013-01-03): get rid of this
        (defmethod ,name ((id t) &rest initargs &key &allow-other-keys)
          (apply #'make-instance ',name :id id initargs))
 
@@ -178,13 +177,11 @@
 
        ,@(when root?
            `((defmethod update! ((object ,name))
-               "TODO(jmoringe): document"
                (let+ (((&accessors id (data %data) get-func) object))
                  (setf data (funcall get-func id))
                  (xloc:xml-> (stp:root data) object)))
 
              (defmethod commit! ((object ,name))
-               "TODO(jmoringe): document"
                (let+ (((&accessors-r/o id (data %data) put-func) object))
                  (unless put-func
                    (error "~@<Read-only object ~A.~@:>" object))
@@ -204,7 +201,6 @@
                                              &key
                                              (class-location '(xloc:name ".")))
                                             &body implementations)
-  "TODO(jmoringe): document"
   (let+ (((class-accessor class-path) class-location)
          (name->class-table (format-symbol *package* "*NAME->~A-CLASS*" name))
          (class->name-table (format-symbol *package* "*CLASS->~A-NAME*" name))
@@ -296,16 +292,15 @@
     (format stream "~A ~:[off~;on~]line"
             (name object) (online? object))))
 
-
 ;;; `job' class
-;;
-;; Aggregated classes:
-;;
-;; * `scm'
-;; * `properties'
-;; * `trigger'
-;; * `builder'
-;; * `publisher'
+;;;
+;;; Aggregated classes:
+;;;
+;;; * `scm'
+;;; * `properties'
+;;; * `trigger'
+;;; * `builder'
+;;; * `publisher'
 
 (deftype git-browser ()
   '(member :redmine-web :github-web))
@@ -615,7 +610,7 @@
     (target       :type  string)
     (flatten?     :type  boolean
                   :xpath "flatten/text()")
-    ;;; TODO(jmoringe, 2012-12-13): temp
+    ;; TODO(jmoringe, 2012-12-13): temp
     (clazz        :type  string
                   :xpath "selector/@class"))
    (:name-slot project-name)))
@@ -812,7 +807,7 @@
      (assigned-slave  :type     string
                       :xpath    "assignedNode/text()"
                       :optional? t )
-     (slaves          :type     string/node ;; TODO(jmoringe, 2012-07-10): not correct
+     (slaves          :type     string/node ; TODO(jmoringe, 2012-07-10): not correct
                       :xpath    ("axes/hudson.matrix.LabelAxis[name/text()='label']/values/string"
                                  :if-multiple-matches :all)
                       :optional? t)
@@ -883,7 +878,7 @@
 
 (defmethod downstream ((object job))
   ;; Ensure presence of a `publisher/build' instances.
-  (let ((build (or (publisher-of-type 'publisher/build object) ;; TODO make a function or macro ensure-...
+  (let ((build (or (publisher-of-type 'publisher/build object) ; TODO make a function or macro ensure-...
                    (let ((instance (make-instance 'publisher/build)))
                      (appendf (publishers object) (list instance))
                      instance))))
@@ -950,9 +945,7 @@
   (define-permission-methods grant)
   (define-permission-methods revoke))
 
-
 ;;; `build' class
-;;
 
 (define-model-class build ()
     ((building?  :type  boolean
@@ -979,9 +972,7 @@
                             :in-progress
                             (result object)))))
 
-
 ;;; `item' class (Queue items)
-;;
 
 (define-model-class item ()
     ((job-name :type  string
@@ -991,9 +982,7 @@
 (defmethod job ((item item) &key &allow-other-keys)
   (job (job-name item)))
 
-
 ;;; `view' class
-;;
 
 (define-model-class view ()
     ((jobs :type  string

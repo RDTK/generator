@@ -8,11 +8,9 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-template-name (name)
-    "TODO(jmoringe): document"
     (format-symbol #.*package* "+~A-TEMPLATE+" name)))
 
 (defmacro define-template (name xml)
-  "TODO(jmoringe): document"
   `(defvar ,(make-template-name name)
      (load-time-value (cxml:parse ,xml (stp:make-builder)) t)))
 
@@ -82,7 +80,6 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun find-accessor (class name)
-    "TODO(jmoringe): document"
     (or (when-let ((name (find-symbol (string name) :jenkins.api)))
           (when (closer-mop:compute-applicable-methods-using-classes
                  (fdefinition name) (list (find-class class)))
@@ -92,8 +89,7 @@
 
 (defmacro job ((kind name &rest attributes &key &allow-other-keys)
                &body body)
-  "TODO(jmoringe): document"
-  ;;; TODO(jmoringe, 2012-12-12): kind
+  ;; TODO(jmoringe, 2012-12-12): kind
   (let+ ((class-name    'jenkins.api:job)
          (template-name (make-template-name '#:job))
          ((&with-gensyms node))

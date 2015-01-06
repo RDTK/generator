@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macro-based DSL for Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -84,35 +84,35 @@
   (defun find-accessor (class name)
     "TODO(jmoringe): document"
     (or (when-let ((name (find-symbol (string name) :jenkins.api)))
-	  (when (closer-mop:compute-applicable-methods-using-classes
-		 (fdefinition name) (list (find-class class)))
-	    name))
-	(error "~@<Unknown ~S attribute: ~S.~@:>"
-	       class name))))
+          (when (closer-mop:compute-applicable-methods-using-classes
+                 (fdefinition name) (list (find-class class)))
+            name))
+        (error "~@<Unknown ~S attribute: ~S.~@:>"
+               class name))))
 
 (defmacro job ((kind name &rest attributes &key &allow-other-keys)
-	       &body body)
+               &body body)
   "TODO(jmoringe): document"
   ;;; TODO(jmoringe, 2012-12-12): kind
   (let+ ((class-name    'jenkins.api:job)
-	 (template-name (make-template-name '#:job))
-	 ((&with-gensyms node))
-	 ((&flet process-attribute (name value)
-	    (check-type name symbol)
+         (template-name (make-template-name '#:job))
+         ((&with-gensyms node))
+         ((&flet process-attribute (name value)
+            (check-type name symbol)
 
-	    (let ((accessor-name (find-accessor class-name name)))
-	      `(setf (,accessor-name ,node) ,value))))
-	 ((&flet+ process-child ((name &rest specs))
-	    (check-type name symbol)
+            (let ((accessor-name (find-accessor class-name name)))
+              `(setf (,accessor-name ,node) ,value))))
+         ((&flet+ process-child ((name &rest specs))
+            (check-type name symbol)
 
-	    (let ((accessor-name (find-accessor class-name name)))
-	      `(setf (,accessor-name ,node) (list ,@specs))))))
+            (let ((accessor-name (find-accessor class-name name)))
+              `(setf (,accessor-name ,node) (list ,@specs))))))
    `(let ((,node (make-instance ',class-name
-			       :id   ,name
-			       :data (stp:copy ,template-name))))
+                               :id   ,name
+                               :data (stp:copy ,template-name))))
       (xloc:xml-> (stp:root ,template-name) ,node)
       ,@(iter (for (name value) on attributes :by #'cddr)
-	      (collect (process-attribute name value)))
+              (collect (process-attribute name value)))
       ,@(mapcar #'process-child body)
       ;; TODO temp: synchronize
       (xloc:->xml ,node (stp:root (jenkins.api::%data ,node)) ',class-name)
@@ -120,44 +120,44 @@
       ,node)))
 
 (defmacro define-model-class-macro ((name
-				     &key
-				     (class-name name)))
+                                     &key
+                                     (class-name name)))
   "Define a macro named NAME which accepts attributes as a plist and
 returns an instance of the model class CLASS-NAME."
   `(progn
      (defmacro ,name ((&rest attributes &key &allow-other-keys))
        (let+ (((&with-gensyms node))
-	      ((&flet process-attribute (name value)
-		 (check-type name symbol)
+              ((&flet process-attribute (name value)
+                 (check-type name symbol)
 
-		 (let ((accessor-name (find-accessor ',class-name name)))
-		   `(setf (,accessor-name ,node) ,value)))))
-	 `(let ((,node (make-instance ',',class-name)))
-	    ,@(iter (for (name value) on attributes :by #'cddr)
-		    (collect (process-attribute name value)))
-	    ,node)))
+                 (let ((accessor-name (find-accessor ',class-name name)))
+                   `(setf (,accessor-name ,node) ,value)))))
+         `(let ((,node (make-instance ',',class-name)))
+            ,@(iter (for (name value) on attributes :by #'cddr)
+                    (collect (process-attribute name value)))
+            ,node)))
      (export ',name)))
 
 (defmacro define-interface-implementation-macros (interface)
   (let+ ((map-name        (format-symbol
-			   (symbol-package interface)
-			   "*CLASS->~A-NAME*" interface))
-	 (implementations (hash-table-keys
-			   (symbol-value map-name)))
-	 ((&flet process-implementation (class-name)
-	    (let+ (((&ign implementation)
-		    (split-sequence #\/ (string class-name) :count 2))
-		   (name (intern implementation)))
-	      (if (find-symbol (string implementation) :cl)
-		  (warn 'simple-style-warning
-			:format-control "~@<Implementation ~S of ~
+                           (symbol-package interface)
+                           "*CLASS->~A-NAME*" interface))
+         (implementations (hash-table-keys
+                           (symbol-value map-name)))
+         ((&flet process-implementation (class-name)
+            (let+ (((&ign implementation)
+                    (split-sequence #\/ (string class-name) :count 2))
+                   (name (intern implementation)))
+              (if (find-symbol (string implementation) :cl)
+                  (warn 'simple-style-warning
+                        :format-control "~@<Implementation ~S of ~
                                          interface ~S would clash with ~
                                          ~S is in ~S package; ~
                                          skipping.~@:>"
-			:format-arguments (list class-name interface implementation :cl))
-		  `(define-model-class-macro
-		       (,name
-			:class-name ,class-name)))))))
+                        :format-arguments (list class-name interface implementation :cl))
+                  `(define-model-class-macro
+                       (,name
+                        :class-name ,class-name)))))))
     `(progn
        ,@(mapcar #'process-implementation implementations))))
 

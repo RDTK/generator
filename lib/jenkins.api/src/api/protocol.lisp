@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -40,14 +40,14 @@ have them take effect and make them permanent."))
    "TODO"))
 
 (defgeneric mark-online! (node
-			  &key
-			  if-online)
+                          &key
+                          if-online)
   (:documentation
    "TODO"))
 
 (defgeneric mark-offline! (node
-			   &key
-			   if-offline)
+                           &key
+                           if-offline)
   (:documentation
    "TODO"))
 

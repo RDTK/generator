@@ -774,6 +774,12 @@
                                  :xpath    "blockBuildWhenDownstreamBuilding/text()")
      (block-on-upstream-build?   :type     boolean
                                  :xpath    "blockBuildWhenUpstreamBuilding/text()")
+     (can-roam?                  :type     boolean
+                                 :xpath    "canRoam/text()"
+                                 :initform t)
+     (restrict-to-slaves         :type     string
+                                 :xpath    "assignedNode/text()"
+                                 :optional? t)
      ;; Interface-based children
      (properties                 :type     property
                                  :xpath    ("properties/*"
@@ -804,9 +810,6 @@
      (dsl :type string :xpath "dsl/text()") ; TODO hack
 
      ;; TODO Not sure about these
-     (assigned-slave  :type     string
-                      :xpath    "assignedNode/text()"
-                      :optional? t )
      (slaves          :type     string/node ; TODO(jmoringe, 2012-07-10): not correct
                       :xpath    ("axes/hudson.matrix.LabelAxis[name/text()='label']/values/string"
                                  :if-multiple-matches :all)

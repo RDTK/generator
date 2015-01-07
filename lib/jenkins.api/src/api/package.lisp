@@ -64,6 +64,8 @@
    #:keep/count
    #:block-on-downstream-build?
    #:block-on-upstream-build?
+   #:can-roam?
+   #:restrict-to-slaves
 
    #:properties     #:properties-of-type
    #:triggers       #:triggers-of-type ; Interface-based children

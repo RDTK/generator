@@ -1,6 +1,6 @@
 ;;;; aspects.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -247,8 +247,13 @@ rm -rf \"${TEMPDIR}\"")))
 
 ;;; Slaves aspect
 
-(define-aspect (slaves) () ()
-  (setf (slaves job) (var :slaves)))
+(define-aspect (slaves) () () ; TODO separate slaves aspect for matrix-project jobs?
+  (when-let ((value (var :slaves nil)))
+    (setf (slaves job) value))
+  (if-let ((value (var :restrict-to-slaves nil)))
+    (setf (can-roam? job)          nil
+          (restrict-to-slaves job) value)
+    (setf (can-roam? job) t)))
 
 ;;; Dependency download aspect
 

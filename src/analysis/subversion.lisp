@@ -1,6 +1,6 @@
 ;;;; subversion.lisp --- Analyze subversion repositories.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -11,8 +11,12 @@
           ,@(when username `("--username" ,username))
           ,@(when password `("--password" ,password))))
 
+(defvar *subversion-hack-lock*
+  (bt:make-lock "subversion hack lock"))
+
 (defun %run-svn (spec directory &optional username password)
-  (run `(,@(%svn-and-global-options username password) ,@spec) directory))
+  (bt:with-lock-held (*subversion-hack-lock*)
+    (run `(,@(%svn-and-global-options username password) ,@spec) directory)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
                     &rest args &key
@@ -104,12 +108,13 @@
                     (max-authors   5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
-             (apply #'inferior-shell:run/nil
-                    `(,@(%svn-and-global-options username password)
-                      "log" "--limit" ,max-revisions ,directory)
-                    :directory directory
-                    :output    :lines
-                    (safe-external-format-argument)))
+             (bt:with-lock-held (*subversion-hack-lock*)
+               (apply #'inferior-shell:run/nil
+                      `(,@(%svn-and-global-options username password)
+                        "log" "--limit" ,max-revisions ,directory)
+                      :directory directory
+                      :output    :lines
+                      (safe-external-format-argument))))
            (frequencies (make-hash-table :test #'equal)))
       (dolist (line lines)
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)

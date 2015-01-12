@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -58,10 +58,6 @@
   (:export
    #:version-spec)
 
-  ;; Job specification protocol
-  (:export
-   #:tags)
-
   ;; Template specification protocol
   (:export
    #:inherit
@@ -70,8 +66,7 @@
 
   ;; Aspect specification protocol
   (:export
-   #:aspects
-   #:filter)
+   #:aspects)
 
   ;; Project protocol
   (:export

@@ -301,12 +301,7 @@
                     conditional-mixin
                     direct-variables-mixin
                     parented-mixin)
-  ((tags :initarg  :tags
-         :type     list
-         :accessor tags
-         :initform '()
-         :documentation
-         ""))
+  ()
   (:documentation
    "TODO(jmoringe): document"))
 
@@ -319,15 +314,13 @@
                              :name      (name spec)
                              :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
-     job
-     :aspects   (mapcan (rcurry #'make-aspect job)
-                        (applicable-aspects (parent spec) spec)))))
+     job :aspects (mapcan (rcurry #'make-aspect job)
+                          (aspects (parent spec))))))
 
 (defmethod clone ((thing job-spec))
   (make-instance 'job-spec
                  :name       (name thing)
                  :variables  (direct-variables thing)
-                 :tags       (tags thing)
                  :conditions (conditions thing)))
 
 ;;; `template' class
@@ -380,10 +373,6 @@
                      :key      #'name
                      :from-end t))
 
-(defmethod applicable-aspects ((container t) (job job-spec))
-  (remove-if (complement (rcurry #'aspect-applicable? job))
-             (aspects container)))
-
 ;;; `aspect-spec'
 
 (defclass aspect-spec (named-mixin
@@ -396,31 +385,11 @@
            :reader   aspect
            :documentation
            "Name of the aspect class that should be used to implement
-            this specification.")
-   (filter :initarg  :filter
-           :type     (or null string list)
-           :reader   filter
-           :initform nil
-           :documentation
-           ""))
+            this specification."))
   (:default-initargs
    :aspect (missing-required-initarg 'aspect-spec :aspect))
   (:documentation
    "TODO(jmoringe): document"))
-
-;; TODO subsumed by instantiate? ?
-(defmethod aspect-applicable? ((aspect aspect-spec)
-                               (job    job-spec))
-  (let+ (((&accessors-r/o filter) aspect)
-         ((&labels apply-spec (spec)
-            (etypecase spec
-              (null
-               t)
-              (string
-               (some (curry #'ppcre:scan spec) (tags job)))
-              (list
-               (every #'apply-spec spec))))))
-    (apply-spec filter)))
 
 (defmethod instantiate ((spec aspect-spec))
   ;; TODO(jmoringe, 2013-01-16): find-aspect-class

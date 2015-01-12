@@ -90,10 +90,7 @@
                                                      authors))))
                            (iter (for (key . value) in properties)
                                  (collect (value-cons (make-keyword (string-upcase key))
-                                                      value)))))
-              ;; TODO temp
-              (iter (for job in (jobs project))
-                    (pushnew (string-downcase scm) (tags job) :test #'string=)))))
+                                                      value))))))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)

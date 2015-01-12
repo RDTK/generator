@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Minimal JSON import for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -60,21 +60,19 @@
 
          ((&flet make-aspect-spec (spec parent)
             (check-keys spec '((:name . t) (:aspect . t) :variables
-                               :filter :conditions))
+                               :conditions))
             (make-instance 'aspect-spec
                            :name       (lookup :name spec)
                            :parent     parent
                            :aspect     (lookup :aspect spec)
-                           :filter     (lookup :filter spec) ; TODO remove?
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
 
          ((&flet make-job-spec (spec parent)
-            (check-keys spec '((:name . t) :tags :variables :conditions))
+            (check-keys spec '((:name . t) :variables :conditions))
             (make-instance 'job-spec
                            :name       (lookup :name spec)
                            :parent     parent
-                           :tags       (lookup :tags spec)
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
 

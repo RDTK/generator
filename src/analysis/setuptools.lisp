@@ -1,21 +1,47 @@
 ;;;; setuptools.lisp ---
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.analysis)
 
+(defparameter *value-scanner*
+  (ppcre:create-scanner #. (format nil "~
+    (?:~
+      \\[~
+        [ \\t\\n]*((?:[^]]|\\n)*)~
+      \\]~
+     |~
+      \\{~
+        [ \\t\\n]*((?:[^}]|\\n)*)~
+      \\}~
+     |~
+      (?:'|''')((?:[^']|\\n)*)(?:'|''')~
+     |~
+      (?:\"|\"\"\")((?:[^\"]|\\n)*)(?:\"|\"\"\")~
+     |~
+      ((?:[^,]|\\n)*)~
+    )")))
+
 (defparameter *global-variable-scanner*
-  (ppcre:create-scanner #.(format nil "(?:~
-  ^([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*\\[[ \\t\\n]*((?:[^]]|\\n)*)\\]~
-  |~
-  ^([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*\\{[ \\t\\n]*((?:[^}]|\\n)*)\\}~
-  |~
-  ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*['\"]+((?:[^'\"]|\\n)*)['\"]+~
-  |~
-  ^([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*((?:[^,]|\\n)*)~
-  )")
+  (ppcre:create-scanner #.(format nil "~
+    ^([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*~
+    (~
+      \\[~
+        [ \\t\\n]*(?:[^]]|\\n)*~
+      \\]~
+     |~
+      \\{~
+        [ \\t\\n]*(?:[^}]|\\n)*~
+      \\}~
+     |~
+      (?:'|''')(?:[^']|\\n)*(?:'|''')~
+     |~
+      (?:\"|\"\"\")(?:[^\"]|\\n)*(?:\"|\"\"\")~
+     |~
+      .+~
+    )")
                         :multi-line-mode t))
 
 (defparameter *define-project-version-scanner*
@@ -24,29 +50,55 @@
    :multi-line-mode t))
 
 (defparameter *keyword-arg-scanner*
-  (ppcre:create-scanner #.(format nil "(?:~
-  ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*\\[[ \\t\\n]*((?:[^]]|\\n)*)\\]~
-  |~
-  ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*\\{[ \\t\\n]*((?:[^}]|\\n)*)\\}~
-  |~
-  ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*['\"]+((?:[^'\"]|\\n)*)['\"]+~
-  |~
-  ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*((?:[^,]|\\n)*)~
-  )")
+  (ppcre:create-scanner #.(format nil "~
+    ([a-z_][a-zA-Z0-9_]*)[ \\t\\n]*=[ \\t\\n]*~
+    (~
+      \\[~
+        [ \\t\\n]*(?:[^]]|\\n)*~
+      \\]~
+     |~
+      \\{~
+        [ \\t\\n]*(?:[^}]|\\n)*~
+      \\}~
+     |~
+      (?:'|''')(?:[^']|\\n)*(?:'|''')~
+     |~
+      (?:\"|\"\"\")(?:[^\"]|\\n)*(?:\"|\"\"\")~
+     |~
+      (?:[^,]|\\n)*~
+    )")
                         :multi-line-mode t)
   "TODO(jmoringe): document")
 
+(defun extract-value (source)
+  (labels
+      ((strip (string)
+         (string-trim '(#\Newline #\Space) string))
+       (scan ()
+         (ppcre:do-register-groups (value1 value2 value3 value4 value5)
+             (*value-scanner* source)
+           (return-from scan
+             (cond
+               (value1
+                (mapcan (compose #'extract-value #'strip)
+                        (split-sequence #\, value1)))
+               (value2
+                (mapcan (compose #'extract-value #'strip)
+                        (split-sequence #\, value2)))
+               (value3
+                (list (string-trim '(#\') value3)))
+               (value4
+                (list (string-trim '(#\") value4)))
+               (value5
+                (list (strip value5))))))))
+    (remove-if #'emptyp (scan))))
+
 (defun extract-global-variables (source)
   (let ((result '()))
-    (ppcre:do-register-groups (name1 value1 name2 value2 name3 value3 name4 value4)
+    (ppcre:do-register-groups (name value)
         (*global-variable-scanner* source)
-      (let+ ((name  (or name1 name2 name3 name4))
-             (value (or value1 value2 value3 value4))
-             ((&flet trim (string)
-                (string-trim '(#\' #\" #\Newline #\Space) string)))
-             (values (remove-if #'emptyp (mapcar #'trim (split-sequence #\, value)))))
-        (when values
-          (push (cons name values) result))))
+      (when-let ((values (extract-value value)))
+        (push (cons name values) result)))
     (ppcre:register-groups-bind (version commit value)
         (*define-project-version-scanner* source)
       (declare (ignore commit))
@@ -55,30 +107,29 @@
 
 (defun extract-keyword-arguments (source)
   (let ((result '()))
-    (ppcre:do-register-groups (name1 value1 name2 value2 name3 value3 name4 value4)
+    (ppcre:do-register-groups (name value)
         (*keyword-arg-scanner* source)
-      (let+ ((name  (or name1 name2 name3 name4))
-             (value (or value1 value2 value3 value4))
-             ((&flet trim (string)
-                (string-trim '(#\' #\" #\Newline #\Space) string)))
-             (values (remove-if #'emptyp (mapcar #'trim (split-sequence #\, value)))))
+      (when-let ((values (extract-value value)))
         (push (cons name values) result)))
     result))
 
 (defun process-version (spec globals)
   (if-let ((values (when (stringp spec)
-                    (find spec globals :test #'string= :key #'car))))
+                     (find spec globals :test #'string= :key #'car))))
     (if (string= spec (first (cdr values)))
         spec
         (process-version (first (cdr values)) globals))
-    (parse-version spec)))
+    (when (ppcre:scan "^[-_.:0-9a-zA-Z]+$" spec)
+      (parse-version spec))))
 
 (defun process-dependency (spec globals)
   (or (ppcre:register-groups-bind (name relation version)
           ("^([^ \\t<>=]+)[ \\t]*([<>=]+)[ \\t]*([^ \\t]+)$" spec)
         (list* :setuptools name
-               (when (string= relation ">=")
-                 (list (process-version version globals)))))
+               (cond
+                 ((not (string= relation ">=")))
+                 ((when-let (version (process-version version globals))
+                    (list version))))))
       (list :setuptools spec)))
 
 (defmethod analyze ((directory pathname)

@@ -84,7 +84,10 @@
                         (split-sequence #\, value1)))
                (value2
                 (mapcan (compose #'extract-value #'strip)
-                        (split-sequence #\, value2)))
+                        (split-sequence-if
+                         (lambda (character)
+                           (member character '(#\, #\:)))
+                         value2)))
                (value3
                 (list (string-trim '(#\') value3)))
                (value4
@@ -127,7 +130,8 @@
           ("^([^ \\t<>=]+)[ \\t]*([<>=]+)[ \\t]*([^ \\t]+)$" spec)
         (list* :setuptools name
                (cond
-                 ((not (string= relation ">=")))
+                 ((not (string= relation ">="))
+                  nil)
                  ((when-let (version (process-version version globals))
                     (list version))))))
       (list :setuptools spec)))

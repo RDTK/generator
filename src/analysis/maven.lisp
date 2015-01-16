@@ -1,6 +1,6 @@
 ;;;; maven.lisp --- Analysis of maven projects.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -68,11 +68,11 @@
                   (unionf sub-provides provides :test #'equal)
                   (unionf sub-requires requires :test #'equal))))
              ((&flet+ process-dependency ((name version1))
-                (list :maven (%resolve-maven-value name #'property-value)
-                      (when version1
-                        (parse-version
-                         (%resolve-maven-version
-                          version1 #'property-value)))))))
+                (list* :maven (%resolve-maven-value name #'property-value)
+                       (when version1
+                         (list (parse-version
+                                (%resolve-maven-version
+                                 version1 #'property-value))))))))
         ;; Analyse sub-modules, populating `sub-provides' and
         ;; `sub-requires'.
         (mapc #'process-sub-project modules)
@@ -118,11 +118,46 @@
     (replace1 spec)))
 
 (defun %parse-maven-version-spec (string)
-  (or (ppcre:register-groups-bind (open version close) ("(\\[|\\()?([^])]*)(\\]|\\))?" string)
+  (or (ppcre:register-groups-bind (open version close)
+          (#.(format nil "^(\\[|\\()?~
+                           ([^]),]+)~
+                           (?:,(?:[^]),]+)?)?~
+                           (\\]|\\))?")
+           string)
         (when (or (and open close) (not (or open close)))
           version))
       (error "~@<Invalid version specification: ~S.~@:>"
              string)))
+
+(mapc (lambda+ ((input expected))
+        (assert (equal expected (%parse-maven-version-spec input))))
+      '(("1.0"           "1.0")
+        ("[1.0)"         "1.0")
+        ("(1.0)"         "1.0")
+        ("[1.0,)"        "1.0")
+        ("(1.0,)"        "1.0")
+        ("[1.0,2.0)"     "1.0")
+        ("(1.0,2.0)"     "1.0")
+        ("[1.0]"         "1.0")
+        ("(1.0]"         "1.0")
+        ("[1.0,]"        "1.0")
+        ("(1.0,]"        "1.0")
+        ("[1.0,2.0]"     "1.0")
+        ("(1.0,2.0]"     "1.0")
+        ;; More ranges may follow.
+        ("1.0,3.0"       "1.0")
+        ("[1.0),3.0"     "1.0")
+        ("(1.0),3.0"     "1.0")
+        ("[1.0,),3.0"    "1.0")
+        ("(1.0,),3.0"    "1.0")
+        ("[1.0,2.0),3.0" "1.0")
+        ("(1.0,2.0),3.0" "1.0")
+        ("[1.0],3.0"     "1.0")
+        ("(1.0],3.0"     "1.0")
+        ("[1.0,],3.0"    "1.0")
+        ("(1.0,],3.0"    "1.0")
+        ("[1.0,2.0],3.0" "1.0")
+        ("(1.0,2.0],3.0" "1.0")))
 
 (defun %resolve-maven-version (spec lookup)
   (%parse-maven-version-spec (%resolve-maven-value spec lookup)))

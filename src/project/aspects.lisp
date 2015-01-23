@@ -95,6 +95,12 @@ rm -rf \"\${temp}\""))
       namestring
       (concatenate 'string namestring "/")))
 
+(defun make-variable/sh (string)
+  (substitute-if #\_ (lambda (character)
+                       (not (or (alphanumericp character)
+                                (member character '(#\_)))))
+                 string))
+
 (define-aspect (archive)
     ()
     ()
@@ -304,8 +310,8 @@ move ..\*.zip .
                            :spec-var spec)
     (builder-defining-mixin) ()
   (let+ (((&flet shellify (name)
-            (string-upcase (substitute #\_ #\- name))))
-         (variables (iter (for variable in (var :aspect.cmake.environment '()))
+           (make-variable/sh (string-upcase name))))
+         (variables (iter (for variable in (var :aspect.cmake.environment '())) ; TODO check these for validity?
                           (collect (format nil "export ~A~%" variable))))
          ((&flet+ format-option ((name value))
             (format nil "-D~A=~A \\~%" name value)))

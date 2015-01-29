@@ -1,6 +1,6 @@
 ;;;; protocol.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -13,4 +13,7 @@
 (defmethod analyze :around ((source t) (kind t) &key &allow-other-keys)
   (with-condition-translation (((error analysis-error)
                                 :specification source))
-    (call-next-method)))
+    (let ((result (multiple-value-list (call-next-method))))
+      (log:debug "~@<Analysis result for ~A ~A: ~S~@:>"
+                 source kind result)
+      (apply #'values result))))

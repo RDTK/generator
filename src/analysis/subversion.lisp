@@ -1,6 +1,6 @@
 ;;;; subversion.lisp --- Analyze subversion repositories.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,8 +18,7 @@
                     &rest args &key
                     username
                     password
-                    branches
-                    tags
+                    (versions       (missing-required-argument :versions))
                     sub-directory
                     (temp-directory (default-temporary-directory)))
   (when sub-directory
@@ -33,20 +32,26 @@
                    source))
          ((&flet analyze-directory (directory)
             (apply #'analyze directory :auto
-                   (remove-from-plist args :username :password :branches :tags
+                   (remove-from-plist args :username :password :versions
                                            :sub-directory :temp-directory))))
-         ((&flet list-directories (directory spec)
-            (mapcar (lambda (name)
-                      (if (and (string= directory "branches")
-                               (string= name "trunk"))
-                          (list "trunk" "trunk/")
-                          (list name (format nil "~A/~A/" directory name))))
-                    spec)))
-         (locations (append (when branches
-                              (list-directories "branches" branches))
-                            (when tags
-                              (list-directories "tags" tags))))
-         ((&flet analyze-branch (name directory)
+         ((&flet+ list-directories ((&whole version
+                                     &key branch tag directory commit
+                                     &allow-other-keys))
+            (list version
+                  (cond
+                    ((and branch (string= branch "trunk"))
+                     "trunk/")
+                    (branch
+                     (format nil "branches/~A/" branch))
+                    (tag
+                     (format nil "tags/~A/" tag))
+                    (directory
+                     (format nil "~A/" directory))
+                    (t
+                     ""))
+                  commit)))
+         (locations (mapcar #'list-directories versions))
+         ((&flet analyze-location (name directory commit)
             (let ((repository-url  (reduce #'puri:merge-uris
                                            (append
                                             (when sub-directory
@@ -54,27 +59,28 @@
                                                                 (if (ends-with #\/ s)
                                                                     (subseq s 0 (1- (length s)))
                                                                     s)))))
-                                            (list
-                                             (puri:uri directory)
-                                             source))
+                                            (list (puri:uri directory) source))
                                            :from-end t))
                   (clone-directory (reduce #'merge-pathnames
                                            (append
                                             (when sub-directory
                                               (list sub-directory))
-                                            (list
-                                             (parse-namestring directory)
-                                             temp-directory)))))
+                                            (list (parse-namestring directory)
+                                                  temp-directory)))))
               (log:info "~@<Checking out ~S -> ~S~@:>" repository-url clone-directory)
               (unwind-protect
                    (progn
                      (with-trivial-progress (:checkout "~A" source)
-                       (%run-svn `("co" ,(princ-to-string repository-url) ,clone-directory)
+                       (%run-svn `("co" ,@(when commit `("-r" ,commit))
+                                        ,(princ-to-string repository-url)
+                                        ,clone-directory)
                                  temp-directory username password))
 
-                     (let* ((result (list* :scm              :svn
-                                           :branch-directory directory
-                                           (analyze-directory clone-directory))))
+                     (let* ((result (list* :scm               :svn
+                                           :branch-directory  directory
+                                           (append
+                                            (list :commit commit)
+                                            (analyze-directory clone-directory)))))
                        (unless (getf result :authors)
                          (setf (getf result :authors)
                                (analyze clone-directory :svn/authors
@@ -82,18 +88,19 @@
                                         :password password)))
                        (cons name result)))
 
-                (run `("rm" "-rf" ,clone-directory) temp-directory))))))
+                (when (probe-file clone-directory)
+                  (run `("rm" "-rf" ,clone-directory) temp-directory)))))))
 
     (with-sequence-progress (:analyze/branch locations)
-      (iter (for (name directory) in locations)
-            (progress "~A" name)
+      (iter (for (version directory commit) in locations)
+            (progress "~A" version)
             (restart-case
-                (collect (analyze-branch name directory))
+                (collect (analyze-location version directory commit))
               (continue (&optional condition)
                 :report (lambda (stream)
                           (format stream "~<Ignore ~A and continue ~
                                           with the next branch.~@:>"
-                                  name))
+                                  version))
                 (declare (ignore condition))))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/authors))

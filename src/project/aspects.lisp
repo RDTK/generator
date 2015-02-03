@@ -139,22 +139,25 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
 (define-aspect (git :job-var job :aspect-var aspect) (builder-defining-mixin)
     ()
   ;; Configure GIT scm plugin.
-  (let* ((url         (var :aspect.git.url))
-         (url/parsed  (puri:uri url))
-         (username    (var :aspect.git.username nil))
-         (password    (var :aspect.git.password nil))
-         (credentials (or (var :aspect.git.credentials nil)
-                          (unless (check-access aspect :public)
-                            (puri:uri-host url/parsed)))))
+  (let* ((url          (var :aspect.git.url))
+         (url/parsed   (puri:uri url))
+         (username     (var :aspect.git.username nil))
+         (password     (var :aspect.git.password nil))
+         (credentials  (or (var :aspect.git.credentials nil)
+                           (unless (check-access aspect :public)
+                             (puri:uri-host url/parsed))))
+         (branches     (var :aspect.git.branches))
+         (local-branch (or (var :aspect.git.local-branch nil)
+                           (first branches))))
     (setf (repository job)
           (git (:url                  (jenkins.analysis::format-git-url
                                        url/parsed username password)
                 :credentials          credentials
-                :branches             (var :aspect.git.branches)
+                :branches             branches
                 :wipe-out-workspace?  (var :aspect.git.wipe-out-workspace? t)
                 :checkout-submodules? (var :aspect.git.checkout-submodules? nil)
                 :shallow?             (var :aspect.git.shallow? nil)
-                :local-branch         (first (var :aspect.git.branches))
+                :local-branch         local-branch
                 :internal-tag?        nil))))
 
   ;; If a specific sub-directory of the repository has been requested,
@@ -172,17 +175,18 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
   (let* ((url         (var :aspect.subversion.url))
+         (revision     (var :aspect.subversion.revision nil))
          (url/parsed  (puri:uri url))
          (url/parsed  (puri:copy-uri
                        url/parsed
                        :path (ppcre:regex-replace-all
                               "//+" (puri:uri-path url/parsed) "/")))
-         (url         (format nil "~A" url/parsed))
+         (url/revision (format nil "~A~[@~A~]" url/parsed revision))
          (credentials (or (var :aspect.subversion.credentials)
                           (unless (check-access aspect :public)
                             (puri:uri-host url/parsed)))))
     (setf (repository job)
-          (svn (:url               url
+          (svn (:url               url/revision
                 :credentials       credentials
                 :local-directory   (var :aspect.subversion.local-dir)
                 :checkout-strategy (make-keyword

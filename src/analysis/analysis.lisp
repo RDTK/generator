@@ -1,6 +1,6 @@
 ;;;; analysis.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -34,7 +34,7 @@
                     &rest args
                     &key
                     scm
-                    (branches       (puri:uri-fragment source))
+                    (versions       `((:branch . ,(puri:uri-fragment source)))) ; TODO
                     (temp-directory #P"/tmp/"))
   (setf (puri:uri-fragment source) nil)
 
@@ -52,9 +52,9 @@
          (temp-directory (default-temporary-directory
                           :base temp-directory :hint "project")))
     (apply #'analyze source scheme
-           :branches       branches
+           :versions       versions
            :temp-directory temp-directory
-           (remove-from-plist args :branches :temp-directory))))
+           (remove-from-plist args :versions :temp-directory))))
 
 (defmethod analyze ((source pathname) (kind (eql :auto))
                     &key

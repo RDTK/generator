@@ -45,18 +45,22 @@
    :test #'equalp))
 
 (defun analyze-project (project &key temp-directory non-interactive?)
-  (let+ (((&labels+ do-branch ((branch . info))
-            (let+ (((&plist-r/o (scm              :scm)
+  (let+ (((&labels+ do-version ((version-info . info))
+            (let+ ((version-name (getf version-info :name))
+                   (version-variables (remove-from-plist version-info :name))
+                   ((&plist-r/o (scm              :scm)
                                 (branch-directory :branch-directory)
                                 (versions         :versions)
                                 (authors          :authors)
                                 (description      :description)
                                 (requires         :requires)
                                 (provides         :provides)
-                                (properties       :properties)) info)
-                   (version (or (find branch (versions project) :key #'name :test #'string=)
+                                (properties       :properties))
+                    info)
+                   (version (or (find version-name (versions project)
+                                      :key #'name :test #'string=)
                                 (let ((version (make-instance 'version-spec
-                                                              :name   branch
+                                                              :name   version-name
                                                               :parent project)))
                                   (push version (versions project))
                                   version)))
@@ -66,6 +70,7 @@
                              :provides  provides
                              :variables (append
                                          (jenkins.project::%direct-variables version) ; TODO
+                                         version-variables
                                          (when description
                                            (list :description description))
                                          (when authors
@@ -79,15 +84,14 @@
               (iter (for job in (jobs project))
                     (pushnew (string-downcase scm) (tags job) :test #'string=))
 
-              (setf (lookup version :branch) branch)
               (when branch-directory
                 (setf (lookup version :branch-directory) branch-directory)))))
-         ((&labels+ do-branch1 ((&whole arg branch . &ign))
+         ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (restart-case
-                (do-branch arg)
+                (do-version arg)
               (continue (&optional condition)
                 :report (lambda (stream)
-                          (format stream "~@<Skip branch ~A.~@:>" branch))
+                          (format stream "~@<Skip version ~A.~@:>" version-info))
                 (declare (ignore condition)))))))
 
         (handler-bind
@@ -95,7 +99,7 @@
                       (error 'jenkins.analysis:analysis-error
                              :specification project
                              :cause         condition))))
-          (mapc #'do-branch1
+          (mapc #'do-version1
                 (flet ((var (name &optional default)
                          (handler-case
                              (value project name)
@@ -107,8 +111,7 @@
                          :scm              (var :scm)
                          :username         (var :scm.username)
                          :password         (var :scm.password)
-                         :branches         (var :branches)
-                         :tags             (var :tags)
+                         :versions         (var :__versions)
                          :sub-directory    (when-let ((value (var :sub-directory)))
                                              (parse-namestring (concatenate 'string value "/")))
                          :history-limit    (var :scm.history-limit)
@@ -126,25 +129,53 @@
     (lparallel:pmapcar
      (lambda+ ((file versions distribution))
        (restart-case
-           (let* ((project  (reinitialize-instance
-                             (load-project-spec/json
-                              file :version-test (lambda (version)
-                                                   (member version versions :test #'string=)))
-                             :parent distribution))
-                  (branches (intersection versions (ignore-errors (lookup project :branches))
-                                          :test #'string=))
-                  (tags     (intersection versions (ignore-errors (lookup project :tags))
-                                          :test #'string=)))
-             (unless (set-equal versions (union branches tags) :test #'string=)
-               (error "~@<Could not find version~P ~{~S~^, ~} in project ~A.~@:>"
-                      (length versions) versions project))
-             (setf (lookup project :branches) branches
-                   (lookup project :tags)     tags)
+           (let+ ((project       (reinitialize-instance
+                                  (load-project-spec/json
+                                   file :version-test (lambda (version)
+                                                        (member version versions
+                                                                :test #'string=)))
+                                  :parent distribution))
+                  (branches      (ignore-errors (lookup project :branches)))
+                  (branches      (intersection versions branches :test #'string=))
+                  (tags          (ignore-errors (lookup project :tags)))
+                  (tags          (intersection versions tags :test #'string=))
+                  (tags+branches (union branches tags))
+                  (versions1     (set-difference versions tags+branches
+                                                 :test #'string=))
+                  ((&flet process-version (name &key version-required? branch? tag? directory?)
+                     (let+ ((version (or (find name (versions project)
+                                               :test #'string= :key #'name)
+                                         (when version-required?
+                                           (error "~@<No version section ~
+                                                   for version ~S in ~
+                                                   project ~A.~@:>"
+                                                  name project))))
+                            ((&flet version-var (name &optional default)
+                               (or (when version (ignore-errors (value version name)))
+                                   default)))
+                            (branch    (when branch?    (version-var :branch (when (eq branch? t) name))))
+                            (tag       (when tag?       (version-var :tag (when (eq tag? t) name))))
+                            (directory (when directory? (version-var :directory)))
+                            (commit    (version-var :commit)))
+                       `(:name   ,name
+                         ,@(when branch    `(:branch    ,branch))
+                         ,@(when tag       `(:tag       ,tag))
+                         ,@(when directory `(:directory ,directory))
+                         ,@(when commit    `(:commit    ,commit)))))))
+             (setf (lookup project :__versions)
+                   (append (mapcar (rcurry #'process-version :branch? t) branches)
+                           (mapcar (rcurry #'process-version :tag?    t) tags)
+                           (mapcar (rcurry #'process-version
+                                           :version-required? t
+                                           :branch?           :maybe
+                                           :tag?              :maybe
+                                           :directory?        :mabye)
+                                   versions1)))
              project)
          (continue (&optional condition)
            :report (lambda (stream)
                      (format stream "~@<Skip project specification ~
-                                      ~S.~@:>"
+                                     ~S.~@:>"
                              file))
            (declare (ignore condition)))))
      :parts most-positive-fixnum files-and-versions)))
@@ -169,8 +200,7 @@
 
 (defun resolve-project-version (project version)
   (let ((project (find-project project)))
-    (or (find version (versions project)
-              :test #'string= :key #'name)
+    (or (find version (versions project) :test #'string= :key #'name)
         (error "~@<Could not find version ~S in project ~A.~@:>"
                version project))))
 

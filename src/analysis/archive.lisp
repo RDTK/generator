@@ -1,6 +1,6 @@
 ;;;; archive.lisp --- Access project that are distributed as archives.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,16 +10,15 @@
                     &rest args &key
                     username
                     password
-                    (branches       (missing-required-argument :branches))
-                    tags ; TODO
+                    (versions       (missing-required-argument :versions))
                     sub-directory
                     (temp-directory (default-temporary-directory)))
-  (with-sequence-progress (:analyze/branch branches)
-    (iter (for branch       in   branches)
+  (with-sequence-progress (:analyze/version versions)
+    (iter (for version      in   versions)
           (for archive-name next (lastcar (puri:uri-parsed-path source)))
           (for temp-file    next (merge-pathnames
                                   archive-name temp-directory))
-          (progress "~A" branch)
+          (progress "~A" version)
 
           (restart-case
               (progn
@@ -50,12 +49,12 @@
                        (result            (list* :scm              :archive
                                                  :branch-directory nil
                                                  (apply #'analyze analyze-directory :auto
-                                                        (remove-from-plist args :username :password :branches :tags
+                                                        (remove-from-plist args :username :password :versions
                                                                                 :sub-directory :temp-directory)))))
-                  (collect (cons branch result))))
+                  (collect (cons version result))))
             (continue (&optional condition)
               :report (lambda (stream)
                         (format stream "~<Ignore ~A and continue ~
-                                        with the next branch.~@:>"
-                                branch))
+                                        with the next version.~@:>"
+                                version))
               (declare (ignore condition)))))))

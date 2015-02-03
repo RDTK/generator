@@ -35,22 +35,20 @@
                     &rest args &key
                     username
                     password
-                    branches
-                    tags
+                    (versions       (missing-required-argument :versions))
                     sub-directory
                     history-limit
                     (temp-directory (default-temporary-directory))
                     non-interactive)
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
   (let+ ((repository/string (format-git-url source username password))
-         (branches          (append branches tags))
          (clone-directory   temp-directory)
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
          ((&flet analyze-directory (directory)
             (apply #'analyze directory :auto
-                   (remove-from-plist args :username :password :branches :tags
+                   (remove-from-plist args :username :password :versions
                                            :sub-directory :history-limit
                                            :temp-directory)))))
 
@@ -63,16 +61,22 @@
                 ,repository/string ,clone-directory)
               temp-directory :non-interactive non-interactive))
 
-           (with-sequence-progress (:analyze/branch branches)
-             (iter (for branch in branches)
-                   (progress "~A" branch)
+           (with-sequence-progress (:analyze/version versions)
+             (iter (for version in versions)
+                   (progress "~A" version)
 
                    (restart-case
-                       (progn
+                       (let ((commit (or (getf version :commit)
+                                         (getf version :tag)
+                                         (getf version :branch)
+                                         (error "~@<No commit, tag or ~
+                                                 branch specified in ~
+                                                 ~S~@:>"
+                                                version))))
                          (%run-git
                           `("--work-tree" ,clone-directory
                             "--git-dir" ,(merge-pathnames ".git/" clone-directory)
-                            "checkout" "--quiet" ,branch)
+                            "checkout" "--quiet" ,commit)
                           clone-directory)
 
                          (let ((result (list* :scm              :git
@@ -81,16 +85,17 @@
                            (unless (getf result :authors)
                              (setf (getf result :authors)
                                    (analyze clone-directory :git/authors)))
-                           (collect (cons branch result))))
+                           (collect (cons version result))))
                      (continue (&optional condition)
                        :report (lambda (stream)
                                  (format stream "~<Ignore ~A and ~
-                                               continue with the next ~
-                                               branch.~@:>"
-                                         branch))
+                                                 continue with the next ~
+                                                 version.~@:>"
+                                         version))
                        (declare (ignore condition)))))))
 
-      (run `("rm" "-rf" ,clone-directory) temp-directory))))
+      (when (probe-file clone-directory)
+        (run `("rm" "-rf" ,clone-directory) temp-directory)))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/authors))
                     &key

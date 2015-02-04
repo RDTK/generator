@@ -121,22 +121,27 @@ directory=\$(find . -mindepth 1 -maxdepth 1)
 ${(make-move-stuff-upwards/unix '("${directory}"))}")))
           (builders job))))
 
-(define-aspect (git)
+(define-aspect (git :aspect-var aspect)
     ()
     ()
   ;; Configure GIT scm plugin.
-  (setf (repository job)
-        (git (:url                  (jenkins.analysis::format-git-url
-                                     (puri:uri (var :aspect.git.url))
-                                     (var :aspect.git.username nil)
-                                     (var :aspect.git.password nil))
-              :credentials          (var :aspect.git.credentials)
-              :branches             (var :aspect.git.branches)
-              :wipe-out-workspace?  (var :aspect.git.wipe-out-workspace? t)
-              :checkout-submodules? (var :aspect.git.checkout-submodules? nil)
-              :shallow?             (var :aspect.git.shallow? nil)
-              :local-branch         (first (var :aspect.git.branches))
-              :internal-tag?        nil)))
+  (let* ((url         (var :aspect.git.url))
+         (url/parsed  (puri:uri url))
+         (username    (var :aspect.git.username nil))
+         (password    (var :aspect.git.password nil))
+         (credentials (or (var :aspect.git.credentials nil)
+                          (unless (check-access aspect :public)
+                            (puri:uri-host url/parsed)))))
+    (setf (repository job)
+          (git (:url                  (jenkins.analysis::format-git-url
+                                       url/parsed username password)
+                :credentials          credentials
+                :branches             (var :aspect.git.branches)
+                :wipe-out-workspace?  (var :aspect.git.wipe-out-workspace? t)
+                :checkout-submodules? (var :aspect.git.checkout-submodules? nil)
+                :shallow?             (var :aspect.git.shallow? nil)
+                :local-branch         (first (var :aspect.git.branches))
+                :internal-tag?        nil))))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
@@ -151,15 +156,22 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
 
-(define-aspect (subversion) () ()
-  (setf (repository job)
-        (svn (:url               (var :aspect.subversion.url)
-              :credentials       (var :aspect.subversion.credentials)
-              :local-directory   (var :aspect.subversion.local-dir)
-              :checkout-strategy (make-keyword
-                                  (string-upcase
-                                   (var :aspect.subversion.checkout-strategy
-                                        :fresh-copy)))))))
+(define-aspect (subversion :aspect-var aspect)
+    ()
+    ()
+  (let* ((url         (var :aspect.subversion.url))
+         (url/parsed  (puri:uri url))
+         (credentials (or (var :aspect.subversion.credentials)
+                          (unless (check-access aspect :public)
+                            (puri:uri-host url/parsed)))))
+    (setf (repository job)
+          (svn (:url               url
+                :credentials       credentials
+                :local-directory   (var :aspect.subversion.local-dir)
+                :checkout-strategy (make-keyword
+                                    (string-upcase
+                                     (var :aspect.subversion.checkout-strategy
+                                          :fresh-copy))))))))
 
 (define-aspect (trigger/scm) () ()
   (push (scm (:spec (var :aspect.trigger/scm.spec)))

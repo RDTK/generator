@@ -490,7 +490,7 @@
               (stropt :long-name     "base-uri"
                       :short-name    "b"
                       :argument-name "URI"
-                      :default-value "http://localhost:8080"
+                      :default-value "https://localhost:8080"
                       :description
                       "Jenkins base URI.")
               (stropt :long-name     "username"

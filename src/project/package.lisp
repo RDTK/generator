@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -86,6 +86,11 @@
   ;; Platform requirements protocol
   (:export
    #:platform-requires)
+
+  ;; Access protocol
+  (:export
+   #:access
+   #:check-access)
 
   ;; Instantiation protocol
   (:export

@@ -1,6 +1,6 @@
 ;;;; spec-classes.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -43,6 +43,26 @@
            (mappend (rcurry #'platform-requires platform)
                     (versions object)))
    :test #'string=))
+
+(defmethod check-access ((object distribution-spec) (lower-bound t))
+  (and (call-next-method)
+       (if-let ((offenders (remove-if (rcurry #'check-access (access object))
+                                      (versions object))))
+         (let ((reasons (mapcar (lambda (version)
+                                  (let+ (((&values access? reason)
+                                          (check-access version (access object))))
+                                    (unless access?
+                                      (list version reason))))
+                                offenders)))
+           (values nil (make-condition
+                        'simple-error
+                        :format-control   "~@<~A declares ~A access but ~
+                                           uses the following projects ~
+                                           which do not: ~:@_~
+                                           ~{~{* ~A~@[: ~A~]~}~^~:@_~}.~@:>"
+                        :format-arguments (list object (access object)
+                                                reasons))))
+         t)))
 
 ;;; `project-spec' class
 
@@ -237,6 +257,26 @@
   (remove kind (provides spec)
           :test (complement #'eq)
           :key  #'first))
+
+(defmethod check-access ((object version-spec) (lower-bound t))
+  (let ((offender (or (ignore-errors
+                       (value object :scm.credentials)
+                       :scm.credentials)
+                      (ignore-errors
+                       (value object :scm.password)
+                       :scm.password))))
+    (cond
+      ((not offender)
+       (call-next-method))
+      ((eq (access object) :public)
+       (values nil (make-condition
+                    'simple-error
+                    :format-control   "~@<Project ~A has a ~S entry but ~
+                                       ~A access.~@:>"
+                    :format-arguments (list object offender
+                                            (access object)))))
+      (t
+       (call-next-method)))))
 
 (defmethod instantiate ((spec version-spec))
   (let+ (((&flet make-job (job-spec parent)

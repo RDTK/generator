@@ -234,6 +234,27 @@
             (declare (ignore condition)))))))
   distributions)
 
+(defun check-distribution-access (distributions)
+  (mapcan (lambda (distribution)
+            (restart-case
+                (let+ (((&values access? problem)
+                        (check-access distribution t)))
+                  (cond
+                    (access?
+                     (list distribution))
+                    (problem
+                     (error problem))
+                    (t
+                     (error "~@<Unsuitable access declaration in ~
+                             distribution ~A.~@:>"
+                            distribution))))
+              (continue (&optional condition)
+                :report (lambda (stream)
+                          (format stream "~@<Skip distribution ~A.~@:>"
+                                  distribution))
+                (declare (ignore condition)))))
+          distributions))
+
 ;; Deployment
 
 (defun instantiate-projects (specs
@@ -622,7 +643,8 @@
   (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
     (cons (make-keyword (string-upcase variable)) value)))
 
-(defun call-with-phase-error-check (phase errors set-errors report thunk)
+(defun call-with-phase-error-check (phase errors set-errors report continuable?
+                                    thunk)
   (prog1
       (funcall thunk)
     (when-let* ((errors       (funcall errors))
@@ -630,13 +652,18 @@
       (restart-case
           (error 'simple-phase-error
                  :phase            phase
-                 :format-control   "~@<~D error~:P during ~A phase.~@:>"
-                 :format-arguments (list (length phase-errors) phase))
+                 :format-control   "~@<~D error~:P during ~A phase.~@[
+                                    This error is fatal.~]~@:>"
+                 :format-arguments (list (length phase-errors) phase
+                                         (not continuable?)))
         (continue (&optional condition)
           :report (lambda (stream)
                     (format stream "~@<Ignore the error:P in phase ~A ~
                                     and continue.~@:>"
                             (length phase-errors) phase))
+          :test   (lambda (condition)
+                    (declare (ignore condition))
+                    continuable?)
           (declare (ignore condition))
           (funcall set-errors
                    (append (set-difference errors phase-errors)
@@ -646,10 +673,12 @@
           (funcall report)
           (funcall set-errors '()))))))
 
-(defmacro with-phase-error-check ((phase errors set-errors report)
+(defmacro with-phase-error-check ((phase errors set-errors report
+                                   &key
+                                   (continuable? 't))
                                   &body body)
-  `(call-with-phase-error-check ',phase ,errors ,set-errors ,report
-                                (lambda () ,@body)))
+  `(call-with-phase-error-check
+    ',phase ,errors ,set-errors ,report ,continuable? (lambda () ,@body)))
 
 (defun main ()
   (update-synopsis)
@@ -673,8 +702,9 @@
                                    (t         #'abort)))
          (effective-error-policy (lambda (condition)
                                    (cond
-                                     ((typep condition 'simple-phase-error)
-                                      (funcall error-policy condition))
+                                     ((and (typep condition 'simple-phase-error)
+                                           (funcall error-policy condition)
+                                           nil))
                                      ((when-let ((restart (find-restart 'defer condition)))
                                         (invoke-restart restart condition)))
                                      (t
@@ -740,6 +770,10 @@
                          (distributions     (with-phase-error-check
                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)
                                               (check-platform-requirements distributions)))
+                         (distributions     (with-phase-error-check
+                                                (:check-access #'errors #'(setf errors) #'report
+                                                 :continuable? nil)
+                                              (check-distribution-access distributions)))
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
                                               (instantiate-projects projects/specs distributions)))

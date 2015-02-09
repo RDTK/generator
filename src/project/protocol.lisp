@@ -212,6 +212,33 @@
   (let ((requirements (mappend (rcurry #'platform-requires platform) object)))
     (remove-duplicates requirements :test #'string=)))
 
+;;; Access protocol
+
+(defgeneric access (object)
+  (:documentation
+   "Return the access specification for OBJECT, either :private
+    or :public."))
+
+(defgeneric check-access (object lower-bound)
+  (:documentation
+   "Return true if OBJECT permits at least the level of access
+    indicates by LOWER-BOUND. If OBJECT does not permit the access,
+    return nil and a optionally a condition instance describing the
+    reason as a second value."))
+
+(defmethod access ((object t))
+  (switch ((ignore-errors (value object :access)) :test #'equal)
+    (nil       :public)
+    ("public"  :public)
+    ("private" :private)))
+
+(defmethod check-access ((object t) (lower-bound t))
+  t)
+
+(defmethod check-access ((object t) (lower-bound (eql :public)))
+  (let ((access (access object)))
+    (or (eq lower-bound t) (eq access lower-bound))))
+
 ;;; Instantiation protocol
 
 (defgeneric instantiate? (spec parent)

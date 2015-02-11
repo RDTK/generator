@@ -101,8 +101,7 @@ rm -rf \"\${temp}\""))
                                 (member character '(#\_)))))
                  string))
 
-(define-aspect (archive)
-    ()
+(define-aspect (archive) (builder-defining-mixin)
     ()
   (let* ((url/string (var :aspect.archive.url))
          (url        (puri:uri url/string))
@@ -121,8 +120,7 @@ directory=\$(find . -mindepth 1 -maxdepth 1)
 ${(make-move-stuff-upwards/unix '("${directory}"))}")))
           (builders job))))
 
-(define-aspect (git :aspect-var aspect)
-    ()
+(define-aspect (git :aspect-var aspect) (builder-defining-mixin)
     ()
   ;; Configure GIT scm plugin.
   (let* ((url         (var :aspect.git.url))
@@ -284,22 +282,25 @@ rm -rf \"${TEMPDIR}\"")))
                             (mapcar (lambda (x) (value x :bla-name))
                                     (dependencies spec))
                             (var :aspect.dependency-download.dependencies))))
-    ;; shell builder which unpacks dependencies.
-    (push (constraint! (((:before cmake/unix)))
-           (shell (:command #?"cd ${(var :upstream-dir)}
-for archive in *.tar.gz ; do tar -xzf \"\${archive}\" ; done")))
-          (builders job))
-
     ;; Multiple copy-artifact builders which copy artifacts from other
     ;; jobs.
     (iter (for dependency in dependencies)
-          (push (constraint! (((:after sloccount)) copy-artifact)
+          (push (constraint! (((:after sloccount))
+                              copy-artifact)
                  (copy-artifact (:project-name #?"${dependency}/label=$label"
                                  :filter       #?"${(var :build-dir)}/*.tar.gz"
                                  :target       (var :upstream-dir)
                                  :flatten?     t
                                  :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
-                (builders job)))))
+                (builders job)))
+
+    ;; Shell builder which unpacks dependencies. Has to run after
+    ;; artifact down, obviously.
+    (push (constraint! (((:before cmake/unix)
+                         (:after copy-artifact)))
+                       (shell (:command #?"cd ${(var :upstream-dir)}
+for archive in *.tar.gz ; do tar -xzf \"\${archive}\" ; done")))
+          (builders job))))
 
 ; dependency-download/windows
 #|
@@ -450,9 +451,8 @@ export PYTHONPATH=\${PYTHONPATH}:\"${(var :python.site-packages-dir)}\"
     (pushnew #?"${(var :build-dir)}/*.deb" (files archiver)
              :test #'string=)))
 
-(define-aspect (debian-package/cmake)
-    (debian-package
-     builder-defining-mixin)
+(define-aspect (debian-package/cmake) (debian-package
+                                       builder-defining-mixin)
     ()
   ;; TODO add PACKAGE_REVISION to environment
   (push (constraint! (((:after cmake/unix)))

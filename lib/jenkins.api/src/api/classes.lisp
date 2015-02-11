@@ -6,6 +6,8 @@
 
 (cl:in-package #:jenkins.api)
 
+(defvar *initializing?* nil)
+
 (defclass standard-model-object ()
   ((id       :initarg  :id
              :accessor id
@@ -33,6 +35,12 @@
   (:documentation
    "TODO(jmoringe): document"))
 
+(defmethod shared-initialize :around ((instance    standard-model-object)
+                                      (slots-names t)
+                                      &key)
+  (let ((*initializing?* t))
+    (call-next-method)))
+
 (defmethod slot-unbound :around ((class     t)
                                  (instance  standard-model-object)
                                  (slot-name t))
@@ -47,7 +55,8 @@
                                                              (instance  standard-model-object)
                                                              (slot      t))
   (when (and (not (member (closer-mop:slot-definition-name slot) '(id data get-func put-func)))
-             (not (slot-boundp instance 'data)))
+             (not (slot-boundp instance 'data))
+             (not *initializing?*))
     (update! instance))
   (call-next-method))
 

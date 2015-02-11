@@ -168,22 +168,12 @@
               (declare (ignore condition)))))))
 
 (defmethod deploy ((thing job))
-  (let+ (((&flet format-description-part (stream part) ; TODO this whole description generation is a joke
-            (pprint-fill stream (split-sequence:split-sequence #\Space part) nil)))
-         ((&flet format-description ()
+  (let+ (((&flet format-description ()
             (with-output-to-string (stream)
-              (let ((*print-escape* nil)
-                    (*print-right-margin* 80)
-                    (*print-miser-width* nil))
-                (when-let ((header (ignore-errors
-                                    (value thing :description.header)))) ; TODO header is a hack
-                  (format-description-part stream header)
-                  (fresh-line stream))
-                (format-description-part stream (value thing :description))
-                (when-let ((footer (ignore-errors
-                                    (value thing :description.footer))))
-                  (fresh-line stream)
-                  (format-description-part stream footer))))))
+              (format stream "~@[~A~&~]~:[«no description»~:;~:*~A~]~@[~&~A~]"
+                      (ignore-errors (value thing :description.header)) ; TODO header is a hack
+                      (ignore-errors (value thing :description))
+                      (ignore-errors (value thing :description.footer))))))
          (id   (value thing :bla-name))
          (kind (let+ (((kind &optional plugin)
                        (ensure-list (value thing :kind))))

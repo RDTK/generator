@@ -401,7 +401,11 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
                                                 (let+ (((name value) (split-sequence #\= spec)))
                                                   (list (make-keyword name) value)))
                                               (var :aspect.maven.properties))
-                 :targets             (var :aspect.maven.targets)
+                                      ;; hack to prevent useless progress output
+                                      ;; In the targets list because the maven
+                                      ;; plugin does not have specific fields
+                                      ;; for command line options
+                 :targets             (list* "-B" (var :aspect.maven.targets))
                  :private-repository? (var :aspect.maven.private-repository?)
                  :settings            (var :aspect.maven.settings-file :default)
                  :global-settings     (var :aspect.maven.global-settings-file :default))))

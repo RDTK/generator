@@ -6,6 +6,30 @@
 
 (cl:in-package #:jenkins.project)
 
+;;; Dependencies protocol
+
+(defgeneric direct-dependencies (thing)
+  (:documentation
+   "Return a list of direct (as opposed to transitive) dependencies of
+    THING."))
+
+(defgeneric dependencies (thing)
+  (:documentation
+   "Return a duplicate-free list of transitive dependencies of
+    THING."))
+
+;; Default behavior
+
+(defmethod dependencies ((thing t))
+  (let+ ((result '())
+         ((&labels one-thing (thing)
+            (dolist (dependency (direct-dependencies thing))
+              (unless (member dependency result :test #'eq)
+                (push dependency result)
+                (one-thing dependency))))))
+    (one-thing thing)
+    result))
+
 ;;; Variables protocol
 
 (defgeneric direct-variables (thing)

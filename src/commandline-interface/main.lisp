@@ -351,21 +351,16 @@
     (jenkins.api:commit! job)))
 
 (defun schedule-jobs (jobs)
-  (let+ (((&labels dependency-closure (job)
-            (remove-duplicates
-             (cons job (mappend #'dependency-closure
-                                ;; TODO temp
-                                (remove job (dependencies job)))))))
-         ((&flet sort-jobs (jobs)
+  (let+ (((&flet sort-jobs (jobs)
             (jenkins.project::sort-with-partial-order ; TODO
              (copy-list jobs)
              (lambda (left right)
-               (member left (dependencies right))))))
+               (member left (direct-dependencies right))))))
          ((&labels find-components (jobs)
             (let+ ((nodes (make-hash-table))
                    ((&flet add-job (job)
                       (let ((component '()))
-                        (dolist (upstream (intersection jobs (dependency-closure job)))
+                        (dolist (upstream (intersection jobs (list* job (dependencies job))))
                           (unionf component (gethash upstream nodes (list upstream)))
                           (dolist (member component)
                             (setf (gethash member nodes) component)))))))

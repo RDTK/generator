@@ -1,6 +1,6 @@
 ;;;; graphviz.lisp --- Graph generation for projects and dependencies.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -59,7 +59,7 @@
             (who:htm
              (:tr :colspan 2 :align "center"
                (:td :color "red" :align "center" name))))
-          (dependencies object))))
+          (direct-dependencies object))))
 
 (defmethod graph-object-attributes append ((graph  (eql :jenkins.project))
                                            (object direct-variables-mixin))
@@ -115,7 +115,7 @@
 (defmethod cl-dot:graph-object-points-to ((graph  (eql :jenkins.dependencies))
                                           (object version))
   (iter outer
-        (for dependency in (remove-duplicates (dependencies object))) ; TODO how would there be duplicates?
+        (for dependency in (remove-duplicates (direct-dependencies object))) ; TODO how would there be duplicates?
         (if-let ((providers (remove (specification dependency)
                                     (requires (specification object))
                                     :test-not #'eq

@@ -157,45 +157,32 @@
                         conditional-mixin
                         direct-variables-mixin
                         parented-mixin)
-  ((requires     :initarg  :requires
-                 :type     list
-                 :accessor %requires
-                 :initform '()
-                 :documentation
-                 "
+  ((requires :initarg  :requires
+             :type     list
+             :accessor %requires
+             :initform '()
+             :documentation
+             "
 
-                  either a string naming the dependency or a list of
-                  the form
+              either a string naming the dependency or a list of the
+              form
 
-                    (MECHANISM NAME VERSION)
+                (MECHANISM NAME VERSION)
 
-                 .")
-   (provides     :initarg  :provides
-                 :type     list
-                 :reader   %provides
-                 :initform '()
-                 :documentation
-                 "
+             .")
+   (provides :initarg  :provides
+             :type     list
+             :reader   %provides
+             :initform '()
+             :documentation
+             "
 
-                  either a string naming the dependency or a list of
-                  the form
+              either a string naming the dependency or a list of the
+              form
 
-                    (MECHANISM NAME VERSION)
+                (MECHANISM NAME VERSION)
 
-                  .")
-   #+no (dependencies :initarg  :dependencies
-                 :type     list
-                 :reader   dependencies
-                 :initform '()
-                 :documentation
-                 "
-
-                  either a string naming the dependency or a list of
-                  the form
-
-                    (NAME VERSION)
-
-                  ."))
+              ."))
   (:documentation
    "TODO(jmoringe): document"))
 

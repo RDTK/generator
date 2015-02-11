@@ -53,25 +53,25 @@
                    implementation-mixin
                    direct-variables-mixin
                    parented-mixin)
-  ((dependencies :initarg  :dependencies
-                 :type     list
-                 :reader   dependencies
-                 :accessor %dependencies
-                 :initform '()
-                 :documentation
-                 "
+  ((direct-dependencies :initarg  :direct-dependencies
+                        :type     list
+                        :reader   direct-dependencies
+                        :accessor %direct-dependencies
+                        :initform '()
+                        :documentation
+                        "
 
-                  either a string naming the dependency or a list of
-                  the form
+                         either a string naming the dependency or a
+                         list of the form
 
-                    (NAME VERSION)
+                           (NAME VERSION)
 
-                  .")
-   (jobs         :initarg  :jobs
-                 :type     list
-                 :reader   jobs
-                 :documentation
-                 ""))
+                         .")
+   (jobs                :initarg  :jobs
+                        :type     list
+                        :reader   jobs
+                        :documentation
+                        ""))
   (:documentation
    "Instances of this class represent versions of `project's."))
 
@@ -103,7 +103,7 @@
                                           (list :order #'order))))))
               (log:trace "~@<Best candidate is ~S.~@:>" candidate)
               (unless (eq candidate thing)
-                (pushnew candidate (%dependencies thing))))
+                (pushnew candidate (%direct-dependencies thing))))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Skip requirement ~S.~@:>"
@@ -122,19 +122,19 @@
                specification-mixin ; TODO define another class for this
                direct-variables-mixin
                parented-mixin)
-  ((dependencies :initarg  :dependencies ; TODO(jmoringe, 2013-03-06): dependencies-mixin?
-                 :type     list ; of job
-                 :reader   dependencies
-                 :accessor %dependencies
-                 :initform '()
-                 :documentation
-                 "List of other `job' instances.")
-   (aspects      :initarg  :aspects
-                 :type     list
-                 :reader   aspects
-                 :initform '()
-                 :documentation
-                 ""))
+  ((direct-dependencies :initarg  :direct-dependencies ; TODO(jmoringe, 2013-03-06): dependencies-mixin?
+                        :type     list ; of job
+                        :reader   direct-dependencies
+                        :accessor %direct-dependencies
+                        :initform '()
+                        :documentation
+                        "List of other `job' instances.")
+   (aspects             :initarg  :aspects
+                        :type     list
+                        :reader   aspects
+                        :initform '()
+                        :documentation
+                        ""))
   (:documentation
    "Instances of this class represent build jobs which are associated
     to specific `version's of `project's."))
@@ -150,7 +150,7 @@
   (let ((dependency-name (or (ignore-errors
                               (value thing :dependency-job-name))
                              (name thing))))
-    (iter (for dependency in (dependencies (parent thing)))
+    (iter (for dependency in (direct-dependencies (parent thing)))
           (log:trace "~@<Trying to add ~A to ~A~@:>" dependency thing)
           (restart-case
               (let ((dependency
@@ -160,7 +160,7 @@
                                   ~A~@[ (~{~A~^, ~})~]~@:>"
                                  dependency-name dependency
                                  (jobs dependency)))))
-                (pushnew dependency (%dependencies thing)))
+                (pushnew dependency (%direct-dependencies thing)))
             (continue (&optional condition)
               :report (lambda (stream)
                         (format stream "~@<Skip adding dependency ~A.~@:>"
@@ -239,7 +239,7 @@
   (when (ignore-errors (value thing :no-dependencies))
     (return-from deploy-dependencies))
 
-  (iter (for upstream-job in (dependencies thing))
+  (iter (for upstream-job in (direct-dependencies thing))
         (restart-case
             (handler-bind
                 ((error (lambda (condition)

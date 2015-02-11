@@ -50,8 +50,6 @@
 
   ;; Version specification protocol and class
   (:export
-   #:dependencies
-
    #:version-spec)
 
   ;; Job specification protocol
@@ -115,6 +113,11 @@
   ;; Name protocol
   (:export
    #:name)
+
+  ;; Dependency protocol
+  (:export
+   #:direct-dependencies
+   #:dependencies)
 
   ;; Variable protocol
   (:export

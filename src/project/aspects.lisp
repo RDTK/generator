@@ -350,34 +350,36 @@ move ..\*.zip .
                           (collect (format nil "export ~A~%" variable))))
          ((&flet+ format-option ((name value))
             (format nil "-D~A=~A \\~%" name value)))
-         (dependencies (mapcar #'second
-                               (requires-of-kind :cmake (specification (parent spec)))))
-         (finds   (iter (for dependency in dependencies)
-                        (collect #?"${(shellify dependency)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${dependency}Config.cmake\" -o -name \"${(string-downcase dependency)}-config.cmake\" \\) -exec dirname {} \\;)\"\n")) )
-         (options (mapcar
-                   #'format-option
-                   (append
-                    (iter (for dependency in dependencies)
-                          (collect (list (format nil "~A_DIR" dependency)
-                                         #?"\${${(shellify dependency)}_DIR}")))
+         (project-version (parent spec))
+         (dependencies    (mapcar #'specification (list* project-version
+                                                         (dependencies project-version))))
+         ((&values finds dir-options/raw)
+          (iter outer (for dependency in dependencies)
+                (iter (for (_ required) in (requires-of-kind
+                                            :cmake dependency))
+                      (in outer
+                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\;)\"\n"
+                            :into finds)
+                          (collect (list #?"${required}_DIR"
+                                         #?"\${${(shellify required)}_DIR}")
+                            :into options)))
+                (finally (return-from outer (values finds options)))) )
+         (options/raw (append dir-options/raw
+                              (mapcar (curry #'split-sequence #\=)
+                                      (var :aspect.cmake.options '()))))
+         (options     (mapcar #'format-option options/raw))
+         (targets     (var :aspect.cmake.targets '())))
 
-                    (mapcar (lambda (spec) (split-sequence #\= spec))
-                            (var :aspect.cmake.options '())))))
-         (targets (var :aspect.cmake.targets '()))
-         (step    (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}
+    (push (constraint! (((:after dependency-download)))
+            (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}
 
 @{variables}
 
 @{finds}
 cmake @{options} ..
 make # not always necessary, but sometimes, sadly
-make @{targets}" ))))
-
-    (push (constraint! (((:after dependency-download)))
-            step)
+make @{targets}")))
           (builders job))))
-
-;;; Archive artifacts aspect
 
 (define-aspect (archive-artifacts :job-var job) () ()
   (when-let ((file-pattern (var :aspect.archive-artifacts.file-pattern nil)))

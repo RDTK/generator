@@ -279,20 +279,30 @@ rm -rf \"${TEMPDIR}\"")))
                                     :spec-var spec)
     (builder-defining-mixin) ()
   (when-let ((dependencies (append
-                            (mapcar (lambda (x) (value x :bla-name))
+                            (mapcar (rcurry #'value :bla-name)
                                     (dependencies spec))
                             (var :aspect.dependency-download.dependencies))))
     ;; Multiple copy-artifact builders which copy artifacts from other
     ;; jobs.
     (iter (for dependency in dependencies)
-          (push (constraint! (((:after sloccount))
-                              copy-artifact)
-                 (copy-artifact (:project-name #?"${dependency}/label=$label"
-                                 :filter       #?"${(var :build-dir)}/*.tar.gz"
-                                 :target       (var :upstream-dir)
-                                 :flatten?     t
-                                 :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
-                (builders job)))
+          (let+ ((self-kind          (first (ensure-list (ignore-errors (value job :kind)))))
+                 (upstream-kind      (first (ensure-list (ignore-errors (value dependency :kind)))))
+                 ((&flet matrix? (kind)
+                    (member kind '(:matrix "matrix-project") :test #'equal)))
+                 (upstream-reference (format nil "~A~@[/label=$label~]"
+                                             dependency (matrix? upstream-kind))))
+            (when (and (matrix? upstream-kind) (not (matrix? self-kind)))
+              (error "~@<Upstream job ~A is of kind ~A, downstream job ~
+                      ~A is of kind ~A.~@:>"
+                     dependency upstream-kind job self-kind))
+            (push (constraint! (((:after sloccount))
+                                copy-artifact)
+                    (copy-artifact (:project-name #?"${upstream-reference}"
+                                    :filter       #?"${(var :build-dir)}/*.tar.gz"
+                                    :target       (var :upstream-dir)
+                                    :flatten?     t
+                                    :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
+                  (builders job))))
 
     ;; Shell builder which unpacks dependencies. Has to run after
     ;; artifact down, obviously.

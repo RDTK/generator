@@ -365,15 +365,16 @@ make @{targets}" ))))
 
     (push (constraint! (((:after dependency-download)))
             step)
-          (builders job))
+          (builders job))))
 
-    ;; Archive the generate tar.gz package
-    (when (member "package" targets :test #'string=)
-      (with-interface (publishers job) (archiver (publisher/archive-artifacts
-                                                  :files        nil
-                                                  :only-latest? nil))
-        (pushnew #?"${(var :build-dir)}/*.tar.gz" (files archiver)
-                 :test #'string=)))))
+;;; Archive artifacts aspect
+
+(define-aspect (archive-artifacts :job-var job) () ()
+  (when-let ((file-pattern (var :aspect.archive-artifacts.file-pattern nil)))
+    (with-interface (publishers job) (archiver (publisher/archive-artifacts
+                                                :files        nil
+                                                :only-latest? nil))
+      (pushnew file-pattern (files archiver) :test #'string=))))
 
 (define-aspect (cmake/windows) (builder-defining-mixin) ()
   (push (constraint! ()

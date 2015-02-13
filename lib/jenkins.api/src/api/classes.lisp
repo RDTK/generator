@@ -676,22 +676,6 @@
     result))
 
 (define-interface-implementations (publisher)
-  ((build "hudson.tasks.BuildTrigger")
-   ((children          :type      (list/comma string)
-                       :xpath     "childProjects/text()"
-                       :optional? nil
-                       :initform  '())
-    (threshold/name    :type      keyword #+later (member :success)
-                       :xpath     "threshold/name/text()"
-                       :initform  :success)
-    (threshold/ordinal :type      integer
-                       :xpath     "threshold/ordinal/text()"
-                       :initform  0)
-    (threshold/color   :type      keyword #+later (member :blue)
-                       :xpath     "threshold/color/text()"
-                       :initform  :blue))
-   (:name-slot children))
-
   ((ssh "jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin"
         :plugin "publish-over-ssh@1.10")
    ((target           :type    string
@@ -935,34 +919,6 @@
   (define-of-type-methods build-wrapper)
   (define-of-type-methods builder)
   (define-of-type-methods publisher))
-
-(defmethod downstream ((object job))
-  ;; Ensure presence of a `publisher/build' instances.
-  (let ((build (or (publisher-of-type 'publisher/build object) ; TODO make a function or macro ensure-...
-                   (let ((instance (make-instance 'publisher/build)))
-                     (appendf (publishers object) (list instance))
-                     instance))))
-    (children build)))
-
-(defmethod (setf downstream) ((new-value (eql nil)) (object job))
-  ;; TODO hack: remove corresponding stp node
-  (when-let* ((index (position-if (of-type 'publisher/build) (publishers object)))
-              (child (nth index (xpath:all-nodes
-                                 (xloc:location-result
-                                  (xloc:loc (stp:document-element (%data object)) "publishers/*"
-                                            :if-multiple-matches :all))))))
-    (stp:delete-child child (stp:parent child)))
-
-  (setf (publishers object)
-        (remove-if (of-type 'publisher/build) (publishers object))))
-
-(defmethod (setf downstream) ((new-value list) (object job))
-  ;; Ensure presence of a `publisher/build' instances.
-  (let ((build (or (publisher-of-type 'publisher/build object)
-                   (let ((instance (make-instance 'publisher/build)))
-                     (appendf (publishers object) (list instance))
-                     instance))))
-    (setf (children build) new-value)))
 
 (defmethod upstream ((object job))
   (when-let ((reverse (trigger-of-type 'trigger/reverse object)))

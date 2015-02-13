@@ -236,8 +236,8 @@
                           (error "~@<Could not relate ~A -> ~A: ~A.~@:>"
                                  upstream-job thing condition))))
               ;; TODO make a function related? or add (relate .. :if-related nil)
-              (unless (find (id (implementation thing))
-                            (jenkins.api::downstream (implementation upstream-job))
+              (unless (find (id (implementation upstream-job))
+                            (jenkins.api:upstream (implementation thing))
                             :test #'string=)
                 (jenkins.api:relate (implementation upstream-job) (implementation thing))))
           (continue (&optional condition)

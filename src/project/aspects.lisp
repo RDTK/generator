@@ -403,9 +403,6 @@ SET /A TEST_PORT=5000+%VS_VERSION%
 call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!\protobuf\" \"-DRSC_DIR=%WORKSPACE%\upstream\RSC\share\rsc0.9\" \"-DRSBProtocol_DIR=%WORKSPACE%\upstream\RSBProtocol\share\rsbprotocol\" -DSPREAD_ROOT=!%VOL_VAR%!\spread -DTEST_SPREAD_PORT=%TEST_PORT%")))
         (builders job)))
 
-(define-aspect (cmake/cpp :job-var job) (cmake/unix) ()
-  )
-
 ;;; Maven aspect
 
 (define-aspect (maven :job-var job) (builder-defining-mixin) ()
@@ -457,9 +454,6 @@ export PYTHONPATH=\${PYTHONPATH}:\"${(var :python.site-packages-dir)}\"
                    (console-parsers warnings)
                    :test #'string=
                    :key  #'name))))
-
-#+cpp (list "GNU Compiler 4 (gcc)"
-      "Apple LLVM Compiler (Clang)")
 
 ;;; Debian packaging aspects
 

@@ -424,25 +424,42 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
 ;;; Setuptools aspect
 
 (define-aspect (setuptools :job-var job) (builder-defining-mixin) ()
-  (let+ ((options '())
-         ((&flet+ add-option ((section name value))
-            (appendf options (list #?"\${PYTHON} ${(var :aspect.setuptools.script)} setopt -c ${section} -o ${name} -s \"${value}\"\n"))))
-         (targets '())
-         ((&flet+ add-target ((name &optional no-fail?))
-            (let ((no-fail (when no-fail? '("|| true"))))
-              (appendf options (list #?"\${PYTHON} ${(var :aspect.setuptools.script)} ${name} @{no-fail}\n"))))))
-    (mapc #'add-option (var :aspect.setuptools.options))
-    (mapc (compose #'add-target #'ensure-list)
-          (var :aspect.setuptools.targets))
-
+  (let+ ((binary         (var :aspect.setuptools.python-binary))
+         (script         (var :aspect.setuptools.script))
+         (install-prefix (var :aspect.setuptools.install-prefix nil))
+         ;; Options
+         ((&flet+ make-option ((section name value))
+            #?"\${PYTHON} ${script} setopt -c ${section} -o ${name} -s \"${value}\""))
+         (options (mapcar #'make-option (var :aspect.setuptools.options)))
+         ;; Targets
+         ((&flet+ make-target ((name &optional no-fail?))
+            #?"\${PYTHON} ${script} ${name} @{(when no-fail? '("|| true"))}"))
+         (targets (mapcar (compose #'make-target #'ensure-list)
+                          (var :aspect.setuptools.targets)))
+         ;; Shell fragment that ensures existence of
+         ;; {dist,site}-packages directory within install prefix.
+         (ensure-install-directory
+          (when install-prefix
+            (format nil "INSTALL_DIRECTORY=\"$(~
+                           ${PYTHON} -c ~
+                           'from distutils.sysconfig import get_python_lib;~
+                            print get_python_lib(prefix=~S)'~
+                         )\"~@
+                         mkdir -p \"${INSTALL_DIRECTORY}\"~@
+                         export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\""
+                    install-prefix))))
+    ;; Put everything into a shell fragment.
     (push (constraint! (((:after dependency-download)))
-           (shell (:command #?"PYTHON=${(var :python.binary)}
-mkdir -p \"${(var :python.site-packages-dir)}\"
-export PYTHONPATH=\${PYTHONPATH}:\"${(var :python.site-packages-dir)}\"
+            (shell (:command (let ((interpol:*list-delimiter* #\newline))
+                               #?"PYTHON=${binary}
 
-@{options}
+${(or ensure-install-directory "# Not creating install directory")}
 
-@{targets}")))
+# Configure options
+@{(or options '("# No options configured"))}
+
+# Process targets
+@{(or targets '("# No targets configured"))}"))))
           (builders job))))
 
 ;;; Warnings aspect

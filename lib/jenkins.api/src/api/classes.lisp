@@ -103,15 +103,16 @@
                                    (xpath     (format (cdr '(1)) "./~(~A~)/text()" name)) ; TODO(jmoringe, 2012-12-21): let+ workaround
                                    (optional? t)
                                    &allow-other-keys))
-            `(let ((loc (apply #'xloc:loc value
-                               (append
-                                ,(maybe-version-case
-                                  xpath :transform (lambda (x)
-                                                     `(list ,@(ensure-list x))) )
-                                ,@(when optional?
-                                    '('(:if-no-match :do-nothing)))))))
-               (setf (slot-value type ',name)
-                     (xloc:val loc :type ',type)))))
+            (when xpath
+              `(let ((loc (apply #'xloc:loc value
+                                 (append
+                                  ,(maybe-version-case
+                                    xpath :transform (lambda (x)
+                                                       `(list ,@(ensure-list x))) )
+                                  ,@(when optional?
+                                      '('(:if-no-match :do-nothing)))))))
+                 (setf (slot-value type ',name)
+                       (xloc:val loc :type ',type))))))
 
          ((&flet+ make-slot->xml ((name
                                    &key
@@ -119,17 +120,18 @@
                                    (xpath     (format (cdr '(1)) "./~(~A~)/text()" name))
                                    (optional? t)
                                    &allow-other-keys))
-            `(let ((loc (apply #'xloc:loc dest
-                               (append
-                                ,(maybe-version-case
-                                  xpath :transform (lambda (x)
-                                                     `(list ,@(ensure-list x))))
-                                (list :if-no-match (if (and ,optional? (not (slot-value value ',name)))
-                                                       :do-nothing
-                                                       :create))))))
-               (when (xloc:location-result loc)
-                 (setf (xloc:val loc :type ',type)
-                       (slot-value value ',name))))))
+            (when xpath
+              `(let ((loc (apply #'xloc:loc dest
+                                 (append
+                                  ,(maybe-version-case
+                                    xpath :transform (lambda (x)
+                                                       `(list ,@(ensure-list x))))
+                                  (list :if-no-match (if (and ,optional? (not (slot-value value ',name)))
+                                                         :do-nothing
+                                                         :create))))))
+                 (when (xloc:location-result loc)
+                   (setf (xloc:val loc :type ',type)
+                         (slot-value value ',name)))))))
 
          (name-slot    (second (or (find :name-slot options :key #'first)
                                 '(:name-slot id))))
@@ -634,6 +636,45 @@
            :xpath "parserName/text()"))
   (:name-slot name))
 
+(define-model-class xunit/type ()
+    ((kind                      :type     string
+                                :xpath    nil)
+     (pattern                   :type     string
+                                :xpath    "pattern/text()")
+     (skip-if-no-test-files?    :type     boolean
+                                :xpath    "skipNoTestFiles/text()"
+                                :initform nil)
+     (fail-if-not-new?          :type     boolean
+                                :xpath    "failIfNotNew/text()"
+                                :initform t)
+     (delete-output-files?      :type     boolean
+                                :xpath    "deleteOutputFiles/text()"
+                                :initform t)
+     (stop-processing-if-error? :type     boolean
+                                :xpath    "stopProcessingIfError/text()"
+                                :initform t))
+  (:name-slot kind))
+
+(defmethod xloc:xml-> :around ((value stp:element)
+                               (type  xunit/type)
+                               &key &allow-other-keys)
+  (let* ((result        (call-next-method))
+         (type          (stp:local-name value))
+         (type/stripped (if (ends-with-subseq "Type" type)
+                            (subseq type 0 (- (length type) 4))
+                            type)))
+    (setf (slot-value result 'kind) type/stripped)
+    result))
+
+(defmethod xloc:->xml :around ((value xunit/type)
+                               (dest  stp:element)
+                               (type  (eql 'xunit/type))
+                               &key &allow-other-keys)
+  (let ((result (call-next-method)))
+    (setf (stp:local-name result)
+          (format nil "~AType" (slot-value value 'kind)))
+    result))
+
 (define-interface-implementations (publisher)
   ((build "hudson.tasks.BuildTrigger")
    ((children          :type      (list/comma string)
@@ -767,6 +808,12 @@
                    :plugin "blame-upstream-commiters@1.2")
    ((send-to-individuals? :type  boolean
                           :xpath "sendtoindividuals/text()"))
+   (:name-slot nil))
+
+  ((xunit "xunit" :plugin "xunit@1.93")
+   ((types :type     xunit/type
+           :xpath    ("types/*" :if-multiple-matches :all)
+           :initform '()))
    (:name-slot nil)))
 
 (define-model-class job ()

@@ -195,7 +195,11 @@
    #:publisher/cobertura
    #:report-file
 
-   #:publisher/html)
+   #:publisher/html
+
+   #:publisher/xunit
+   #:types
+   #:xunit/type)
 
   ;; Build
   (:export

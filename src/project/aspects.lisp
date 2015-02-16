@@ -472,7 +472,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
                    :test #'string=
                    :key  #'name))))
 
-;;; Test result aspect
+;;; Test result aspects
 
 (define-aspect (xunit :job-var job) () ()
   (let ((kind (var :aspect.xunit.kind)))
@@ -487,6 +487,17 @@ ${(or ensure-install-directory "# Not creating install directory")}
              :delete-output-files?      (var :aspect.xunit.delete-output-files?)
              :stop-processing-if-error? (var :aspect.xunit.stop-processing-if-error?))
             (types publisher)))))
+
+(define-aspect (junit :job-var job) () ()
+  ;; Remove previous configuration, if any.
+  (removef (publishers job) 'publisher/junit :key #'of-type)
+  ;; Add new configuration.
+  (appendf (publishers job)
+           (list (make-instance
+                  'publisher/junit
+                  :pattern             (var :aspect.junit.pattern)
+                  :keep-long-stdio?    (var :aspect.junit.keep-long-stdio?)
+                  :health-scale-factor (var :aspect.junit.health-scale-factor)))))
 
 ;;; Debian packaging aspects
 

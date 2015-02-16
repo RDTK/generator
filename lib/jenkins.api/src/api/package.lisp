@@ -199,7 +199,12 @@
 
    #:publisher/xunit
    #:types
-   #:xunit/type)
+   #:xunit/type
+
+   #:publisher/junit
+   #:pattern
+   #:keep-long-stdio?
+   #:health-scale-factor)
 
   ;; Build
   (:export

@@ -814,7 +814,18 @@
    ((types :type     xunit/type
            :xpath    ("types/*" :if-multiple-matches :all)
            :initform '()))
-   (:name-slot nil)))
+   (:name-slot nil))
+
+  ((junit "hudson.tasks.junit.JUnitResultArchiver"
+          :plugin "junit@1.4")
+   ((pattern             :type     string
+                         :xpath    "testResults/text()")
+    (keep-long-stdio?    :type     boolean
+                         :xpath    "keepLongStdio/text()"
+                         :initform nil)
+    (health-scale-factor :type     (real 0 1)
+                         :xpath    "healthScaleFactor/text()"
+                         :initform 1.0))))
 
 (define-model-class job ()
     ((description                :type     string)

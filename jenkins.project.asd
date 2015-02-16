@@ -137,23 +137,38 @@
                               ;; Platform analysis
                               (:file     "platform")))
 
-                (:module     "project"
-                 :pathname   "src/project"
-                 :depends-on ("version" "analysis") ; TODO
+                (:module     "model"
+                 :pathname   "src/model"
+                 :depends-on ("model-variables")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")
-                              (:file     "trace")
                               (:file     "protocol")
-                              (:file     "variable-model")
-                              (:file     "variable-grammar")
-                              (:file     "variable-evaluation")
                               (:file     "util")
-                              (:file     "variables")
 
-                              (:file     "mixins")
-                              (:file     "aspect")
-                              (:file     "aspects")
+                              (:file     "mixins")))
+
+                (:module     "model-variables"
+                 :pathname   "src/model/variables"
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "conditions")
+                              (:file     "variables")
+                              (:file     "protocol")
+                              (:file     "trace")
+                              (:file     "model")
+                              (:file     "grammar")
+                              (:file     "evaluation")
+
+                              (:file     "mixins")))
+
+                (:module     "model-project"
+                 :pathname   "src/model/project"
+                 :depends-on ("version" "analysis" "model" "model-variables" "model-aspects") ; TODO
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "variables")
+                              (:file     "protocol")
                               (:file     "classes-spec")
                               (:file     "classes-model")
 
@@ -161,9 +176,19 @@
 
                               (:file     "progress")))
 
+                (:module     "model-aspects"
+                 :pathname   "src/model/aspects"
+                 :depends-on ("model")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "protocol")
+
+                              (:file     "aspect")
+                              (:file     "aspects")))
+
                 (:module     "report"
                  :pathname   "src/report"
-                 :depends-on ("project")
+                 :depends-on ("model-project")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "protocol")

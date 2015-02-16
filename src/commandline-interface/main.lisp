@@ -36,13 +36,13 @@
                          (list (make-pathname :name     name
                                               :defaults projects-directory))))))
              (list (list location versions distribution))))
-         (jenkins.project::versions distribution))))
+         (jenkins.model.project::versions distribution))))
     distribution-pathnames distributions)
    :test #'equalp))
 
 (defstruct project-spec-and-versions
-  (spec     nil :type jenkins.project::project-spec :read-only t)
-  (versions nil :type list                          :read-only t))
+  (spec     nil :type jenkins.model.project::project-spec :read-only t)
+  (versions nil :type list                                :read-only t))
 
 (defmethod print-items:print-items append ((object project-spec-and-versions))
   (let+ (((&structure-r/o project-spec-and-versions- spec versions) object)
@@ -75,7 +75,7 @@
                :requires  requires
                :provides  provides
                :variables (append
-                           (jenkins.project::%direct-variables version) ; TODO
+                           (jenkins.model.variables:direct-variables version) ; TODO
                            (apply #'value-acons (append version-variables '(())))
                            (when scm
                              (list (value-cons :scm (string-downcase scm))))
@@ -348,7 +348,7 @@
     (setf (jenkins.api::dsl buildflow-job) script)))
 
 (defun schedule-jobs/serial (jobs)
-  (let+ ((ordered (jenkins.project::sort-with-partial-order ; TODO
+  (let+ ((ordered (jenkins.model::sort-with-partial-order ; TODO
                    (copy-list jobs)
                    (lambda (left right)
                      (member left (direct-dependencies right)))))
@@ -358,7 +358,7 @@
 
 (defun schedule-jobs/parallel (jobs)
   (let+ (((&flet sort-jobs (jobs)
-            (jenkins.project::sort-with-partial-order ; TODO
+            (jenkins.model::sort-with-partial-order ; TODO
              (copy-list jobs)
              (lambda (left right)
                (member left (direct-dependencies right))))))
@@ -961,7 +961,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                          (reinitialize-instance
                                                           distribution
                                                           :versions (resolve-project-versions
-                                                                     (jenkins.project::versions distribution))))
+                                                                     (jenkins.model.project::versions distribution))))
                                                        distributions/raw)))
                          (distributions      (with-phase-error-check
                                                  (:check-platform-requirements #'errors #'(setf errors) #'report)

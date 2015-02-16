@@ -1,10 +1,10 @@
-;;;; aspects.lisp ---
+;;;; aspects.lisp --- Aspect definitions
 ;;;;
 ;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.aspects)
 
 ;; TODO(jmoringe, 2013-02-21): find better location for these macros
 (defmacro ensure-interface ((accessor object) (class &rest initargs))
@@ -521,8 +521,11 @@ move ..\*.zip .
                                                    (dependencies project-version))))
                  (seen-requirements (make-hash-table :test #'equal)))
             (iter outer (for dependency in dependencies)
-                  (iter (for required in (requires-of-kind :cmake dependency))
-                        (when-let ((provider (find-provider/version
+                  (iter (for required in (uiop:symbol-call ; TODO hack
+                                          '#:jenkins.model.project '#:requires-of-kind
+                                          :cmake dependency))
+                        (when-let ((provider (uiop:symbol-call ; TODO hack
+                                              '#:jenkins.model.project '#:find-provider/version
                                               required :if-does-not-exist nil))
                                    (required (second required)))
                           (unless (gethash required seen-requirements)
@@ -646,7 +649,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
             (pushnew (make-instance 'warning-parser/console :name parser)
                      (console-parsers warnings)
                      :test #'string=
-                     :key  #'name)))))
+                     :key  #'jenkins.api:name)))))
 
 ;;; Checkstyle and PMD aspects
 

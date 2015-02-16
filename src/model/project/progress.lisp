@@ -1,10 +1,10 @@
 ;;;; progress.lisp --- Progress reports for operations.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.project)
 
 (defmethod deploy :around ((thing project))
   (with-sequence-progress (:deploy/version (versions thing))

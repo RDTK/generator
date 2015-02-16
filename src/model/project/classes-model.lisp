@@ -11,7 +11,7 @@
 ;;;     job
 ;;;       aspect
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.project)
 
 ;;; `project' class
 
@@ -179,11 +179,11 @@
                      (list kind plugin)
                      (make-keyword (string-upcase kind)))))
          (job  (jenkins.dsl:job (kind id :description (format-description)))))
-    (push job (%implementations thing))
+    (push job (jenkins.model::%implementations thing)) ; TODO package
 
     ;; Apply aspects, respecting declared ordering, and sort generated
     ;; builders according to declared ordering.
-    (extend! job (aspects thing) thing)
+    (jenkins.model.aspects:extend! job (aspects thing) thing)
 
     ;; TODO temp
     (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)

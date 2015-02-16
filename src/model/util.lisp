@@ -1,10 +1,10 @@
-;;;; util.lisp --- Utilities used in the project module.
+;;;; util.lisp --- Utilities used in the model module.
 ;;;;
 ;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model)
 
 (define-condition cycle-error (error)
   ((path :initarg :path

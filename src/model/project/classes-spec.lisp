@@ -18,7 +18,7 @@
 ;;;   aspect-spec
 ;;;   job-spec
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.project)
 
 ;;; `distribution-spec' class
 
@@ -267,7 +267,7 @@
          (version (make-instance 'version
                                  :name      (name spec)
                                  :parent    parent
-                                 :variables (%direct-variables spec))))
+                                 :variables (direct-variables spec))))
     (reinitialize-instance
      version
      :jobs (mapcan (rcurry #'make-job version) (jobs spec)))))
@@ -291,7 +291,7 @@
          (job (make-instance 'job
                              :name      (name spec)
                              :parent    parent
-                             :variables (copy-list (%direct-variables spec))))) ; TODO copy-list?
+                             :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
      job :aspects (mapcan (rcurry #'make-aspect job)
                           (aspects specification-parent)))))
@@ -367,10 +367,10 @@
 (defmethod instantiate ((spec aspect-spec) &key parent specification-parent)
   (declare (ignore specification-parent))
   ;; TODO(jmoringe, 2013-01-16): find-aspect-class
-  (let* ((class-name (let ((*package* #.*package*))
+  (let* ((class-name (let ((*package* (find-package '#:jenkins.model.aspects)))
                        (symbolicate '#:aspect- (string-upcase (aspect spec)))))
          (class      (find-class class-name)))
     (make-instance class
                    :name      (name spec)
                    :parent    parent
-                   :variables (%direct-variables spec))))
+                   :variables (direct-variables spec))))

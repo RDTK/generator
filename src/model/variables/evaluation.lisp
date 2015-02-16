@@ -1,4 +1,4 @@
-;;;; variable-evaluation.lisp --- Evaluation of value expressions.
+;;;; evaluation.lisp --- Evaluation of value expressions.
 ;;;;
 ;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
@@ -25,7 +25,7 @@
 ;;;;   `expand' computes the value of a "variable expression" relying
 ;;;;   on `lookup' to resolve variable references.
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.variables)
 
 (defvar *stack* '())
 

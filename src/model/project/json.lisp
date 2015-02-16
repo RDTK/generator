@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.project)
 
 (defun check-generator-version (spec)
   (when-let ((required-version (cdr (assoc :minimum-generator-version spec))))

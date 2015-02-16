@@ -1,10 +1,10 @@
-;;;; variable-grammar.lisp --- Grammar for value expressions.
+;;;; grammar.lisp --- Grammar for value expressions.
 ;;;;
 ;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.variables)
 
 (defun maybe-first (thing)
   (if (and (length= 1 thing)

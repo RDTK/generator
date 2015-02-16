@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project
+(cl:defpackage #:jenkins.model.project
   (:use
    #:cl
    #:alexandria
@@ -12,13 +12,15 @@
    #:iterate
    #:let-plus
    #:more-conditions
-   #:print-items
+
+   #:jenkins.model
+   #:jenkins.model.variables
 
    #:jenkins.api
    #:jenkins.dsl)
 
   (:shadow
-   #:node #:as)
+   #:node)
 
   (:shadowing-import-from #:jenkins.api
    #:parameters)
@@ -26,22 +28,19 @@
   (:shadowing-import-from #:jenkins.dsl
    #:job)
 
+  (:shadowing-import-from #:jenkins.model
+   #:name)
+
+  (:shadowing-import-from #:jenkins.model.variables
+   #:as)
+
+  (:import-from #:jenkins.model.aspects
+   #:aspects)
+
   (:import-from #:jenkins.version
    #:parse-version
    #:version>=
    #:version-matches)
-
-  ;; Conditions
-  (:export
-   #:instantiation-condition
-   #:instantiation-condition-specification
-
-   #:instantiation-error
-
-   #:deployment-condition
-   #:deployment-condition-thing
-
-   #:deployment-error)
 
   ;; Template protocol
   (:export
@@ -85,58 +84,6 @@
   ;; Platform requirements protocol
   (:export
    #:platform-requires)
-
-  ;; Access protocol
-  (:export
-   #:access
-   #:check-access)
-
-  ;; Instantiation protocol
-  (:export
-   #:instantiate?
-   #:instantiate
-   #:add-dependencies!)
-
-  ;; Deployment protocol
-  (:export
-   #:deploy
-   #:deploy-dependencies)
-
-  ;; Implementation protocol
-  (:export
-   #:specification)
-
-  ;; Specification protocol
-  (:export
-   #:implementation
-   #:implementations)
-
-  ;; Name protocol
-  (:export
-   #:name)
-
-  ;; Dependency protocol
-  (:export
-   #:direct-dependencies
-   #:dependencies
-   #:minimal-dependencies)
-
-  ;; Variable protocol
-  (:export
-   #:*traced-variables*
-
-   #:value-list
-   #:value-list*
-   #:value-cons
-   #:value-acons
-   #:value-parse
-
-   #:direct-variables
-   #:variables
-   #:lookup
-   #:value
-
-   #:as)
 
   ;; JSON stuff
   (:export

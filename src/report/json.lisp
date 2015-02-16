@@ -11,7 +11,7 @@
 (defmethod report ((object sequence) (style (eql :json)) (target pathname))
   (map nil (rcurry #'report style target) object))
 
-(defmethod report ((object jenkins.project::distribution-spec)
+(defmethod report ((object jenkins.model.project::distribution-spec)
                    (style  (eql :json))
                    (target pathname))
   (let ((name (safe-name (name object))))
@@ -22,7 +22,7 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.project::distribution-spec)
+(defmethod report ((object jenkins.model.project::distribution-spec)
                    (style  (eql :json))
                    (target stream))
   (json:with-object (target)
@@ -32,7 +32,7 @@
     (json:as-object-member ("platform-requires" target)
       (json:encode-json (platform-requires object *platform-of-interest*) target))
     (report-variables object target)
-    (let ((projects (remove-duplicates (mapcar #'jenkins.project::parent
+    (let ((projects (remove-duplicates (mapcar #'parent
                                                (versions object)))))
       (json:as-object-member ("projects" target)
         (json:with-array (target)
@@ -44,7 +44,7 @@
                 (report project style target)))))))))
 
 ;; Describe project in separate file. Currently not used.
-(defmethod report ((object jenkins.project::project-spec)
+(defmethod report ((object jenkins.model.project::project-spec)
                    (style  (eql :json))
                    (target pathname))
   (let ((directory (merge-pathnames "projects/" target))
@@ -56,7 +56,7 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.project::project-spec)
+(defmethod report ((object jenkins.model.project::project-spec)
                    (style  (eql :json))
                    (target stream))
   (let ((implementation (implementation object)))
@@ -69,7 +69,7 @@
               (report version style target)))))
       (report-variables implementation target))))
 
-(defmethod report ((object jenkins.project::version-spec)
+(defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :json))
                    (target stream))
   (let ((implementation (implementation object)))
@@ -77,15 +77,15 @@
       (json:encode-object-member "name" (name object) target)
       (json:encode-object-member "access" (access object) target)
       (json:encode-object-member
-       "requires" (jenkins.project::%requires object) target)
+       "requires" (jenkins.model.project::%requires object) target)
       (json:encode-object-member
-       "provides" (jenkins.project::%provides object) target)
+       "provides" (jenkins.model.project::%provides object) target)
       (json:encode-object-member
        "platform-requires" (platform-requires object *platform-of-interest*) target)
       (json:as-object-member ("direct-dependencies" target)
         (json:with-array (target)
           (dolist (dependency (direct-dependencies implementation))
-            (let ((parent (jenkins.project::parent dependency)))
+            (let ((parent (parent dependency)))
               (json:as-array-member (target)
                 (json:with-array (target)
                   (json:encode-array-member (name parent) target)

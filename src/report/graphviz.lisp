@@ -20,7 +20,7 @@
   (root nil))
 
 (defmethod graph-object-attributes append ((graph  jenkins-dependencies)
-                                           (object jenkins.project::named-mixin))
+                                           (object jenkins.model:named-mixin))
   (let ((label `(:html ()
                   (:table ((:border "0"))
                     (:tr ()
@@ -36,7 +36,7 @@
                  :attributes (graph-object-attributes graph object)))
 
 (defmethod cl-dot:graph-object-node ((graph  jenkins-dependencies)
-                                     (object jenkins.project::distribution-spec))
+                                     (object jenkins.model.project::distribution-spec))
   nil)
 
 (defstruct provided)
@@ -54,12 +54,12 @@
 (defstruct (system (:include unsatisfied)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.project::distribution-spec))
-  (mapcar #'jenkins.project:implementation (jenkins.project::versions object)))
+                                          (object jenkins.model.project::distribution-spec))
+  (mapcar #'jenkins.model:implementation (jenkins.model.project::versions object)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.project::project))
-  (jenkins.project::versions object))
+                                          (object jenkins.model.project::project))
+  (jenkins.model.project::versions object))
 
 (flet ((dependency (spec target)
          (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"
@@ -85,9 +85,9 @@
                                              '())))))))
 
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                            (object jenkins.project::version))
-    (let+ ((specification (jenkins.project::specification object))
-           (requires      (jenkins.project::requires specification))
+                                            (object jenkins.model.project::version))
+    (let+ ((specification (jenkins.model:specification object))
+           (requires      (jenkins.model.project::requires specification))
            (relations     '())
            ((&flet add-relation (dependency provide)
               (push provide (cdr (or (assoc dependency relations :test #'eq)
@@ -97,10 +97,10 @@
            (system (make-system)))
       ;; Resolve requirements using things provided by the
       ;; distribution.
-      (iter (for dependency in (remove-duplicates (jenkins.project::direct-dependencies object))) ; TODO how would there be duplicates?
-            (let ((provides (remove (jenkins.project::specification dependency) requires
+      (iter (for dependency in (remove-duplicates (jenkins.model:direct-dependencies object))) ; TODO how would there be duplicates?
+            (let ((provides (remove (jenkins.model:specification dependency) requires
                                     :test-not #'eq
-                                    :key      (rcurry #'jenkins.project::find-provider/version
+                                    :key      (rcurry #'jenkins.model.project::find-provider/version
                                                       :if-does-not-exist nil))))
 
               (iter (for provide in (or provides '(nil)))
@@ -108,11 +108,11 @@
       ;; Resolve requirements using things provided by the platform.
       (mapc (lambda (requirement)
               (cond
-                ((jenkins.project::find-provider/version
+                ((jenkins.model.project::find-provider/version
                   requirement :if-does-not-exist nil))
-                ((jenkins.project::find-provider/version
+                ((jenkins.model.project::find-provider/version
                   requirement
-                  :providers         (jenkins.project::platform-provides object)
+                  :providers         (jenkins.model.project::platform-provides object)
                   :if-does-not-exist nil)
                  (when (eq object (jenkins-dependencies-root graph))
                    (add-relation system requirement)))
@@ -125,9 +125,9 @@
               relations)))
 
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
-                                                (object jenkins.project::version))
-    (let* ((specification (jenkins.project::specification object))
-           (provides      (jenkins.project::provides specification)))
+                                                (object jenkins.model.project::version))
+    (let* ((specification (jenkins.model:specification object))
+           (provides      (jenkins.model.project::provides specification)))
       (when (eq object (jenkins-dependencies-root graph))
         (list (dependency provides (make-provided)))))))
 
@@ -142,16 +142,16 @@
              (report element style target)))
      object)))
 
-(defmethod report ((object jenkins.project::distribution-spec)
+(defmethod report ((object jenkins.model.project::distribution-spec)
                    (style  (eql :graph))
                    (target pathname))
   (call-next-method)
-  (report (jenkins.project::versions object) style target))
+  (report (jenkins.model.project::versions object) style target))
 
-(defmethod report ((object jenkins.project::version-spec)
+(defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :graph))
                    (target pathname))
-  (report (jenkins.project::implementation object) style target))
+  (report (jenkins.model:implementation object) style target))
 
 (defmethod report ((object t)
                    (style  (eql :graph))
@@ -163,10 +163,10 @@
                     (make-jenkins-dependencies :root object) (list object)))
          (basename (format nil "~@[~A-~]~A"
                            (when-let ((parent (when (compute-applicable-methods
-                                                     #'jenkins.project::parent (list object))
-                                                (jenkins.project::parent object))))
-                             (safe-name (jenkins.project::name parent)))
-                           (safe-name (jenkins.project::name object))))
+                                                     #'jenkins.model:parent (list object))
+                                                (jenkins.model:parent object))))
+                             (safe-name (jenkins.model:name parent)))
+                           (safe-name (jenkins.model:name object))))
          ((&flet filename (type)
             (make-pathname :name     basename
                            :type     type

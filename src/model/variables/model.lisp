@@ -1,10 +1,10 @@
-;;;; variable-model.lisp --- Model for value expressions.
+;;;; model.lisp --- Model for value expressions.
 ;;;;
 ;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.variables)
 
 ;;; Values
 ;;;

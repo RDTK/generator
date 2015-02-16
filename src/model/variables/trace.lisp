@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project)
+(cl:in-package #:jenkins.model.variables)
 
 ;;; Logging support
 ;;;
@@ -49,7 +49,6 @@
 
 ;;; Actual tracing
 
-(defvar *traced-variables* '())
 (defvar *trace-node* nil)
 
 (defstruct (trace-node (:constructor make-trace-node (name container &optional raw-cell)))

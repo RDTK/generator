@@ -472,6 +472,22 @@ ${(or ensure-install-directory "# Not creating install directory")}
                    :test #'string=
                    :key  #'name))))
 
+;;; Test result aspect
+
+(define-aspect (xunit :job-var job) () ()
+  (let ((kind (var :aspect.xunit.kind)))
+    (with-interface (publishers job) (publisher (publisher/xunit))
+      (removef (types publisher) kind :test #'string= :key #'kind)
+      (push (make-instance
+             'xunit/type
+             :kind                      kind
+             :pattern                   (var :aspect.xunit.pattern)
+             :skip-if-no-test-files?    (var :aspect.xunit.skip-if-no-test-files?)
+             :fail-if-not-new?          (var :aspect.xunit.fail-if-not-new?)
+             :delete-output-files?      (var :aspect.xunit.delete-output-files?)
+             :stop-processing-if-error? (var :aspect.xunit.stop-processing-if-error?))
+            (types publisher)))))
+
 ;;; Debian packaging aspects
 
 (define-aspect (debian-package :job-var job) () ()

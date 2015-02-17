@@ -39,7 +39,7 @@
                         (locate-specifications
                          :project
                          (list (merge-pathnames name projects-directory))))))
-             (list (list location (list version)))))
+             (list (list location (list version) distribution))))
          (jenkins.project::versions distribution))))
     distribution-pathnames distributions)
    :test #'equalp))
@@ -123,11 +123,13 @@
 (defun load-projects/versioned (files-and-versions)
   (with-sequence-progress (:load/project files-and-versions)
     (lparallel:pmapcar
-     (lambda+ ((file versions))
+     (lambda+ ((file versions distribution))
        (restart-case
-           (let* ((project  (load-project-spec/json
-                             file :version-test (lambda (version)
-                                                  (member version versions :test #'string=))))
+           (let* ((project  (reinitialize-instance
+                             (load-project-spec/json
+                              file :version-test (lambda (version)
+                                                   (member version versions :test #'string=)))
+                             :parent distribution))
                   (branches (intersection versions (ignore-errors (lookup project :branches))
                                           :test #'string=))
                   (tags     (intersection versions (ignore-errors (lookup project :tags))
@@ -199,17 +201,6 @@
                                     file))
                   (declare (ignore condition)))))
             files)))
-
-(defun tag-project-versions (distributions)
-  (mapc (lambda (distribution)
-          (mapc (lambda (version)
-                  (handler-case (lookup version :distributions) (error () (setf (lookup version :distributions) '()))) ; TODO
-                  (push (name distribution) (lookup version :distributions))
-                  (handler-case (lookup version :variant-parents) (error () (setf (lookup version :variant-parents) '()))) ; TODO
-                  (push distribution (lookup version :variant-parents))) ; TODO hack
-                (versions distribution)))
-        distributions)
-  distributions)
 
 (defun check-platform-requirements
     (distributions
@@ -326,10 +317,9 @@
 
 ;;; Toolkit specific stuff
 
-(defun configure-buildflow-job (version jobs &key (ignore-failures? t))
-  (let+ ((name   (format nil "distribution-buildflow.~A" version))
-         (job    (first (jenkins.api:all-jobs name)))
-         ((&labels format-flow (jobs)
+(defun configure-buildflow-job (buildflow-job jobs prepare-name finish-name
+                                &key (ignore-failures? t))
+  (let+ (((&labels format-flow (jobs)
             (etypecase jobs
               ((cons (eql :parallel))
                (format nil "parallel (~%~2@T~<~@;~{{~A}~^,~%~}~:>~%)"
@@ -342,12 +332,11 @@
                             build(~S, tag: build.id)~
                             ~2:*~:[~:;~%}~]"
                        ignore-failures? jobs)))))
-         (script (format nil "build(\"distribution-prepare.~A\", tag: build.id)~2%~
-                              ~A~2%~
-                              build(\"distribution-finish.~2:*~A\", tag: build.id)"
-                         version (format-flow jobs))))
-    (setf (jenkins.api::dsl job) script)
-    (jenkins.api:commit! job)))
+         (script (format nil "~@[build(\"~A\", tag: build.id)~2%~]~
+                              ~A~
+                              ~@[~2%build(\"~A\", tag: build.id)~]"
+                         prepare-name (format-flow jobs) finish-name)))
+    (setf (jenkins.api::dsl buildflow-job) script)))
 
 (defun schedule-jobs (jobs)
   (let+ (((&flet sort-jobs (jobs)
@@ -389,17 +378,20 @@
   "!!! This job is automatically generated - do not modify by hand. !!!"
   :test #'string=)
 
-(defun configure-jobs (distribution jobs)
-  (let* ((name    (value distribution :distribution-name))
-         (prepare (or (ignore-errors (value distribution :prepare-hook/unix))
-                      "# Nothing to do"))
-         (finish  (or (ignore-errors (value distribution :finish-hook/unix))
-                      "# Nothing to do"))
-         (finish  (format nil "jobs='~{~A~^~%~}'~2%~A"
-                          (mapcar (compose #'jenkins.api:id #'implementation)
-                                  jobs)
-                          finish)))
-    (macrolet ((ensure-job ((kind name) &body body)
+(defun configure-jobs (distribution jobs
+                       &key build-flow-ignores-failures?)
+  (let* ((buildflow-name  (ignore-errors (value distribution :buildflow-name)))
+         (prepare-name    (ignore-errors (value distribution :prepare-hook-name)))
+         (prepare-command (or (ignore-errors (value distribution :prepare-hook/unix))
+                              "# Nothing to do"))
+         (finish-name     (ignore-errors (value distribution :finish-hook-name)))
+         (finish-command  (or (ignore-errors (value distribution :finish-hook/unix))
+                              "# Nothing to do"))
+         (finish-command  (format nil "jobs='~{~A~^~%~}'~2%~A"
+                                  (mapcar (compose #'jenkins.api:id #'implementation)
+                                          jobs)
+                                  finish-command)))
+    (macrolet ((ensure-job ((kind name &key (commit? t)) &body body)
                  `(let ((job (jenkins.dsl:job (,kind ,name) ,@body)))
                     (if (jenkins.api:job? (jenkins.api:id job))
                         (setf (jenkins.api:job-config (jenkins.api:id job))
@@ -407,33 +399,41 @@
                         (jenkins.api::make-job (jenkins.api:id job) (jenkins.api::%data job)))
                     (setf (jenkins.api:description job)
                           +description-automatically-generated+)
-                    (jenkins.api:commit! job)
-                    (jenkins.api:enable! job))))
+                    ,@(when commit?
+                        '((jenkins.api:commit! job)
+                          (jenkins.api:enable! job)))
+                    job)))
 
       ;; Create helper jobs
-      (ensure-job ("project" (format nil "distribution-prepare.~A" name))
-        (jenkins.api:builders
-         (jenkins.dsl::shell (:command prepare))))
-      (ensure-job ("project" (format nil "distribution-finish.~A" name))
-        (jenkins.api:builders
-         (jenkins.dsl::shell (:command finish))))
+      (when prepare-name
+        (ensure-job ("project" prepare-name)
+          (jenkins.api:builders
+           (jenkins.dsl::shell (:command prepare-command)))))
+      (when finish-name
+        (ensure-job ("project" finish-name)
+          (jenkins.api:builders
+           (jenkins.dsl::shell (:command finish-command)))))
 
       ;; Create bluildflow job
-      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow" "build-flow-plugin@0.10")
-                    (format nil "distribution-buildflow.~A" name))))))
+      (when buildflow-name
+        (let ((job (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
+                                  "build-flow-plugin@0.10")
+                                buildflow-name
+                                :commit? nil))))
+          (configure-buildflow-job
+           job (schedule-jobs jobs) prepare-name finish-name
+           :ignore-failures? build-flow-ignores-failures?)
+          (jenkins.api:commit! job)
+          (jenkins.api:enable! job))))))
 
 (defun configure-distribution (distribution
                                &key
                                (build-flow-ignores-failures? t))
-  (let ((name (value distribution :distribution-name))
-        (jobs (remove-if-not            ; TODO hack
-               (lambda (job)
-                 (equal (ignore-errors (value job :variant)) (name distribution)))
-               (mappend (compose #'jobs #'implementation) (versions distribution)))))
-    (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
-    (configure-jobs distribution jobs)
-    (configure-buildflow-job name (schedule-jobs jobs)
-                             :ignore-failures? build-flow-ignores-failures?)))
+  (unless (ignore-errors (value distribution :disable-ochestration-jobs))
+    (let ((jobs (mappend (compose #'jobs #'implementation) (versions distribution))))
+      (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
+      (configure-jobs distribution jobs
+                      :build-flow-ignores-failures? build-flow-ignores-failures?))))
 
 (defun configure-distributions (distributions
                                 &key
@@ -755,13 +755,12 @@
                                                        (list :temp-directory temp-directory)))))
                          (distributions     (with-phase-error-check
                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
-                                              (tag-project-versions
-                                               (mapcar (lambda (distribution)
-                                                         (reinitialize-instance
-                                                          distribution
-                                                          :versions (resolve-project-versions
-                                                                     (jenkins.project::versions distribution))))
-                                                       distributions/raw))))
+                                              (mapcar (lambda (distribution)
+                                                        (reinitialize-instance
+                                                         distribution
+                                                         :versions (resolve-project-versions
+                                                                    (jenkins.project::versions distribution))))
+                                                      distributions/raw)))
                          (distributions     (with-phase-error-check
                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)
                                               (check-platform-requirements distributions)))

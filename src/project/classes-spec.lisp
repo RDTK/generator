@@ -68,7 +68,8 @@
 
 (defclass project-spec (named-mixin
                         specification-mixin
-                        direct-variables-mixin)
+                        direct-variables-mixin
+                        parented-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
               :reader   templates
@@ -279,19 +280,8 @@
                                   (direct-variables parent)
                                   variables)))))
          ((&flet make-jobs (job-spec parent)
-            (if-let ((variants (ignore-errors (value (prepare-job-spec job-spec parent) :variants))) ; TODO avoid this
-                     (variant-parents (ignore-errors (value (prepare-job-spec job-spec parent) :variant-parents))))
-              (mapcan (lambda (variant variant-parent)
-                        (log:trace "~@<Instantiating variant ~S of ~A~@:>" variant job-spec)
-                        (make-job (prepare-job-spec job-spec parent
-                                                    (append
-                                                     (list :variant variant)
-                                                     (direct-variables variant-parent)))
-                                  parent))
-                      variants variant-parents)
-              (progn
-                (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
-                (make-job (prepare-job-spec job-spec parent) parent)))))
+            (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
+            (make-job (prepare-job-spec job-spec parent) parent)))
          (version (make-instance 'version
                                  :name      (name spec)
                                  :variables (direct-variables spec))))
@@ -321,9 +311,7 @@
               (when-let ((aspect (instantiate spec)))
                 (list (reinitialize-instance aspect :parent parent))))))
          (job (make-instance 'job
-                             :name      (format nil "~A~@[-~A~]"
-                                                (name spec)
-                                                (ignore-errors (lookup spec :variant)))
+                             :name      (name spec)
                              :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
      job

@@ -265,10 +265,10 @@ rm -rf \"${TEMPDIR}\"")))
 
 ;;; Slaves aspect
 
-(define-aspect (slaves) () () ; TODO separate slaves aspect for matrix-project jobs?
-  (when-let ((value (var :slaves nil)))
+(define-aspect (slaves :job-var job) () () ; TODO separate slaves aspect for matrix-project jobs?
+  (when-let ((value (var :aspect.slaves.slaves nil)))
     (setf (slaves job) value))
-  (if-let ((value (var :restrict-to-slaves nil)))
+  (if-let ((value (var :aspect.slaves.restrict-to-slaves nil)))
     (setf (can-roam? job)          nil
           (restrict-to-slaves job) value)
     (setf (can-roam? job) t)))

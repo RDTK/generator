@@ -284,7 +284,7 @@ rm -rf \"${TEMPDIR}\"")))
     ;; Multiple copy-artifact builders which copy artifacts from other
     ;; jobs.
     (iter (for dependency in dependencies)
-          (let+ ((id      (value dependency :bla-name))
+          (let+ ((id      (value dependency :build-job-name))
                  (kind    (first (ensure-list (ignore-errors
                                                 (value dependency :kind)))))
                  (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)

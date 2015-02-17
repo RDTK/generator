@@ -174,7 +174,7 @@
                       (ignore-errors (value thing :description.header)) ; TODO header is a hack
                       (ignore-errors (value thing :description))
                       (ignore-errors (value thing :description.footer))))))
-         (id   (value thing :bla-name))
+         (id   (value thing :build-job-name))
          (kind (let+ (((kind &optional plugin)
                        (ensure-list (value thing :kind))))
                  (if plugin

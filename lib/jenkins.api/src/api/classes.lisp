@@ -767,13 +767,6 @@
    ((pattern :type string))
    (:name-slot pattern))
 
-  ((junit "hudson.tasks.junit.JUnitResultArchiver")
-   ((result-files     :type      string
-                      :xpath     "testResults/text()")
-    (keep-long-stdio? :type      boolean
-                      :xpath     "keepLongStdio/text()"))
-   (:name-slot result-files))
-
   ((cobertura "hudson.plugins.cobertura.CoberturaPublisher"
               :plugin "cobertura@1.7.1")
    ((report-file :type  string

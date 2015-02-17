@@ -188,10 +188,6 @@
    #:targets
    #:build-artifacts?
 
-   #:publisher/junit
-   #:result-files
-   #:keep-long-stdio?
-
    #:publisher/cobertura
    #:report-file
 

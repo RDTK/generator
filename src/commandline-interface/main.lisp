@@ -386,9 +386,7 @@
     (find-components jobs)))
 
 (define-constant +description-automatically-generated+
-  "<span style=\"color: red; font-weight: bold\">
-     This job is automatically generated - do not modify by hand.
-   </span>"
+  "!!! This job is automatically generated - do not modify by hand. !!!"
   :test #'string=)
 
 (defun configure-jobs (distribution jobs)

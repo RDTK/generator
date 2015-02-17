@@ -90,35 +90,34 @@
                           (format stream "~@<Skip branch ~A.~@:>" branch))
                 (declare (ignore condition)))))))
 
-    (mapc #'do-branch1
-          (handler-bind
-              ((error (lambda (condition)
-                        (error 'jenkins.analysis:analysis-error
-                               :specification project
-                               :cause         condition))))
-            (flet ((var (name &optional default)
-                     (handler-case
-                         (value project name)
-                       (error () default))))
-              (apply #'jenkins.analysis:analyze
-                     (when-let ((value (var :repository)))
-                       (puri:uri value))
-                     :auto
-                     :scm           (var :scm)
-                     :username      (var :scm.username)
-                     :password      (var :scm.password)
-                     :branches      (var :branches)
-                     :tags          (var :tags)
-                     :sub-directory (when-let ((value (var :sub-directory)))
-                                      (parse-namestring (concatenate 'string value "/")))
-                     :history-limit (var :scm.history-limit)
-                     (append
-                      (let ((natures (var :natures :none)))
-                        (unless (eq natures :none)
-                          (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
-                      (when temp-directory
-                        (list :temp-directory temp-directory))))))))
-
+        (handler-bind
+            ((error (lambda (condition)
+                      (error 'jenkins.analysis:analysis-error
+                             :specification project
+                             :cause         condition))))
+          (mapc #'do-branch1
+                (flet ((var (name &optional default)
+                         (handler-case
+                             (value project name)
+                           (error () default))))
+                  (apply #'jenkins.analysis:analyze
+                         (when-let ((value (var :repository)))
+                           (puri:uri value))
+                         :auto
+                         :scm           (var :scm)
+                         :username      (var :scm.username)
+                         :password      (var :scm.password)
+                         :branches      (var :branches)
+                         :tags          (var :tags)
+                         :sub-directory (when-let ((value (var :sub-directory)))
+                                          (parse-namestring (concatenate 'string value "/")))
+                         :history-limit (var :scm.history-limit)
+                         (append
+                          (let ((natures (var :natures :none)))
+                            (unless (eq natures :none)
+                              (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
+                          (when temp-directory
+                            (list :temp-directory temp-directory))))))))
   project)
 
 (defun load-projects/versioned (files-and-versions)

@@ -289,7 +289,8 @@ rm -rf \"${TEMPDIR}\"")))
                                                 (value dependency :kind)))))
                  (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
                                                       (aspects dependency))))
-                            (value aspect :aspect.archive-artifacts.file-pattern)))
+                            (ignore-errors
+                             (value aspect :aspect.archive-artifacts.file-pattern))))
                  ((&flet matrix? (kind)
                     (member kind '("matrix" "matrix-project") :test #'string-equal)))
                  (reference (format nil "~A~@[/label=$label~]"

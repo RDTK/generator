@@ -45,9 +45,9 @@
 
 ;;; Retention aspect
 
-(define-aspect (retention) () ()
-  (setf (keep/days  job) (var :keep/days)
-        (keep/count job) (var :keep/count)))
+(define-aspect (retention :job-var job) () ()
+  (setf (keep/days  job) (var :aspect.retention.keep/days)
+        (keep/count job) (var :aspect.retention.keep/count)))
 
 ;;; Redmine aspect
 

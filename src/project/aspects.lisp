@@ -431,7 +431,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
          ;; Options
          ((&flet+ make-option ((section name value))
             #?"\${PYTHON} ${script} setopt -c ${section} -o ${name} -s \"${value}\""))
-         (options (mapcar #'make-option (var :aspect.setuptools.options)))
+         (options (mapcar #'make-option (var :aspect.setuptools.options '())))
          ;; Targets
          ((&flet+ make-target ((name &optional no-fail?))
             #?"\${PYTHON} ${script} ${name} @{(when no-fail? '("|| true"))}"))

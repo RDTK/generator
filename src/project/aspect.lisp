@@ -1,6 +1,6 @@
 ;;;; aspect.lisp --- Basic infrastructure for job aspects.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -29,6 +29,9 @@
     generated build job such as checking out source code from a
     repository or parsing compiler messages and publishing a
     report."))
+
+(defmethod check-access ((object aspect) (lower-bound t))
+  (check-access (specification (parent (parent object))) lower-bound))
 
 (defmethod aspect< ((left aspect) (right aspect))
   (let+ (((&accessors-r/o (constraints-left constraints))  left)

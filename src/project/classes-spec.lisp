@@ -116,11 +116,18 @@
           (when (next-method-p)
             (call-next-method))))
 
-(defmethod variables append ((thing project-spec))
-  ;; TODO(jmoringe, 2013-02-22): this is a hack to add our direct variables
-  ;; in front of variables from templates. maybe variables should not
-  ;; have `append' method combination?
-  (append (direct-variables thing) (mapcan #'variables (templates thing))))
+(defmethod variables :around ((thing project-spec))
+  (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
+          ;; direct variables in front of variables from
+          ;; templates. maybe variables should not have `append'
+          ;; method combination?
+          (direct-variables thing)
+          (mappend #'variables (templates thing))
+          ;; TODO this is a hack to not inherit the value of the
+          ;; :access variable from parents like `distribution-spec'
+          ;; instances.
+          (when-let ((parent (parent thing)))
+            (remove-from-plist (variables parent) :access))))
 
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))

@@ -242,7 +242,8 @@
                  (values (value thing name1) t))
                 (first-value
                  (values (expand (parse first-value)
-                                 (make-lookup next-values)) t))
+                                 (make-lookup next-values))
+                         t))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
@@ -300,8 +301,7 @@
   t)
 
 (defmethod check-access ((object t) (lower-bound (eql :public)))
-  (let ((access (access object)))
-    (or (eq lower-bound t) (eq access lower-bound))))
+  (eq (access object) lower-bound))
 
 ;;; Instantiation protocol
 

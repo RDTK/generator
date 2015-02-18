@@ -442,6 +442,22 @@
                 :build-flow-ignores-failures? build-flow-ignores-failures?)
         distributions))
 
+(defun list-credentials (jobs)
+  (let+ ((all-credentials (make-hash-table :test #'equal))
+         ((&flet+ job-credentials (job)
+            (when-let* ((repository  (jenkins.api:repository job))
+                        (credentials (jenkins.api:credentials repository)))
+              (push job (gethash credentials all-credentials))))))
+    (mapc #'job-credentials jobs)
+    (when (plusp (hash-table-count all-credentials))
+      (format t "~@<The following credentials have been used:~@:_~
+                 ~{~{* ~S for job~P ~<~{~A~^, ~}~:@>~}~^~@:_~}~
+                 ~%~:>"
+              (mapcar (lambda+ ((credentials . jobs))
+                        (list credentials (length jobs)
+                              (list (mapcar #'jenkins.api:id jobs))))
+                      (hash-table-alist all-credentials))))))
+
 ;;; Commandline options
 
 (defun update-synopsis ()
@@ -795,7 +811,11 @@
                        distributions
                        :build-flow-ignores-failures? build-flow-ignores-failures?))
 
-                    (enable-jobs jobs)))))))
+                    (enable-jobs jobs)
+
+                    (with-phase-error-check
+                        (:list-credentials #'errors #'(setf errors) #'report)
+                      (list-credentials jobs))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

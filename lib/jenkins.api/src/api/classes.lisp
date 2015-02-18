@@ -358,7 +358,8 @@
    ((url               :type     string
                        :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/remote/text()")
     (credentials       :type     string
-                       :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/credentialsId/text()")
+                       :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/credentialsId/text()"
+                       :initform nil)
     (local-directory   :type     string
                        :xpath    "locations/hudson.scm.SubversionSCM_-ModuleLocation/local/text()"
                        :initform ".")

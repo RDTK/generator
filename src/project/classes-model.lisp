@@ -235,10 +235,10 @@
                 ((error (lambda (condition)
                           (error "~@<Could not relate ~A -> ~A: ~A.~@:>"
                                  upstream-job thing condition))))
-              ;; TODO make a function related? or add (relate .. :if-related nil)
-              (unless (find (id (implementation upstream-job))
-                            (jenkins.api:upstream (implementation thing))
-                            :test #'string=)
-                (jenkins.api:relate (implementation upstream-job) (implementation thing))))
+              (jenkins.api:relate (implementation upstream-job) (implementation thing)
+                                  :if-related nil))
           (continue (&optional condition)
+            :report (lambda (stream)
+                      (format stream "~@<Do not relate ~A -> ~A~@:>"
+                              upstream-job thing))
             (declare (ignore condition))))))

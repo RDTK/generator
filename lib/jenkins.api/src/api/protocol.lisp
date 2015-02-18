@@ -61,10 +61,16 @@ have them take effect and make them permanent."))
   (:documentation
    "TODO"))
 
-(defgeneric relate (parent child)
+(defgeneric relate (parent child &key if-related)
   (:documentation
-   "TODO"))
+   "Add PARENT to the list of upstreams of CHILD.
 
-(defgeneric unrelate (parent child)
+    IF-RELATED controls the behavior in case PARENT is already in the
+    list of upstreams of CHILD."))
+
+(defgeneric unrelate (parent child &key if-not-related)
   (:documentation
-   "TODO"))
+   "Remove PARENT from the list of upstream of CHILD.
+
+    IF-NOT-RELATED controls the behavior in case PARENT is not in the
+    list of upstreams of CHILD."))

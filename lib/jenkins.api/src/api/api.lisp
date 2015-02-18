@@ -274,32 +274,47 @@
 (macrolet
     ((define-name-resolving-methods (name)
        `(progn
-          (defmethod ,name ((parent string) (child string))
-            (,name (job parent) (job child)))
+          (defmethod ,name ((parent string) (child string)
+                            &rest args &key &allow-other-keys)
+            (apply #',name (job parent) (job child) args))
 
-          (defmethod ,name ((parent string) (child job))
-            (,name (job parent) child))
+          (defmethod ,name ((parent string) (child job)
+                            &rest args &key &allow-other-keys)
+            (apply #',name (job parent) child) args)
 
-          (defmethod ,name ((parent job) (child string))
-            (,name parent (job child))))))
+          (defmethod ,name ((parent job) (child string)
+                            &rest args &key &allow-other-keys)
+            (apply #',name parent (job child) args)))))
 
   (define-name-resolving-methods relate)
   (define-name-resolving-methods unrelate))
 
-;; TODO :if-related
-(defmethod relate ((parent job) (child job))
+(defmethod relate ((parent job) (child job) &key if-related)
   (when (member (id parent) (upstream parent) :test #'string=)
-    (error "~@<~A already is an upstream project of ~A~@:>"
-           parent child))
+    (return-from relate
+      (error-behavior-restart-case
+          (if-related
+           (simple-error
+            :format-control   "~@<~A already is an upstream project of ~
+                               ~A~@:>"
+            :format-arguments (list parent child))
+           :warning-condition   simple-warning
+           :allow-other-values? t))))
+
   ;; Add PARENT the to list of upstream jobs of CHILD.
   (push (id parent) (upstream child))
   (commit! child))
 
-;; TODO if-not-related
-(defmethod unrelate ((parent job) (child job))
+(defmethod unrelate ((parent job) (child job) &key if-not-related)
   (unless (member (id parent) (upstream child) :test #'string=)
-    (error "~@<~A is not an upstream project of ~A~@:>"
-           parent child))
+    (return-from unrelate
+      (error-behavior-restart-case
+          (if-not-related
+           (simple-error
+            :format-control   "~@<~A is not an upstream project of ~
+                               ~A~@:>"
+            :format-arguments (list parent child))))))
+
   ;; Remove PARENT from the list of upstream jobs of CHILD.
   (removef (upstream child) (id parent) :test #'string=)
   (commit! child))

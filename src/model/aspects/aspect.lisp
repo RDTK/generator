@@ -84,28 +84,6 @@
     (test-consistent-satisfied nil t)
     (test-consistent-satisfied t   t)))
 
-(let+ (((&flet check-case (spec-a spec-b &optional no-relation?)
-          (log:info spec-a spec-b)
-          (let ((*builder-constraints* (make-hash-table)))
-            (setf (gethash :a *builder-constraints*) spec-a
-                  (gethash :b *builder-constraints*) spec-b)
-            (if no-relation?
-                (assert (not (builder< :a :b *builder-constraints*)))
-                (assert (builder< :a :b *builder-constraints*)))
-            (assert (not (builder< :b :a *builder-constraints*)))))))
-
-  (check-case '(aspect-a "name-a" ((:before t)))
-              '(aspect-b "name-b" ()))
-  (check-case '(aspect-a "name-a" ((:before t)))
-              '(aspect-b "name-b" ((:before t)))
-              t)
-  (check-case '(aspect-a "name-a" ((:before aspect-b)))
-              '(aspect-b "name-b" ()))
-  (check-case '(aspect-a "name-a" ((:before aspect-b)))
-              '(aspect-b "name-b" ((:before t))))
-  (check-case '(aspect-a "name-a" ((:before aspect-b "name-b")))
-              '(aspect-b "name-b" ((:before aspect-a)))))
-
 (defun make-aspect-class-form (name super-aspects variables body
                                &key
                                (job-var    (when body

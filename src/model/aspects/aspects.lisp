@@ -368,17 +368,6 @@ ${(make-move-stuff-upwards/unix components)}")))
               :datum         raw
               :expected-type '(or (eql "<all>") cons))))))
 
-(mapc (lambda+ ((json expected))
-        (assert (equal expected (parse-constraint
-                                 (json:decode-json-from-string json)))))
-      '(("[ \"before\", \"<all>\"               ]"                  (:before t t))
-        ("[ \"before\", \"foo\"                 ]"                  (:before foo t))
-        ("[ \"before\", { \"type\": \"foo\" }   ]"                  (:before foo t))
-        ("[ \"before\", { \"type\": \"<all>\" } ]"                  (:before t t))
-        ("[ \"before\", { \"name\": \"bar\" }   ]"                  (:before t "bar"))
-        ("[ \"before\", { \"name\": \"<all>\" } ]"                  (:before t t))
-        ("[ \"before\", { \"type\": \"fez\", \"name\": \"baz\" } ]" (:before fez "baz"))))
-
 (defmethod builder-constraints ((aspect  aspect-builder-defining-mixin)
                                 (builder t))
   (let+ ((builder-type    (type-of builder))

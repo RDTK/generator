@@ -62,6 +62,30 @@
 
     (log:trace "Sorted builders: ~A" (builders job))))
 
+;;; Aspect creation protocol
+
+(defgeneric make-aspect (spec &rest initargs)
+  (:documentation
+   "Make and return the provider specified by SPEC.
+
+    INITARGS are passed to the constructed provider."))
+
+(defmethod make-aspect ((spec symbol) &rest initargs)
+  (apply #'service-provider:make-provider 'aspect
+         spec initargs))
+
+(defmethod make-aspect ((spec string) &rest initargs)
+  (let ((name (make-keyword (string-upcase spec))))
+    (apply #'make-aspect name initargs)))
+
+(service-provider:define-service aspect
+  (:documentation
+   "Providers of this service are aspect classes.
+
+    Instances of an aspect class accept certain variables as their
+    parameters and configure one aspect (hence the name) of a
+    generated build job according to the value of those parameters."))
+
 ;;; Aspect container protocol
 
 (defgeneric aspects (container)

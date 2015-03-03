@@ -366,11 +366,7 @@
 
 (defmethod instantiate ((spec aspect-spec) &key parent specification-parent)
   (declare (ignore specification-parent))
-  ;; TODO(jmoringe, 2013-01-16): find-aspect-class
-  (let* ((class-name (let ((*package* (find-package '#:jenkins.model.aspects)))
-                       (symbolicate '#:aspect- (string-upcase (aspect spec)))))
-         (class      (find-class class-name)))
-    (make-instance class
-                   :name      (name spec)
-                   :parent    parent
-                   :variables (direct-variables spec))))
+  (make-aspect (aspect spec)
+               :name      (name spec)
+               :parent    parent
+               :variables (direct-variables spec)))

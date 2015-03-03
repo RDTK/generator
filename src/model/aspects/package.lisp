@@ -40,6 +40,10 @@
 
    #:extend!)
 
+  ;; Aspect creation protocol
+  (:export
+   #:make-aspect)
+
   ;; Aspect container protocol
   (:export
    #:aspects)

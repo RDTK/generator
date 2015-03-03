@@ -102,6 +102,9 @@
           ,@(when constraints
               `(:constraints ',constraints))))
 
+       (service-provider:register-provider/class
+        'aspect ,(make-keyword name) :class ',class-name )
+
        ,@(when variables
            `((defmethod variables append ((aspect ,class-name))
                (list ,@variables))))

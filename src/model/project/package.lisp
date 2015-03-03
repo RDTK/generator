@@ -35,7 +35,9 @@
    #:as)
 
   (:import-from #:jenkins.model.aspects
-   #:aspects)
+   #:aspects
+
+   #:make-aspect)
 
   (:import-from #:jenkins.version
    #:parse-version

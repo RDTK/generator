@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for aspects module.
 ;;;;
-;;;; Copyright (C) 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -34,8 +34,31 @@
   (:shadowing-import-from #:jenkins.dsl ; TODO hack
    #:job)
 
+  ;; Conditions
+  (:export
+   #:parameter-condition
+   #:parameter-condition-aspect
+   #:parameter-condition-parameter
+
+   #:missing-argument-error
+
+   #:argument-condition
+   #:argument-condition-value
+
+   #:argument-type-error)
+
+  ;; Aspect parameter protocol
+  (:export
+   #:aspect-parameter-variable
+   #:aspect-parameter-binding-name
+   #:aspect-parameter-default-value)
+
   ;; Aspect protocol
   (:export
+   #:aspect-parameters
+   #:aspect-process-parameters
+   #:aspect-process-parameter
+
    #:aspect<
 
    #:extend!)

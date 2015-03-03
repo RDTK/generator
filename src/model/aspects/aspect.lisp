@@ -6,6 +6,53 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
+;;; `aspect-parameter' class
+
+(defclass aspect-parameter (print-items:print-items-mixin)
+  ((variable      :initarg  :variable
+                  :type     variable-info
+                  :reader   aspect-parameter-variable
+                  :documentation
+                  "Stores a `variable-info' instance for the variable
+                   potentially containing the value of this
+                   parameter.")
+   (default-value :initarg  :default-value
+                  :reader   aspect-parameter-%default-value
+                  :documentation
+                  "Default value to use in case the associated
+                   variable does not define a value for the
+                   parameter.
+
+                   Unbound when there is no default value.")
+   (binding-name  :initarg  :binding-name
+                  :type     (and symbol (not null))
+                  :reader   aspect-parameter-binding-name
+                  :documentation
+                  "Stores a name to which the value of the parameter,
+                   if supplied, should be bound in the aspect body."))
+  (:default-initargs
+   :variable     (missing-required-initarg 'aspect-parameter :variable)
+   :binding-name (missing-required-initarg 'aspect-parameter :binding-name))
+  (:documentation
+   "Instances of this class describe parameters accepted by aspects."))
+
+(defmethod print-items:print-items append ((object aspect-parameter))
+  (let+ (((&structure-r/o
+           aspect-parameter- variable binding-name
+           ((&values default default?) default-value))
+          object)
+         ((&structure-r/o variable-info- type) variable))
+    `((:binding-name ,binding-name)
+      (:type         ,type ":~A" ((:after :binding-name)))
+      ,@(when default? `((:default ,default " = ~S" ((:after :type))))))))
+
+(defmethod aspect-parameter-default-value ((parameter aspect-parameter))
+  (if (slot-boundp parameter 'default-value)
+      (values (slot-value parameter 'default-value) t)
+      (values nil                                   nil)))
+
+;;; `aspect' base class
+
 (defclass aspect (named-mixin
                   implementation-mixin
                   direct-variables-mixin
@@ -29,6 +76,31 @@
     generated build job such as checking out source code from a
     repository or parsing compiler messages and publishing a
     report."))
+
+(defmethod aspect-process-parameter ((aspect t) (parameter t))
+  (let+ (((&structure-r/o aspect-parameter- variable
+                          ((&values default default?) default-value))
+          parameter)
+         ((&structure-r/o variable-info- name type) variable)
+         (value (value aspect name '%undefined)))
+    (cond
+      ((not (eq value '%undefined))
+       (with-condition-translation
+           (((error argument-type-error)
+             :aspect    aspect
+             :parameter parameter
+             :value     value))
+         (list (as value type))))
+      ((not default?)
+       (missing-argument-error aspect parameter))
+      ((equal default '%bail)
+       (throw '%bail nil))
+      (t
+       (list default)))))
+
+(defmethod aspect-process-parameters ((aspect t))
+  (mappend (curry #'aspect-process-parameter aspect)
+           (aspect-parameters aspect)))
 
 (defmethod check-access ((object aspect) (lower-bound t))
   (check-access (specification (parent (parent object))) lower-bound))

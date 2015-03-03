@@ -185,6 +185,7 @@
                  :depends-on ("model")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "conditions")
                               (:file     "protocol")
 
                               (:file     "aspect")

@@ -6,7 +6,59 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
+;;; Aspect parameter protocol
+
+(defgeneric aspect-parameter-variable (parameter)
+  (:documentation
+   "Return the `variable-info' instance associated to PARAMETER."))
+
+(defgeneric aspect-parameter-binding-name (parameter)
+  (:documentation
+   "Return the name of the variable that should be bound to the value
+    of PARAMETER."))
+
+(defgeneric aspect-parameter-default-value (parameter)
+  (:documentation
+   "Return the default value of parameter.
+
+    Return two values: 1) nil or the default value of PARAMETER 2) a
+    Boolean indicating whether PARAMETER has a default value."))
+
 ;;; Aspect protocol
+
+(defgeneric aspect-parameters (aspect)
+  (:method ((aspect class))
+    (unless (closer-mop:class-finalized-p aspect)
+      (closer-mop:finalize-inheritance aspect))
+    (aspect-parameters (closer-mop:class-prototype aspect)))
+  (:documentation
+   "Return a list of parameters accepted by ASPECT.
+
+    Elements of the returned list implement the aspect parameter
+    protocol."))
+
+(defgeneric aspect-process-parameters (aspect)
+  (:documentation
+   "Obtain values for ASPECT's parameters from its variables, return a
+    list of values."))
+
+(defgeneric aspect-process-parameter (aspect parameter)
+  (:documentation
+   "Lookup PARAMETER in ASPECTS's variables, return value in a singleton list.
+
+    The returned list is of then form
+
+      (VALUE)
+
+    where VALUE is looked up via the variable name specified by
+    PARAMETER's `aspect-parameter-variabe'.
+
+    When the variable is not defined and PARAMETER does not define a
+    default value, a `missing-argument-error' is signaled.
+
+    When the variable is defined but its value is not of the type
+    specified by PARAMETER's `aspect-parameter-type', an
+    `argument-type-error' is signaled."))
 
 (defgeneric aspect< (left right)
   (:documentation

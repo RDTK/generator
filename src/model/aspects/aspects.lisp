@@ -26,12 +26,29 @@
 
 ;;; Parameters aspect
 
-(define-aspect (parameters) () ()
+(define-aspect (parameters) ()
+    ((parameters :type list
+      :documentation
+      "A list of parameters that should be configured for the
+       generated job.
+
+       Each entry has to be of one of the forms
+
+         [ \"text\",   \"NAME\" ]
+         [ \"text\",   \"NAME\", \"DEFAULT\" ]
+         [ \"string\", \"NAME\" ]
+         [ \"string\", \"NAME\", \"DEFAULT\" ]
+
+       where \"text\" vs. \"string\" controls which values are
+       acceptable for the parameter and NAME is the name of the
+       parameter. Default values are optional.
+
+       For more details, see Jenkins documentation."))
   "Adds parameters to the created job."
-  (with-interface (properties job) (parameters (property/parameters))
+  (with-interface (properties job) (parameters* (property/parameters))
     (mapc (lambda+ ((kind name &optional default))
-            (setf (parameters parameters)
-                  (remove name (parameters parameters)
+            (setf (parameters parameters*)
+                  (remove name (parameters parameters*)
                           :key (rcurry #'getf :name)))
             (let ((kind (cond
                           ((string= kind "text")   :text)
@@ -41,40 +58,68 @@
                                   kind)))))
               (push (list* :kind kind :name name
                            (when default (list :default default)))
-                    (parameters parameters))))
-          (var/typed :aspect.parameters.parameters 'list))))
+                    (parameters parameters*))))
+          parameters)))
 
 ;;; Retention aspect
 
-(define-aspect (retention :job-var job) () ()
+(define-aspect (retention :job-var job) ()
+    ((keep/days  :type (or null positive-integer)
+      :documentation
+      "Number of days for which past builds of the generated job
+       should be kept.")
+     (keep/count :type (or null positive-integer)
+      :documentation
+      "Number of past build that should be kept for the generated
+       job."))
   "Configures the retention of old builds for the created job."
-  (setf (keep/days  job) (var/typed :aspect.retention.keep/days  '(or null positive-integer))
-        (keep/count job) (var/typed :aspect.retention.keep/count '(or null positive-integer))))
+  (setf (keep/days  job) keep/days
+        (keep/count job) keep/count))
 
 ;;; JDK aspect
 
-(define-aspect (jdk) () ()
+(define-aspect (jdk :job-var job) ()
+    (((jdk nil) :type (or null string)
+      :documentation
+      "Name of the JDK installation the generated job should use.
+
+       A matching entry has to exist in Jenkins' global settings."))
   "Selects the JDK version to be used by the created job."
-  (setf (jenkins.api::jdk job) (var/typed :aspect.jdk.jdk '(or null string) nil)))
+  (setf (jenkins.api::jdk job) jdk))
 
 ;;; Github aspect
 
-(define-aspect (github :job-var job) () ()
+(define-aspect (github :job-var job) ()
+    (((project-url  nil) :type (or null string)
+      :documentation
+      "The URL of the GitHub page of the project.")
+     ((display-name nil) :type (or null string)
+      :documentation
+      "The name that should be used in the link to the GitHub page."))
   "Configures an associated GitHub page for the generated job.
 
    The generated job will have a link to the GitHub page, links to
    commits in the GitHub repository viewer and other similar
    integration features."
-  (if-let ((project-url (var/typed :aspect.github.project-url '(or null string) nil)))
-    (with-interface (properties job) (github (property/github))
-      (setf (jenkins.api:project-url github) project-url
-            (jenkins.api:display-name github)
-            (var/typed :aspect.github.display-name '(or null string) nil)))
-    (removef (properties job) 'property/github :key #'type-of)))
+  (if project-url
+      (with-interface (properties job) (github (property/github))
+        (setf (jenkins.api:project-url github) project-url
+              (jenkins.api:display-name github) display-name))
+      (removef (properties job) 'property/github :key #'type-of)))
 
 ;;; Redmine aspects
 
-(define-aspect (redmine) () ()
+(define-aspect (redmine) ()
+    (((instance (bail)) :type string
+      :documentation
+      "Redmine instance in which the project associated to the
+       generated job resides.
+
+       A matching entry has to exist in Jenkin's global settings.")
+     ((project  (bail)) :type string
+      :documentation
+      "Name of the Redmine project to which the generated job should
+       be associated."))
   "Configures Redmine integration for the created job.
 
    INSTANCE must refer to one of the Redmine instances in the global
@@ -83,29 +128,37 @@
    It is recommended to use the full base URL of the actual Redmine as
    the respective name since the redmine-and-git aspect can reuse this
    information.  "
-  (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
-              (project  (var/typed :aspect.redmine.project  '(or null string) nil)))
-    (setf (jenkins.api::redmine-instance job) instance
-          (jenkins.api::redmine-project job)  project)))
+  (setf (jenkins.api::redmine-instance job) instance
+        (jenkins.api::redmine-project job)  project))
 
 (define-aspect (redmine-and-git
                 :job-var     job
                 :constraints ((:after aspect-git)))
-    () ()
+    ()
+    (((instance      (bail)) :type string
+      :documentation
+      "Redmine instance in which the project associated to the
+       generated job resides.
+
+       A matching entry has to exist in Jenkin's global settings.")
+     ((project       (bail)) :type string
+      :documentation
+      "Name of the Redmine project in which the repository accessed by
+       the generated job is contained.")
+     ((repository-id (bail)) :type string
+      :documentation
+      "Name of the repository within the Redmine project."))
   "Configures integration of Redmine and git repositories.
 
    The aspect only works correctly if the generated job is configured
    with a git repository."
-  (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
-              (project  (var/typed :aspect.redmine.project  '(or null string) nil)))
-    (let ((repository (repository job)))
-      (unless (typep repository 'scm/git)
-        (error "~@<Could not find git repository in ~A.~@:>" job))
-      (setf (browser-kind repository) :redmine-web
-            (browser-url  repository)
-            (format nil "~A/projects/~A/repository/~@[~A/~]"
-                    instance project
-                    (var/typed :aspect.redmine.repository-id '(or null string) nil))))))
+  (let ((repository (repository job)))
+    (unless (typep repository 'scm/git)
+      (error "~@<Could not find git repository in ~A.~@:>" job))
+    (setf (browser-kind repository) :redmine-web
+          (browser-url  repository)
+          (format nil "~A/projects/~A/repository/~@[~A/~]"
+                  instance project repository-id))))
 
 ;;; SCM aspects
 
@@ -160,8 +213,8 @@ rm -rf \"\${temp}\""))
                            (symbolicate aspect-name '#:. builder-name '#:.prefix)))
         (suffix-var-name (let ((*package* (find-package '#:keyword)))
                            (symbolicate aspect-name '#:. builder-name '#:.suffix))))
-    `(let ((prefix (var/typed ,prefix-var-name '(or null string) nil))
-           (suffix (var/typed ,suffix-var-name '(or null string) nil)))
+    `(let ((prefix (as (value aspect ,prefix-var-name nil) '(or null string)))
+           (suffix (as (value aspect ,suffix-var-name nil) '(or null string))))
        (wrap-shell-command (progn ,@body) prefix suffix))))
 
 (defun split-option (spec)
@@ -172,7 +225,15 @@ rm -rf \"\${temp}\""))
     (list (subseq spec 0 position) (subseq spec (1+ position)))))
 
 (define-aspect (archive) (builder-defining-mixin)
-    ()
+    ((url            :type string
+     :documentation
+     "URL from which the archive should be downloaded.
+
+      HTTP and HTTPS are supported.")
+     ((filename nil) :type string
+      :documentation
+      "Name of the file in which the downloaded archive should be
+       stored."))
   "Adds a build step that downloads a source archive.
 
    This may be useful when a SCM repository is not available but
@@ -180,17 +241,16 @@ rm -rf \"\${temp}\""))
   ;; In case we are updating an existing job, remove any repository
   ;; configuration.
   (setf (repository job) (make-instance 'scm/null))
+
   ;; Generate archive download and extraction as a shell builder.
-  (let* ((url/string (var/typed :aspect.archive.url      'string))
-         (url        (puri:uri url/string))
-         (archive    (or (var/typed :aspect.archive.filename '(or null string) nil)
-                         (lastcar (puri:uri-parsed-path url)))))
+  (let* ((url/parsed (puri:uri url))
+         (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
 ${(make-remove-directory-contents/unix)}
 
 # Unpack archive.
-wget --no-verbose \"${url/string}\" --output-document=\"${archive}\"
+wget --no-verbose \"${url}\" --output-document=\"${archive}\"
 unp -U \"${archive}\"
 rm \"${archive}\"
 directory=\$(find . -mindepth 1 -maxdepth 1)
@@ -199,7 +259,52 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
           (builders job))))
 
 (define-aspect (git :job-var job :aspect-var aspect) (builder-defining-mixin)
-    ()
+    ((url                                   :type string
+      :documentation
+      "URL of the remote git repository from which the project source
+       should be cloned.")
+     ((username                       nil)  :type string
+      :documentation
+      "Username that should be used when cloning the remote repository.
+
+       Should rarely be necessary since the credentials parameter can
+       is often more appropriate.")
+     ((password                       nil)  :type string
+      :documentation
+      "Password to use when cloning the remote repository.
+
+       HUGE SECURITY RISK. Use the credentials parameter instead.")
+     ((credentials                    nil)  :type string
+      :documentation
+      "Name of an entry in Jenkins' global credentials store that
+       should be use for authenticating against the remote repository
+       server.")
+     (branches                              :type list #|of string|#
+      :documentation
+      "List of names of branches in the git repository that should be
+       checked out.")
+     ((local-branch                   nil)  :type string)
+     ((clone-timeout                  nil)  :type positive-integer
+      :documentation
+      "Timeout for the git clone operation in minutes.")
+     ((wipe-out-workspace?            nil)  :type boolean
+      :documentation
+      "Controls whether the entire workspace, including previously
+       cloned git repositories, should be deleted before the build,
+       thus forcing a fresh clone and new build from scratch.
+
+       Not recommended unless a project does not build without it.")
+     ((clean-before-checkout?         t)    :type boolean
+      :documentation
+      "Delete all files in the workspace that are not under version
+       control before building.
+
+       Can be used to force building from scratch without deleting the
+       cloned repository, thus enabling incremental updates instead of
+       fresh clones for every build.")
+     ((checkout-submodules?           nil)  :type boolean)
+     ((shallow?                       nil)  :type boolean)
+     (((:sub-directory sub-directory) nil)  :type string))
   "Configures a GIT repository in the generated job.
 
    If USERNAME and PASSWORD are supplied, the supplied values may show
@@ -209,32 +314,27 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."
   ;; Configure GIT scm plugin.
-  (let* ((url            (var/typed :aspect.git.url 'string))
-         (url/parsed     (puri:uri url))
-         (username       (var/typed :aspect.git.username '(or null string) nil))
-         (password       (var/typed :aspect.git.password '(or null string) nil))
-         (credentials    (or (var/typed :aspect.git.credentials '(or null string) nil)
-                             (unless (check-access aspect :public)
-                               (puri:uri-host url/parsed))))
-         (branches       (var/typed :aspect.git.branches 'list))
-         (local-branch   (var/typed :aspect.git.local-branch '(or null string) nil)))
+  (let* ((url/parsed  (puri:uri url))
+         (credentials (or credentials
+                          (unless (check-access aspect :public)
+                            (puri:uri-host url/parsed)))))
     (setf (repository job)
           (git (:url                    (jenkins.analysis::format-git-url
                                          url/parsed username password)
                 :credentials            credentials
                 :branches               branches
-                :clone-timeout          (var/typed :aspect.git.clone-timeout          '(or null integer) nil)
-                :wipe-out-workspace?    (var/typed :aspect.git.wipe-out-workspace?    'boolean           nil)
-                :clean-before-checkout? (var/typed :aspect.git.clean-before-checkout? 'boolean           nil)
-                :checkout-submodules?   (var/typed :aspect.git.checkout-submodules?   'boolean           nil)
-                :shallow?               (var/typed :aspect.git.shallow?               'boolean           nil)
+                :clone-timeout          clone-timeout
+                :wipe-out-workspace?    wipe-out-workspace?
+                :clean-before-checkout? clean-before-checkout?
+                :checkout-submodules?   checkout-submodules?
+                :shallow?               shallow?
                 :local-branch           local-branch
                 :internal-tag?          nil))))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
-  (when-let ((sub-directory (var/typed :sub-directory '(or null string) nil)))
+  (when sub-directory
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
@@ -248,58 +348,89 @@ ${(make-move-stuff-upwards/unix components)}")))
 (define-aspect (git-repository-browser
                 :job-var     job
                 :constraints ((:after aspect-git)))
-    () ()
+    ()
+    (((kind (bail)) :type keyword)
+     ((url  (bail)) :type string))
   "Configures the GIT-specific repository browser of the generated job "
-  (when-let* ((kind (var/typed :aspect.git-repository-browser.kind '(or null keyword) nil))
-              (url  (var/typed :aspect.git-repository-browser.url  '(or null string)  nil)))
-    (let ((repository (repository job)))
-      (unless (typep repository 'scm/git)
-        (error "~@<Could not find git repository in ~A.~@:>" job))
-     (setf (browser-kind repository) kind
-           (browser-url  repository) url))))
+  (let ((repository (repository job)))
+    (unless (typep repository 'scm/git)
+      (error "~@<Could not find git repository in ~A.~@:>" job))
+    (setf (browser-kind repository) kind
+          (browser-url  repository) url)))
 
-(define-aspect (subversion :job-var job :aspect-var aspect) () ()
+(define-aspect (subversion :job-var job :aspect-var aspect) ()
+    ((url                             :type string
+     :documentation
+     "URL from which the checkout should be performed including,
+      tag/branch path and optionally sub-directory.")
+     ((revision          nil)         :type string
+      :documentation
+      "A subversion revision that should be checked out instead of the
+       newest revision of the specified path.")
+     ((credentials       nil)         :type string
+      :documentation
+      "Name of an entry in Jenkins' global credentials store that
+       should be use for authenticating against the remote repository
+       server.")
+     (local-dir                       :type string)
+     ((checkout-strategy :fresh-copy) :type string)) ; TODO better type
   "Configures a Subversion repository in the generated job.
 
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."
-  (let* ((url          (var/typed :aspect.subversion.url      'string))
-         (revision     (var/typed :aspect.subversion.revision '(or null string) nil))
-         (url/parsed   (puri:uri url))
+  (let* ((url/parsed   (puri:uri url))
          (url/parsed   (puri:copy-uri
                         url/parsed
                         :path (ppcre:regex-replace-all
                                "//+" (puri:uri-path url/parsed) "/")))
          (url/revision (format nil "~A~@[@~A~]" url/parsed revision))
-         (credentials  (or (var/typed :aspect.subversion.credentials '(or null string) nil)
+         (credentials  (or credentials
                            (unless (check-access aspect :public)
                              (puri:uri-host url/parsed)))))
     (setf (repository job)
           (svn (:url               url/revision
                 :credentials       credentials
-                :local-directory   (var/typed :aspect.subversion.local-dir '(or null string))
+                :local-directory   local-dir
                 :checkout-strategy (make-keyword
                                     (string-upcase
-                                     (var/typed :aspect.subversion.checkout-strategy
-                                                '(or string (eql :fresh-copy))
-                                                :fresh-copy))))))))
+                                     checkout-strategy)))))))
 
 (define-aspect (mercurial :job-var job :aspect-var aspect)
     (builder-defining-mixin)
-    ()
+    ((url                                  :type string
+      :documentation
+      "URL of the remote mercurial repository from which the project
+       source should be cloned.")
+     ((credentials                    nil) :type string
+      :documentation
+      "Name of an entry in Jenkins' global credentials store that
+       should be use for authenticating against the remote repository
+       server.")
+     ((branch                         nil) :type string
+      :documentation
+      "Name of the branch in the mercurial repository that should be
+       checked out.
+
+       Mutually exclusive with the tag parameter.")
+     ((tag                            nil) :type string
+      :documentation
+      "Name of the tag in the mercurial repository that should be
+       checked out.
+
+       Mutually exclusive with the branch parameter.")
+     (clean?                                :type boolean
+      :documentation
+      "Controls whether the workspace is cleaned before each build.")
+     (((:sub-directory sub-directory) nil) :type string))
   "Configures a Mercurial repository in the generated job.
 
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."
   ;; Configure mercurial scm plugin.
-  (let* ((url          (var/typed :aspect.mercurial.url 'string))
-         (url/parsed   (puri:uri url))
-         (credentials  (or (var/typed :aspect.mercurial.credentials '(or null string) nil)
+  (let* ((url/parsed   (puri:uri url))
+         (credentials  (or credentials
                            (unless (check-access aspect :public)
-                             (puri:uri-host url/parsed))))
-         (branch       (var/typed :aspect.mercurial.branch '(or null string)))
-         (tag          (var/typed :aspect.mercurial.tag    '(or null string)))
-         (clean?       (var/typed :aspect.mercurial.clean? 'boolean          nil)))
+                             (puri:uri-host url/parsed)))))
     (when (and branch tag)
       (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"
              branch tag))
@@ -316,7 +447,7 @@ ${(make-move-stuff-upwards/unix components)}")))
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
-  (when-let ((sub-directory (var/typed :sub-directory '(or null string) nil)))
+  (when sub-directory
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
@@ -328,39 +459,62 @@ ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
 
 (define-aspect (trigger/scm) ()
-    ()
+    ((spec :type (or null string)
+      :documentation
+      "Describes the schedule Jenkins should employ for polling the
+       repository.
+
+       See Jenkins documentation for details."))
   "Configures the generated job such that it polls the SCM repository."
   (removef (triggers job) 'trigger/scm :key #'type-of)
-  (when-let ((trigger-spec (var/typed :aspect.trigger/scm.spec '(or null string))))
-    (push (scm (:spec trigger-spec)) (triggers job))))
+  (when spec
+    (push (scm (:spec spec)) (triggers job))))
 
 ;;; Timeout aspect
 
 (define-aspect (timeout) ()
-    ()
+    ((timeout/minutes :type positive-integer
+      :documentation
+      "Number of minutes a build of the generated job can run before
+       it should time out and fail."))
   "Adds a timeout for builds of the generated job."
-  (when-let ((value (var/typed :aspect.timeout.timeout/minutes 'positive-integer)))
-    (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
-      (setf (timeout/minutes timeout) value))))
+  (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
+    (setf (timeout/minutes timeout) timeout/minutes)))
 
 ;;; Tasks aspect
 
-(define-aspect (tasks) () ()
+(define-aspect (tasks) ()
+  ((pattern               :type list #|of string|#
+    :documentation
+    "Filename patterns specifying which workspace files to scan for
+     open tasks.")
+   ((exclude         '()) :type list #|of string|#
+    :documentation
+    "Filename patterns specifying which workspace files to exclude
+     from the scan for open tasks.")
+   ((keywords.low    '()) :type list #|of string|#
+    :documentation
+    "Keywords indicating low-priority open tasks.")
+   ((keywords.normal '()) :type list #|of string|#
+    :documentation
+    "Keywords indicating normal-priority open tasks.")
+   ((keywords.high   '()) :type list #|of string|#
+    :documentation
+    "Keywords indicating high-priority open tasks."))
   "Adds an open tasks publisher to the generated job."
-  (push (tasks (:pattern         (var/typed :aspect.tasks.pattern         'list)
-                :exclude         (var/typed :aspect.tasks.exclude         'list)
-                :keywords/low    (var/typed :aspect.tasks.keywords.low    'list)
-                :keywords/normal (var/typed :aspect.tasks.keywords.normal 'list)
-                :keywords/high   (var/typed :aspect.tasks.keywords.high   'list)))
+  (push (tasks (:pattern         pattern
+                :exclude         exclude
+                :keywords/low    keywords.low
+                :keywords/normal keywords.normal
+                :keywords/high   keywords.high))
         (publishers job)))
 
 ;;; SLOCcount aspect
 
 (define-aspect (sloccount) (builder-defining-mixin)
-    ()
+    ((directories :type list))
   "Adds a sloccount publisher to the generated job."
-  (let* ((directories (var/typed :aspect.sloccount.directories 'list))
-         (arguments   (mapcar #'prin1-to-string directories)))
+  (let ((arguments (mapcar #'prin1-to-string directories)))
     (push (constraint! (((:before cmake/unix)
                          (:before maven)
                          (:before setuptools)))
@@ -370,29 +524,41 @@ mkdir -p \"\${REPORT_DIR}\"
 sloccount --datadir \"\${DATA_DIR}\" --wide --details @{arguments} > \"\${REPORT_DIR}/sloccount.sc\"
 mv \"\${REPORT_DIR}/sloccount.sc\" \"\${WORKSPACE}/sloccount.sc\"
 rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
-         (builders job))
+          (builders job)))
 
-   (push (sloccount (:pattern "sloccount.sc"))
-         (publishers job))))
+  (push (sloccount (:pattern "sloccount.sc"))
+        (publishers job)))
 
 ;;; Slaves aspect
 
+;; TODO separate slaves aspect for matrix-project jobs?
 (define-aspect (slaves :job-var job) ()
-    () ; TODO separate slaves aspect for matrix-project jobs?
+    (((slaves             '()) :type list
+      :documentation
+      "A list of names of Jenkins slaves on which the job should be
+       built.")
+     ((restrict-to-slaves '()) :type (or null string)
+      :documentation
+      "A Jenkins \"label expression\" which restricts the generated
+       job to slaves matching the expression.
+
+       See description of option \"Advanced Project Options\" »
+       \"Restrict where this project can be run\" in Jenkins' job
+       configuration for details."  ))
   "Configures the generated job to run on specific slaves."
-  (when-let ((value (var/typed :aspect.slaves.slaves 'list '())))
-    (setf (slaves job) value))
-  (if-let ((value (var/typed :aspect.slaves.restrict-to-slaves '(or null string) nil)))
-    (setf (can-roam? job)          nil
-          (restrict-to-slaves job) value)
-    (setf (can-roam? job) t)))
+  (when slaves
+    (setf (slaves job) slaves))
+  (if restrict-to-slaves
+      (setf (can-roam? job)          nil
+            (restrict-to-slaves job) restrict-to-slaves)
+      (setf (can-roam? job) t)))
 
 ;;; Dependency download aspect
 
 (define-aspect (dependency-download :job-var  job
                                     :spec-var spec)
     (builder-defining-mixin)
-    ()
+    ((((:upstream-dir upstream-dir)) :type string))
   "Configures artifact downloads for the generated job.
 
    Copy-artifact actions are generated to copy artifacts from all
@@ -414,83 +580,90 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
    Note: Only useful in continuous integration operation modes that do
    not install built software but copy results from upstream jobs into
    the workspaces of downstream jobs."
-  (let ((copy-artifacts? nil))
-    (when-let ((self-kind    (first (ensure-list (value spec :kind nil))))
-               (dependencies (dependencies spec)))
-      ;; Multiple copy-artifact builders which copy artifacts from
-      ;; other jobs.
-      (iter (for dependency in dependencies)
-            (let+ ((id      (as (value dependency :build-job-name) 'string))
-                   (kind    (first (ensure-list (value dependency :kind nil))))
-                   (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
-                                                        (aspects dependency))))
-                              (as (value aspect :aspect.archive-artifacts.file-pattern nil)
-                                  '(or null string))))
-                   ((&flet matrix? (kind)
-                      (member kind '("matrix" "matrix-project") :test #'string-equal)))
-                   (reference (format nil "~A~@[/label=$label~]"
-                                      id (matrix? kind))))
-              (cond
-                ((not pattern)
-                 (log:info "~@<Upstream project ~A does not provide ~
-                            archived artifacts to copy into downstream ~
-                            workspaces (variable ~S has no value).~@:>"
-                           dependency :aspect.archive-artifacts.file-pattern))
-                ((and (matrix? kind) (not (matrix? self-kind)))
-                 (error "~@<Upstream job ~A is of kind ~A, downstream ~
-                         job ~A is of kind ~A.~@:>"
-                        dependency kind job self-kind))
-                (t
-                 (push (constraint! (((:after sloccount))
-                                     copy-artifact)
-                         (copy-artifact (:project-name reference
-                                         :filter       pattern
-                                         :target       (var/typed :upstream-dir 'string)
-                                         :flatten?     t
-                                         :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
-                       (builders job))
-                 (setf copy-artifacts? t)))))
+   (let ((copy-artifacts? nil))
+     (when-let ((self-kind    (first (ensure-list (value spec :kind nil))))
+                (dependencies (dependencies spec)))
+       ;; Multiple copy-artifact builders which copy artifacts from
+       ;; other jobs.
+       (iter (for dependency in dependencies)
+             (let+ ((id      (as (value dependency :build-job-name) 'string))
+                    (kind    (first (ensure-list (value dependency :kind nil))))
+                    (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
+                                                         (aspects dependency))))
+                               (as (value aspect :aspect.archive-artifacts.file-pattern nil)
+                                   '(or null string))))
+                    ((&flet matrix? (kind)
+                       (member kind '("matrix" "matrix-project") :test #'string-equal)))
+                    (reference (format nil "~A~@[/label=$label~]"
+                                       id (matrix? kind))))
+               (cond
+                 ((not pattern)
+                  (log:info "~@<Upstream project ~A does not provide ~
+                             archived artifacts to copy into downstream ~
+                             workspaces (variable ~S has no value).~@:>"
+                            dependency :aspect.archive-artifacts.file-pattern))
+                 ((and (matrix? kind) (not (matrix? self-kind)))
+                  (error "~@<Upstream job ~A is of kind ~A, downstream ~
+                          job ~A is of kind ~A.~@:>"
+                         dependency kind job self-kind))
+                 (t
+                  (push (constraint! (((:after sloccount))
+                                      copy-artifact)
+                          (copy-artifact (:project-name reference
+                                          :filter       pattern
+                                          :target       upstream-dir
+                                          :flatten?     t
+                                          :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
+                        (builders job))
+                  (setf copy-artifacts? t)))))
 
-      ;; Shell builder which unpacks dependencies. Has to run after
-      ;; artifact down, obviously.
-      (when copy-artifacts?
-        (push (constraint! (((:before cmake/unix)
-                             (:after copy-artifact)))
-                (shell (:command #?"cd ${(var/typed :upstream-dir 'string)}
+       ;; Shell builder which unpacks dependencies. Has to run after
+       ;; artifact download, obviously.
+       (when copy-artifacts?
+         (push (constraint! (((:before cmake/unix)
+                              (:after copy-artifact)))
+                 (shell (:command #?"cd ${upstream-dir}
 find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
-              (builders job))))))
+               (builders job))))))
 
 ;;; Shell aspect
 
 (define-aspect (shell :job-var job) (builder-defining-mixin)
-    ()
+    (((command (bail)) :type string
+      :documentation
+      "A fragment of shell code that should be executed as a build
+       step at some point during the build."))
   "Adds a shell build step running COMMAND to the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (when-let ((command (var/typed :aspect.shell.command '(or null string))))
-    (push (constraint! ()
-            (shell (:command (wrapped-shell-command (:aspect.shell) command))))
-          (builders job))))
+  (push (constraint! ()
+          (shell (:command (wrapped-shell-command (:aspect.shell) command))))
+        (builders job)))
 
 ;;; Batch aspect
 
 (define-aspect (batch :job-var job) (builder-defining-mixin)
-    ()
+    (((command (bail)) :type string
+      :documentation
+      "A fragment of Windows Batch doe that should be executed as a
+       build step at some point during the build."))
   "Adds a Windows Batch build step running COMMAND to the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (when-let ((command (var/typed :aspect.batch.command '(or null string))))
-    (push (constraint! () (batch (:command command)))
-          (builders job))))
+  (push (constraint! () (batch (:command command)))
+        (builders job)))
 
 ;;; CMake aspects
 
 (define-aspect (cmake/unix :job-var  job
                            :spec-var spec)
     (builder-defining-mixin)
-    ()
+    ((command :type string
+      :documentation
+      "The shell command that should be executed to perform the CMake
+       configuration and build."))
   "Configures a UNIX-specific CMake build step for the generated job.
 
    The build step executes the shell command in the COMMAND
@@ -508,8 +681,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (((:after dependency-download)))
-          (shell (:command (wrapped-shell-command (:aspect.cmake/unix)
-                             (var/typed :aspect.cmake/unix.command 'string)))))
+          (shell (:command (wrapped-shell-command (:aspect.cmake/unix) command))))
         (builders job)))
 
 (let+ (((&flet shellify (name)
@@ -560,9 +732,11 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
 ;;; Archive artifacts aspect
 
-(define-aspect (cmake/win32 :job-var job)
-    (builder-defining-mixin)
-    ()
+(define-aspect (cmake/win32 :job-var job) (builder-defining-mixin)
+    ((command :type string
+      :documentation
+      "The batch command that should be executed to perform the CMake
+       configuration and build."))
   "Configures a Win32-specific CMake build step for the generated job.
 
    The build step executes the shell command in the COMMAND
@@ -573,28 +747,50 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (((:after dependency-download)))
-          (batch (:command (var/typed :aspect.cmake/win32.command 'string))))
+          (batch (:command command)))
         (builders job)))
 
 ;;; Archive artifact
 
 (define-aspect (archive-artifacts :job-var job) ()
-    ()
+    (((file-pattern (bail)) :type (or null string)
+      :documentation
+      "An Ant-style file pattern designating the files that should be
+       archived.
+
+       See Jenkins documentation for details."))
   "Adds an artifact archiving publisher to the generated job.
 
    When multiple instances of this aspect are applied to a single job,
    the union of the respective FILE-PATTERNs is configured as the
    pattern of files to archive."
-  (when-let ((file-pattern (var/typed :aspect.archive-artifacts.file-pattern '(or null string) nil)))
-    (with-interface (publishers job) (archiver (publisher/archive-artifacts
-                                                :files        nil
-                                                :only-latest? nil))
+  (with-interface (publishers job) (archiver (publisher/archive-artifacts
+                                              :files        nil
+                                              :only-latest? nil))
+    (when file-pattern
       (pushnew file-pattern (files archiver) :test #'string=))))
 
 ;;; Maven aspect
 
 (define-aspect (maven :job-var job) (builder-defining-mixin)
-    ()
+    (((properties           '())      :type list #|of string|#
+      :documentation
+      "A list of Maven properties that should be set for the build.
+       Entries are of the form NAME=VALUE.")
+     (targets                         :type list #|of string|#
+      :documentation
+      "A list of names of Maven targets that should be built.")
+     (private-repository?             :type boolean
+      :documentation
+      "See documentation of the Maven plugin.")
+     ((settings-file        :default) :type (or string (eql :default))
+      :documentation
+      "Name of a Maven settings file that should be used for the Maven
+       invocation.")
+     ((global-settings-file :default) :type (or string (eql :default))
+      :documentation
+      "Name of a global Maven settings file that should be used for
+       the Maven invocation."))
   "Configures a Maven build step for the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
@@ -603,37 +799,67 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
          (maven (:properties          (mapcan (lambda (spec)
                                                 (let+ (((name value) (split-option spec)))
                                                   (list (make-keyword name) value)))
-                                              (var/typed :aspect.maven.properties 'list))
+                                              properties)
                                       ;; hack to prevent useless progress output
                                       ;; In the targets list because the maven
                                       ;; plugin does not have specific fields
                                       ;; for command line options
-                 :targets             (list* "-B" (var/typed :aspect.maven.targets 'list))
-                 :private-repository? (var/typed :aspect.maven.private-repository? 'boolean)
-                 :settings            (or (var/typed :aspect.maven.settings-file        '(or null string) nil) :default)
-                 :global-settings     (or (var/typed :aspect.maven.global-settings-file '(or null string) nil) :default))))
+                 :targets             (list* "-B" targets)
+                 :private-repository? private-repository?
+                 :settings            settings-file
+                 :global-settings     global-settings-file)))
         (builders job)))
 
 ;;; Setuptools aspect
 
 (define-aspect (setuptools :job-var job) (builder-defining-mixin)
-    ()
+    ((python-binary        :type string
+      :documentation
+      "Filename of the Python interpreter binary that should be
+       invoked to perform the build.")
+     (script               :type string
+      :documentation
+      "Name of the script (usually \"setup.py\") which should be
+       executed to perform the setuptools-based configuration and
+       build.")
+     ((install-prefix nil) :type string
+      :documentation
+      "Prefix into which packages should be installed.
+
+       Setting this variable to DIRECTORY will ensure the existence of
+       DIRECTORY/lib/python2.7/site-packages or similar and place that
+       directory on the PYTHONPATH.
+
+       This variable does NOT affect the setuptools invocation. In
+       particular, it does NOT imply python setup.py install
+       --prefix=INSTALL-PREFIX or similar.")
+     ((options        '()) :type list #|of string|#
+      :documentation
+      "A list of names of Setuptools option and corresponding values
+       that should be set during the build. Entries are of the form
+
+         [ \"SECTION\", \"NAME\", \"VALUE\" ]
+
+       where SECTION is the usually the name of a command like
+       \"install\", NAME is an option within the section such as
+       \"prefix\" within the \"install\" section and VALUE is the
+       desired value of the option.")
+     (targets              :type list #|of string|#
+      :documentation
+      "A list of names of setuptools targets like \"install\" that
+       should be built."))
   "Configures a Python setuptools build step for the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (let+ ((binary         (var/typed :aspect.setuptools.python-binary  'string))
-         (script         (var/typed :aspect.setuptools.script         'string))
-         (install-prefix (var/typed :aspect.setuptools.install-prefix '(or null string) nil))
-         ;; Options
+  (let+ (;; Options
          ((&flet+ make-option ((section name value))
             #?"\${PYTHON} ${script} setopt -c ${section} -o ${name} -s \"${value}\""))
-         (options (mapcar #'make-option (var/typed :aspect.setuptools.options 'list '())))
+         (options (mapcar #'make-option options))
          ;; Targets
          ((&flet+ make-target ((name &optional no-fail?))
             #?"\${PYTHON} ${script} ${name} @{(when no-fail? '("|| true"))}"))
-         (targets (mapcar (compose #'make-target #'ensure-list)
-                          (var/typed :aspect.setuptools.targets 'list)))
+         (targets (mapcar (compose #'make-target #'ensure-list) targets))
          ;; Shell fragment that ensures existence of
          ;; {dist,site}-packages directory within install prefix.
          (ensure-install-directory
@@ -650,7 +876,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
     (push (constraint! (((:after dependency-download)))
             (shell (:command (wrapped-shell-command (:aspect.setuptools)
                                (let ((interpol:*list-delimiter* #\newline))
-                                 #?"PYTHON=${binary}
+                                 #?"PYTHON=${python-binary}
 
 ${(or ensure-install-directory "# Not creating install directory")}
 
@@ -664,9 +890,14 @@ ${(or ensure-install-directory "# Not creating install directory")}
 ;;; Warnings aspect
 
 (define-aspect (warnings :job-var job) ()
-    ()
+    ((parsers :type list #|of string|#
+      :documentation
+      "Names of parsers to apply to the output of the generated job.
+
+       Parsers can be either builtin or defined in the global Jenkins
+       configuration."))
   "Configures a warnings publisher for the generated job."
-  (when-let ((parsers (var/typed :aspect.warnings.parsers 'list)))
+  (when parsers
     (with-interface (publishers job) (warnings (publisher/warnings))
       (iter (for parser in parsers)
             (pushnew (make-instance 'warning-parser/console :name parser)
@@ -677,100 +908,162 @@ ${(or ensure-install-directory "# Not creating install directory")}
 ;;; Checkstyle and PMD aspects
 
 (macrolet ((define (name publisher-name display-name)
-             (let ((variable-name (let ((*package* (find-package '#:keyword)))
-                                    (symbolicate '#:aspect. name '#:.pattern))))
-               `(define-aspect (,name :job-var job) ()
-                    ()
-                  ,(format nil "Configures a ~A publisher for the generated job."
-                           display-name)
-                  (removef (publishers job) ',publisher-name :key #'type-of)
-                  (when-let ((pattern (var/typed ,variable-name 'list)))
-                    (appendf (publishers job)
-                             (list (make-instance ',publisher-name
-                                                  :pattern pattern))))))))
+             `(define-aspect (,name :job-var job) ()
+                  ((pattern :type list
+                    :documentation
+                    "Analysis results should be read from files
+                     matching the pattern."))
+                ,(format nil "Configures a ~A publisher for the generated job."
+                         display-name)
+                (removef (publishers job) ',publisher-name :key #'type-of)
+                (when pattern
+                  (appendf (publishers job)
+                           (list (make-instance ',publisher-name
+                                                :pattern pattern)))))))
   (define checkstyle publisher/checkstyle "CheckStyle")
   (define pmd        publisher/pmd        "PMD"))
 
 ;;; Test result aspects
 
 (define-aspect (xunit :job-var job) ()
-    ()
+    ((kind                      :type string)
+     (pattern                   :type (or null string))
+     (skip-if-no-test-files?    :type boolean)
+     (fail-if-not-new?          :type boolean)
+     (delete-output-files?      :type boolean)
+     (stop-processing-if-error? :type boolean))
   "Configures a publisher for XUnit test results for the generated job."
-  (let ((kind (var/typed :aspect.xunit.kind 'string)))
-    (with-interface (publishers job) (publisher (publisher/xunit))
-      (removef (types publisher) kind :test #'string= :key #'kind)
+  (with-interface (publishers job) (publisher (publisher/xunit))
+    (removef (types publisher) kind :test #'string= :key #'kind)
+    (when pattern
       (push (make-instance
              'xunit/type
              :kind                      kind
-             :pattern                   (var/typed :aspect.xunit.pattern                   'string)
-             :skip-if-no-test-files?    (var/typed :aspect.xunit.skip-if-no-test-files?    'boolean)
-             :fail-if-not-new?          (var/typed :aspect.xunit.fail-if-not-new?          'boolean)
-             :delete-output-files?      (var/typed :aspect.xunit.delete-output-files?      'boolean)
-             :stop-processing-if-error? (var/typed :aspect.xunit.stop-processing-if-error? 'boolean))
+             :pattern                   pattern
+             :skip-if-no-test-files?    skip-if-no-test-files?
+             :fail-if-not-new?          fail-if-not-new?
+             :delete-output-files?      delete-output-files?
+             :stop-processing-if-error? stop-processing-if-error?)
             (types publisher)))))
 
 (define-aspect (junit :job-var job) ()
-    ()
+    ((pattern              :type (or null string)
+      :documentation
+      "Test results should be read from files matching the pattern.")
+     (keep-long-stdio?     :type boolean
+      :documentation
+      "See plugin documentation.")
+     (health-scale-factor  :type (or null positive-real)
+      :documentation
+      "Factor relating test failure counts to job health percentages.
+
+       See plugin documentation for details.")
+     (allow-empty-results? :type boolean
+      :documentation
+      "Controls whether empty test results should result in a build
+       failure."))
   "Configures a publisher for JUnit test results for the generated job."
+  ;; Remove previous configuration, if any.
   (removef (publishers job) 'publisher/junit :key #'type-of)
-  (when-let ((pattern (var/typed :aspect.junit.pattern '(or null string))))
-    (let ((keep-long-stdio?     (var/typed :aspect.junit.keep-long-stdio?     'boolean))
-          (health-scale-factor  (var/typed :aspect.junit.health-scale-factor  '(or null positive-real)))
-          (allow-empty-results? (var/typed :aspect.junit.allow-empty-results? 'boolean)))
-      (appendf (publishers job)
-               (list (make-instance 'publisher/junit
-                                    :pattern              pattern
-                                    :keep-long-stdio?     keep-long-stdio?
-                                    :health-scale-factor  health-scale-factor
-                                    :allow-empty-results? allow-empty-results?))))))
+  ;; Add new configuration.
+  (when pattern
+    (appendf (publishers job)
+             (list (make-instance 'publisher/junit
+                                  :pattern              pattern
+                                  :keep-long-stdio?     keep-long-stdio?
+                                  :health-scale-factor  health-scale-factor
+                                  :allow-empty-results? allow-empty-results?)))))
 
 ;;; Email notification
 
 (define-aspect (email-notification :job-var job) ()
-    ()
+    ((recipients           :type list #|of string|#
+      :documentation
+      "A list of email addresses to which notifications in case of a
+       build failure should be sent.")
+     (send-to-perpetrator? :type boolean
+      :documentation
+      "Controls whether the authors of build-breaking commits are
+       treated as additional recipients."))
   "Adds email notification in case of failed builds to a generated job."
-  (if-let ((recipients (var/typed :aspect.email-notification.recipients 'list)))
-    (let ((send-to-perpetrator? (var/typed :aspect.email-notification.send-to-perpetrator? 'boolean)))
+  (if recipients
       (with-interface (publishers job)
           (publisher (publisher/email-notification
                       :recipients           recipients
                       :send-to-individuals? send-to-perpetrator?))
-        (declare (ignore publisher))))
-    (removef (publishers job) 'publisher/email-notification :key #'type-of)))
+        (declare (ignore publisher)))
+      (removef (publishers job) 'publisher/email-notification :key #'type-of)))
 
 ;;; Upload aspect
 
 (define-aspect (upload :job-var job) ()
-    ()
-  (push (ssh (:target           (var/typed :aspect.upload.target        'string)
-              :source-files     (var/typed :aspect.upload.source-files  'list)
-              :excludes         (var/typed :aspect.upload.excludes      'list   '())
-              :remove-prefix    (var/typed :aspect.upload.remove-prefix 'string)
-              :remote-directory (var/typed :aspect.upload.dir           'string)
-              :verbose?         nil))
+    ((target             :type string
+      :documentation
+      "The name of the machine to which artifacts should be uploaded.")
+     (source-files       :type list #|of string|#
+      :documentation
+      "List of files to upload.")
+     ((excludes     '()) :type list #|of string|#
+      :documentation
+      "Patterns for files which should be excluded from the upload.")
+     (remove-prefix      :type string
+      :documentation
+      "A prefix string that should be removed from source filenames to
+       obtain target filenames.")
+     (remote-directory   :type string
+      :documentation
+      "Directory on the target machine into which artifacts should be
+       uploaded.")
+     (verbose?           :type boolean
+      :documentation
+      "Control the verbosity of the plugin during the upload process."))
+  "Adds a publisher for uploads build results to the generated job."
+  (push (ssh (:target           target
+              :source-files     source-files
+              :excludes         excludes
+              :remove-prefix    remove-prefix
+              :remote-directory remote-directory
+              :verbose?         verbose?))
         (publishers job)))
 
 ;;; permissions aspect
 
 (define-aspect (permissions :job-var job) ()
-    ()
+    (((permissions :keep) :type (or (eql :keep) list)
+      :documentation
+      "The permissions to install.
+
+       A list of entries of the form
+
+         [ \"SUBJECT\", [ \"ACTION-NAME₁\", \"ACTION-NAME₂\", … ] ]
+
+       where SUBJECT is typically the username for whom permissions
+       are installed and ACTION-NAMEN are the components of the name
+       of the action that is being permitted for SUBJECT.
+
+       Example:
+
+         [ [ \"jdoe\", [ \"item\", \"build\"  ],
+           [ \"jdoe\", [ \"item\", \"cancel\" ] ]
+
+       ."))
   "Configures user and group permissions for the generated job."
   (let+ (((&flet+ normalize-permission ((subject action))
             (list subject (mapcar (compose #'make-keyword #'string-upcase)
-                                  action))))
-         (new-permissions (var/typed :aspect.permissions.permissions '(or (eql :keep) list) :keep)))
-    (unless (eq new-permissions :keep)
-      (setf (permissions job) (mapcar #'normalize-permission new-permissions)))))
+                                  action)))))
+    (unless (eq permissions :keep)
+      (setf (permissions job) (mapcar #'normalize-permission permissions)))))
 
 ;;; groovy script aspects
 
 (define-aspect (groovy :job-var job) (builder-defining-mixin)
-    ()
+    (((code (bail)) :type string
+      :documentation
+      "The groovy code to execute in the build step."))
   "Configures a Groovy build step for the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (when-let ((code (var/typed :aspect.groovy.code '(or null string))))
-    (push (constraint! () (groovy (:code code))) (builders job))))
+  (push (constraint! () (groovy (:code code))) (builders job)))
 
 #.(interpol:disable-interpol-syntax)

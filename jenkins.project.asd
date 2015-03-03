@@ -184,6 +184,7 @@
                               (:file     "protocol")
 
                               (:file     "aspect")
+                              (:file     "mixins")
                               (:file     "aspects")))
 
                 (:module     "report"

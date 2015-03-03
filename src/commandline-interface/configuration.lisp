@@ -56,7 +56,10 @@
                       "Trace all accesses to the specified variable.")
   ("info-variables"   :type 'boolean :default nil
                       :documentation
-                      "Show information about variables."))
+                      "Show information about variables.")
+  ("info-aspects"     :type 'boolean :default nil
+                      :documentation
+                      "Show information about available aspects."))
 
 (configuration.options:define-schema *jenkins-schema*
   "Options controlling communication with a Jenkins including

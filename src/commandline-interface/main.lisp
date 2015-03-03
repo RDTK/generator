@@ -556,7 +556,10 @@
                        "Trace all accesses to the specified variable.")
               (flag    :long-name     "info-variables"
                        :description
-                       "Show information about variables."))
+                       "Show information about variables.")
+              (flag    :long-name     "info-aspects"
+                       :description
+                       "Show information about available aspects."))
 
    :item    (clon:defgroup (:header "Processing Options")
               (path   :long-name     "template-directory"
@@ -823,6 +826,10 @@ A common case, deleting only jobs belonging to the distribution being generated,
         (print-variable-info *standard-output*)
         (uiop:quit))
 
+      (when (option-value "general" "info-aspects")
+        (print-aspect-info *standard-output*)
+        (uiop:quit))
+
       (values #'option-value configuration debug?))))
 
 (defun print-variable-info (stream)
@@ -839,6 +846,34 @@ A common case, deleting only jobs belonging to the distribution being generated,
                               (unless (eq type t) type)
                               (when documentation (list documentation)))))
                     sorted))))
+
+(defun print-aspect-info (stream)
+  (let* ((providers (service-provider:service-providers 'jenkins.model.aspects::aspect))
+         (providers (sort (copy-list providers) #'string<
+                          :key (compose #'string #'service-provider:provider-name))))
+    (format stream "~{~<~
+                      ~(~A~)~
+                      ~@[~@:_~4@T~<~{~{~
+                        \"~(~A~)\"~@[: ~(~A~)~]~@[ = ~A~]~
+                        ~@[~@:_~A~]~
+                      ~}~^~@:_~}~:>~]~
+                      ~@[~@:_~2@T~A~]~
+                    ~:>~^~2%~}"
+            (mapcar (lambda (provider)
+                      (list (service-provider:provider-name provider)
+                            (when-let ((stuff (mapcar (lambda (parameter)
+                                                        (let ((variable (jenkins.model.aspects:aspect-parameter-variable parameter)))
+                                                          (list (variable-info-name variable)
+                                                                (unless (eq (variable-info-type variable) t)
+                                                                  (variable-info-type variable))
+                                                                (json:encode-json-to-string
+                                                                 (jenkins.model.aspects:aspect-parameter-default-value parameter))
+                                                                (variable-info-documentation variable))))
+                                                      (jenkins.model.aspects:aspect-parameters
+                                                       (service-provider:provider-class provider)))))
+                              (list stuff))
+                            (documentation provider t)))
+                    providers))))
 
 (defun main ()
   (let+ (((&values option-value &ign debug?) (configure))

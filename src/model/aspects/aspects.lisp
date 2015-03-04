@@ -64,7 +64,7 @@
             (var/typed :aspect.github.display-name '(or null string) nil)))
     (removef (properties job) 'property/github :key #'type-of)))
 
-;;; Redmine aspect
+;;; Redmine aspects
 
 (define-aspect (redmine) () ()
   (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
@@ -474,16 +474,6 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
 find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
               (builders job))))))
 
-; dependency-download/windows
-#|
-cd upstream
-unzip -o *.zip
-move *.zip ..
-move RSC* RSC
-move RSBProtocol* RSBProtocol
-move ..\*.zip .
-|#
-
 ;;; Shell aspect
 
 (define-aspect (shell :job-var job) (builder-defining-mixin)
@@ -710,40 +700,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
         (declare (ignore publisher))))
     (removef (publishers job) 'publisher/email-notification :key #'type-of)))
 
-;;; Debian packaging aspects
-
-(define-aspect (debian-package :job-var job) ()
-    ()
-  ;; Add console-based parser for lintian.
-  (with-interface (publishers job) (warnings (publisher/warnings))
-    (pushnew (make-instance 'warning-parser/console :name "Lintian")
-             (console-parsers warnings)
-             :test #'string=
-             :key  #'name))
-
-  ;; Archive the generated Debian package.
-  (with-interface (publishers job) (archiver (publisher/archive-artifacts
-                                              :files        nil
-                                              :only-latest? nil))
-    (pushnew #?"${(var/typed :build-dir 'string)}/*.deb" (files archiver)
-             :test #'string=)))
-
-(define-aspect (debian-package/cmake) (debian-package
-                                       builder-defining-mixin)
-    ()
-  ;; TODO add PACKAGE_REVISION to environment
-  (push (constraint! (((:after cmake/unix)))
-          (shell (:command #?"mkdir -p ${(var/typed :build-dir 'string)} && cd ${(var/typed :build-dir 'string)}
-cmake -DCPACK_CONFIG_FILE=${(var/typed :aspect.debian-package/cmake.cpack-config-file 'string)} \\
-      -DCPACK_PACKAGE_REVISION=\${PACKAGE_REVISION} \\
-      ..
-umask 022
-\${FAKEROOT_FOR_CPACK} make package
-lintian -i *.deb || true
-")))
-        (builders job)))
-
-;;; upload aspect
+;;; Upload aspect
 
 (define-aspect (upload :job-var job) ()
     ()

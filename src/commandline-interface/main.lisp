@@ -651,7 +651,10 @@
       '())))
 
 (defun parse-overwrite (spec)
-  (let+ (((variable value) (split-sequence:split-sequence #\= spec :count 2)))
+  (let+ (((variable &optional value)
+          (split-sequence:split-sequence #\= spec :count 2)))
+    (when (emptyp variable)
+      (error "~@<Empty variable name in ~S.~@:>" spec))
     (cons (make-keyword (string-upcase variable)) value)))
 
 (defun call-with-phase-error-check (phase errors set-errors report continuable?

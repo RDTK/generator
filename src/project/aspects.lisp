@@ -276,50 +276,54 @@ rm -rf \"${TEMPDIR}\"")))
 (define-aspect (dependency-download :job-var  job
                                     :spec-var spec)
     (builder-defining-mixin) ()
-  (when-let ((self-kind    (first (ensure-list (ignore-errors
-                                                (value spec :kind)))))
-             (dependencies (dependencies spec)))
-    ;; Multiple copy-artifact builders which copy artifacts from other
-    ;; jobs.
-    (iter (for dependency in dependencies)
-          (let+ ((id      (value dependency :build-job-name))
-                 (kind    (first (ensure-list (ignore-errors
-                                                (value dependency :kind)))))
-                 (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
-                                                      (aspects dependency))))
-                            (ignore-errors
-                             (value aspect :aspect.archive-artifacts.file-pattern))))
-                 ((&flet matrix? (kind)
-                    (member kind '("matrix" "matrix-project") :test #'string-equal)))
-                 (reference (format nil "~A~@[/label=$label~]"
-                                    id (matrix? kind))))
-            (cond
-              ((not pattern)
-               (log:info "~@<Upstream project ~A does not provide ~
-                          archived artifacts to copy into downstream ~
-                          workspaces (variable ~S has no value).~@:>"
-                         dependency :aspect.archive-artifacts.file-pattern))
-              ((and (matrix? kind) (not (matrix? self-kind)))
-               (error "~@<Upstream job ~A is of kind ~A, downstream job ~
-                      ~A is of kind ~A.~@:>"
-                      dependency kind job self-kind))
-              (t
-               (push (constraint! (((:after sloccount))
-                                   copy-artifact)
-                       (copy-artifact (:project-name reference
-                                       :filter       pattern
-                                       :target       (var :upstream-dir)
-                                       :flatten?     t
-                                       :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
-                     (builders job))))))
+  (let ((copy-artifacts? nil))
+    (when-let ((self-kind    (first (ensure-list (ignore-errors
+                                                  (value spec :kind)))))
+               (dependencies (dependencies spec)))
+      ;; Multiple copy-artifact builders which copy artifacts from
+      ;; other jobs.
+      (iter (for dependency in dependencies)
+            (let+ ((id      (value dependency :build-job-name))
+                   (kind    (first (ensure-list (ignore-errors
+                                                 (value dependency :kind)))))
+                   (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
+                                                        (aspects dependency))))
+                              (ignore-errors
+                               (value aspect :aspect.archive-artifacts.file-pattern))))
+                   ((&flet matrix? (kind)
+                      (member kind '("matrix" "matrix-project") :test #'string-equal)))
+                   (reference (format nil "~A~@[/label=$label~]"
+                                      id (matrix? kind))))
+              (cond
+                ((not pattern)
+                 (log:info "~@<Upstream project ~A does not provide ~
+                            archived artifacts to copy into downstream ~
+                            workspaces (variable ~S has no ~
+                            value).~@:>"
+                           dependency :aspect.archive-artifacts.file-pattern))
+                ((and (matrix? kind) (not (matrix? self-kind)))
+                 (error "~@<Upstream job ~A is of kind ~A, downstream ~
+                         job ~A is of kind ~A.~@:>"
+                        dependency kind job self-kind))
+                (t
+                 (push (constraint! (((:after sloccount))
+                                     copy-artifact)
+                         (copy-artifact (:project-name reference
+                                         :filter       pattern
+                                         :target       (var :upstream-dir)
+                                         :flatten?     t
+                                         :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
+                       (builders job))
+                 (setf copy-artifacts? t)))))
 
-    ;; Shell builder which unpacks dependencies. Has to run after
-    ;; artifact down, obviously.
-    (push (constraint! (((:before cmake/unix)
-                         (:after copy-artifact)))
-                       (shell (:command #?"cd ${(var :upstream-dir)}
+      ;; Shell builder which unpacks dependencies. Has to run after
+      ;; artifact down, obviously.
+      (when copy-artifacts?
+        (push (constraint! (((:before cmake/unix)
+                             (:after copy-artifact)))
+                (shell (:command #?"cd ${(var :upstream-dir)}
 for archive in *.tar.gz ; do tar -xzf \"\${archive}\" ; done")))
-          (builders job))))
+              (builders job))))))
 
 ; dependency-download/windows
 #|

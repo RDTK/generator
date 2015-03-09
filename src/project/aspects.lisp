@@ -446,7 +446,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
             (format nil "INSTALL_DIRECTORY=\"$(~
                            ${PYTHON} -c ~
                            'from distutils.sysconfig import get_python_lib;~
-                            print(get_python_lib(prefix=~S))'~
+                            print(get_python_lib(prefix=\"'~S'\"))'~
                          )\"~@
                          mkdir -p \"${INSTALL_DIRECTORY}\"~@
                          export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\""

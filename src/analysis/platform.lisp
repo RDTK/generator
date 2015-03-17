@@ -31,7 +31,7 @@
 (defun installed-packages/linux/debian-like ()
   (let ((lines (inferior-shell:run/lines
                 '("dpkg-query"
-                  "--showformat=${Package} ${Version} ${Status}\\n"
+                  "--showformat=${binary:package} ${Version} ${Status}\\n"
                   "--show"))))
     (iter (for line in lines)
           (when (ends-with-subseq "install ok installed" line)

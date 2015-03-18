@@ -29,15 +29,20 @@
 
 ;; lsb_release distribution => { Debian, Ubuntu }
 (defun installed-packages/linux/debian-like ()
-  (let ((lines (inferior-shell:run/lines
-                '("dpkg-query"
-                  "--showformat=${binary:package} ${Version} ${Status}\\n"
-                  "--show"))))
-    (iter (for line in lines)
-          (when (ends-with-subseq "install ok installed" line)
-            (let+ (((name version)
-                    (subseq (split-sequence #\Space line) 0 2)))
-              (collect (list name (parse-version version))))))))
+  (let+ (((&flet list-packages (name-format)
+            (let ((lines (inferior-shell:run/lines
+                          `("dpkg-query"
+                            ,(format nil "--showformat=${~A} ${Version} ${Status}\\n"
+                                     name-format)
+                            "--show"))))
+              (iter (for line in lines)
+                    (when (ends-with-subseq "install ok installed" line)
+                      (let+ (((name version)
+                              (subseq (split-sequence #\Space line) 0 2)))
+                            (collect (list name (parse-version version))))))))))
+    (union (list-packages "binary:package")
+           (list-packages "Package")
+           :test #'equalp)))
 
 ;; lsb_release distribution => Arch
 (defun installed-packages/linux/arch ()

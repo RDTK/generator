@@ -1,4 +1,4 @@
-;;;; package.lisp --- Package definition for the commandline-interface module.
+;;;; main.lisp --- Entry-point of commandline-interface module.
 ;;;;
 ;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;

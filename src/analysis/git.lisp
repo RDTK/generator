@@ -1,6 +1,6 @@
 ;;;; git.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,14 +18,10 @@
                     sub-directory
                     history-limit
                     (temp-directory (default-temporary-directory)))
-  "TODO(jmoringe): document"
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
-  (let+ ((project-name      (lastcar (puri:uri-parsed-path source)))
-         (repository/string (format-git-url source username password))
+  (let+ ((repository/string (format-git-url source username password))
          (branches          (append branches tags))
-         (clone-directory   (merge-pathnames
-                             (make-pathname :directory (list :relative project-name))
-                             temp-directory))
+         (clone-directory   temp-directory)
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))

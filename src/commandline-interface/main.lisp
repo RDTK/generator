@@ -317,8 +317,11 @@
 
 ;;; Toolkit specific stuff
 
-(defun configure-buildflow-job (buildflow-job jobs prepare-name finish-name
-                                &key (ignore-failures? t))
+(defun configure-buildflow-job (buildflow-job jobs
+                                &key
+                                prepare-name
+                                finish-name
+                                (ignore-failures? t))
   (let+ (((&labels format-flow (jobs)
             (etypecase jobs
               ((cons (eql :parallel))
@@ -362,16 +365,15 @@
                   ((length= 1 (first components))
                    (jenkins.api:id (implementation (first (first components)))))
                   (t
-                   (let* ((component (first components))
+                   (let+ ((component (first components))
                           (index (floor (length component) 2))
                           (left (find-components (subseq component 0 index)))
-                          (right (find-components (subseq component index))))
-                     `(:serial ,@(if (typep left '(cons (eql :serial)))
-                                     (rest left)
-                                     (list left))
-                               ,@(if (typep right '(cons (eql :serial)))
-                                     (rest right)
-                                     (list right)))))))))))
+                          (right (find-components (subseq component index)))
+                          ((&flet splice (spec)
+                             (if (typep spec '(cons (eql :serial)))
+                                 (rest spec)
+                                 (list spec)))))
+                     `(:serial ,@(splice left) ,@(splice right))))))))))
     (find-components jobs)))
 
 (define-constant +description-automatically-generated+
@@ -380,48 +382,52 @@
 
 (defun configure-jobs (distribution jobs
                        &key build-flow-ignores-failures?)
-  (let* ((buildflow-name  (ignore-errors (value distribution :buildflow-name)))
-         (prepare-name    (ignore-errors (value distribution :prepare-hook-name)))
-         (prepare-command (or (ignore-errors (value distribution :prepare-hook/unix))
-                              "# Nothing to do"))
-         (finish-name     (ignore-errors (value distribution :finish-hook-name)))
-         (finish-command  (or (ignore-errors (value distribution :finish-hook/unix))
-                              "# Nothing to do"))
-         (finish-command  (format nil "jobs='~{~A~^~%~}'~2%~A"
-                                  (mapcar (compose #'jenkins.api:id #'implementation)
-                                          jobs)
-                                  finish-command)))
-    (macrolet ((ensure-job ((kind name &key (commit? t)) &body body)
-                 `(let ((job (jenkins.dsl:job (,kind ,name) ,@body)))
-                    (if (jenkins.api:job? (jenkins.api:id job))
-                        (setf (jenkins.api:job-config (jenkins.api:id job))
-                              (jenkins.api::%data job))
-                        (jenkins.api::make-job (jenkins.api:id job) (jenkins.api::%data job)))
-                    (setf (jenkins.api:description job)
-                          +description-automatically-generated+)
-                    ,@(when commit?
-                        '((jenkins.api:commit! job)
-                          (jenkins.api:enable! job)))
-                    job)))
-
-      ;; Create helper jobs
-      (when prepare-name
-        (ensure-job ("project" prepare-name)
-          (jenkins.api:builders
-           (jenkins.dsl::shell (:command prepare-command)))))
-      (when finish-name
-        (ensure-job ("project" finish-name)
-          (jenkins.api:builders
-           (jenkins.dsl::shell (:command finish-command)))))
+  (macrolet ((ensure-job ((kind name &key (commit? t)) &body body)
+               `(let ((job (jenkins.dsl:job (,kind ,name) ,@body)))
+                  (if (jenkins.api:job? (jenkins.api:id job))
+                      (setf (jenkins.api:job-config (jenkins.api:id job))
+                            (jenkins.api::%data job))
+                      (jenkins.api::make-job (jenkins.api:id job) (jenkins.api::%data job)))
+                  (setf (jenkins.api:description job)
+                        +description-automatically-generated+)
+                  ,@(when commit?
+                      '((jenkins.api:commit! job)
+                        (jenkins.api:enable! job)))
+                  job)))
+    (let+ ((buildflow-name  (ignore-errors
+                             (value distribution :buildflow-name)))
+           (prepare-name    (ignore-errors (value distribution :prepare-hook-name)))
+           (prepare-command (ignore-errors
+                             (value distribution :prepare-hook/unix)))
+           (finish-name     (ignore-errors
+                             (value distribution :finish-hook-name)))
+           (finish-command  (ignore-errors
+                             (value distribution :finish-hook/unix)))
+           (finish-command  (when finish-command
+                              (format nil "jobs='~{~A~^~%~}'~2%~A"
+                                      (mapcar (compose #'jenkins.api:id #'implementation)
+                                              jobs)
+                                      finish-command)))
+           ((&flet make-hook-job (name command)
+              (when name
+                (ensure-job ("project" name)
+                  (jenkins.api:builders
+                   (jenkins.dsl::shell (:command (or command
+                                                     "# <nothing to do>")))))))))
+      (make-hook-job prepare-name prepare-command)
+      (make-hook-job finish-name finish-command)
 
       ;; Create bluildflow job
       (when buildflow-name
-        (let ((job (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
-                                  "build-flow-plugin@0.10")
-                                buildflow-name
-                                :commit? nil))))
+        (let ((schedule (schedule-jobs jobs))
+              (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
+                                       "build-flow-plugin@0.10")
+                                      buildflow-name
+                                      :commit? nil))))
           (configure-buildflow-job
-           job (schedule-jobs jobs) prepare-name finish-name
+           job schedule
+           :prepare-name     prepare-name
+           :finish-name      finish-name
            :ignore-failures? build-flow-ignores-failures?)
           (jenkins.api:commit! job)
           (jenkins.api:enable! job))))))

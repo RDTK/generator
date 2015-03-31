@@ -1,6 +1,6 @@
 ;;;; variables.lisp --- Variables used by the project module.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,6 +39,9 @@
         (declare (ignore if-does-not-exist))
 
         (bt:with-lock-held (,lock-name)
+          (when-let ((existing (gethash name ,variable-name)))
+            (error "~@<The name ~S is already associated with ~A ~A.~@:>"
+                   name ',name existing))
           (setf (gethash name ,variable-name) new-value))))))
 
 ;;; Global template repository

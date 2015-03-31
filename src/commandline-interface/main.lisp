@@ -135,7 +135,7 @@
                   (tags     (intersection versions (ignore-errors (lookup project :tags))
                                           :test #'string=)))
              (unless (set-equal versions (union branches tags) :test #'string=)
-               (error "~@<Could not find version~P ~S in project ~A.~@:>"
+               (error "~@<Could not find version~P ~{~S~^, ~} in project ~A.~@:>"
                       (length versions) versions project))
              (setf (lookup project :branches) branches
                    (lookup project :tags)     tags)
@@ -150,23 +150,20 @@
 
 (defun analyze-projects (projects &key temp-directory)
   (with-sequence-progress (:analyze/project projects)
-    (mapcan
+    (lparallel:pmapcan
      (lambda (project)
-       (when project
-         (list (setf (find-project (name project)) project))))
-     (lparallel:pmapcar
-      (lambda (project)
-        (restart-case
-            (apply #'analyze-project project
-                   (when temp-directory
-                     (list :temp-directory temp-directory)))
-          (continue (&optional condition)
-            :report (lambda (stream)
-                      (format stream "~@<Skip analyzing project ~
+       (restart-case
+           (when-let ((project (apply #'analyze-project project
+                                      (when temp-directory
+                                        (list :temp-directory temp-directory)))))
+             (list (setf (find-project (name project)) project)))
+         (continue (&optional condition)
+           :report (lambda (stream)
+                     (format stream "~@<Skip analyzing project ~
                                       ~A.~@:>"
-                              project))
-            (declare (ignore condition)))))
-      :parts most-positive-fixnum projects))))
+                             project))
+           (declare (ignore condition)))))
+     :parts most-positive-fixnum projects)))
 
 (defun resolve-project-version (project version)
   (let ((project (find-project project)))

@@ -33,13 +33,13 @@
                               :type     "project"
                               :defaults distribution-pathname))))
         (mapcan
-         (lambda+ ((name version))
+         (lambda+ ((name &rest versions))
            (when-let ((location
                        (first
                         (locate-specifications
                          :project
                          (list (merge-pathnames name projects-directory))))))
-             (list (list location (list version) distribution))))
+             (list (list location versions distribution))))
          (jenkins.project::versions distribution))))
     distribution-pathnames distributions)
    :test #'equalp))
@@ -173,9 +173,10 @@
                version project))))
 
 (defun resolve-project-versions (versions)
-  (mapcan (lambda (version)
+  (mapcan (lambda+ ((project &rest versions))
             (restart-case
-                (list (apply #'resolve-project-version version))
+                (mapcar (curry #'resolve-project-version project)
+                        versions)
               (continue (&optional condition)
                 :report (lambda (stream)
                           (format stream "~@<Skip ~A.~@:>" version))

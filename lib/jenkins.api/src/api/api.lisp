@@ -281,7 +281,7 @@
 
           (defmethod ,name ((parent string) (child job)
                             &rest args &key &allow-other-keys)
-            (apply #',name (job parent) child) args)
+            (apply #',name (job parent) child args))
 
           (defmethod ,name ((parent job) (child string)
                             &rest args &key &allow-other-keys)

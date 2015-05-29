@@ -312,7 +312,7 @@
 ;;; `stupid-threshold'
 
 (deftype stupid-threshold ()
-  '(member :success :unstable))
+  '(member :success :unstable :failure))
 
 (defmethod xloc:xml-> ((value stp:element)
                        (type  (eql 'stupid-threshold))
@@ -328,6 +328,8 @@
        :success)
       ((string= name "UNSTABLE")
        :unstable)
+      ((string= name "FAILURE")
+       :failure)
       (t
        (error "~@<Unknown threshold name: ~S~@:>" name)))))
 
@@ -352,5 +354,10 @@
        (setf name            (string value)
              ordinal         1
              color           "YELLOW"
-             complete-build? t))))
+             complete-build? t))
+      (:failure
+       (setf name            (string value)
+             ordinal         2
+             color           "RED"
+             complete-build? nil))))
   dest)

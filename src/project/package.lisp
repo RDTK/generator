@@ -17,6 +17,9 @@
    #:jenkins.api
    #:jenkins.dsl)
 
+  (:shadow
+   #:node)
+
   (:shadowing-import-from #:jenkins.dsl
    #:job)
 

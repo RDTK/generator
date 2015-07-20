@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -93,13 +93,17 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
           (puri:uri-port url)
           (puri:uri-path url)))
 
-(defun run (spec directory)
+(defun run (spec directory
+            &key
+            (environment '() environment-supplied?))
   (let ((output (make-string-output-stream)))
     (log:debug "~@<Executing ~S~@:>" spec)
     (handler-case
-        (inferior-shell:run `((inferior-shell:>& 2 1) ,@spec)
-                            :directory directory
-                            :output    output)
+        (apply #'inferior-shell:run/nil `((inferior-shell:>& 2 1) ,@spec)
+               :directory directory
+               :output    output
+               (when environment-supplied?
+                 (list :environment environment)))
       (error ()
         (error "~@<Command~@:_~@:_~
                 ~2@T~S~@:_~@:_~

@@ -44,7 +44,7 @@
     distribution-pathnames distributions)
    :test #'equalp))
 
-(defun analyze-project (project &key temp-directory)
+(defun analyze-project (project &key temp-directory non-interactive?)
   (let+ (((&labels+ do-branch ((branch . info))
             (let+ (((&plist-r/o (scm              :scm)
                                 (branch-directory :branch-directory)
@@ -104,14 +104,15 @@
                          (when-let ((value (var :repository)))
                            (puri:uri value))
                          :auto
-                         :scm           (var :scm)
-                         :username      (var :scm.username)
-                         :password      (var :scm.password)
-                         :branches      (var :branches)
-                         :tags          (var :tags)
-                         :sub-directory (when-let ((value (var :sub-directory)))
-                                          (parse-namestring (concatenate 'string value "/")))
-                         :history-limit (var :scm.history-limit)
+                         :scm              (var :scm)
+                         :username         (var :scm.username)
+                         :password         (var :scm.password)
+                         :branches         (var :branches)
+                         :tags             (var :tags)
+                         :sub-directory    (when-let ((value (var :sub-directory)))
+                                             (parse-namestring (concatenate 'string value "/")))
+                         :history-limit    (var :scm.history-limit)
+                         :non-interactive? non-interactive?
                          (append
                           (let ((natures (var :natures :none)))
                             (unless (eq natures :none)
@@ -148,12 +149,13 @@
            (declare (ignore condition)))))
      :parts most-positive-fixnum files-and-versions)))
 
-(defun analyze-projects (projects &key temp-directory)
+(defun analyze-projects (projects &key temp-directory non-interactive?)
   (with-sequence-progress (:analyze/project projects)
     (lparallel:pmapcan
      (lambda (project)
        (restart-case
            (when-let ((project (apply #'analyze-project project
+                                      :non-interactive? non-interactive?
                                       (when temp-directory
                                         (list :temp-directory temp-directory)))))
              (list (setf (find-project (name project)) project)))
@@ -486,24 +488,27 @@
   (clon:make-synopsis
    ;; Basic usage and specific options.
    :item    (clon:defgroup (:header "General Options")
-              (flag   :long-name     "version"
-                      :description
-                      "Print version information and exit.")
-              (flag   :long-name     "help"
-                      :short-name    "h"
-                      :description
-                      "Print this help and exit.")
-              (flag   :long-name     "swank"
-                      :description
-                      "Start a swank server.")
-              (flag   :long-name     "debug"
-                      :description
-                      "Enable debug mode.")
-              (enum   :long-name     "progress-style"
-                      :enum          '(:cmake :vertical)
-                      :default-value :vertical
-                      :description
-                      "Progress display style.")
+              (flag    :long-name     "version"
+                       :description
+                       "Print version information and exit.")
+              (flag    :long-name     "help"
+                       :short-name    "h"
+                       :description
+                       "Print this help and exit.")
+              (flag    :long-name     "swank"
+                       :description
+                       "Start a swank server.")
+              (flag    :long-name     "debug"
+                       :description
+                       "Enable debug mode.")
+              (enum    :long-name     "progress-style"
+                       :enum          '(:cmake :vertical)
+                       :default-value :vertical
+                       :description
+                       "Progress display style.")
+              (flag    :long-name    "non-interactive"
+                       :description
+                       "Avoid any user interaction.")
               (lispobj :long-name    "num-processes"
                        :short-name   "j"
                        :typespec     'positive-integer
@@ -731,6 +736,7 @@
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
                                    200))
+         (non-interactive?       (clon:getopt :long-name "non-interactive"))
          (num-processes          (clon:getopt :long-name "num-processes"))
          ((&flet restart/condition (name)
             (lambda (condition)
@@ -793,6 +799,7 @@
                          (projects/specs    (with-phase-error-check
                                                 (:analyze/project #'errors #'(setf errors) #'report)
                                               (apply #'analyze-projects projects/raw
+                                                     :non-interactive? non-interactive?
                                                      (when temp-directory
                                                        (list :temp-directory temp-directory)))))
                          (distributions     (with-phase-error-check

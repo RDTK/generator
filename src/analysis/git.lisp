@@ -6,8 +6,30 @@
 
 (cl:in-package #:jenkins.analysis)
 
-(defun %run-git (spec directory)
-  (run `("git" ,@spec) directory))
+(define-constant +ssh-askpass-variable-name+
+  "SSH_ASKPASS"
+  :test #'string=)
+
+(define-constant +disable-git-credentials-helper-program+
+  "true"
+  :test #'string=)
+
+(defun environment-with-ssh-askpass-overwritten ()
+  (list* (format nil "~A=~A"
+                 +ssh-askpass-variable-name+
+                 +disable-git-credentials-helper-program+)
+         (remove-if (curry #'starts-with-subseq
+                           +ssh-askpass-variable-name+)
+                    (sb-ext:posix-environ))))
+
+(defun %run-git (spec directory &key non-interactive)
+  (let+ (((&values global-options environment)
+          (if non-interactive
+              `("-c" (format nil "core.askpass=~A"
+                             +disable-git-credentials-helper-program+))
+              (values () (environment-with-ssh-askpass-overwritten)))))
+    (run `("git" ,@global-options  ,@spec)
+         directory :environment environment)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &rest args &key
@@ -17,7 +39,8 @@
                     tags
                     sub-directory
                     history-limit
-                    (temp-directory (default-temporary-directory)))
+                    (temp-directory (default-temporary-directory))
+                    non-interactive)
   ;;; TODO(jmoringe, 2013-01-17): find branches automatically
   (let+ ((repository/string (format-git-url source username password))
          (branches          (append branches tags))
@@ -38,7 +61,7 @@
               `("clone" "--quiet"
                 ,@(when history-limit `("--depth" ,history-limit))
                 ,repository/string ,clone-directory)
-              temp-directory))
+              temp-directory :non-interactive non-interactive))
 
            (with-sequence-progress (:analyze/branch branches)
              (iter (for branch in branches)

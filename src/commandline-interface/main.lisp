@@ -528,7 +528,13 @@
                        :argument-name "DIRECTORY"
                        :default-value #P"/tmp/"
                        :description
-                       "Directory into which temporary files should be written during analysis step."))
+                       "Directory into which temporary files should be written during analysis step.")
+              (path    :long-name    "report-directory"
+                       :type         :directory
+                       :argument-name "DIRECTORY"
+                       :default-value nil
+                       :description
+                       "Instead of creating Jenkins jobs, write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results."))
 
    :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "template"
@@ -753,7 +759,8 @@
                                            nil))
                                      ((funcall (restart/condition 'defer) condition))
                                      ((funcall (restart/condition 'abort) condition)))))
-         (temp-directory         (clon:getopt :long-name "temp-directory")))
+         (temp-directory         (clon:getopt :long-name "temp-directory"))
+         (report-directory       (clon:getopt :long-name "report-directory")))
     (log:config :thread (if debug? :trace :warn))
 
     (restart-case
@@ -821,10 +828,12 @@
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
                                               (instantiate-projects projects/specs distributions)))
-                         (jobs/spec         (with-phase-error-check
-                                                (:deploy/project #'errors #'(setf errors) #'report)
-                                              (flatten (deploy-projects projects))))
-                         (jobs              (mappend #'implementations jobs/spec)))
+                         (jobs/spec         (unless report-directory
+                                              (with-phase-error-check
+                                                  (:deploy/project #'errors #'(setf errors) #'report)
+                                                (flatten (deploy-projects projects)))))
+                         (jobs              (unless report-directory
+                                              (mappend #'implementations jobs/spec))))
                     (declare (ignore templates))
 
                     ;; Delete automatically generated jobs found on the
@@ -832,7 +841,7 @@
                     ;; generated jobs. This is necessary to get rid of
                     ;; leftover jobs when projects (or project versions) are
                     ;; deleted or renamed.
-                    (when delete-other?
+                    (when (and delete-other? (not report-directory))
                       (with-phase-error-check
                           (:delete-other-jobs #'errors #'(setf errors) #'report)
                         (let ((other-jobs (set-difference (generated-jobs) jobs
@@ -842,25 +851,31 @@
                                   other-jobs)))))
 
                     ;; TODO explain
-                    (with-phase-error-check
-                        (:orchestration #'errors #'(setf errors) #'report)
-                      (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                        (restart-case
-                         (configure-distributions
-                          distributions
-                          :build-flow-ignores-failures? build-flow-ignores-failures?)
-                          (continue (&optional condition)
-                            :report (lambda (stream)
-                                      (format stream "~@<Continue without configuring orchestration jobs~@:>"))
-                            (declare (ignore condition))))))
+                    (unless report-directory
+                      (with-phase-error-check
+                          (:orchestration #'errors #'(setf errors) #'report)
+                        (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+                          (restart-case
+                              (configure-distributions
+                               distributions
+                               :build-flow-ignores-failures? build-flow-ignores-failures?)
+                            (continue (&optional condition)
+                              :report (lambda (stream)
+                                        (format stream "~@<Continue without configuring orchestration jobs~@:>"))
+                              (declare (ignore condition))))))
 
-                    (with-phase-error-check
-                        (:enable-jobs #'errors #'(setf errors) #'report)
-                      (enable-jobs jobs))
+                      (with-phase-error-check
+                          (:enable-jobs #'errors #'(setf errors) #'report)
+                        (enable-jobs jobs))
 
-                    (with-phase-error-check
-                        (:list-credentials #'errors #'(setf errors) #'report)
-                      (list-credentials jobs))))))))
+                      (with-phase-error-check
+                          (:list-credentials #'errors #'(setf errors) #'report)
+                        (list-credentials jobs)))
+
+                    (when report-directory
+                     (with-phase-error-check
+                         (:report #'errors #'(setf errors) #'report)
+                       (jenkins.report:report distributions :json report-directory)))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

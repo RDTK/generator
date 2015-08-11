@@ -1,6 +1,6 @@
 ;;;; jenkins.project.asd ---
 ;;;;
-;;;; Copyright (C) 2011, 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2011, 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -144,4 +144,11 @@
 
                               (:file     "json")
 
-                              (:file     "progress")))))
+                              (:file     "progress")))
+
+                (:module     "report"
+                 :pathname   "src/report"
+                 :depends-on ("project")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "json")))))

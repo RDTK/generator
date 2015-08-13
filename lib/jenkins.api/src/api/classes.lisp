@@ -878,6 +878,29 @@
   (:get-func (lambda (id)      (job-config id)))
   (:put-func (lambda (id data) (setf (job-config id) data))))
 
+(defun job-name-character? (character)
+  (or (alphanumericp character) (member character '(#\- #\_ #\.))))
+
+(defun job-name? (name)
+  (every #'job-name-character? name))
+
+(deftype job-name ()
+  '(satisfies job-name?))
+
+(defmethod initialize-instance :before ((instance job)
+                                        &key id)
+  (unless (job-name? id)
+    (let ((offenders (map 'list (lambda (char)
+                                  (list char (char-name char)))
+                          (remove-duplicates
+                           (remove-if #'job-name-character? id)))))
+      (error 'simple-type-error
+             :datum            id
+             :expected-type    'job-name
+             :format-control   "~@<Supplied job name ~S contains illegal ~
+                                character~P: ~{~{~A (~@[~A~])~}~^, ~}.~@:>"
+             :format-arguments (list id (length offenders) offenders)))))
+
 (defmethod kind ((object job))
   (stp:local-name (stp:document-element (%data object))))
 

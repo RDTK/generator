@@ -13,6 +13,11 @@
    #:let-plus
    #:more-conditions)
 
+  ;; Types
+  (:export
+   #:job-name-character?
+   #:job-name?           #:job-name)
+
   ;; Variables
   (:export
    #:*base-url*

@@ -6,6 +6,23 @@
 
 (cl:in-package #:jenkins.project)
 
+(defun process-variables (alist)
+  (let ((entries (make-hash-table :test #'eq)))
+    (loop :for (key . value) :in alist :do
+             (when (starts-with-subseq "__" (string key))
+               (error "~@<Variable name ~A starts with \"__\". These ~
+                       variable names are reserved for internal ~
+                       use.~@:>"
+                      key))
+             (push value (gethash key entries)))
+    (loop :for key :being :the :hash-key :of entries
+          :using (:hash-value value)
+          :do (unless (length= 1 value)
+                (error "~@<Multiple definitions of variable ~A: ~
+                        ~{~S~^, ~}.~@:>"
+                       key value))
+          :collect key :collect (first value))))
+
 (defun load-template/json-1 (pathname)
   (let+ ((spec (json:decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
@@ -17,7 +34,7 @@
                            :parent     parent
                            :aspect     (lookup :aspect spec)
                            :filter     (lookup :filter spec) ; TODO remove?
-                           :variables  (alist-plist (lookup :variables spec))
+                           :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
 
          ((&flet make-job-spec (spec parent)
@@ -25,7 +42,7 @@
                            :name       (lookup :name spec)
                            :parent     parent
                            :tags       (lookup :tags spec)
-                           :variables  (alist-plist (lookup :variables spec))
+                           :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
 
          (name (lookup :name))
@@ -35,7 +52,7 @@
            template
            :name      name
            :inherit   (mapcar #'find-template (lookup :inherit))
-           :variables (alist-plist (lookup :variables))
+           :variables (process-variables (lookup :variables))
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
 
@@ -54,7 +71,7 @@
             (make-instance 'version-spec
                            :name      (lookup :name spec)
                            :parent    parent
-                           :variables (alist-plist (lookup :variables spec)))))
+                           :variables (process-variables (lookup :variables spec)))))
          ((&flet make-job-spec (spec parent)
             (make-instance 'job-spec
                            :name       (lookup :name spec)
@@ -68,7 +85,7 @@
              instance
              :name      name
              :templates (mapcar #'find-template (lookup :templates))
-             :variables (alist-plist (lookup :variables))
+             :variables (process-variables (lookup :variables))
              :versions  (mapcar (rcurry #'make-version-spec instance)
                                 (if version-test
                                     (remove-if (lambda (version)
@@ -93,7 +110,7 @@
             (cdr (assoc name where)))))
     (make-instance 'distribution-spec
                    :name      (lookup :name)
-                   :variables (alist-plist (lookup :variables))
+                   :variables (process-variables (lookup :variables))
                    :versions  (lookup :versions))))
 
 (defun load-distribution/json (pathname)

@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Minimal JSON import for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -85,7 +85,8 @@
              instance
              :name      name
              :templates (mapcar #'find-template (lookup :templates))
-             :variables (process-variables (lookup :variables))
+             :variables (list* :__catalog (lookup :catalog)
+                               (process-variables (lookup :variables)))
              :versions  (mapcar (rcurry #'make-version-spec instance)
                                 (if version-test
                                     (remove-if (lambda (version)
@@ -110,7 +111,8 @@
             (cdr (assoc name where)))))
     (make-instance 'distribution-spec
                    :name      (lookup :name)
-                   :variables (process-variables (lookup :variables))
+                   :variables (list* :__catalog (lookup :catalog)
+                                     (process-variables (lookup :variables)))
                    :versions  (lookup :versions))))
 
 (defun load-distribution/json (pathname)

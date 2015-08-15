@@ -156,14 +156,21 @@
 (defun parse (expr &key (parse-strings? t))
   (let+ (((&labels recur (expr)
             (etypecase expr
-              (string (if parse-strings?
-                          (let ((result (esrap:parse 'expr expr)))
-                            (if (length= 1 result)
-                                (first result)
-                                result))
-                          expr))
-              (list   (list* :list (mapcar #'recur expr)))
-              (t      expr)))))
+              (string
+               (if parse-strings?
+                   (let ((result (esrap:parse 'expr expr)))
+                     (if (length= 1 result)
+                         (first result)
+                         result))
+                   expr))
+              ((cons (cons keyword (not cons)))
+               (list* :alist (mapcar (lambda+ ((key . value))
+                                       (cons key (recur value)))
+                                     expr)))
+              (list
+               (list* :list (mapcar #'recur expr)))
+              (t
+               expr)))))
     (recur expr)))
 
 (mapc (lambda+ ((input expected))
@@ -227,6 +234,11 @@
 
               ((list* :list subpatterns)
                (list (mappend #'recur subpatterns)))
+
+              ((list* :alist subpatterns)
+               (list (mapcar (lambda+ ((key . value))
+                               (cons key (first (recur value))))
+                             subpatterns)))
 
               ((list* first rest)
                (let ((result (mappend #'recur (cons first rest))))

@@ -140,15 +140,14 @@
          #\})
   (:destructure (kind open content default close)
     (declare (ignore open close))
-    (cond
-      ((string= kind "$")
-       (list* :ref content (when default
-                             (list :default (second default)))))
-      ((string= kind "@")
-       (list* :ref/list content
-              (when default
-                (list :default (unless (equal (first (second default)) "[]")
-                                 (second default)))))))))
+    (let ((default (when default
+                     (list :default (unless (equal (first (second default)) "[]")
+                                      (second default))))))
+     (cond
+       ((string= kind "$")
+        (list* :ref content default))
+       ((string= kind "@")
+        (list* :ref/list content default))))))
 
 (esrap:defrule expr
     (* (or variable-reference text)))

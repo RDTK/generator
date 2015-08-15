@@ -332,12 +332,13 @@
                        (list (mapcar #'format-flow (rest jobs)))))
               (t
                (format nil "~:[~:;ignore(ABORTED) {~%~2@T~]~
-                            build(~S, tag: build.id)~
+                            build(~S, tag: buildId)~
                             ~2:*~:[~:;~%}~]"
                        ignore-failures? jobs)))))
-         (script (format nil "~@[build(\"~A\", tag: build.id)~2%~]~
+         (script (format nil "buildId = build.time.format('yyyy-MM-dd_HH-mm-ss')~2%~
+                              ~@[build(\"~A\", tag: buildId)~2%~]~
                               ~A~
-                              ~@[~2%build(\"~A\", tag: build.id)~]"
+                              ~@[~2%build(\"~A\", tag: buildId)~]"
                          prepare-name (format-flow jobs) finish-name)))
     (setf (jenkins.api::dsl buildflow-job) script)))
 

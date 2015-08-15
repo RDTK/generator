@@ -264,14 +264,14 @@
             (cdr (assoc name where :test #'eq))))
          ((&flet make-key (string)
             (json:json-intern (json:camel-case-to-lisp string))))
-         (requiments '())
+         (requirements '())
          ((&labels+ collect (spec (&optional platform-first &rest platform-rest))
-            (appendf requiments (lookup :packages spec))
+            (appendf requirements (lookup :packages spec))
             (when platform-first
               (when-let ((child (lookup (make-key platform-first) spec)))
                 (collect child platform-rest))))))
     (collect spec platform)
-    (remove-duplicates requiments :test #'string=)))
+    (remove-duplicates requirements :test #'string=)))
 
 (defmethod platform-requires ((object sequence) (platform cons))
   (let ((requirements (mappend (rcurry #'platform-requires platform) object)))

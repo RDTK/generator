@@ -71,7 +71,8 @@
             (make-instance 'version-spec
                            :name      (lookup :name spec)
                            :parent    parent
-                           :variables (process-variables (lookup :variables spec)))))
+                           :variables (list* :__catalog (lookup :catalog spec)
+                                             (process-variables (lookup :variables spec))))))
          ((&flet make-job-spec (spec parent)
             (make-instance 'job-spec
                            :name       (lookup :name spec)

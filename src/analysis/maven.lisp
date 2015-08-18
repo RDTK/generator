@@ -14,6 +14,8 @@
 
 ;;;
 
+(defvar *projects* '())
+
 (defmethod analyze ((directory pathname)
                     (kind      (eql :maven))
                     &key)
@@ -49,18 +51,30 @@
                       ((and (string= name "groupId")    (first id)))
                       ((and (string= name "artifactId") (second id)))
                       ((and (string= name "version")    (fourth id))))))))
-             ((&flet property-value (name)
+             ((&flet+ property-value-in-project
+                  (name (id/merged id/parent properties))
                 (cond
-                  ((when-let ((value (project-property name "parent" id/parent)))
+                  ((when-let ((value (project-property
+                                      name "parent" id/parent)))
                      (warn "~@<The property name \"~A\" is deprecated; ~
                             use \"project.~:*~A\" instead.~@:>"
                            name)
                      value))
                   ((project-property name "project.parent" id/parent))
                   ((project-property name "project"        id/merged))
-                  ((cdr (assoc name properties :test #'string=)))
-                  (t (error "~@<Could not resolve reference to property ~S.~@:>"
-                            name)))))
+                  ((cdr (assoc name properties :test #'string=))))))
+             ((&flet property-value (name)
+                (or (some (curry #'property-value-in-project name) *projects*)
+                    (cerror "Use the empty value"
+                            "~@<Could not resolve reference to ~
+                             property ~S in (sub-)module hierarchy~
+                             ~@:_~@:_~
+                             ~2@T~@<~{~{~A ~A~}~^~@:_~}~:>~
+                             ~@:_~@:_.~@:>"
+                            name (reverse (mapcar (compose #'id->name+version #'first)
+                                                  *projects*))))))
+             (*projects* (list* (list id/merged id/parent properties)
+                                *projects*))
              ((&flet process-sub-project (name)
                 (let+ ((sub-directory (merge-pathnames (concatenate 'string name "/") directory))
                        ((&plist-r/o (provides :provides) (requires :requires))

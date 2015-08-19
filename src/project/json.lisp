@@ -79,25 +79,27 @@
                            :parent     parent
                            :tags       (lookup :tags spec)
                            :conditions (lookup :conditions spec))))
-         (name (lookup :name))
-         (project-spec
-          (let ((instance (make-instance 'project-spec)))
-            (reinitialize-instance
-             instance
-             :name      name
-             :templates (mapcar #'find-template (lookup :templates))
-             :variables (list* :__catalog (lookup :catalog)
-                               (process-variables (lookup :variables)))
-             :versions  (mapcar (rcurry #'make-version-spec instance)
-                                (if version-test
-                                    (remove-if (lambda (version)
-                                                 (let ((name (lookup :name version)))
-                                                   (not (funcall version-test name))))
-                                               (lookup :versions))
-                                    (lookup :versions)))
-             :jobs      (mapcar (rcurry #'make-job-spec instance)
-                                (lookup :jobs))))))
-    project-spec))
+         (name (lookup :name)))
+    (unless (string= name (pathname-name pathname))
+      (error "~@<Value of \"name\" attribute, ~S, does not match ~
+              filename ~S.~@:>"
+             name (pathname-name pathname)))
+    (let ((instance (make-instance 'project-spec)))
+      (reinitialize-instance
+       instance
+       :name      name
+       :templates (mapcar #'find-template (lookup :templates))
+       :variables (list* :__catalog (lookup :catalog)
+                         (process-variables (lookup :variables)))
+       :versions  (mapcar (rcurry #'make-version-spec instance)
+                          (if version-test
+                              (remove-if (lambda (version)
+                                           (let ((name (lookup :name version)))
+                                             (not (funcall version-test name))))
+                                         (lookup :versions))
+                              (lookup :versions)))
+       :jobs      (mapcar (rcurry #'make-job-spec instance)
+                          (lookup :jobs))))))
 
 (defun load-project-spec/json (pathname &key version-test)
   (handler-bind ((error (lambda (condition)
@@ -109,9 +111,14 @@
 (defun load-distribution-spec/json-1 (pathname)
   (let+ ((spec (json:decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where)))))
+            (cdr (assoc name where))))
+         (name (lookup :name)))
+    (unless (string= name (pathname-name pathname))
+      (error "~@<Value of \"name\" attribute, ~S, does not match ~
+              filename ~S.~@:>"
+             name (pathname-name pathname)))
     (make-instance 'distribution-spec
-                   :name      (lookup :name)
+                   :name      name
                    :variables (list* :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables)))
                    :versions  (lookup :versions))))

@@ -109,7 +109,7 @@ rm -rf \"\${temp}\""))
                           (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
-rm -rf *
+rm -rf * .[^.]*
 
 # Unpack archive.
 wget --no-verbose \"${url/string}\" --output-document=\"${archive}\"

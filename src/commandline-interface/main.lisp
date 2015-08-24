@@ -404,25 +404,27 @@
                       '((jenkins.api:commit! job)
                         (jenkins.api:enable! job)))
                   job)))
-    (let+ ((buildflow-name       (ignore-errors
-                                  (value distribution :buildflow-name)))
-           (buildflow-parallel?  (handler-case
-                                     (value distribution :buildflow.parallel?)
-                                   (error (c) t)))
-           (prepare-name         (ignore-errors
-                                  (value distribution :prepare-hook-name)))
-           (prepare-command      (ignore-errors
-                                  (value distribution :prepare-hook/unix)))
-           (finish-name          (ignore-errors
-                                  (value distribution :finish-hook-name)))
-           (finish-command       (ignore-errors
-                                  (value distribution :finish-hook/unix)))
-           (finish-command       (when finish-command
-                                   (format nil "jobs='~{~A~^~%~}'~2%~A"
-                                           (mapcar (compose #'jenkins.api:id
-                                                            #'implementation)
-                                                   jobs)
-                                           finish-command)))
+    (let+ ((buildflow-name      (ignore-errors
+                                 (value distribution :buildflow-name)))
+           (buildflow-parallel? (handler-case
+                                    (value distribution :buildflow.parallel?)
+                                  (error (c) t)))
+           (prepare-name        (ignore-errors
+                                 (value distribution :prepare-hook-name)))
+           (prepare-command     (ignore-errors
+                                 (value distribution :prepare-hook/unix)))
+           (finish-name         (ignore-errors
+                                 (value distribution :finish-hook-name)))
+           (finish-command      (ignore-errors
+                                 (value distribution :finish-hook/unix)))
+           (finish-command      (when finish-command
+                                  (format nil "jobs='~{~A~^~%~}'~2%~A"
+                                          (mapcar (compose #'jenkins.api:id
+                                                           #'implementation)
+                                                  jobs)
+                                          finish-command)))
+           ((&flet include-job? (job)
+              (not (ignore-errors (value job :buildflow.exclude?)))))
            ((&flet make-hook-job (name command)
               (when name
                 (ensure-job ("project" name)
@@ -437,7 +439,7 @@
         (let ((schedule (funcall (if buildflow-parallel?
                                      #'schedule-jobs/parallel
                                      #'schedule-jobs/serial)
-                                 jobs))
+                                 (remove-if-not #'include-job? jobs)))
               (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
                                        "build-flow-plugin@0.10")
                                       buildflow-name

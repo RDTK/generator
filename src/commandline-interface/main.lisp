@@ -476,7 +476,8 @@
               (push job (gethash credentials all-credentials))))))
     (mapc #'job-credentials jobs)
     (when (plusp (hash-table-count all-credentials))
-      (format t "~@<The following credentials have been used:~@:_~
+      (format t "~@<The following credentials have been referenced and ~
+                 have to be configured in Jenkins' credential store:~@:_~
                  ~{~{* ~S for job~P ~<~{~A~^, ~}~:@>~}~^~@:_~}~
                  ~%~:>"
               (mapcar (lambda+ ((credentials . jobs))

@@ -96,17 +96,28 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
 (defun run (spec directory
             &key
             (environment '() environment-supplied?))
-  (let ((output (make-string-output-stream)))
-    (log:debug "~@<Executing ~S~@:>" spec)
-    (handler-case
-        (apply #'inferior-shell:run/nil `((inferior-shell:>& 2 1) ,@spec)
-               :directory directory
-               :output    output
-               (when environment-supplied?
-                 (list :environment environment)))
-      (error ()
-        (error "~@<Command~@:_~@:_~
-                ~2@T~S~@:_~@:_~
-                failed with output:~@:_~@:_~
-                ~A~@:>"
-               spec (get-output-stream-string output))))))
+  (log:debug "~@<Executing ~S~@:>" spec)
+  (let+ ((output (make-string-output-stream))
+         ((&values &ign &ign code)
+          (handler-case
+              (apply #'inferior-shell:run/nil `((inferior-shell:>& 2 1) ,@spec)
+                     :directory directory
+                     :output    output
+                     :on-error  nil
+                     (when environment-supplied?
+                       (list :environment environment)))
+            (error (condition)
+              (error "~@<Error executing command~@:_~@:_~
+                      ~2@T~/jenkins.analysis::%print-process-spec/~@:_~@:_~
+                      ~A~@:>"
+                     spec condition)))))
+    (unless (zerop code)
+      (error "~@<Command~@:_~@:_~
+              ~2@T~/jenkins.analysis::%print-process-spec/~@:_~@:_~
+              failed with exit code ~D and output:~@:_~@:_~
+              ~A~@:>"
+             spec code (get-output-stream-string output)))))
+
+(defun %print-process-spec (stream spec &optional colon? at?)
+  (declare (ignore colon? at?))
+  (inferior-shell:print-process-spec spec stream))

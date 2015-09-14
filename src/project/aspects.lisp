@@ -173,6 +173,11 @@ ${(make-move-stuff-upwards/unix components)}")))
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
   (let* ((url         (var :aspect.subversion.url))
          (url/parsed  (puri:uri url))
+         (url/parsed  (puri:copy-uri
+                       url/parsed
+                       :path (ppcre:regex-replace-all
+                              "//+" (puri:uri-path url/parsed) "/")))
+         (url         (format nil "~A" url/parsed))
          (credentials (or (var :aspect.subversion.credentials)
                           (unless (check-access aspect :public)
                             (puri:uri-host url/parsed)))))

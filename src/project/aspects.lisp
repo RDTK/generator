@@ -76,6 +76,22 @@
 
 ;;; SCM aspects
 
+(defun make-remove-directory-contents (&key exclude)
+  (let ((exclude (ensure-list exclude)))
+    (format nil "find . -mindepth 1 -maxdepth 1 ~
+                        ~[~:*~;-not -name ~{~S~} ~:;-not \\( ~{-name ~S~^ -o ~} \\) ~]~
+                        -exec rm -rf {} \\;"
+            (length exclude) exclude)))
+(assert
+ (string= (make-remove-directory-contents)
+          "find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \\;"))
+(assert
+ (string= (make-remove-directory-contents :exclude "foo")
+          "find . -mindepth 1 -maxdepth 1 -not -name \"foo\" -exec rm -rf {} \\;"))
+(assert
+ (string= (make-remove-directory-contents :exclude '("b\"ar" "foo"))
+          "find . -mindepth 1 -maxdepth 1 -not \\( -name \"b\\\"ar\" -o -name \"foo\" \\) -exec rm -rf {} \\;"))
+
 (defun make-move-stuff-upwards/unix (stuff)
   "Move contents of STUFF which is usually one or multiple directories
    to the current directory."
@@ -109,7 +125,7 @@ rm -rf \"\${temp}\""))
                           (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
-rm -rf * .[^.]*
+${(make-remove-directory-contents)}
 
 # Unpack archive.
 wget --no-verbose \"${url/string}\" --output-document=\"${archive}\"
@@ -149,7 +165,7 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before t)))
-              (shell (:command #?"find . -mindepth 1 -maxdepth 1 -not -name \"${first}\" -exec rm -rf {} \\;
+              (shell (:command #?"${(make-remove-directory-contents :exclude first)}
 
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))

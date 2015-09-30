@@ -206,13 +206,15 @@
 
 (defun resolve-project-versions (versions)
   (mapcan (lambda+ ((project &rest versions))
-            (restart-case
-                (mapcar (curry #'resolve-project-version project)
-                        versions)
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Skip ~A.~@:>" version))
-                (declare (ignore condition)))))
+            (mapcan (lambda (version)
+                      (restart-case
+                          (list (resolve-project-version project version))
+                        (continue (&optional condition)
+                          :report (lambda (stream)
+                                    (format stream "~@<Skip version ~A of project ~A.~@:>"
+                                            version project))
+                          (declare (ignore condition)))))
+                    versions))
           versions))
 
 (defun load-distributions (files &optional (overwrites '()))

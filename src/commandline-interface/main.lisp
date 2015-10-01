@@ -101,9 +101,7 @@
                              :cause         condition))))
           (mapc #'do-version1
                 (flet ((var (name &optional default)
-                         (handler-case
-                             (value project name)
-                           (error () default))))
+                         (value project name default)))
                   (apply #'jenkins.analysis:analyze
                          (when-let ((value (var :repository)))
                            (puri:uri value))
@@ -135,9 +133,9 @@
                                                         (member version versions
                                                                 :test #'string=)))
                                   :parent distribution))
-                  (branches      (ignore-errors (lookup project :branches)))
+                  (branches      (value project :branches '()))
                   (branches      (intersection versions branches :test #'string=))
-                  (tags          (ignore-errors (lookup project :tags)))
+                  (tags          (value project :tags '()))
                   (tags          (intersection versions tags :test #'string=))
                   (tags+branches (union branches tags))
                   (versions1     (set-difference versions tags+branches
@@ -151,7 +149,8 @@
                                                    project ~A.~@:>"
                                                   name project))))
                             ((&flet version-var (name &optional default)
-                               (or (when version (ignore-errors (value version name)))
+                               (if version
+                                   (value version name default)
                                    default)))
                             (branch    (when branch?    (version-var :branch (when (eq branch? t) name))))
                             (tag       (when tag?       (version-var :tag (when (eq tag? t) name))))
@@ -436,19 +435,14 @@
                       '((jenkins.api:commit! job)
                         (jenkins.api:enable! job)))
                   job)))
-    (let+ ((buildflow-name      (ignore-errors
-                                 (value distribution :buildflow-name)))
-           (buildflow-parallel? (handler-case
-                                    (value distribution :buildflow.parallel?)
-                                  (error (c) t)))
-           (prepare-name        (ignore-errors
-                                 (value distribution :prepare-hook-name)))
-           (prepare-command     (ignore-errors
-                                 (value distribution :prepare-hook/unix)))
-           (finish-name         (ignore-errors
-                                 (value distribution :finish-hook-name)))
-           (finish-command      (ignore-errors
-                                 (value distribution :finish-hook/unix)))
+    (let+ ((buildflow-name      (value distribution :buildflow-name))
+           (buildflow-parallel? (value distribution :buildflow.parallel? t))
+
+           (prepare-name        (value distribution :prepare-hook-name nil))
+           (prepare-command     (value distribution :prepare-hook/unix nil))
+
+           (finish-name         (value distribution :finish-hook-name nil))
+           (finish-command      (value distribution :finish-hook/unix nil))
            (finish-command      (when finish-command
                                   (format nil "jobs='~{~A~^~%~}'~2%~A"
                                           (mapcar (compose #'jenkins.api:id
@@ -456,7 +450,7 @@
                                                   jobs)
                                           finish-command)))
            ((&flet include-job? (job)
-              (not (ignore-errors (value job :buildflow.exclude?)))))
+              (not (value job :buildflow.exclude? nil))))
            ((&flet make-hook-job (name command)
               (when name
                 (ensure-job ("project" name)
@@ -464,7 +458,7 @@
                    (jenkins.dsl::shell (:command (or command
                                                      "# <nothing to do>")))))))))
       (make-hook-job prepare-name prepare-command)
-      (make-hook-job finish-name finish-command)
+      (make-hook-job finish-name  finish-command)
 
       ;; Create bluildflow job
       (when buildflow-name
@@ -487,7 +481,7 @@
 (defun configure-distribution (distribution
                                &key
                                (build-flow-ignores-failures? t))
-  (unless (ignore-errors (value distribution :disable-ochestration-jobs))
+  (unless (value distribution :disable-ochestration-jobs nil)
     (let ((jobs (mappend (compose #'jobs #'implementation) (versions distribution))))
       (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
       (configure-jobs distribution jobs

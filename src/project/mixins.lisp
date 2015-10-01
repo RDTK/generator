@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -96,12 +96,8 @@
              spec parent)
   (let+ (((&flet value (name)
             (let ((key (make-keyword (string-upcase name))))
-              (or (handler-case
-                      (value parent key)
-                    (error () nil))
-                  (handler-case
-                      (value spec key)
-                    (error () nil))))))
+              (or (value parent key nil)
+                  (value spec key nil)))))
          ((&labels matches? (regex value)
             (etypecase value
               (null   nil)
@@ -134,5 +130,8 @@
 
 (defmethod (setf lookup) ((new-value t)
                           (thing     direct-variables-mixin)
-                          (name      t))
+                          (name      t)
+                          &key
+                          if-undefined)
+  (declare (ignore if-undefined))
   (setf (getf (%direct-variables thing) name) new-value))

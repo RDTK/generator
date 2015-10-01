@@ -147,9 +147,7 @@
 (defmethod add-dependencies! ((thing job) (spec job-spec)
                               &key providers)
   (declare (ignore providers))
-  (let ((dependency-name (or (ignore-errors
-                              (value thing :dependency-job-name))
-                             (name thing))))
+  (let ((dependency-name (value thing :dependency-job-name (name thing))))
     (iter (for dependency in (direct-dependencies (parent thing)))
           (log:trace "~@<Trying to add ~A to ~A~@:>" dependency thing)
           (restart-case
@@ -171,9 +169,9 @@
   (let+ (((&flet format-description ()
             (with-output-to-string (stream)
               (format stream "~@[~A~&~]~:[«no description»~:;~:*~A~]~@[~&~A~]"
-                      (ignore-errors (value thing :description.header)) ; TODO header is a hack
-                      (ignore-errors (value thing :description))
-                      (ignore-errors (value thing :description.footer))))))
+                      (value thing :description.header nil) ; TODO header is a hack
+                      (value thing :description nil)
+                      (value thing :description.footer nil)))))
          (id   (substitute-if-not
                 #\_ #'jenkins.api:job-name-character?
                 (value thing :build-job-name)))
@@ -228,7 +226,7 @@
     thing))
 
 (defmethod deploy-dependencies ((thing job))
-  (when (ignore-errors (value thing :no-dependencies))
+  (when (value thing :no-dependencies nil)
     (return-from deploy-dependencies))
 
   (iter (for upstream-job in (direct-dependencies thing))

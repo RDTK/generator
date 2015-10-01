@@ -269,7 +269,7 @@ ${(make-move-stuff-upwards/unix components)}")))
                            :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
                            (let ((type-string (string builder-type)))
                              (subseq type-string (length "builder/")))))
-         (constraints/raw (ignore-errors (lookup aspect variable)))
+         (constraints/raw (value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "Constraints for ~A in ~A: ~S" builder variable constraints)
     constraints))
@@ -363,7 +363,7 @@ move ..\*.zip .
 ;;; Shell aspect
 
 (define-aspect (shell :job-var job) (builder-defining-mixin) ()
-  (when-let ((command (var :aspect.shell.command nil)))
+  (when-let ((command (var :aspect.shell.command)))
     (push (constraint! () (shell (:command command)))
           (builders job))))
 

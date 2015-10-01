@@ -84,10 +84,9 @@
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"
              name (pathname-name pathname)))
-    (let ((instance (make-instance 'project-spec)))
+    (let ((instance (make-instance 'project-spec :name name)))
       (reinitialize-instance
        instance
-       :name      name
        :templates (mapcar #'find-template (lookup :templates))
        :variables (list* :__catalog (lookup :catalog)
                          (process-variables (lookup :variables)))

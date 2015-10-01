@@ -51,12 +51,12 @@
 
     See `direct-variables'."))
 
-(defgeneric lookup (thing name)
+(defgeneric lookup (thing name &key if-undefined)
   (:documentation
    "Return two values:
     1. the \"raw\" value of the variable named NAME in THING
-    2. a Boolean indicating whether THING has a value for NAME
-    3. a list of shadowed \"raw\" values of NAME in THING
+    2. a list of shadowed \"raw\" values of NAME in THING
+    3. a Boolean indicating whether THING has a value for NAME
 
     The returned values are \"raw\" in the sense that substitutions of
     them forms ${next-value|NAME}, @{next-value|NAME}, etc. remain
@@ -64,15 +64,20 @@
 
     Shadowed values are introduced if a variable has one value in
     THING and other values in \"parents\" of THING which would be
-    inherited if THING did not have the variable."))
+    inherited if THING did not have the variable.
 
-(defgeneric (setf lookup) (new-value thing name)
+    IF-UNDEFINED controls the behavior in vase there is no variable
+    named NAME in THING."))
+
+(defgeneric (setf lookup) (new-value thing name &key if-undefined)
   (:documentation
    "Set the value of the variable named NAME in THING to NEW-VALUE.
 
-    Doing this may shadow other values of NAME, see `lookup'."))
+    Doing this may shadow other values of NAME, see `lookup'.
 
-(defgeneric value (thing name)
+    IF-UNDEFINED is accepted for parity with `lookup'."))
+
+(defgeneric value (thing name &optional default)
   (:documentation
    "Return the \"resolved\" of the variable named NAME in THING.
 
@@ -88,17 +93,25 @@
 
 ;; Default behavior
 
-(defmethod lookup ((thing t) (name t))
+(defmethod lookup ((thing t) (name t)
+                   &key
+                   if-undefined)
+  (declare (ignore if-undefined))
   (when-let ((cells (remove name (plist-alist (variables thing))
                             :test (complement #'eq)
                             :key  #'car)))
-    (values (cdr (first cells)) t (mapcar #'cdr (rest cells)))))
+    (values (cdr (first cells)) (mapcar #'cdr (rest cells)) t)))
 
-(defmethod lookup :around ((thing t) (name t))
-  (let+ (((&values value found? more-values) (call-next-method)))
+(defmethod lookup :around ((thing t) (name t)
+                           &key
+                           (if-undefined #'error))
+  (let+ (((&values value more-values found?) (call-next-method)))
     (if found?
-        (values value more-values)
-        (error "~@<Undefined variable: ~S.~@:>" name))))
+        (values value more-values found?)
+        (error-behavior-restart-case
+            (if-undefined (simple-error
+                           :format-control   "~@<Undefined variable: ~S.~@:>"
+                           :format-arguments (list name)))))))
 
 (esrap:defrule escaped-syntactic-character
     (and #\\ (or #\$ #\@ #\}))
@@ -244,8 +257,10 @@
                  (list (collapse result))))))))
     (first (recur pattern))))
 
-(defmethod value ((thing t) (name t))
-  (let+ (((&values raw raw/next-values) (lookup thing name))
+(defmethod value ((thing t) (name t) &optional (default nil default-supplied?))
+  (let+ (((&values raw raw/next-values defined?)
+          (lookup thing name
+                  :if-undefined (unless default-supplied? #'error)))
          ((&labels+ make-lookup ((&optional first-value &rest next-values))
             (lambda (name1)
               (cond
@@ -258,7 +273,9 @@
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
-    (expand (parse raw) (make-lookup raw/next-values))))
+    (if defined?
+        (expand (parse raw) (make-lookup raw/next-values))
+        default)))
 
 ;;; Platform requirements protocol
 
@@ -270,7 +287,7 @@
       (NAME VERSION)"))
 
 (defmethod platform-requires ((object t) (platform cons))
-  (let+ ((spec (ignore-errors (value object :platform-requires)))
+  (let+ ((spec (value object :platform-requires '()))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where :test #'eq))))
          ((&flet make-key (string)

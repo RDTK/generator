@@ -140,12 +140,8 @@
                                          (,spec-var   t #+actually job))
                  (log:debug "Applying ~A to ~A" ,aspect-var ,job-var)
                  (flet ((var (name &optional (default nil default-supplied?))
-                          (if default-supplied? ; TODO(jmoringe, 2013-03-04):
-                              (handler-case
-                                  (value ,aspect-var name)
-                                (error ()
-                                  default))
-                              (value ,aspect-var name))))
+                          (apply #'value ,aspect-var name
+                                 (when default-supplied? (list default)))))
                    (declare (ignorable #'var))
                    (macrolet
                        ((constraint! ((&optional constraints tag) &body builder)

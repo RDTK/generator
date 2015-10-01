@@ -126,7 +126,7 @@
 
 (defun load-projects/versioned (files-and-versions)
   (with-sequence-progress (:load/project files-and-versions)
-    (lparallel:pmapcar
+    (lparallel:pmapcan
      (lambda+ ((file versions distribution))
        (restart-case
            (let+ ((project       (reinitialize-instance
@@ -171,7 +171,7 @@
                                            :tag?              :maybe
                                            :directory?        :mabye)
                                    versions1)))
-             project)
+             (list project))
          (continue (&optional condition)
            :report (lambda (stream)
                      (format stream "~@<Skip project specification ~

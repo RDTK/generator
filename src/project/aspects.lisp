@@ -49,6 +49,11 @@
   (setf (keep/days  job) (var :aspect.retention.keep/days)
         (keep/count job) (var :aspect.retention.keep/count)))
 
+;;; JDK aspect
+
+(define-aspect (jdk) () ()
+  (setf (jenkins.api::jdk job) (var :aspect.jdk.jdk nil)))
+
 ;;; Redmine aspect
 
 (define-aspect (redmine) () ()

@@ -862,7 +862,8 @@
      (permissions     :type     string/node
                       :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
                                  :if-multiple-matches :all))
-
+     (jdk             :type     string
+                      :xpath    "jdk/text()")
      ;; TODO these will be moved into the appropriate interfaces
      (redmine-instance :type     string
                        :xpath    #+TODO (:version

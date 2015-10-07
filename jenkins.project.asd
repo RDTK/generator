@@ -122,6 +122,7 @@
                               (:file     "asdf")
                               (:file     "maven")
                               (:file     "setuptools")
+                              (:file     "ros-package")
 
                               ;; Platform analysis
                               (:file     "platform")))

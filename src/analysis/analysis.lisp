@@ -20,6 +20,9 @@
        (when (probe-file (merge-pathnames "build.xml" directory) )
          '(:ant))
 
+       (when (probe-file (merge-pathnames "package.xml" directory) )
+         '(:ros-package))
+
        (cond
          ((and (probe-file (merge-pathnames "CMakeLists.txt" directory))
                (directory (merge-pathnames "c*/*ebian*.cmake" directory)))

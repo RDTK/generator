@@ -924,7 +924,8 @@
                     (when report-directory
                      (with-phase-error-check
                          (:report #'errors #'(setf errors) #'report)
-                       (jenkins.report:report distributions :json report-directory)))))))))
+                       (jenkins.report:report distributions :json report-directory)
+                       (jenkins.report:report distributions :graph report-directory)))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

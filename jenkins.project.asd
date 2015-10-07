@@ -91,7 +91,9 @@
 
                 (:version :rosetta               "0.2")
 
-                (:version :jenkins.api           "0.1"))
+                (:version :jenkins.api           "0.1")
+
+                :cl-dot)
   :components  ((:module     "version"
                  :pathname   "src/version"
                  :serial     t
@@ -153,4 +155,5 @@
                  :depends-on ("project")
                  :serial     t
                  :components ((:file     "package")
-                              (:file     "json")))))
+                              (:file     "json")
+                              (:file     "graphviz")))))

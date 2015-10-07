@@ -80,7 +80,11 @@
        (let ((merged (make-hash-table)))
          (dolist (result (analyze source natures))
            (loop :for (key value) :on result :by #'cddr :do
-             (appendf (gethash key merged) (ensure-list value))))
+                    (cond
+                      ((not (nth-value 1 (gethash key merged)))
+                       (setf (gethash key merged) value))
+                      ((listp (gethash key merged))
+                       (appendf (gethash key merged) (ensure-list value))))))
          (hash-table-plist merged))))))
 
 (defmethod analyze ((source pathname) (kind cons) &rest args &key)

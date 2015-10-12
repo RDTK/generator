@@ -121,6 +121,7 @@
                               (:file     "cmake")
                               (:file     "asdf")
                               (:file     "maven")
+                              (:file     "ant")
                               (:file     "setuptools")
                               (:file     "ros-package")
 

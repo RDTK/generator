@@ -72,6 +72,10 @@
       (json:encode-object-member "name" (name object) target)
       (json:encode-object-member "access" (access object) target)
       (json:encode-object-member
+       "requires" (jenkins.project::%requires object) target)
+      (json:encode-object-member
+       "provides" (jenkins.project::%provides object) target)
+      (json:encode-object-member
        "platform-requires" (platform-requires object *platform-of-interest*) target)
       (json:as-object-member ("direct-dependencies" target)
         (json:with-array (target)

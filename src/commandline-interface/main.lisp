@@ -44,7 +44,7 @@
     distribution-pathnames distributions)
    :test #'equalp))
 
-(defun analyze-project (project &key temp-directory non-interactive?)
+(defun analyze-project (project &key cache-directory temp-directory non-interactive?)
   (let+ (((&labels+ do-version ((version-info . info))
             (let+ ((version-name (getf version-info :name))
                    (version-variables (remove-from-plist version-info :name))
@@ -118,6 +118,8 @@
                           (let ((natures (var :natures :none)))
                             (unless (eq natures :none)
                               (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
+                          (when cache-directory
+                            (list :cache-directory cache-directory))
                           (when temp-directory
                             (list :temp-directory temp-directory))))))))
   project)
@@ -179,23 +181,29 @@
            (declare (ignore condition)))))
      :parts most-positive-fixnum files-and-versions)))
 
-(defun analyze-projects (projects &key temp-directory non-interactive?)
-  (with-sequence-progress (:analyze/project projects)
-    (lparallel:pmapcan
-     (lambda (project)
-       (restart-case
-           (when-let ((project (apply #'analyze-project project
-                                      :non-interactive? non-interactive?
-                                      (when temp-directory
-                                        (list :temp-directory temp-directory)))))
-             (list (setf (find-project (name project)) project)))
-         (continue (&optional condition)
-           :report (lambda (stream)
-                     (format stream "~@<Skip analyzing project ~
-                                      ~A.~@:>"
-                             project))
-           (declare (ignore condition)))))
-     :parts most-positive-fixnum projects)))
+(defun analyze-projects (projects &key cache-directory temp-directory non-interactive?)
+  (jenkins.analysis::with-git-cache ()
+    (let ((cache jenkins.analysis::*git-cache*))
+      (with-sequence-progress (:analyze/project projects)
+        (lparallel:pmapcan
+         (lambda (project)
+           (let ((jenkins.analysis::*git-cache* cache))
+             (restart-case
+                 (when-let ((project (apply #'analyze-project project
+                                            :non-interactive? non-interactive?
+                                            (append
+                                             (when cache-directory
+                                               (list :cache-directory cache-directory))
+                                             (when temp-directory
+                                               (list :temp-directory temp-directory))))))
+                   (list (setf (find-project (name project)) project)))
+               (continue (&optional condition)
+                 :report (lambda (stream)
+                           (format stream "~@<Skip analyzing project ~
+                                           ~A.~@:>"
+                                   project))
+                 (declare (ignore condition))))))
+         :parts most-positive-fixnum projects)))))
 
 (defun resolve-project-version (project version)
   (let ((project (find-project project)))
@@ -552,6 +560,12 @@
                        :default-value :abort
                        :description
                        "Abort when encountering errors? Either \"abort\" or \"continue\".")
+              (path    :long-name    "cache-directory"
+                       :type         :directory
+                       :argument-name "DIRECTORY"
+                       :default-value nil
+                       :description
+                       "Directory into which repository mirrors should be written.")
               (path    :long-name    "temp-directory"
                        :type         :directory
                        :argument-name "DIRECTORY"
@@ -790,6 +804,7 @@
                                            nil))
                                      ((funcall (restart/condition 'defer) condition))
                                      ((funcall (restart/condition 'abort) condition)))))
+         (cache-directory        (clon:getopt :long-name "cache-directory"))
          (temp-directory         (clon:getopt :long-name "temp-directory"))
          (report-directory       (clon:getopt :long-name "report-directory")))
     (log:config :thread (if debug? :trace :warn))
@@ -839,8 +854,11 @@
                                                 (:analyze/project #'errors #'(setf errors) #'report)
                                               (apply #'analyze-projects projects/raw
                                                      :non-interactive? non-interactive?
-                                                     (when temp-directory
-                                                       (list :temp-directory temp-directory)))))
+                                                     (append
+                                                      (when cache-directory
+                                                        (list :cache-directory cache-directory))
+                                                      (when temp-directory
+                                                        (list :temp-directory temp-directory))))))
                          (distributions     (with-phase-error-check
                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
                                               (mapcar (lambda (distribution)

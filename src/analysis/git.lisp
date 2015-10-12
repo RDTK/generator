@@ -25,8 +25,8 @@
 (defun %run-git (spec directory &key non-interactive)
   (let+ (((&values global-options environment)
           (if non-interactive
-              `("-c" (format nil "core.askpass=~A"
-                             +disable-git-credentials-helper-program+))
+              `("-c" ,(format nil "core.askpass=~A"
+                              +disable-git-credentials-helper-program+))
               (values () (environment-with-ssh-askpass-overwritten)))))
     (run `("git" ,@global-options  ,@spec)
          directory :environment environment)))

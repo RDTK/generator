@@ -65,7 +65,7 @@
               (when url     `(:url ,(cdr (first url))))
               (when license `(:license ,license))
               (when persons `(:authors ,(mapcar (lambda+ ((name &key role email))
-                                                  (declare (ignore role email))
+                                                  (declare (ignore role))
                                                   (format nil "~A~@[ <~A>~]" name email))
                                                 persons)))))))
 

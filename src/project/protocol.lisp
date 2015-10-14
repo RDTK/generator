@@ -320,7 +320,7 @@
     reason as a second value."))
 
 (defmethod access ((object t))
-  (switch ((ignore-errors (value object :access)) :test #'equal)
+  (switch ((value object :access nil) :test #'equal)
     (nil       :public)
     ("public"  :public)
     ("private" :private)))

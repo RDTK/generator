@@ -123,11 +123,11 @@
           ;; method combination?
           (direct-variables thing)
           (mappend #'variables (templates thing))
-          ;; TODO this is a hack to not inherit the value of the
-          ;; :access variable from parents like `distribution-spec'
-          ;; instances.
+          ;; TODO this is a hack to not inherit the values of the
+          ;; :access and :platform-requires variables from parents
+          ;; like `distribution-spec' instances.
           (when-let ((parent (parent thing)))
-            (remove-from-plist (variables parent) :access))))
+            (remove-from-plist (variables parent) :access :platform-requires))))
 
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))

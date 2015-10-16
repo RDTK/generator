@@ -155,15 +155,16 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
          (local-branch (or (var :aspect.git.local-branch nil)
                            (first branches))))
     (setf (repository job)
-          (git (:url                  (jenkins.analysis::format-git-url
-                                       url/parsed username password)
-                :credentials          credentials
-                :branches             branches
-                :wipe-out-workspace?  (var :aspect.git.wipe-out-workspace? t)
-                :checkout-submodules? (var :aspect.git.checkout-submodules? nil)
-                :shallow?             (var :aspect.git.shallow? nil)
-                :local-branch         local-branch
-                :internal-tag?        nil))))
+          (git (:url                    (jenkins.analysis::format-git-url
+                                         url/parsed username password)
+                :credentials            credentials
+                :branches               branches
+                :wipe-out-workspace?    (var :aspect.git.wipe-out-workspace?    nil)
+                :clean-before-checkout? (var :aspect.git.clean-before-checkout? t)
+                :checkout-submodules?   (var :aspect.git.checkout-submodules?   nil)
+                :shallow?               (var :aspect.git.shallow?               nil)
+                :local-branch           local-branch
+                :internal-tag?          nil))))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level

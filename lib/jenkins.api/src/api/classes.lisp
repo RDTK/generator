@@ -390,51 +390,53 @@
 
   ((git "hudson.plugins.git.GitSCM"
         :plugin "git@2.0")
-   ((url                  :type     string
-                          :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/url/text()")
-    (credentials          :type     string
-                          :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/credentialsId/text()"
-                          :initform nil)
-    (branches             :type     (singleton-element "name/text()")
-                          :xpath    ("branches/hudson.plugins.git.BranchSpec"
-                                     :if-multiple-matches :all))
-    (local-branch         :type     string
-                          :xpath    (:version
-                                     ("git@1.1.26"
-                                      "localBranch/text()")
-                                     (t
-                                      "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"))
-                          :initform nil)
-    (wipe-out-workspace?  :type     (boolean/element "hudson.plugins.git.extensions.impl.WipeWorkspace")
-                          :xpath    (:version
-                                     ("git@1.1.26"
-                                      "wipeOutWorkspace/text()")
-                                     (t
-                                      "extensions")))
-    (checkout-submodules? :type     boolean
-                          :xpath    (:version
-                                     ("git@1.1.26"
-                                      "recursiveSubmodules/text()")
-                                     (t
-                                      "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")))
-    (shallow?             :type     boolean
-                          :xpath    (:version
-                                     ("git@1.1.26"
-                                      "useShallowClone/text()")
-                                     (t
-                                      "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")))
-    (internal-tag?        :type     (boolean/element "hudson.plugins.git.extensions.impl.PerBuildTag")
-                          :xpath    (:version
-                                     ("git@1.1.26"
-                                      "skipTag/text()")
-                                     (t
-                                      "extensions")))
-    (browser-kind         :type     git-browser
-                          :xpath    "browser/@class"
-                          :initform nil)
-    (browser-url          :type     string
-                          :xpath    "browser/url/text()"
-                          :initform nil))
+   ((url                    :type     string
+                            :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/url/text()")
+    (credentials            :type     string
+                            :xpath    "userRemoteConfigs/hudson.plugins.git.UserRemoteConfig/credentialsId/text()"
+                            :initform nil)
+    (branches               :type     (singleton-element "name/text()")
+                            :xpath    ("branches/hudson.plugins.git.BranchSpec"
+                                       :if-multiple-matches :all))
+    (local-branch           :type     string
+                            :xpath    (:version
+                                       ("git@1.1.26"
+                                        "localBranch/text()")
+                                       (t
+                                        "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"))
+                            :initform nil)
+    (wipe-out-workspace?    :type     (boolean/element "hudson.plugins.git.extensions.impl.WipeWorkspace")
+                            :xpath    (:version
+                                       ("git@1.1.26"
+                                        "wipeOutWorkspace/text()")
+                                       (t
+                                        "extensions")))
+    (clean-before-checkout? :type     (boolean/element "hudson.plugins.git.extensions.impl.CleanBeforeCheckout")
+                            :xpath    "extensions")
+    (checkout-submodules?   :type     boolean
+                            :xpath    (:version
+                                       ("git@1.1.26"
+                                        "recursiveSubmodules/text()")
+                                       (t
+                                        "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")))
+    (shallow?               :type     boolean
+                            :xpath    (:version
+                                       ("git@1.1.26"
+                                        "useShallowClone/text()")
+                                       (t
+                                        "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")))
+    (internal-tag?          :type     (boolean/element "hudson.plugins.git.extensions.impl.PerBuildTag")
+                            :xpath    (:version
+                                       ("git@1.1.26"
+                                        "skipTag/text()")
+                                       (t
+                                        "extensions")))
+    (browser-kind           :type     git-browser
+                            :xpath    "browser/@class"
+                            :initform nil)
+    (browser-url            :type     string
+                            :xpath    "browser/url/text()"
+                            :initform nil))
    (:name-slot url))
 
   ((bzr "hudson.plugins.bazaar.BazaarSCM")

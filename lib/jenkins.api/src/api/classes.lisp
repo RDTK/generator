@@ -351,6 +351,26 @@
     (:update             "hudson.scm.subversion.UpdateUpdater")
     (:emulate-fresh-copy "hudson.scm.subversion.UpdateWithCleanUpdater")))
 
+(deftype mercurial-revision-type ()
+  '(member :branch :tag))
+
+(defmethod xloc:xml-> ((value string)
+                       (type  (eql 'mercurial-revision-type))
+                       &key &allow-other-keys)
+  (switch (value :test #'string=)
+    ("BRANCH"
+     :branch)
+    ("TAG"
+     :tag)
+    (t
+     (error "~@<Unknown revision type ~S.~@:>" value))))
+
+(defmethod xloc:->xml ((value symbol)
+                       (dest  (eql 'string))
+                       (type  (eql 'mercurial-revision-type))
+                       &key &allow-other-keys)
+  (princ-to-string value))
+
 (define-interface-implementations (scm
                                    :class-location (xloc:val "@class"))
   ((svn "hudson.scm.SubversionSCM"
@@ -420,6 +440,31 @@
   ((bzr "hudson.plugins.bazaar.BazaarSCM")
    ((url :type  string
          :xpath "source/text()"))
+   (:name-slot url))
+
+  ((mercurial "hudson.plugins.mercurial.MercurialSCM"
+              :plugin "mercurial@1.54")
+   ((url           :type     string
+                   :xpath    "source/text()")
+    (credentials   :type     string
+                   :xpath    "credentialsId/text()"
+                   :initform nil)
+    (revision-type :type     mercurial-revision-type
+                   :xpath    "revisionType/text()"
+                   :initform :branch)
+    (branch        :type     string
+                   :xpath    "revision/text()")
+    (sub-directory :type     string
+                   :xpath    "subdir/text()"
+                   :initform nil)
+    (clean?        :type     boolean
+                   :xpath    "clean/text()"
+                   :initform nil)
+    (modules       :type     (list/space string)
+                   :xpath    ("modules/text()"
+                              :if-no-match :do-nothing)
+                   :initform '()
+                   :optional? nil))
    (:name-slot url))
 
   ((null "hudson.scm.NullSCM")

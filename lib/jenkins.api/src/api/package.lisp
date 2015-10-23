@@ -110,7 +110,16 @@
    #:checkout-strategy
 
    #:scm/bzr
-   #:url)
+   #:url
+
+   #:scm/mercurial
+   #:url
+   #:credentials
+   #:revision-type
+   #:branch
+   #:sub-directory
+   #:clean?
+   #:modules)
 
   ;; Properties interface
   (:export

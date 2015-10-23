@@ -199,7 +199,46 @@ ${(make-move-stuff-upwards/unix components)}")))
                                      (var :aspect.subversion.checkout-strategy
                                           :fresh-copy))))))))
 
-(define-aspect (trigger/scm) () ()
+(define-aspect (mercurial :job-var job :aspect-var aspect)
+    (builder-defining-mixin)
+    ()
+  ;; Configure mercurial scm plugin.
+  (let* ((url          (var :aspect.mercurial.url))
+         (url/parsed   (puri:uri url))
+         (credentials  (or (var :aspect.mercurial.credentials nil)
+                           (unless (check-access aspect :public)
+                             (puri:uri-host url/parsed))))
+         (branch       (var :aspect.mercurial.branch))
+         (tag          (var :aspect.mercurial.tag))
+         (clean?       (var :aspect.mercurial.clean?)))
+    (when (and branch tag)
+      (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"
+             branch tag))
+    (setf (repository job)
+          (mercurial (:url           url
+                      :credentials   credentials
+                      :revision-type (cond
+                                       (branch :branch)
+                                       (tag    :tag))
+                      :branch        (or branch tag)
+                      :clean?        clean?))))
+
+  ;; TODO mercurial seems to support sub-directories
+  ;; If a specific sub-directory of the repository has been requested,
+  ;; move the contents of that sub-directory to the top-level
+  ;; workspace directory before proceeding.
+  (when-let ((sub-directory (var :sub-directory nil)))
+    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
+           ((&whole components first &rest &ign)
+            (rest (pathname-directory sub-directory))))
+      (push (constraint! (((:before t)))
+              (shell (:command #?"${(make-remove-directory-contents :exclude first)}
+
+${(make-move-stuff-upwards/unix components)}")))
+            (builders job)))))
+
+(define-aspect (trigger/scm) ()
+    ()
   (push (scm (:spec (var :aspect.trigger/scm.spec)))
         (triggers job)))
 

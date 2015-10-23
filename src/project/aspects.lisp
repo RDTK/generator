@@ -38,9 +38,9 @@
                           (t
                            (error "~@<Unsupported parameter kind: ~S.~@:>"
                                   kind)))))
-             (push (list* :kind kind :name name
-                          (when default (list :default default)))
-                   (parameters parameters))))
+              (push (list* :kind kind :name name
+                           (when default (list :default default)))
+                    (parameters parameters))))
           (var :aspect.parameters.parameters))))
 
 ;;; Retention aspect
@@ -111,7 +111,7 @@ mv -T \"${first}\" \"\${temp}/\"
 find \"\${temp}/${rest/string}\" -mindepth 1 -maxdepth 1 -exec mv {} . \\;
 rm -rf \"\${temp}\""))
 
-(defun slashify (namestring)
+(defun slashify (namestring) ; TODO uiop:ensure-directory-pathname
   (if (ends-with #\/ namestring)
       namestring
       (concatenate 'string namestring "/")))
@@ -181,7 +181,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
   (let* ((url         (var :aspect.subversion.url))
-         (revision     (var :aspect.subversion.revision nil))
+         (revision    (var :aspect.subversion.revision nil))
          (url/parsed  (puri:uri url))
          (url/parsed  (puri:copy-uri
                        url/parsed
@@ -245,8 +245,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 ;;; Timeout aspect
 
-(define-aspect (timeout)
-    ()
+(define-aspect (timeout) ()
     ()
   (when-let ((value (var :aspect.timeout.timeout/minutes)))
     (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
@@ -321,7 +320,8 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 ;;; SLOCcount aspect
 
-(define-aspect (sloccount) (builder-defining-mixin) ()
+(define-aspect (sloccount) (builder-defining-mixin)
+    ()
   (push (constraint! (((:before cmake/unix)))
          (shell (:command "TEMPDIR=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
 sloccount --datadir \"${TEMPDIR}\" --wide --details \"${WORKSPACE}\" > \"${WORKSPACE}/sloccount.sc\"
@@ -333,7 +333,8 @@ rm -rf \"${TEMPDIR}\"")))
 
 ;;; Slaves aspect
 
-(define-aspect (slaves :job-var job) () () ; TODO separate slaves aspect for matrix-project jobs?
+(define-aspect (slaves :job-var job) ()
+    () ; TODO separate slaves aspect for matrix-project jobs?
   (when-let ((value (var :aspect.slaves.slaves nil)))
     (setf (slaves job) value))
   (if-let ((value (var :aspect.slaves.restrict-to-slaves nil)))
@@ -345,7 +346,8 @@ rm -rf \"${TEMPDIR}\"")))
 
 (define-aspect (dependency-download :job-var  job
                                     :spec-var spec)
-    (builder-defining-mixin) ()
+    (builder-defining-mixin)
+    ()
   (let ((copy-artifacts? nil))
     (when-let ((self-kind    (first (ensure-list (value spec :kind nil))))
                (dependencies (dependencies spec)))
@@ -404,7 +406,8 @@ move ..\*.zip .
 
 ;;; Shell aspect
 
-(define-aspect (shell :job-var job) (builder-defining-mixin) ()
+(define-aspect (shell :job-var job) (builder-defining-mixin)
+    ()
   (when-let ((command (var :aspect.shell.command)))
     (push (constraint! () (shell (:command command)))
           (builders job))))
@@ -413,7 +416,8 @@ move ..\*.zip .
 
 (define-aspect (cmake/unix :job-var  job
                            :spec-var spec)
-    (builder-defining-mixin) ()
+    (builder-defining-mixin)
+    ()
   (let+ (((&flet shellify (name)
            (make-variable/sh (string-upcase name))))
          (variables (iter (for variable in (var :aspect.cmake.environment '())) ; TODO check these for validity?
@@ -451,7 +455,8 @@ make # not always necessary, but sometimes, sadly
 make @{targets}")))
           (builders job))))
 
-(define-aspect (archive-artifacts :job-var job) () ()
+(define-aspect (archive-artifacts :job-var job) ()
+    ()
   (when-let ((file-pattern (var :aspect.archive-artifacts.file-pattern nil)))
     (with-interface (publishers job) (archiver (publisher/archive-artifacts
                                                 :files        nil
@@ -475,7 +480,8 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
 
 ;;; Maven aspect
 
-(define-aspect (maven :job-var job) (builder-defining-mixin) ()
+(define-aspect (maven :job-var job) (builder-defining-mixin)
+    ()
   (push (constraint! ()
          (maven (:properties          (mapcan (lambda (spec)
                                                 (let+ (((name value) (split-sequence #\= spec)))
@@ -493,7 +499,8 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
 
 ;;; Setuptools aspect
 
-(define-aspect (setuptools :job-var job) (builder-defining-mixin) ()
+(define-aspect (setuptools :job-var job) (builder-defining-mixin)
+    ()
   (let+ ((binary         (var :aspect.setuptools.python-binary))
          (script         (var :aspect.setuptools.script))
          (install-prefix (var :aspect.setuptools.install-prefix nil))
@@ -534,7 +541,8 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 ;;; Warnings aspect
 
-(define-aspect (warnings :job-var job) () ()
+(define-aspect (warnings :job-var job) ()
+    ()
   (with-interface (publishers job) (warnings (publisher/warnings))
     (iter (for parser in (var :warning-parsers))
           (pushnew (make-instance 'warning-parser/console :name parser)
@@ -544,7 +552,8 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 ;;; Test result aspects
 
-(define-aspect (xunit :job-var job) () ()
+(define-aspect (xunit :job-var job) ()
+    ()
   (let ((kind (var :aspect.xunit.kind)))
     (with-interface (publishers job) (publisher (publisher/xunit))
       (removef (types publisher) kind :test #'string= :key #'kind)
@@ -558,7 +567,8 @@ ${(or ensure-install-directory "# Not creating install directory")}
              :stop-processing-if-error? (var :aspect.xunit.stop-processing-if-error?))
             (types publisher)))))
 
-(define-aspect (junit :job-var job) () ()
+(define-aspect (junit :job-var job) ()
+    ()
   ;; Remove previous configuration, if any.
   (removef (publishers job) 'publisher/junit :key #'of-type)
   ;; Add new configuration.
@@ -571,7 +581,8 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 ;;; Debian packaging aspects
 
-(define-aspect (debian-package :job-var job) () ()
+(define-aspect (debian-package :job-var job) ()
+    ()
   ;; Add console-based parser for lintian.
   (with-interface (publishers job) (warnings (publisher/warnings))
     (pushnew (make-instance 'warning-parser/console :name "Lintian")
@@ -603,7 +614,8 @@ lintian -i *.deb || true
 
 ;;; upload aspect
 
-(define-aspect (upload :job-var job) () ()
+(define-aspect (upload :job-var job) ()
+    ()
   (push (ssh (:target           (var :aspect.upload.target)
               :source-files     (var :aspect.upload.source-files)
               :excludes         (var :aspect.upload.excludes '())

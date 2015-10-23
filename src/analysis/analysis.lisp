@@ -50,6 +50,7 @@
                                    (make-keyword (string-upcase scm)))
                                   ((search "git" source/string :test #'char-equal) :git)
                                   ((search "svn" source/string :test #'char-equal) :svn)
+                                  ((search "hg" source/string :test #'char-equal) :mercurial)
                                   (t (error "~@<Cannot handle URI ~A.~@:>"
                                             source))))))
          (temp-directory (default-temporary-directory

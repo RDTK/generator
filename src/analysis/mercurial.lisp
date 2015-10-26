@@ -1,6 +1,6 @@
 ;;;; mercurial.lisp --- Support for the mercurial DVCS.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2015 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -13,22 +13,20 @@
                     &rest args &key
                     username
                     password
-                    branches
-                    tags
+                    (versions (missing-required-argument :versions))
                     sub-directory
                     (temp-directory (default-temporary-directory)))
   (when (or username password)
     (error "~@<Authentication support not implemented for ~A.~@:>" schema))
 
   (let+ ((repository/string (princ-to-string source))
-         (branches          (append branches tags))
          (clone-directory   temp-directory)
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
          ((&flet analyze-directory (directory)
             (apply #'analyze directory :auto
-                   (remove-from-plist args :username :password :branches :tags
+                   (remove-from-plist args :username :password :versions
                                            :sub-directory :history-limit
                                            :temp-directory)))))
 
@@ -39,30 +37,39 @@
               `("clone" ,repository/string ,clone-directory)
               temp-directory))
 
-           (with-sequence-progress (:analyze/branch branches)
-             (iter (for branch in branches)
-                   (progress "~A" branch)
+           (with-sequence-progress (:analyze/version versions)
+             (iter (for version in versions)
+                   (progress "~A" version)
 
                    (restart-case
                        (progn
-                         (%run-mercurial `("checkout" ,branch) clone-directory)
+                         (let ((commit (or (getf version :commit)
+                                           (getf version :tag)
+                                           (getf version :branch)
+                                           (error "~@<No commit, tag or ~
+                                                 branch specified in ~
+                                                 ~S~@:>"
+                                                  version))))
 
-                         (let ((result (list* :scm              :mercurial
-                                              :branch-directory nil
-                                              (analyze-directory analyze-directory))))
-                           (unless (getf result :authors)
-                             (setf (getf result :authors)
-                                   (analyze clone-directory :mercurial/authors)))
-                           (collect (cons branch result))))
+                           (%run-mercurial `("checkout" ,commit) clone-directory)
+
+                           (let ((result (list* :scm              :mercurial
+                                                :branch-directory nil
+                                                (analyze-directory analyze-directory))))
+                             (unless (getf result :authors)
+                               (setf (getf result :authors)
+                                     (analyze clone-directory :mercurial/authors)))
+                             (collect (cons version result)))))
                      (continue (&optional condition)
                        :report (lambda (stream)
                                  (format stream "~<Ignore ~A and ~
                                                  continue with the ~
-                                                 next branch.~@:>"
-                                         branch))
+                                                 next version.~@:>"
+                                         version))
                        (declare (ignore condition)))))))
 
-      (run `("rm" "-rf" ,clone-directory) temp-directory))))
+      (when (probe-file clone-directory)
+        (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))
 
 (defmethod analyze ((directory pathname) (kind (eql :mercurial/authors))
                     &key

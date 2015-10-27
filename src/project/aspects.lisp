@@ -347,19 +347,16 @@ rm -rf \"${TEMPDIR}\"")))
                                     :spec-var spec)
     (builder-defining-mixin) ()
   (let ((copy-artifacts? nil))
-    (when-let ((self-kind    (first (ensure-list (ignore-errors
-                                                  (value spec :kind)))))
+    (when-let ((self-kind    (first (ensure-list (value spec :kind nil))))
                (dependencies (dependencies spec)))
       ;; Multiple copy-artifact builders which copy artifacts from
       ;; other jobs.
       (iter (for dependency in dependencies)
             (let+ ((id      (value dependency :build-job-name))
-                   (kind    (first (ensure-list (ignore-errors
-                                                 (value dependency :kind)))))
+                   (kind    (first (ensure-list (value dependency :kind nil))))
                    (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
                                                         (aspects dependency))))
-                              (ignore-errors
-                               (value aspect :aspect.archive-artifacts.file-pattern))))
+                              (value aspect :aspect.archive-artifacts.file-pattern nil)))
                    ((&flet matrix? (kind)
                       (member kind '("matrix" "matrix-project") :test #'string-equal)))
                    (reference (format nil "~A~@[/label=$label~]"

@@ -462,7 +462,7 @@
                    :initform nil)
     (modules       :type     (list/space string)
                    :xpath    ("modules/text()"
-                              :if-no-match :do-nothing)
+                              :if-no-match :create)
                    :initform '()
                    :optional? nil))
    (:name-slot url))

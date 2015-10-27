@@ -85,6 +85,9 @@
     (list* name :role role (when email (list :email email)))))
 
 (deftype list/depend ()
+  "(PHASE . DEPENDENCY)
+
+   where PHASE is either t, or the name of a phase."
   '(cons string (cons string null)))
 
 (defmethod xloc:xml-> ((value stp:element) (type (eql 'list/depend))
@@ -94,7 +97,9 @@
   (xloc:with-locations-r/o (((:name name) ".")
                             (value        "text()"))
       value
-    (list (subseq name 0 (- (length name) (length "_depend")))
+    (list (if (string= name "depend")
+              t
+              (subseq name 0 (- (length name) (length "_depend"))))
           value)))
 
 (deftype cons/url ()

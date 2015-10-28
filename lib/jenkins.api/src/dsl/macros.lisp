@@ -14,46 +14,6 @@
   `(defvar ,(make-template-name name)
      (load-time-value (cxml:parse ,xml (stp:make-builder)) t)))
 
-(define-template scm/git
-  "<scm class=\"hudson.plugins.git.GitSCM\" plugin=\"git@1.1.26\">
-    <configVersion>2</configVersion>
-    <userRemoteConfigs>
-      <hudson.plugins.git.UserRemoteConfig>
-        <name/>
-        <refspec/>
-        <url>https://code.cor-lab.org/git/rsb.git.cpp</url>
-      </hudson.plugins.git.UserRemoteConfig>
-    </userRemoteConfigs>
-    <branches>
-      <hudson.plugins.git.BranchSpec>
-        <name>remotes/origin/master</name>
-      </hudson.plugins.git.BranchSpec>
-    </branches>
-    <disableSubmodules>false</disableSubmodules>
-    <recursiveSubmodules>false</recursiveSubmodules>
-    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
-    <authorOrCommitter>false</authorOrCommitter>
-    <clean>false</clean>
-    <wipeOutWorkspace>true</wipeOutWorkspace>
-    <pruneBranches>false</pruneBranches>
-    <remotePoll>false</remotePoll>
-    <ignoreNotifyCommit>false</ignoreNotifyCommit>
-    <useShallowClone>false</useShallowClone>
-    <buildChooser class=\"hudson.plugins.git.util.DefaultBuildChooser\"/>
-    <gitTool>Default</gitTool>
-    <submoduleCfg class=\"list\"/>
-    <relativeTargetDir/>
-    <reference/>
-    <excludedRegions/>
-    <excludedUsers/>
-    <gitConfigName/>
-    <gitConfigEmail/>
-    <skipTag>true</skipTag>
-    <includedRegions/>
-    <scmName/>
-  </scm>
-")
-
 (define-template job
   "<matrix-project>
   <description/>

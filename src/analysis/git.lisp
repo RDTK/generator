@@ -154,13 +154,14 @@
 
 (defun clone-git-repository/maybe-cached (source clone-directory commit
                                           &rest args &key
-                                          cache-directory
+                                                     cache-directory
                                           &allow-other-keys)
-  (apply (if cache-directory
-             #'clone-git-repository/cached
-             #'clone-git-repository)
-         source clone-directory :branch commit
-         (remove-from-plist args :cache-directory)))
+  (let+ (((&values function args)
+          (if cache-directory
+              (values #'clone-git-repository/cached args)
+              (values #'clone-git-repository
+                      (remove-from-plist args :cache-directory)))))
+    (apply function source clone-directory :branch commit args)))
 
 (defun analyze-git-branch (clone-directory &key sub-directory)
   (let* ((analyze-directory (if sub-directory

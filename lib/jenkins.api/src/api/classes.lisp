@@ -935,19 +935,24 @@
 (deftype job-name ()
   '(satisfies job-name?))
 
-(defmethod initialize-instance :before ((instance job)
-                                        &key id)
-  (unless (job-name? id)
+(defun check-job-name (name)
+  (unless (job-name? name)
     (let ((offenders (map 'list (lambda (char)
                                   (list char (char-name char)))
                           (remove-duplicates
-                           (remove-if #'job-name-character? id)))))
+                           (remove-if #'job-name-character? name)))))
       (error 'simple-type-error
-             :datum            id
+             :datum            name
              :expected-type    'job-name
              :format-control   "~@<Supplied job name ~S contains illegal ~
                                 character~P: ~{~{~A (~@[~A~])~}~^, ~}.~@:>"
-             :format-arguments (list id (length offenders) offenders)))))
+             :format-arguments (list name (length offenders) offenders)))))
+
+(defmethod initialize-instance :before ((instance job)
+                                        &key
+                                        id
+                                        check-id?)
+  (when check-id? (check-job-name id)))
 
 (defmethod kind ((object job))
   (stp:local-name (stp:document-element (%data object))))

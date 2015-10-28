@@ -104,8 +104,9 @@
             (let ((accessor-name (find-accessor class-name name)))
               `(setf (,accessor-name ,node) (list ,@specs))))))
    `(let ((,node (make-instance ',class-name
-                               :id   ,name
-                               :data (stp:copy ,template-name))))
+                                :id        ,name
+                                :check-id? t
+                               :data       (stp:copy ,template-name))))
       (xloc:xml-> (stp:root ,template-name) ,node)
       ,@(iter (for (name value) on attributes :by #'cddr)
               (collect (process-attribute name value)))

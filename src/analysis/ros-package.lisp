@@ -109,7 +109,7 @@
                        &key
                        inner-types)
   (declare (ignore inner-types))
-  (xloc:with-locations-r/o (((:@ type) ".")
+  (xloc:with-locations-r/o (((:@ type) "." :if-no-match :do-nothing)
                             (value     "text()"))
       value
-    (cons type value)))
+    (cons (or type :default) value)))

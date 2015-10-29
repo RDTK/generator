@@ -577,7 +577,10 @@
                        :argument-name "DIRECTORY"
                        :default-value nil
                        :description
-                       "Instead of creating Jenkins jobs, write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results."))
+                       "Write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results.")
+              (flag    :long-name    "dry-run"
+                       :description
+                       "Read recipes and perform the usual analysis but do not create or delete Jenkins jobs."))
 
    :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "template"
@@ -806,7 +809,8 @@
                                      ((funcall (restart/condition 'abort) condition)))))
          (cache-directory        (clon:getopt :long-name "cache-directory"))
          (temp-directory         (clon:getopt :long-name "temp-directory"))
-         (report-directory       (clon:getopt :long-name "report-directory")))
+         (report-directory       (clon:getopt :long-name "report-directory"))
+         (dry-run?               (clon:getopt :long-name "dry-run")))
     (log:config :thread (if debug? :trace :warn))
 
     (restart-case
@@ -877,11 +881,11 @@
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
                                               (instantiate-projects projects/specs distributions)))
-                         (jobs/spec         (unless report-directory
+                         (jobs/spec         (unless dry-run?
                                               (with-phase-error-check
                                                   (:deploy/project #'errors #'(setf errors) #'report)
                                                 (flatten (deploy-projects projects)))))
-                         (jobs              (unless report-directory
+                         (jobs              (unless dry-run?
                                               (mappend #'implementations jobs/spec))))
                     (declare (ignore templates))
 
@@ -890,7 +894,7 @@
                     ;; generated jobs. This is necessary to get rid of
                     ;; leftover jobs when projects (or project versions) are
                     ;; deleted or renamed.
-                    (when (and delete-other? (not report-directory))
+                    (when (and (not dry-run?) delete-other?)
                       (with-phase-error-check
                           (:delete-other-jobs #'errors #'(setf errors) #'report)
                         (let ((other-jobs (set-difference (generated-jobs) jobs
@@ -900,7 +904,7 @@
                                   other-jobs)))))
 
                     ;; TODO explain
-                    (unless report-directory
+                    (unless dry-run?
                       (with-phase-error-check
                           (:orchestration #'errors #'(setf errors) #'report)
                         (with-trivial-progress (:orchestration "Configuring orchestration jobs")
@@ -922,10 +926,10 @@
                         (list-credentials jobs)))
 
                     (when report-directory
-                     (with-phase-error-check
-                         (:report #'errors #'(setf errors) #'report)
-                       (jenkins.report:report distributions :json report-directory)
-                       (jenkins.report:report distributions :graph report-directory)))))))))
+                      (with-phase-error-check
+                          (:report #'errors #'(setf errors) #'report)
+                        (jenkins.report:report distributions :json report-directory)
+                        (jenkins.report:report distributions :graph report-directory)))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

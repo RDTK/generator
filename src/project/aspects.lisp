@@ -81,25 +81,25 @@
 
 ;;; SCM aspects
 
-(defun make-remove-directory-contents (&key exclude)
+(defun make-remove-directory-contents/unix (&key exclude)
   (let ((exclude (ensure-list exclude)))
     (format nil "find . -mindepth 1 -maxdepth 1 ~
                         ~[~:*~;-not -name ~{~S~} ~:;-not \\( ~{-name ~S~^ -o ~} \\) ~]~
                         -exec rm -rf {} \\;"
             (length exclude) exclude)))
 (assert
- (string= (make-remove-directory-contents)
+ (string= (make-remove-directory-contents/unix)
           "find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \\;"))
 (assert
- (string= (make-remove-directory-contents :exclude "foo")
+ (string= (make-remove-directory-contents/unix :exclude "foo")
           "find . -mindepth 1 -maxdepth 1 -not -name \"foo\" -exec rm -rf {} \\;"))
 (assert
- (string= (make-remove-directory-contents :exclude '("b\"ar" "foo"))
+ (string= (make-remove-directory-contents/unix :exclude '("b\"ar" "foo"))
           "find . -mindepth 1 -maxdepth 1 -not \\( -name \"b\\\"ar\" -o -name \"foo\" \\) -exec rm -rf {} \\;"))
 
 (defun make-move-stuff-upwards/unix (stuff)
-  "Move contents of STUFF which is usually one or multiple directories
-   to the current directory."
+  "Move contents of STUFF, which is a list of one or more directory
+   name components, to the current directory."
   (declare (type list stuff))
   (let+ (((first &rest rest) stuff)
          (rest/string (namestring (make-pathname :directory `(:relative ,@rest)))))
@@ -130,7 +130,7 @@ rm -rf \"\${temp}\""))
                           (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
-${(make-remove-directory-contents)}
+${(make-remove-directory-contents/unix)}
 
 # Unpack archive.
 wget --no-verbose \"${url/string}\" --output-document=\"${archive}\"
@@ -174,7 +174,7 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents :exclude first)}
+              (shell (:command #?"${(make-remove-directory-contents/unix :exclude first)}
 
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
@@ -233,7 +233,7 @@ ${(make-move-stuff-upwards/unix components)}")))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents :exclude first)}
+              (shell (:command #?"${(make-remove-directory-contents/unix :exclude first)}
 
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))

@@ -440,11 +440,13 @@ move ..\*.zip .
                                          #?"\${${(shellify required)}_DIR}")
                             :into options)))
                 (finally (return-from outer (values finds options)))) )
-         (options/raw (append dir-options/raw
-                              (mapcar (curry #'split-sequence #\=)
-                                      (var :aspect.cmake.options '()))))
-         (options     (mapcar #'format-option options/raw))
-         (targets     (var :aspect.cmake.targets '())))
+         (options/raw               (append dir-options/raw
+                                            (mapcar (curry #'split-sequence #\=)
+                                                    (var :aspect.cmake.options '()))))
+         (options                   (mapcar #'format-option options/raw))
+         (cmake-commandline-options (var :aspect.cmake.commandline-options '()))
+         (targets                   (var :aspect.cmake.targets '()))
+         (make-commandline-options  (var :aspect.cmake.make.commandline-options '())))
 
     (push (constraint! (((:after dependency-download)))
             (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}
@@ -452,9 +454,9 @@ move ..\*.zip .
 @{variables}
 
 @{finds}
-cmake @{options} ..
-make # not always necessary, but sometimes, sadly
-make @{targets}")))
+cmake @{cmake-commandline-options} @{options} ..
+make @{make-commandline-options} # not always necessary, but sometimes, sadly
+make @{make-commandline-options} @{targets}")))
           (builders job))))
 
 (define-aspect (archive-artifacts :job-var job) ()

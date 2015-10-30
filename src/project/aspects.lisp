@@ -174,7 +174,8 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents/unix :exclude first)}
+              (shell (:command #?"${(make-remove-directory-contents/unix
+                                     :exclude (list ".git" first))}
 
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
@@ -233,7 +234,8 @@ ${(make-move-stuff-upwards/unix components)}")))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents/unix :exclude first)}
+              (shell (:command #?"${(make-remove-directory-contents/unix
+                                     :exclude (list ".hg" first))}
 
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))

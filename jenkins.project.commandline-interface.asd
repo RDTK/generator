@@ -19,8 +19,8 @@
   :author      "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :maintainer  "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :version     #.(jenkins.project-system:version/string)
-  :license     "GPLv3; see COPYING file for details."
-  :description "TIDE log file format backend for cl-rsbag."
+  :license     "GPLv3" ; see COPYING file for details.
+  :description "Commandline interface of the generator program."
   :depends-on  (:alexandria
                 (:version :let-plus        "0.2")
                 :iterate

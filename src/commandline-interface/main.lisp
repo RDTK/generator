@@ -349,8 +349,9 @@
                                 job))
               (declare (ignore condition)))))))
 
-(defun generated-jobs ()
-  (remove "automatically generated" (jenkins.api:all-jobs)
+(defun generated-jobs (&optional pattern)
+  (remove "automatically generated" (apply #'jenkins.api:all-jobs
+                                           (when pattern (list pattern)))
           :test-not #'search
           :key      #'jenkins.api:description))
 
@@ -619,6 +620,13 @@
               (flag   :long-name     "delete-other"
                       :description
                       "Delete previously automatically generated jobs when they are not re-created in this generation run.")
+              (stropt :long-name     "delete-other-pattern"
+                      :argument-name "REGEX"
+                      :default-value ".*"
+                      :description
+                      "When deleting previously automatically generated jobs, only consider jobs whose name matches the regular expression REGEX.
+
+A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$.")
               (flag   :long-name     "build-flow-fail"
                       :description
                       "Configure build-flow to fail when one of the jobs coordinated by it fails."))
@@ -824,6 +832,7 @@
                      (jenkins.api:*password*       (or (clon:getopt :long-name "password")
                                                        (clon:getopt :long-name "api-token")))
                      (delete-other?                (clon:getopt :long-name "delete-other"))
+                     (delete-other-pattern         (clon:getopt :long-name "delete-other-pattern"))
                      (build-flow-ignores-failures? (not (clon:getopt :long-name "build-flow-fail")))
 
                      (templates     (with-phase-error-check
@@ -897,8 +906,9 @@
                     (when (and (not dry-run?) delete-other?)
                       (with-phase-error-check
                           (:delete-other-jobs #'errors #'(setf errors) #'report)
-                        (let ((other-jobs (set-difference (generated-jobs) jobs
-                                                          :key #'jenkins.api:id :test #'string=)))
+                        (let ((other-jobs (set-difference
+                                           (generated-jobs delete-other-pattern) jobs
+                                           :key #'jenkins.api:id :test #'string=)))
                           (with-sequence-progress (:delete-other other-jobs)
                             (mapc (progressing #'jenkins.api::delete-job :delete-other)
                                   other-jobs)))))

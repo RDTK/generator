@@ -15,7 +15,7 @@
    #:jenkins.project)
 
   #+sbcl (:local-nicknames
-          (#:clon #:com.dvlsoft.clon))
+          (#:clon #:net.didierverna.clon))
 
   (:export
    #:main)
@@ -23,4 +23,4 @@
   (:documentation
    "TODO"))
 
-#-sbcl (com.dvlsoft.clon:nickname-package)
+#-sbcl (net.didierverna.clon:nickname-package)

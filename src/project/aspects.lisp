@@ -422,8 +422,9 @@ move ..\*.zip .
     ()
   (let+ (((&flet shellify (name)
            (make-variable/sh (string-upcase name))))
-         (variables (iter (for variable in (var :aspect.cmake.environment '())) ; TODO check these for validity?
-                          (collect (format nil "export ~A~%" variable))))
+         (variables       (iter (for variable in (var :aspect.cmake.environment '())) ; TODO check these for validity?
+                                (collect (format nil "export ~A~%" variable))))
+         (build-directory (var :build-dir))
          ((&flet+ format-option ((name value))
             (format nil "-D~A=~A \\~%" name value)))
          (project-version (parent spec))
@@ -439,7 +440,7 @@ move ..\*.zip .
                           (collect (list #?"${required}_DIR"
                                          #?"\${${(shellify required)}_DIR}")
                             :into options)))
-                (finally (return-from outer (values finds options)))) )
+                (finally (return-from outer (values finds options)))))
          (options/raw               (append dir-options/raw
                                             (mapcar (curry #'split-sequence #\=)
                                                     (var :aspect.cmake.options '()))))
@@ -449,7 +450,8 @@ move ..\*.zip .
          (make-commandline-options  (var :aspect.cmake.make.commandline-options '())))
 
     (push (constraint! (((:after dependency-download)))
-            (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}
+            (shell (:command #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
+rm -f CMakeCache.txt
 
 @{variables}
 

@@ -583,6 +583,16 @@ ${(or ensure-install-directory "# Not creating install directory")}
                   :keep-long-stdio?    (var :aspect.junit.keep-long-stdio?)
                   :health-scale-factor (var :aspect.junit.health-scale-factor)))))
 
+;;; Email notification
+
+(define-aspect (email-notification :job-var job) ()
+    ()
+  (if-let ((recipients (var :aspect.email-notification.recipients)))
+    (with-interface (publishers job) (publisher (publisher/email-notification
+                                                 :recipients recipients))
+      (declare (ignore publisher)))
+    (removef (publishers job) 'publisher/email-notification :key #'of-type)))
+
 ;;; Debian packaging aspects
 
 (define-aspect (debian-package :job-var job) ()

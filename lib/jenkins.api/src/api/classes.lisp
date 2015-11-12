@@ -815,13 +815,15 @@
    ()
    (:name-slot nil))
 
-  ((mailer "hudson.tasks.Mailer"
-           :plugin "mailer@1.4")
-   ((recipients            :type  (list/comma string))
-    (every-unstable-build? :type  boolean
-                           :xpath "dontNotifyEveryUnstableBuild/text()")
-    (send-to-individuals?  :type  boolean
-                           :xpath "sendToIndividuals/text()"))
+  ((email-notification "hudson.tasks.Mailer"
+                       :plugin "mailer@1.16")
+   ((recipients            :type     (list/space string))
+    (every-unstable-build? :type     boolean
+                           :xpath    "dontNotifyEveryUnstableBuild/text()"
+                           :initform t)
+    (send-to-individuals?  :type     boolean
+                           :xpath    "sendToIndividuals/text()"
+                           :initform nil))
    (:name-slot recipients))
 
   ((mailer/extended "hudson.plugins.emailext.ExtendedEmailPublisher"

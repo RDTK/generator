@@ -207,6 +207,9 @@
 
    #:publisher/html
 
+   #:publisher/email-notification
+   #:recipients
+
    #:publisher/xunit
    #:types
    #:xunit/type

@@ -81,15 +81,18 @@
   (:documentation
    "Return the \"resolved\" of the variable named NAME in THING.
 
-    The returned values is \"resolved\" in the sense that
-    substitutions of them forms
+    The return value is \"resolved\" in the sense that substitutions
+    of them forms
 
       ${ ( next-value | NAME ) [ |DEFAULT ] }
       @{ ( next-value | NAME ) [ |[] ] }
 
     are recursively processed until none remain. See `lookup'.
 
-    An error is signaled when processing a substitution fails."))
+    An error is signaled when processing a substitution fails.
+
+    The second return value indicates whether the first return value
+    is DEFAULT."))
 
 ;; Default behavior
 
@@ -211,10 +214,15 @@
   "TODO(jmoringe): document")
 
 (defun expand (pattern lookup)
-  (let+ (((&flet lookup (name)
-            (let+ (((&values value parsed?)
-                    (funcall lookup (make-keyword (string-upcase name)))))
-              (parse value :parse-strings? (not parsed?)))))
+  (let+ (((&flet lookup (name &optional (default nil default-supplied?))
+            (let+ ((name (make-keyword (string-upcase name)))
+                   ((&values value parsed? defaulted?)
+                    (if default-supplied?
+                        (funcall lookup name default)
+                        (funcall lookup name))))
+              (if defaulted?
+                  value
+                  (parse value :parse-strings? (not parsed?))))))
          ((&labels collapse (thing)
             (cond
               ((typep thing '(or number string boolean))
@@ -230,7 +238,7 @@
             (optima:ematch pattern
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
                      :default default)
-               (recur (or (ignore-errors (lookup pattern)) default)))
+               (recur (lookup pattern default)))
 
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
                (recur (lookup pattern)))
@@ -262,20 +270,25 @@
           (lookup thing name
                   :if-undefined (unless default-supplied? #'error)))
          ((&labels+ make-lookup ((&optional first-value &rest next-values))
-            (lambda (name1)
+            (lambda (name1 &optional (default nil default-supplied?))
               (cond
                 ((not (eq name1 :next-value))
-                 (values (value thing name1) t))
+                 (if default-supplied?
+                     (let+ (((&values value defaulted?) (value thing name1 default)))
+                       (values value t defaulted?))
+                     (values (value thing name1) t)))
                 (first-value
                  (values (expand (parse first-value)
                                  (make-lookup next-values))
                          t))
+                (default-supplied?
+                 (values default t))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
     (if defined?
         (expand (parse raw) (make-lookup raw/next-values))
-        default)))
+        (values default t))))
 
 ;;; Platform requirements protocol
 

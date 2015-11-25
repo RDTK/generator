@@ -122,6 +122,13 @@ rm -rf \"\${temp}\""))
                                 (member character '(#\_)))))
                  string))
 
+(defun split-option (spec)
+  (let ((position (position #\= spec)))
+    (unless position
+      (error "~@<Option ~S is not of the form NAME=VALUE.~@:>"
+             spec))
+    (list (subseq spec 0 position) (subseq spec (1+ position)))))
+
 (define-aspect (archive) (builder-defining-mixin)
     ()
   (let* ((url/string (var :aspect.archive.url))
@@ -442,7 +449,7 @@ move ..\*.zip .
                             :into options)))
                 (finally (return-from outer (values finds options)))))
          (options/raw               (append dir-options/raw
-                                            (mapcar (curry #'split-sequence #\=)
+                                            (mapcar #'split-option
                                                     (var :aspect.cmake.options '()))))
          (options                   (mapcar #'format-option options/raw))
          (cmake-commandline-options (var :aspect.cmake.commandline-options '()))
@@ -490,7 +497,7 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
     ()
   (push (constraint! ()
          (maven (:properties          (mapcan (lambda (spec)
-                                                (let+ (((name value) (split-sequence #\= spec)))
+                                                (let+ (((name value) (split-option spec)))
                                                   (list (make-keyword name) value)))
                                               (var :aspect.maven.properties))
                                       ;; hack to prevent useless progress output

@@ -251,7 +251,8 @@
   (let ((new/job (copy-job old new)))
     ;; Disable the new job to prevent it from building while we are
     ;; still setting it up.
-    (disable! new/job)))
+    (disable! new/job)
+    new/job))
 
 (define-operation/name-or-object
     (build! :path (format nil "job/~A/build" job))

@@ -62,3 +62,21 @@
 ;; ("a" "b")
 ;; ("foo" ("a" "b") "bar")
 ;; ("a" "b")
+
+;;; Newer Tests
+
+(defclass foo (direct-variables-mixin
+               parented-mixin)
+  ())
+
+(let* ((distribution (make-instance
+                      'foo
+                      :variables ()))
+       (project      (make-instance
+                      'foo
+                      :parent    distribution
+                      :variables (list :foo "${next-value|ABC}"
+                                       :shell.command "echo ${foo}
+echo ${bar|XYZ}
+"))))
+  (value project :shell.command))

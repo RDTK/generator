@@ -294,7 +294,7 @@
                                  (make-lookup next-values))
                          t))
                 (default-supplied?
-                 (values default t))
+                 (values default t t))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))

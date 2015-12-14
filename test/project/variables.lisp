@@ -80,3 +80,10 @@
 echo ${bar|XYZ}
 "))))
   (value project :shell.command))
+
+(let ((distribution (make-instance
+                     'foo
+                     :variables (list :toolkit.dir         "dir"
+                                      :ros.install.prefix  "${next-value|${toolkit.dir}}"
+                                      :shell.command       "foo ${ros.install.prefix}"))))
+  (value distribution :shell.command))

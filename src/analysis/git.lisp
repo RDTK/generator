@@ -1,6 +1,6 @@
 ;;;; git.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -36,9 +36,11 @@
                              username
                              password
                              branch
+                             commit
                              mirror?
                              history-limit
                              non-interactive)
+  (assert (not (and branch commit)))
   (let ((repository/string (format-git-url source username password)))
     (with-trivial-progress (:clone "~A ~A -> ~A"
                                    repository/string branch clone-directory)
@@ -48,7 +50,10 @@
                  ,@(when mirror?       '("--mirror"))
                  ,@(when history-limit `("--depth" ,history-limit))
                  ,repository/string ,clone-directory)
-       "/" :non-interactive non-interactive))))
+       "/" :non-interactive non-interactive)
+      (when commit
+        (%run-git `("checkout" ,commit)
+                  clone-directory :non-interactive non-interactive)))))
 
 (defun update-git-repository (directory &key non-interactive)
   (handler-case
@@ -122,6 +127,7 @@
                                     username
                                     password
                                     branch
+                                    commit
                                     history-limit
                                     cache-directory
                                     non-interactive)
@@ -149,19 +155,20 @@
     ;; one cached mirror repository.
     (clone-git-repository cache-url clone-directory
                           :branch          branch
+                          :commit          commit
                           :history-limit   history-limit
                           :non-interactive t)))
 
-(defun clone-git-repository/maybe-cached (source clone-directory commit
+(defun clone-git-repository/maybe-cached (source clone-directory
                                           &rest args &key
-                                                     cache-directory
+                                          cache-directory
                                           &allow-other-keys)
   (let+ (((&values function args)
           (if cache-directory
               (values #'clone-git-repository/cached args)
               (values #'clone-git-repository
                       (remove-from-plist args :cache-directory)))))
-    (apply function source clone-directory :branch commit args)))
+    (apply function source clone-directory args)))
 
 (defun analyze-git-branch (clone-directory &key sub-directory)
   (let* ((analyze-directory (if sub-directory
@@ -175,22 +182,14 @@
            :authors          authors
            result)))
 
-(defun clone-and-analyze-git-branch (source clone-directory commit
-                                     &key
-                                     username
-                                     password
+(defun clone-and-analyze-git-branch (source clone-directory
+                                     &rest args &key
                                      sub-directory
-                                     history-limit
-                                     cache-directory
-                                     non-interactive)
+                                     &allow-other-keys)
   ;; Clone the repository.
-  (clone-git-repository/maybe-cached
-   source clone-directory commit
-   :username        username
-   :password        password
-   :history-limit   history-limit
-   :cache-directory cache-directory
-   :non-interactive non-interactive)
+  (apply #'clone-git-repository/maybe-cached
+         source clone-directory
+         (remove-from-plist args :sub-directory))
   ;; Then analyze the requested branches/tags/commits.
   (analyze-git-branch clone-directory :sub-directory sub-directory))
 
@@ -204,29 +203,33 @@
                     (temp-directory (default-temporary-directory))
                     cache-directory
                     non-interactive)
-  (let+ (((&flet find-commit (version)
-            (or (getf version :commit)
-                (getf version :tag)
-                (getf version :branch)
+  (let+ (((&flet find-commitish (version)
+            (or (when-let ((commit (getf version :commit)))
+                  (list :commit commit))
+                (when-let ((branch (or (getf version :tag)
+                                       (getf version :branch))))
+                  (list :branch branch))
                 (error "~@<No commit, tag or branch specified in ~
                         ~S~@:>"
                        version))))
          ((&flet make-clone-directory (version)
-            (merge-pathnames
-             (concatenate
-              'string (ppcre:regex-replace-all "/" version "_") "/")
-             temp-directory)))
+            (let ((version (format nil "~(~{~A~^-~}~)" version)))
+              (merge-pathnames
+               (concatenate
+                'string (ppcre:regex-replace-all "/" version "_") "/")
+               temp-directory))))
          ((&flet analyze-version (version)
             (unwind-protect
-                 (let ((commit (find-commit version)))
-                   (cons version (clone-and-analyze-git-branch
-                                  source (make-clone-directory commit) commit
-                                  :username        username
-                                  :password        password
-                                  :sub-directory   sub-directory
-                                  :history-limit   history-limit
-                                  :cache-directory cache-directory
-                                  :non-interactive non-interactive)))
+                 (let ((commitish (find-commitish version)))
+                   (cons version (apply #'clone-and-analyze-git-branch
+                                        source (make-clone-directory commitish)
+                                        :username        username
+                                        :password        password
+                                        :sub-directory   sub-directory
+                                        :history-limit   history-limit
+                                        :cache-directory cache-directory
+                                        :non-interactive non-interactive
+                                        commitish)))
 
               (when (probe-file temp-directory)
                 (run `("rm" "-rf" ,temp-directory) "/"))))))

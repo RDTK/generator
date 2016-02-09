@@ -9,15 +9,28 @@
 (defmethod analyze ((file pathname)
                     (kind (eql :asdf/one-file))
                     &key)
-  (let+ (((&labels dependency-name (dependency)
+  (let+ (((&flet+ read-file-* ((which filename &key (at 0)))
+            (funcall (ecase which
+                       (:read-file-form 'uiop:safe-read-file-form)
+                       (:read-file-line 'uiop:safe-read-file-line))
+                     (uiop:subpathname file filename)
+                     :at at :package :asdf-user)))
+         ((&labels dependency-name (dependency)
             (etypecase dependency
               (cons (dependency-name (second dependency)))
               (t    (string-downcase dependency)))))
+         ((&labels process-version (spec)
+            (typecase spec
+              ((cons (member :read-file-form :read-file-file))
+               (process-version (read-file-* spec)))
+              (string
+               (parse-version spec)))))
          ((&flet dependency->list (dependency)
             (etypecase dependency
               ((cons (eql :version))
-               (list :asdf (string-downcase (second dependency))
-                     (parse-version (third dependency))))
+               (list :asdf
+                     (string-downcase (second dependency))
+                     (process-version (third dependency))))
               ((or string symbol)
                (list :asdf (string-downcase dependency))))))
          (system-systems (mappend #'ql-dist:provided-systems (ql:system-list)))
@@ -37,7 +50,9 @@
                                         &allow-other-keys))
             (append
              (list :versions `((:main . ,version))
-                   :provides `((:asdf ,(string-downcase name) ,(parse-version version)))
+                   :provides `((:asdf
+                                ,(string-downcase name)
+                                ,(process-version version)))
                    :requires (mapcar #'dependency->list
                                      (effective-dependencies depends-on)))
              (when description `(:description ,description))

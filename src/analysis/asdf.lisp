@@ -75,20 +75,42 @@
                                       file))
                     (declare (ignore condition))))))
          ((&flet property-values (name)
-            (remove nil (mapcar (rcurry #'getf name) systems))))
+            (loop :for system       in systems
+                  :for system-name  = (second (first (getf system :provides)))
+                  :for system-value = (getf system name)
+                  :when system-value
+                  :collect (list system-name system-value))))
+         ;; Use the first value available in any of the analyzed
+         ;; systems.
          ((&flet property-value/first (name)
-            (first (property-values name))))
+            (second (first (property-values name)))))
          ((&flet maybe-property/first (name)
             (when-let ((value (property-value/first name)))
               `(,name ,value))))
+         ;; Append the value in the analyzed systems.
          ((&flet property-value/append (name)
-            (remove-duplicates (apply #'append (property-values name))
+            (remove-duplicates (reduce #'append (property-values name)
+                                       :key #'second)
                                :test #'equal)))
          ((&flet maybe-property/append (name)
             (when-let ((value (property-value/append name)))
               `(,name ,value))))
+         ;; Combine descriptions of analyzed systems.
+         ((&flet maybe-property/description (name)
+            (let ((values (remove-if (lambda+ ((&whole foo system-name &ign))
+                                       (ppcre:scan "tests?$" system-name))
+                                     (property-values name))))
+              (case (length values)
+                (0 nil)
+                (1 `(,name ,(second (first values))))
+                (t `(,name ,(format nil "The project contains the following systems:~
+                                         ~2%~
+                                         ~{~{~A: ~A~}~^~2%~}"
+                                    (sort values #'string< :key #'first))))))))
+         ;; Compute required and provided systems.
          (requires (property-value/append :requires))
          (provides (property-value/append :provides)))
+    ;; Reduce to effectively required system.
     (setf requires (set-difference
                     requires provides
                     :test (lambda+ ((&ign required-name &optional required-version)
@@ -98,10 +120,10 @@
     (append (list :versions (property-value/first :versions)
                   :provides provides
                   :requires requires)
-            (maybe-property/first  :description)
-            (maybe-property/append :authors)
-            (maybe-property/append :maintainers)
-            (maybe-property/first  :license))))
+            (maybe-property/description :description)
+            (maybe-property/append      :authors)
+            (maybe-property/append      :maintainers)
+            (maybe-property/first       :license))))
 
 ;;; Utility functions
 

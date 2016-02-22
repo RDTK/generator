@@ -46,6 +46,7 @@
                                         author
                                         maintainer
                                         description
+                                        defsystem-depends-on
                                         depends-on
                                         &allow-other-keys))
             (append
@@ -54,7 +55,9 @@
                                 ,(string-downcase name)
                                 ,(process-version version)))
                    :requires (mapcar #'dependency->list
-                                     (effective-dependencies depends-on)))
+                                     (effective-dependencies
+                                      (append defsystem-depends-on
+                                              depends-on))))
              (when description `(:description ,description))
              (when author      `(:authors (,author)))
              (when maintainer  `(:maintainers (,maintainer)))

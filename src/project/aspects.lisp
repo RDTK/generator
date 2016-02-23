@@ -1,6 +1,6 @@
 ;;;; aspects.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -454,7 +454,10 @@ move ..\*.zip .
          (options                   (mapcar #'format-option options/raw))
          (cmake-commandline-options (var :aspect.cmake.commandline-options '()))
          (targets                   (var :aspect.cmake.targets '()))
-         (make-commandline-options  (var :aspect.cmake.make.commandline-options '())))
+         (make-commandline-options  (var :aspect.cmake.make.commandline-options '()))
+
+         (before-invocation         (var :aspect.cmake.before-invocation ""))
+         (after-invocation          (var :aspect.cmake.after-invocation "")))
 
     (push (constraint! (((:after dependency-download)))
             (shell (:command #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
@@ -463,9 +466,10 @@ rm -f CMakeCache.txt
 @{variables}
 
 @{finds}
-cmake @{cmake-commandline-options} @{options} ..
+
+${before-invocation}cmake @{cmake-commandline-options} @{options} ..
 make @{make-commandline-options} # not always necessary, but sometimes, sadly
-make @{make-commandline-options} @{targets}")))
+make @{make-commandline-options} @{targets}${after-invocation}")))
           (builders job))))
 
 (define-aspect (archive-artifacts :job-var job) ()

@@ -629,20 +629,7 @@
 A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$.")
               (flag   :long-name     "build-flow-fail"
                       :description
-                      "Configure build-flow to fail when one of the jobs coordinated by it fails."))
-
-   :item    (clon:defgroup (:header "Drupal Options")
-              (stropt :long-name     "drupal-base-uri"
-                      :argument-name "URI"
-                      :default-value "https://toolkit.cit-ec.uni-bielefeld.de"
-                      :description
-                      "Drupal base URI.")
-              (stropt :long-name     "drupal-username"
-                      :description
-                      "Username for Drupal authentication.")
-              (stropt :long-name     "drupal-password"
-                      :description
-                      "Password for Drupal authentication."))))
+                      "Configure build-flow to fail when one of the jobs coordinated by it fails."))))
 
 (defun collect-inputs (spec)
   (cond

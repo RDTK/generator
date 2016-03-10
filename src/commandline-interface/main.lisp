@@ -805,10 +805,15 @@ A common case, deleting only jobs belonging to the distribution being generated,
             (lambda (condition)
               (when-let ((restart (find-restart name condition)))
                 (invoke-restart restart condition)))))
+         (non-dependency-errors? nil)
          (error-policy           (case (clon:getopt :long-name "on-error")
                                    (:continue #'continue)
                                    (t         (restart/condition 'abort))))
          (effective-error-policy (lambda (condition)
+                                   (when (typep condition
+                                                '(and error
+                                                      (not unfulfilled-project-dependency-error)))
+                                     (setf non-dependency-errors? t))
                                    (cond
                                      ((and (typep condition 'simple-phase-error)
                                            (funcall error-policy condition)
@@ -946,4 +951,5 @@ A common case, deleting only jobs belonging to the distribution being generated,
                   (format stream "~@<Abort execution.~@:>"))
         (when condition
           (report-error *error-output* condition))
-        (sb-ext:exit :code 1)))))
+        (uiop:quit 2)))
+    (uiop:quit (if non-dependency-errors? 1 0))))

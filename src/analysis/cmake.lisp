@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -11,35 +11,51 @@
 
 (defparameter *set-version-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set\\([ \\t\\n]*([_A-Z]*VERSION[_A-Z]*)[ \\t\\n]+\"?([$0-9][^ )\"]*)\"?[^)]*\\)"
+   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*([_A-Z]*VERSION[_A-Z]*)[ \\t\\n]+\"?([$0-9][^ )\"]*)\"?[^)]*\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set\\([ \\t\\n]*([^ \\t\\n]*)[ \\t\\n]+\"?([^ \\t\\n)\"]*)\"?[^)]*\\)"
+   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*([^ \\t\\n]*)[ \\t\\n]+\"?([^ \\t\\n)\"]*)\"?[^)]*\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
 (defparameter *project-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*project\\([ \\t]*([^ )]*)[^)]*\\)"
+   "^[ \\t]*project[ \\t\\n]*\\([ \\t]*([^ )]*)[^)]*\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
 (defparameter *find-package-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*find_package\\([ ]*([^ )]*)(?:[ ]+\"?([$0-9][^ )\"]*)\"?)?[^)]*\\)"
+   #.(format nil "^[ \\t]*find_package[ \\t\\n]*\\(~
+                    [ \\t\\n]*([-_.A-Za-z0-9${}]+)~
+                    (?:~
+                      [ \\t\\n]+~
+                      \"?([$0-9][^ )\"]*)\"?~
+                    )?~
+                    [^)]*~
+                  \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
 (defparameter *pkg-check-modules-scanner* ; TODO semantics: check requires all modules; search requires at least one
   (ppcre:create-scanner
-   "^[ \\t]*pkg_(?:check|search)_modules?\\([ \\t\\n]*([^ \\t\\n)]*)(?:[ \\t\\n]+(?:REQUIRED|QUIET))*[ \\t\\n]*([^)]*)\\)"
+   (format nil "^[ \\t]*pkg_(?:check|search)_modules?[ \\t\\n]*\\(~
+                  [ \\t\\n]*~
+                  ([-_.A-Za-z0-9]+)~
+                  (?:~
+                    [ \\t\\n]+~
+                    (?:REQUIRED|QUIET)~
+                  )*~
+                  [ \\t\\n]*~
+                  ([-_.A-Za-z0-9${}<>=]*)~
+                \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
@@ -100,7 +116,7 @@
                       (list "MAJOR" "MINOR" "PATCH")
                       (list major minor patch))))))
 
-(defun %resolve-cmake-version (spec versions)
+(defun %resolve-cmake-variables (spec versions &key (if-unresolved :partial))
   (iter (repeat 32)
         (while (or (find #\$ spec) (find #\@ spec)))
         (iter (for (name . value) in versions)
@@ -109,7 +125,13 @@
                             (list :sequence "${" name "}") spec value))
                 (setf spec (ppcre:regex-replace-all
                             (list :sequence "@" name "@") spec value))))
-        (finally (return spec))))
+        (finally (return (cond
+                           ((not (ppcre:scan "[${}@]" spec))
+                            spec)
+                           ((eq if-unresolved :partial)
+                            spec)
+                           (t
+                            if-unresolved))))))
 
 (defmethod analyze ((directory pathname)
                     (kind      (eql :cmake))
@@ -170,21 +192,30 @@
             (when major
               (setf project-version (format-version major minor patch)))))
 
-        `((:main ,(%resolve-cmake-version project-version versions))))
+        `((:main ,(%resolve-cmake-variables project-version versions))))
 
       :provides
       (remove-duplicates
        (append
         (iter (for file in config-files)
-              (let* ((name            (cmake-config-file->project-name/dont-normalize file))
-                     (name/lower-case (string-downcase name))
-                     (version         (parse-version (%resolve-cmake-version project-version versions))))
-                (collect (list :cmake name version))
+              (let* ((name             (cmake-config-file->project-name/dont-normalize file))
+                     (name/lower-case  (string-downcase name))
+                     (version/resolved (when project-version
+                                         (%resolve-cmake-variables ; TODO project-version above should get same treatment
+                                          project-version versions
+                                          :if-unresolved nil)))
+                     (version          (with-simple-restart (continue "Continue without version")
+                                         (when (and project-version (not version/resolved))
+                                           (error "~@<Could not resolve project version ~S.~@:>"
+                                                  project-version))
+                                         (when version/resolved
+                                          (parse-version version/resolved)))))
+                (collect (list* :cmake name (when version (list version))))
                 (unless (string= name/lower-case name)
-                  (collect (list :cmake name/lower-case version)))))
+                  (collect (list :cmake name/lower-case (when version (list version)))))))
         (iter (for file in pkg-config-template-files)
               (let* ((content (read-file-into-string file))
-                     (content (%resolve-cmake-version content variables)))
+                     (content (%resolve-cmake-variables content variables)))
                 (when-let* ((result (with-input-from-string (stream content)
                                       (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
                             (provides (getf result :provides)))
@@ -195,11 +226,29 @@
       (remove-duplicates
        (iter (for file in (list* main-file extra-files))
              (let ((content (read-file-into-string file)))
+               ;; find_package()
                (ppcre:do-register-groups (name version)
                    (*find-package-scanner* content)
-                 (collect (list* :cmake
-                                 (%resolve-cmake-version name versions)
-                                 (when version (list (parse-version (%resolve-cmake-version version versions)))))))
+                 (let ((name/resolved    (%resolve-cmake-variables
+                                          name versions :if-unresolved nil))
+                       (version/resolved (when version
+                                           (%resolve-cmake-variables
+                                            version versions :if-unresolved nil))))
+                   (with-simple-restart (continue "Skip the dependency")
+                     (when (not name/resolved)
+                       (error "~@<Could not resolve name ~S in ~
+                               find_package() expression.~@:>"
+                              name))
+                     (with-simple-restart
+                         (continue "Treat the dependency as not versioned")
+                       (when (and version (not version/resolved))
+                         (error "~@<Could not resolve version ~S in ~
+                                 find_package() expression.~@:>"
+                                version)))
+                     (collect (list* :cmake name/resolved
+                                     (when version/resolved
+                                       (list (parse-version version/resolved))))))))
+               ;; pkg_{check,search}_module()
                (ppcre:do-register-groups (variable modules)
                    (*pkg-check-modules-scanner* content)
                  (declare (ignore variable))
@@ -207,7 +256,7 @@
                                                "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
                                                modules)
                    (let+ ((module (string-trim '(#\") module))
-                          (resolved (%resolve-cmake-version module variables))
+                          (resolved (%resolve-cmake-variables module variables))
                           ((name &optional version)
                            (or (ppcre:register-groups-bind (name version)
                                    ("([^>=]+)>=(.*)" resolved)
@@ -245,9 +294,9 @@
                   (ppcre:register-groups-bind (name relation version)
                       ("([^ ]+)(?:[ ]+\\(([<>=]+)[ ]+([0-9.]+)\\))?" value)
                     (collect (list :debian
-                                   (%resolve-cmake-version name versions)
+                                   (%resolve-cmake-variables name versions)
                                    (when version
-                                     (%resolve-cmake-version version versions))
+                                     (%resolve-cmake-variables version versions))
                                    (when relation (find-symbol relation :cl))
                                    kind)))))))
 

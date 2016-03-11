@@ -212,7 +212,7 @@
                                           (parse-version version/resolved)))))
                 (collect (list* :cmake name (when version (list version))))
                 (unless (string= name/lower-case name)
-                  (collect (list :cmake name/lower-case (when version (list version)))))))
+                  (collect (list* :cmake name/lower-case (when version (list version)))))))
         (iter (for file in pkg-config-template-files)
               (let* ((content (read-file-into-string file))
                      (content (%resolve-cmake-variables content variables)))

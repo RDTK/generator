@@ -188,17 +188,18 @@ ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
 
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
-  (let* ((url         (var :aspect.subversion.url))
-         (revision    (var :aspect.subversion.revision nil))
-         (url/parsed  (puri:uri url))
-         (url/parsed  (puri:copy-uri
-                       url/parsed
-                       :path (ppcre:regex-replace-all
-                              "//+" (puri:uri-path url/parsed) "/")))
-         (url/revision (format nil "~A~[@~A~]" url/parsed revision))
-         (credentials (or (var :aspect.subversion.credentials)
-                          (unless (check-access aspect :public)
-                            (puri:uri-host url/parsed)))))
+
+  (let* ((url          (var :aspect.subversion.url))
+         (revision     (var :aspect.subversion.revision nil))
+         (url/parsed   (puri:uri url))
+         (url/parsed   (puri:copy-uri
+                        url/parsed
+                        :path (ppcre:regex-replace-all
+                               "//+" (puri:uri-path url/parsed) "/")))
+         (url/revision (format nil "~A~@[@~A~]" url/parsed revision))
+         (credentials  (or (var :aspect.subversion.credentials)
+                           (unless (check-access aspect :public)
+                             (puri:uri-host url/parsed)))))
     (setf (repository job)
           (svn (:url               url/revision
                 :credentials       credentials

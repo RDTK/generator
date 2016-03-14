@@ -1,6 +1,6 @@
 ;;;; main.lisp --- Entry-point of commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -71,6 +71,8 @@
                              :variables (append
                                          (jenkins.project::%direct-variables version) ; TODO
                                          version-variables
+                                         (when branch-directory
+                                           (list :branch-directory branch-directory))
                                          (when description
                                            (list :description description))
                                          (when authors
@@ -82,10 +84,7 @@
                                                (collect value))))))
               ;; TODO temp
               (iter (for job in (jobs project))
-                    (pushnew (string-downcase scm) (tags job) :test #'string=))
-
-              (when branch-directory
-                (setf (lookup version :branch-directory) branch-directory)))))
+                    (pushnew (string-downcase scm) (tags job) :test #'string=)))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (restart-case
                 (do-version arg)

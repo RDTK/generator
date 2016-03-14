@@ -76,8 +76,8 @@
                                         ,clone-directory)
                                  temp-directory username password))
 
-                     (let* ((result (list* :scm               :svn
-                                           :branch-directory  directory
+                     (let* ((result (list* :scm              :svn
+                                           :branch-directory directory
                                            (append
                                             (list :commit commit)
                                             (analyze-directory clone-directory)))))

@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -226,19 +226,26 @@
     thing))
 
 (defmethod deploy-dependencies ((thing job))
-  (when (value thing :no-dependencies nil)
-    (return-from deploy-dependencies))
-
-  (iter (for upstream-job in (direct-dependencies thing))
-        (restart-case
-            (handler-bind
-                ((error (lambda (condition)
-                          (error "~@<Could not relate ~A -> ~A: ~A.~@:>"
-                                 upstream-job thing condition))))
-              (jenkins.api:relate (implementation upstream-job) (implementation thing)
-                                  :if-related nil))
-          (continue (&optional condition)
-            :report (lambda (stream)
-                      (format stream "~@<Do not relate ~A -> ~A~@:>"
-                              upstream-job thing))
-            (declare (ignore condition))))))
+  (let ((relevant-dependencies
+          (unless (value thing :no-dependencies nil) ; TODO remove
+            (eswitch ((value thing :dependencies.mode "direct")
+                     :test #'equal)
+              ("direct"
+               (direct-dependencies thing))
+              ("minimal"
+               (minimal-dependencies thing))
+              ("none"
+               '())))))
+    (iter (for upstream-job in relevant-dependencies)
+          (restart-case
+              (handler-bind
+                  ((error (lambda (condition)
+                            (error "~@<Could not relate ~A -> ~A: ~A.~@:>"
+                                   upstream-job thing condition))))
+                (jenkins.api:relate (implementation upstream-job) (implementation thing)
+                                    :if-related nil))
+            (continue (&optional condition)
+              :report (lambda (stream)
+                        (format stream "~@<Do not relate ~A -> ~A~@:>"
+                                upstream-job thing))
+              (declare (ignore condition)))))))

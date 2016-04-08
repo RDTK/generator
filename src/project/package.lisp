@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -120,7 +120,8 @@
   ;; Dependency protocol
   (:export
    #:direct-dependencies
-   #:dependencies)
+   #:dependencies
+   #:minimal-dependencies)
 
   ;; Variable protocol
   (:export

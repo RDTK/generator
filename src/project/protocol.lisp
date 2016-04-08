@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,6 +18,11 @@
    "Return a duplicate-free list of transitive dependencies of
     THING."))
 
+(defgeneric minimal-dependencies (thing)
+  (:documentation
+   "Return a list of direct dependencies of THING that are not also
+    transitive dependencies of the direct dependencies of THING."))
+
 ;; Default behavior
 
 (defmethod dependencies ((thing t))
@@ -29,6 +34,13 @@
                 (one-thing dependency))))))
     (one-thing thing)
     result))
+
+(defmethod minimal-dependencies ((thing t))
+  (let* ((direct-dependencies (direct-dependencies thing))
+         (indirect            (reduce #'union direct-dependencies
+                                      :key           #'dependencies
+                                      :initial-value '())))
+    (set-difference direct-dependencies indirect)))
 
 ;;; Variables protocol
 

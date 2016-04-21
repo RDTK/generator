@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Minimal JSON import for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -47,6 +47,12 @@
 
          (name (lookup :name))
          (template (make-instance 'template)))
+    (when-let ((required-version (lookup :minimum-generator-version)))
+      (let ((provided-version (jenkins.project-system:version/string)))
+        (unless (uiop:version-compatible-p provided-version required-version)
+          (error "~@<The template requires generator version ~S, but ~
+                  this generator is version ~S.~@:>"
+                 required-version provided-version))))
     (setf (find-template name)
           (reinitialize-instance
            template

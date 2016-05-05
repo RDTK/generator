@@ -1,6 +1,6 @@
 # CMakeLists.txt --- CMake build description file.
 #
-# Copyright (C) 2011, 2012, 2013, 2014 Jan Moringen
+# Copyright (C) 2011-2016 Jan Moringen
 #
 # Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -147,7 +147,10 @@ message(STATUS "Project is ${CMAKE_PROJECT_NAME} (${VERSION_FROM_LISP})")
 set(MAIN_NAME "build-generator")
 set(MAIN_SYSTEM_NAME "jenkins.project.commandline-interface")
 configure_lisp_redirect("${MAIN_NAME}"
-                        "--eval \"(asdf:oos (quote asdf:program-op) :${MAIN_SYSTEM_NAME})\"
+                        "--eval \"asdf::(defmethod perform ((o image-op) (c system))
+                                          (dump-image (output-file o c) :executable  (typep o (quote program-op))
+                                                                        :compression 9))\"
+                         --eval \"(asdf:oos (quote asdf:program-op) :${MAIN_SYSTEM_NAME})\"
                          --eval \"(rename-file (asdf:output-file 'asdf:program-op :${MAIN_SYSTEM_NAME})
                                                (make-pathname :name     \\\"${MAIN_NAME}\\\"
                                                               :type     :unspecific

@@ -462,8 +462,10 @@
            ((&flet make-hook-job (name command)
               (when name
                 (ensure-job ("project" name)
+                  (jenkins.api:properties
+                   (jenkins.dsl:parameters (:parameters '((:kind :text :name "tag")))))
                   (jenkins.api:builders
-                   (jenkins.dsl::shell (:command (or command
+                   (jenkins.dsl:shell (:command (or command
                                                      "# <nothing to do>")))))))))
       (make-hook-job prepare-name prepare-command)
       (make-hook-job finish-name  finish-command)

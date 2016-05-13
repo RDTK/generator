@@ -20,6 +20,9 @@
   (:shadow
    #:node)
 
+  (:shadowing-import-from #:jenkins.api
+   #:parameters)
+
   (:shadowing-import-from #:jenkins.dsl
    #:job)
 

@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macro-based DSL for Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -119,6 +119,7 @@
        ,@(mapcar #'process-implementation implementations))))
 
 (define-interface-implementation-macros jenkins.api::scm)
+(define-interface-implementation-macros jenkins.api::property)
 (define-interface-implementation-macros jenkins.api::trigger)
 (define-interface-implementation-macros jenkins.api::builder)
 (define-interface-implementation-macros jenkins.api::publisher)

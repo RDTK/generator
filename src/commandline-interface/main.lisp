@@ -877,91 +877,120 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                 (with-trivial-progress (:jobs)
 
-                  (let+ ((templates          (with-phase-error-check
-                                                 (:load/template #'errors #'(setf errors) #'report
-                                                  :continuable? nil)
-                                               (load-templates templates)))
-                         (distributions/raw  (with-phase-error-check
-                                                 (:load/distribution #'errors #'(setf errors) #'report
-                                                  :continuable? nil)
-                                               (load-distributions distributions overwrites)))
-                         (projects           (with-phase-error-check
-                                                 (:locate/project #'errors #'(setf errors) #'report)
-                                               (locate-projects distributions distributions/raw)))
-                         (projects/raw       (with-phase-error-check
-                                                 (:load/project #'errors #'(setf errors) #'report)
-                                               (load-projects/versioned projects)))
-                         (projects/specs     (with-phase-error-check
-                                                 (:analyze/project #'errors #'(setf errors) #'report)
-                                               (apply #'analyze-projects projects/raw
-                                                      :non-interactive non-interactive
-                                                      (append
-                                                       (when cache-directory
-                                                         (list :cache-directory cache-directory))
-                                                       (when temp-directory
-                                                         (list :temp-directory temp-directory))))))
-                         (distributions      (with-phase-error-check
-                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
-                                               (mapcar (lambda (distribution)
-                                                         (reinitialize-instance
-                                                          distribution
-                                                          :versions (resolve-project-versions
-                                                                     (jenkins.model.project::versions distribution))))
-                                                       distributions/raw)))
-                         (distributions      (with-phase-error-check
-                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)
-                                               (check-platform-requirements distributions)))
-                         (distributions      (with-phase-error-check
-                                                 (:check-access #'errors #'(setf errors) #'report
-                                                  :continuable? nil)
-                                               (check-distribution-access distributions)))
-                         (projects           (with-phase-error-check
-                                                 (:instantiate/project #'errors #'(setf errors) #'report)
-                                               (instantiate-projects projects/specs distributions)))
-                         (jobs/spec          (unless dry-run?
-                                               (with-phase-error-check
-                                                   (:deploy/project #'errors #'(setf errors) #'report)
-                                                 (let ((jobs (deploy-projects projects)))
-                                                   (when (some (lambda (job)
-                                                                 (not (eq (value/cast job :dependencies.mode) :none)))
-                                                               jobs)
-                                                     (deploy-job-dependencies jobs))
-                                                   jobs))))
-                         (jobs               (unless dry-run?
-                                               (mappend #'implementations jobs/spec)))
-                         ((&values &ign orchestration-jobs)
-                          (unless dry-run?
-                            (with-phase-error-check
-                                (:orchestration #'errors #'(setf errors) #'report)
-                              (configure-distributions distributions))))
-                         (all-jobs (append jobs (mappend #'implementations
-                                                         orchestration-jobs))))
+                  (let* ((repository        (make-instance 'rs.m.d::base-repository))
+                         (resolver          (make-instance 'rs.f:search-path-resolver
+                                                           :search-path (list (make-pathname :name     nil
+                                                                                             :type     nil
+                                                                                             :defaults (first distributions))
+                                                                              (merge-pathnames
+                                                                               (make-pathname :name      nil
+                                                                                              :type      nil
+                                                                                              :directory '(:relative :back "projects"))
+                                                                               (first distributions)))))
+                         (locations         (make-instance 'rs.f:location-repository))
+                         (builder           (service-provider:make-provider 'rs.m.d::builder
+                                                                            :model
+                                                                            :repository repository
+                                                                            :resolver   resolver
+                                                                            :locations  locations))
+
+                         (templates         (with-phase-error-check
+                                                (:load/template #'errors #'(setf errors) #'report
+                                                 :continuable? nil)
+                                              (load-templates templates)))
+                         (distributions/raw (with-phase-error-check
+                                                (:load/distribution #'errors #'(setf errors) #'report)
+                                              (rs.f:process :distribution-recipe distributions builder)
+                                              #+later overwrites))
+                         #+no (projects          (with-phase-error-check
+                                                (:locate/project #'errors #'(setf errors) #'report)
+                                              (locate-projects distributions distributions/raw)))
+                         #+no (projects/raw      (with-phase-error-check
+                                                (:load/project #'errors #'(setf errors) #'report)
+                                              (load-projects/versioned projects)))
+                         #+no (projects/specs    (with-phase-error-check
+                                                (:analyze/project #'errors #'(setf errors) #'report)
+                                              (apply #'analyze-projects projects/raw
+                                                     :non-interactive non-interactive
+                                                     (append
+                                                      (when cache-directory
+                                                        (list :cache-directory cache-directory))
+                                                      (when temp-directory
+                                                        (list :temp-directory temp-directory))))))
+                         (distributions     (with-phase-error-check
+                                                (:resolve/distribution #'errors #'(setf errors) #'report)
+                                              (mapcar (curry #'project-automation.model.project.stage2::transform-distribution
+                                                             builder)
+                                                      distributions/raw)))
+                         #+no (distributions     (with-phase-error-check
+                                                (:check-platform-requirements #'errors #'(setf errors) #'report)
+                                              (check-platform-requirements distributions)))
+                         #+no (distributions     (with-phase-error-check
+                                                (:check-access #'errors #'(setf errors) #'report
+                                                 :continuable? nil)
+                                              (check-distribution-access distributions)))
+                         (projects          (with-phase-error-check
+                                                (:instantiate/project #'errors #'(setf errors) #'report)
+                                              (mapcar (curry #'project-automation.model.project.stage3::transform-distribution
+                                                             builder)
+                                                      distributions)))
+                         #+no (jobs/spec         (unless dry-run?
+                                              (with-phase-error-check
+                                                  (:deploy/project #'errors #'(setf errors) #'report)
+                                                (flatten (deploy-projects projects)))))
+                         #+no (jobs              (unless dry-run?
+                                              (mappend #'implementations jobs/spec))))
                     (declare (ignore templates))
 
-                    (unless dry-run?
-                      ;; Delete automatically generated jobs found on
-                      ;; the server for which no counterpart exists
-                      ;; among the newly generated jobs. This is
-                      ;; necessary to get rid of leftover jobs when
-                      ;; projects (or project versions) are deleted or
-                      ;; renamed.
-                      (when delete-other?
-                        (with-phase-error-check
-                            (:delete-other-jobs #'errors #'(setf errors) #'report)
-                          (let* ((other-jobs     (set-difference
-                                                  (jenkins.api:all-jobs delete-other-pattern)
-                                                  all-jobs
-                                                  :key #'jenkins.api:id :test #'string=))
-                                 (generated-jobs (remove-if-not #'generated? other-jobs)))
-                            (with-sequence-progress (:delete-other generated-jobs)
-                              (mapc (progressing #'jenkins.api:delete-job :delete-other)
-                                    generated-jobs)))))
+                    (utilities.print-tree:print-tree
+                     *standard-output* (first distributions)
+                     (utilities.print-tree:make-node-printer
+                      (lambda (stream depth object)
+                        (declare (ignore depth))
+                        (princ object stream)
+                        (project-automation.model.variable:direct-variables object))
+                      #'project-automation.commands::print-node
+                      (lambda (object)
+                        (rs.m.d:contents object t))))
 
-                      (with-phase-error-check
-                          (:list-credentials #'errors #'(setf errors) #'report)
-                        (list-credentials jobs)))
+                    (terpri)
 
-                    (when report-directory
+                    (utilities.print-tree:print-tree
+                     *standard-output* (first projects)
+                     (utilities.print-tree:make-node-printer
+                      (lambda (stream depth object)
+                        (declare (ignore depth))
+                        (princ object stream)
+                        (project-automation.model.variable:direct-variables object))
+                      #'project-automation.commands::print-node
+                      (lambda (object)
+                        (rs.m.d:contents object t))))
+
+                    #+no (unless dry-run?
+                           ;; Delete automatically generated jobs
+                           ;; found on the server for which no
+                           ;; counterpart exists among the newly
+                           ;; generated jobs. This is necessary to get
+                           ;; rid of leftover jobs when projects (or
+                           ;; project versions) are deleted or
+                           ;; renamed.
+                           (when delete-other?
+                             (with-phase-error-check
+                                 (:delete-other-jobs #'errors #'(setf errors) #'report)
+                               (let* ((other-jobs (set-difference
+                                                   (jenkins.api:all-jobs delete-other-pattern)
+                                                   all-jobs
+                                                   :key #'jenkins.api:id :test #'string=))
+                                      (generated-jobs (remove-if-not #'generated? other-jobs)))
+                                 (with-sequence-progress (:delete-other generated-jobs)
+                                   (mapc (progressing #'jenkins.api:delete-job :delete-other)
+                                         generated-jobs)))))
+
+                           (with-phase-error-check
+                               (:list-credentials #'errors #'(setf errors) #'report)
+                             (list-credentials jobs)))
+
+                    #+no (when report-directory
                       (with-phase-error-check
                           (:report #'errors #'(setf errors) #'report)
                         (flet ((maybe-first (thing)

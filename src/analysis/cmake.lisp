@@ -200,6 +200,7 @@
         (iter (for file in config-files)
               (let* ((name             (cmake-config-file->project-name/dont-normalize file))
                      (name/lower-case  (string-downcase name))
+                     (name/upper-case  (string-upcase name))
                      (version/resolved (when project-version
                                          (%resolve-cmake-variables ; TODO project-version above should get same treatment
                                           project-version versions
@@ -211,6 +212,8 @@
                                          (when version/resolved
                                           (parse-version version/resolved)))))
                 (collect (list* :cmake name (when version (list version))))
+                (unless (string= name/upper-case name)
+                  (collect (list* :cmake name/upper-case (when version (list version)))))
                 (unless (string= name/lower-case name)
                   (collect (list* :cmake name/lower-case (when version (list version)))))))
         (iter (for file in pkg-config-template-files)

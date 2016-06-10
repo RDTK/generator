@@ -1,6 +1,6 @@
 ;;;; jenkins.project.asd ---
 ;;;;
-;;;; Copyright (C) 2011, 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2011-2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -20,7 +20,7 @@
 (defparameter +version-major+ 0
   "Major component of version number.")
 
-(defparameter +version-minor+ 6
+(defparameter +version-minor+ 7
   "Minor component of version number.")
 
 (let* ((version-file (merge-pathnames "version.sexp" *load-truename*))

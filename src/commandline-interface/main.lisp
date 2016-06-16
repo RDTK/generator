@@ -38,7 +38,8 @@
                        (first
                         (locate-specifications
                          :project
-                         (list (merge-pathnames name projects-directory))))))
+                         (list (make-pathname :name     name
+                                              :defaults projects-directory))))))
              (list (list location versions distribution))))
          (jenkins.project::versions distribution))))
     distribution-pathnames distributions)

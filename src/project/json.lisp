@@ -24,7 +24,7 @@
           :collect key :collect (first value))))
 
 (defun load-template/json-1 (pathname)
-  (let+ ((spec (json:decode-json-from-source pathname))
+  (let+ ((spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
 
@@ -70,7 +70,7 @@
     (load-template/json-1 pathname)))
 
 (defun load-project-spec/json-1 (pathname &key version-test)
-  (let+ ((spec (json:decode-json-from-source pathname))
+  (let+ ((spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
          ((&flet make-version-spec (spec parent)
@@ -114,7 +114,7 @@
     (load-project-spec/json-1 pathname :version-test version-test)))
 
 (defun load-distribution-spec/json-1 (pathname)
-  (let+ ((spec (json:decode-json-from-source pathname))
+  (let+ ((spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
          (name (lookup :name))
@@ -142,3 +142,7 @@
                                   description from ~S: ~A~@:>"
                                  pathname condition))))
     (load-distribution-spec/json-1 pathname)))
+
+(defun %decode-json-from-source (source)
+  (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
+    (json:decode-json-from-source source)))

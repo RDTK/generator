@@ -118,14 +118,36 @@
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
          (name (lookup :name))
+         (projects-seen (make-hash-table :test #'equal))
          ((&flet check-version (version)
-            (if (and (typep version '(cons string (cons string list)))
-                     (every #'stringp (nthcdr 2 version)))
-                (list version)
+            (cond
+              ((not (and (typep version '(cons string (cons string list)))
+                         (every #'stringp (nthcdr 2 version))))
                 (cerror "~@<Continue without the project entry~@:>"
-                        "~@<Project entry [ ~{~S~^, ~} ] is not a project ~
-                         name followed by one or more project versions.~:@>"
-                        version)))))
+                        "~@<Project entry~
+                         ~@:_~@:_~
+                         ~2@T~A~
+                         ~@:_~@:_~
+                         is not a project name followed by one or more ~
+                         project versions.~:@>"
+                        (json:encode-json-to-string version)))
+              ((when-let ((previous (gethash (first version) projects-seen)))
+                 (cerror "~@<Ignore the additional project entry~@:>"
+                         "~@<Project entry~
+                          ~@:_~@:_~
+                          ~2@T~A~
+                          ~@:_~@:_~
+                          followed by another entry~
+                          ~@:_~@:_~
+                          ~2@T~A~
+                          ~@:_~@:_~
+                          for same project. Multiple project versions ~
+                          have to be described in a single entry.~@:>"
+                         (json:encode-json-to-string previous)
+                         (json:encode-json-to-string version))))
+              (t
+               (setf (gethash (first version) projects-seen) version)
+               (list version))))))
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"

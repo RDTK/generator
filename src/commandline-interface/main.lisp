@@ -128,6 +128,7 @@
   (with-sequence-progress (:load/project files-and-versions)
     (lparallel:pmapcan
      (lambda+ ((file versions distribution))
+       (progress "~A" file)
        (restart-case
            (let+ ((project       (reinitialize-instance
                                   (load-project-spec/json
@@ -187,22 +188,25 @@
       (with-sequence-progress (:analyze/project projects)
         (lparallel:pmapcan
          (lambda (project)
-           (let ((jenkins.analysis::*git-cache* cache))
-             (restart-case
-                 (when-let ((project (apply #'analyze-project project
-                                            :non-interactive? non-interactive?
-                                            (append
-                                             (when cache-directory
-                                               (list :cache-directory cache-directory))
-                                             (when temp-directory
-                                               (list :temp-directory temp-directory))))))
-                   (list (setf (find-project (name project)) project)))
-               (continue (&optional condition)
-                 :report (lambda (stream)
-                           (format stream "~@<Skip analyzing project ~
-                                           ~A.~@:>"
-                                   project))
-                 (declare (ignore condition))))))
+           (progress "~/print-items:format-print-items/"
+                     (print-items:print-items project))
+           (more-conditions::without-progress
+             (let ((jenkins.analysis::*git-cache* cache))
+               (restart-case
+                   (when-let ((project (apply #'analyze-project project
+                                              :non-interactive? non-interactive?
+                                              (append
+                                               (when cache-directory
+                                                 (list :cache-directory cache-directory))
+                                               (when temp-directory
+                                                 (list :temp-directory temp-directory))))))
+                     (list (setf (find-project (name project)) project)))
+                 (continue (&optional condition)
+                   :report (lambda (stream)
+                             (format stream "~@<Skip analyzing project ~
+                                             ~A.~@:>"
+                                     project))
+                   (declare (ignore condition)))))))
          :parts most-positive-fixnum projects)))))
 
 (defun resolve-project-version (project version)
@@ -312,19 +316,22 @@
   (let ((jobs
           (with-sequence-progress (:deploy/project projects)
             (iter (for project in projects)
-                  (progress "~A" project)
-                  (restart-case
-                      (appending (flatten (deploy project)))
-                    (continue (&optional condition)
-                      :report (lambda (stream)
-                                (format stream "~@<Skip deploying ~
-                                                project ~S.~@:>"
-                                        project))
-                      (declare (ignore condition))))))))
+                  (progress "~/print-items:format-print-items/"
+                            (print-items:print-items project))
+                  (more-conditions::without-progress
+                    (restart-case
+                        (appending (flatten (deploy project)))
+                      (continue (&optional condition)
+                        :report (lambda (stream)
+                                  (format stream "~@<Skip deploying ~
+                                                  project ~S.~@:>"
+                                          project))
+                        (declare (ignore condition)))))))))
 
     (with-sequence-progress (:deploy/dependencies jobs)
       (iter (for job in jobs)
-            (progress "~A" job)
+            (progress "~/print-items:format-print-items/"
+                      (print-items:print-items job))
             (restart-case
                 (deploy-dependencies job)
               (continue (&optional condition)
@@ -339,7 +346,7 @@
 (defun enable-jobs (jobs)
   (with-sequence-progress (:enable jobs)
     (iter (for job in jobs)
-          (progress "~S" job)
+          (progress "~S" (jenkins.api:id job))
           (restart-case
               (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))
             (continue (&optional condition)
@@ -462,6 +469,7 @@
               (not (value job :buildflow.exclude? nil))))
            ((&flet make-hook-job (name command)
               (when name
+                (progress :orchestration nil "~A" name)
                 (ensure-job ("project" name)
                   (jenkins.api:properties
                    (jenkins.dsl:parameters (:parameters '((:kind :text :name "tag")))))
@@ -473,6 +481,7 @@
 
       ;; Create bluildflow job
       (when buildflow-name
+        (progress :orchestration nil "~A" buildflow-name)
         (let ((schedule (funcall (if buildflow-parallel?
                                      #'schedule-jobs/parallel
                                      #'schedule-jobs/serial)
@@ -543,8 +552,8 @@
                        :description
                        "Enable debug mode.")
               (enum    :long-name     "progress-style"
-                       :enum          '(:cmake :vertical)
-                       :default-value :vertical
+                       :enum          '(:none :cmake)
+                       :default-value :cmake
                        :description
                        "Progress display style.")
               (flag    :long-name    "non-interactive"
@@ -785,6 +794,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
     (uiop:quit))
 
   (let+ ((debug?                 (clon:getopt :long-name "debug"))
+         (progress-style         (clon:getopt :long-name "progress-style"))
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
                                    200))
@@ -812,13 +822,29 @@ A common case, deleting only jobs belonging to the distribution being generated,
          (cache-directory        (clon:getopt :long-name "cache-directory"))
          (temp-directory         (clon:getopt :long-name "temp-directory"))
          (report-directory       (clon:getopt :long-name "report-directory"))
-         (dry-run?               (clon:getopt :long-name "dry-run")))
+         (dry-run?               (clon:getopt :long-name "dry-run"))
+
+         (main (bt:current-thread))
+         (lock (bt:make-lock)))
     (log:config :thread (if debug? :trace :warn))
 
     (restart-case
 
-        (lparallel:task-handler-bind ((error effective-error-policy))
-          (handler-bind ((error effective-error-policy))
+        (handler-bind ((error effective-error-policy)
+                       (more-conditions:progress-condition
+                         (lambda (condition)
+                           (sb-sys:without-interrupts
+                             (bt:with-lock-held (lock)
+                               (case progress-style
+                                 (:none)
+                                 (:cmake
+                                  (princ condition)
+                                  (fresh-line))))))))
+          (lparallel:task-handler-bind ((error effective-error-policy)
+                                        (more-conditions:progress-condition
+                                         (lambda (condition)
+                                           (bt:interrupt-thread
+                                            main (lambda () (signal condition))))))
             (with-delayed-error-reporting (:debug? debug?)
 
               (let* ((jenkins.api:*base-url*       (clon:getopt :long-name "base-uri"))
@@ -932,8 +958,12 @@ A common case, deleting only jobs belonging to the distribution being generated,
                     (when report-directory
                       (with-phase-error-check
                           (:report #'errors #'(setf errors) #'report)
-                        (jenkins.report:report distributions :json report-directory)
-                        (jenkins.report:report distributions :graph report-directory)))))))))
+                        (flet ((maybe-first (thing)
+                                 (if (consp thing) (first thing) thing)))
+                          (jenkins.report:report
+                           (maybe-first distributions) :json report-directory)
+                          (jenkins.report:report
+                           (maybe-first distributions) :graph report-directory))))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

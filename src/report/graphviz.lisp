@@ -1,6 +1,6 @@
 ;;;; graphviz.lisp --- Graph generation for projects and dependencies.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -68,7 +68,12 @@
             relations)))
 
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
-  (map nil (rcurry #'report style target) object))
+  (with-sequence-progress (:report/graph object)
+    (map nil (lambda (element)
+               (progress "~/print-items:format-print-items/"
+                         (print-items:print-items element))
+               (report element style target))
+         object)))
 
 (defmethod report ((object jenkins.project::distribution-spec)
                    (style  (eql :graph))

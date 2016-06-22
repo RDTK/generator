@@ -442,7 +442,7 @@ move ..\*.zip .
                 (iter (for (_ required) in (requires-of-kind
                                             :cmake dependency))
                       (in outer
-                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\;)\"\n"
+                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
                             :into finds)
                           (collect (list #?"${required}_DIR"
                                          #?"\${${(shellify required)}_DIR}")

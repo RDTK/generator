@@ -117,7 +117,15 @@
   (let+ ((spec (json:decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
-         (name (lookup :name)))
+         (name (lookup :name))
+         ((&flet check-version (version)
+            (if (and (typep version '(cons string (cons string list)))
+                     (every #'stringp (nthcdr 2 version)))
+                (list version)
+                (cerror "~@<Continue without the project entry~@:>"
+                        "~@<Project entry [ ~{~S~^, ~} ] is not a project ~
+                         name followed by one or more project versions.~:@>"
+                        version)))))
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"
@@ -126,7 +134,7 @@
                    :name      name
                    :variables (list* :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables)))
-                   :versions  (lookup :versions))))
+                   :versions  (mapcan #'check-version (lookup :versions)))))
 
 (defun load-distribution/json (pathname)
   (handler-bind ((error (lambda (condition)

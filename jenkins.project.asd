@@ -87,6 +87,7 @@
                 (:version :esrap                 "0.9")
                 (:version :cl-ppcre              "2.0.3")
                 (:version :cl-json               "0.4.1")
+                :cl-store
                 :inferior-shell
 
                 (:version :rosetta               "0.2")

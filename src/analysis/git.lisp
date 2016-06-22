@@ -28,7 +28,7 @@
               `("-c" ,(format nil "core.askpass=~A"
                               +disable-git-credentials-helper-program+))
               (values () (environment-with-ssh-askpass-overwritten)))))
-    (run `("git" ,@global-options  ,@spec)
+    (run `("git" ,@global-options ,@spec)
          directory :environment environment)))
 
 (defun clone-git-repository (source clone-directory
@@ -168,7 +168,8 @@
               (values #'clone-git-repository/cached args)
               (values #'clone-git-repository
                       (remove-from-plist args :cache-directory)))))
-    (apply function source clone-directory args)))
+    (apply function source clone-directory args)
+    (git-directory-commit-key clone-directory)))
 
 (defun analyze-git-branch (clone-directory &key sub-directory)
   (let* ((analyze-directory (if sub-directory
@@ -182,16 +183,71 @@
            :authors          authors
            result)))
 
+(defun analyze-git-branch/cached (cache-directory commit-key)
+  (with-simple-restart (continue "~@<Do not use cache results.~@:>")
+    (let ((file (merge-pathnames commit-key cache-directory)))
+      (log:info "~@<Maybe restoring analysis results in ~A~@:>" file)
+      (when (probe-file file)
+        (log:info "~@<Restoring analysis results in ~A~@:>" file)
+        (cl-store:restore file)))))
+
+(defun analyze-git-branch/cache (cache-directory commit-key results)
+  (with-simple-restart (continue "~@<Do not cache results.~@:>")
+    (let ((file (merge-pathnames commit-key cache-directory)))
+      (log:info "~@<Storing analysis results in ~A~@:>" file)
+      (cl-store:store results file))))
+
+(defun analyze-git-branch/maybe-cached (clone-directory
+                                        &rest args &key
+                                        cache-directory
+                                        commit-key
+                                        &allow-other-keys)
+  (or (when (and cache-directory commit-key)
+        (analyze-git-branch/cached cache-directory commit-key))
+      (let ((results (apply #'analyze-git-branch clone-directory
+                            (remove-from-plist
+                             args :cache-directory :commit-key))))
+        (when (and cache-directory commit-key)
+          (analyze-git-branch/cache cache-directory commit-key results))
+        results)))
+
 (defun clone-and-analyze-git-branch (source clone-directory
                                      &rest args &key
+                                     commit
+                                     branch
+                                     username
+                                     password
                                      sub-directory
+                                     cache-directory
+                                     non-interactive
                                      &allow-other-keys)
-  ;; Clone the repository.
-  (apply #'clone-git-repository/maybe-cached
-         source clone-directory
-         (remove-from-plist args :sub-directory))
-  ;; Then analyze the requested branches/tags/commits.
-  (analyze-git-branch clone-directory :sub-directory sub-directory))
+  ;; If we already have analysis results for the commit that is
+  ;; current in the remote repository, return right away.
+  (with-simple-restart (continue "~@<Do not try to use cached analysis ~
+                                  results.~@:>")
+    (when cache-directory
+      (log:info "~@<Determining current remote commit in ~A~@:>" source)
+      (when-let* ((commitish  (or commit branch))
+                  (commit-key (git-remote-commit-key
+                               source commitish
+                               :username        username
+                               :password        password
+                               :non-interactive non-interactive))
+                  (results    (analyze-git-branch/cached
+                               cache-directory commit-key)))
+        (return-from clone-and-analyze-git-branch results))))
+
+  ;; Clone the repository, then analyze the requested
+  ;; branches/tags/commits, potentially caching the results.
+  (let ((commit-key (apply #'clone-git-repository/maybe-cached
+                           source clone-directory
+                           (remove-from-plist args :sub-directory))))
+    (log:info "~@<Cloned ~A into ~A, got commit key ~A~@:>"
+              source clone-directory commit-key)
+    (analyze-git-branch/maybe-cached clone-directory
+                                     :sub-directory   sub-directory
+                                     :cache-directory cache-directory
+                                     :commit-key      commit-key)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &key
@@ -263,3 +319,40 @@
         (incf (gethash line frequencies 0)))
       (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
       (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-authors))))))
+
+;;; Utilities
+
+(defun git-remote-commit-key (source branch
+                              &key
+                              username
+                              password
+                              non-interactive)
+  (let* ((url    (format-git-url source username password))
+         (deref  (format nil "~A^{}" branch))
+         (output (%run-git `("ls-remote" ,url ,branch ,deref) "/"
+                           :non-interactive non-interactive))
+         (result))
+    (ppcre:do-register-groups (commit ref deref?)
+        ((ppcre:create-scanner "^([a-z0-9]+)\\t(.*?)(\\^\\{\\})?$"
+                               :multi-line-mode t)
+         output)
+      (let+ (((&optional result-commit result-tag? result-deref?) result)
+             (tag? (starts-with-subseq "refs/tags/" ref)))
+       (when (or (not result-commit)               ; anything > nothing
+                 (and result-tag? (not tag?))      ; not tag  > tag
+                 (and result-tag? tag?             ; when both tags:
+                      (not result-deref?) deref?)) ; deref    > not deref
+         (setf result (list commit tag? deref?)))))
+    (when result
+      (%git-commit->key (first result)))))
+
+(defun git-directory-commit-key (directory)
+  (let ((commit (apply #'inferior-shell:run/nil ; TODO capture error output?
+                       '("git" "rev-parse" "HEAD")
+                       :output    '(:string :stripped t)
+                       :directory directory
+                       (safe-external-format-argument))))
+    (%git-commit->key commit)))
+
+(defun %git-commit->key (commit)
+  (format nil "git:~A" commit))

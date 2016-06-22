@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -116,7 +116,8 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
               ~2@T~/jenkins.analysis::%print-process-spec/~@:_~@:_~
               failed with exit code ~D and output:~@:_~@:_~
               ~A~@:>"
-             spec code (get-output-stream-string output)))))
+             spec code (get-output-stream-string output)))
+    (get-output-stream-string output)))
 
 (defun %print-process-spec (stream spec &optional colon? at?)
   (declare (ignore colon? at?))

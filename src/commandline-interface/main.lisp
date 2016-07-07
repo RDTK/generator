@@ -468,35 +468,40 @@
            ((&flet include-job? (job)
               (not (value job :buildflow.exclude? nil))))
            ((&flet make-hook-job (name command)
-              (when name
-                (progress :orchestration nil "~A" name)
-                (ensure-job ("project" name)
-                  (jenkins.api:properties
-                   (jenkins.dsl:parameters (:parameters '((:kind :text :name "tag")))))
-                  (jenkins.api:builders
-                   (jenkins.dsl:shell (:command (or command
-                                                     "# <nothing to do>")))))))))
-      (make-hook-job prepare-name prepare-command)
-      (make-hook-job finish-name  finish-command)
+              (progress :orchestration nil "~A" name)
+              (ensure-job ("project" name)
+                (jenkins.api:properties
+                 (jenkins.dsl:parameters (:parameters '((:kind :text :name "tag")))))
+                (jenkins.api:builders
+                 (jenkins.dsl:shell (:command (or command
+                                                  "# <nothing to do>"))))))))
+      (append
+       ;; Maybe create hook jobs
+       (when prepare-name
+         (list (make-hook-job prepare-name prepare-command)))
 
-      ;; Create bluildflow job
-      (when buildflow-name
-        (progress :orchestration nil "~A" buildflow-name)
-        (let ((schedule (funcall (if buildflow-parallel?
-                                     #'schedule-jobs/parallel
-                                     #'schedule-jobs/serial)
-                                 (remove-if-not #'include-job? jobs)))
-              (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
-                                       "build-flow-plugin@0.10")
-                                      buildflow-name
-                                      :commit? nil))))
-          (configure-buildflow-job
-           job schedule
-           :prepare-name     prepare-name
-           :finish-name      finish-name
-           :ignore-failures? build-flow-ignores-failures?)
-          (jenkins.api:commit! job)
-          (jenkins.api:enable! job))))))
+       (when finish-name
+         (list (make-hook-job finish-name  finish-command)))
+
+       ;; Create bluildflow job
+       (when buildflow-name
+         (progress :orchestration nil "~A" buildflow-name)
+         (let ((schedule (funcall (if buildflow-parallel?
+                                      #'schedule-jobs/parallel
+                                      #'schedule-jobs/serial)
+                                  (remove-if-not #'include-job? jobs)))
+               (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
+                                        "build-flow-plugin@0.10")
+                                       buildflow-name
+                                       :commit? nil))))
+           (configure-buildflow-job
+            job schedule
+            :prepare-name     prepare-name
+            :finish-name      finish-name
+            :ignore-failures? build-flow-ignores-failures?)
+           (jenkins.api:commit! job)
+           (jenkins.api:enable! job)
+           (list job)))))))
 
 (defun configure-distribution (distribution
                                &key
@@ -510,9 +515,9 @@
 (defun configure-distributions (distributions
                                 &key
                                 (build-flow-ignores-failures? t))
-  (mapc (rcurry #'configure-distribution
-                :build-flow-ignores-failures? build-flow-ignores-failures?)
-        distributions))
+  (mapcan (rcurry #'configure-distribution
+                  :build-flow-ignores-failures? build-flow-ignores-failures?)
+          distributions))
 
 (defun list-credentials (jobs)
   (let+ ((all-credentials (make-hash-table :test #'equal))
@@ -871,81 +876,82 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                 (with-trivial-progress (:jobs)
 
-                  (let* ((templates         (with-phase-error-check
-                                                (:load/template #'errors #'(setf errors) #'report)
-                                              (load-templates templates)))
-                         (distributions/raw (with-phase-error-check
-                                                (:load/distribution #'errors #'(setf errors) #'report)
-                                              (load-distributions distributions overwrites)))
-                         (projects          (with-phase-error-check
-                                                (:locate/project #'errors #'(setf errors) #'report)
-                                              (locate-projects distributions distributions/raw)))
-                         (projects/raw      (with-phase-error-check
-                                                (:load/project #'errors #'(setf errors) #'report)
-                                              (load-projects/versioned projects)))
-                         (projects/specs    (with-phase-error-check
-                                                (:analyze/project #'errors #'(setf errors) #'report)
-                                              (apply #'analyze-projects projects/raw
-                                                     :non-interactive? non-interactive?
-                                                     (append
-                                                      (when cache-directory
-                                                        (list :cache-directory cache-directory))
-                                                      (when temp-directory
-                                                        (list :temp-directory temp-directory))))))
-                         (distributions     (with-phase-error-check
-                                                (:resolve/distribution #'errors #'(setf errors) #'report)
-                                              (mapcar (lambda (distribution)
-                                                        (reinitialize-instance
-                                                         distribution
-                                                         :versions (resolve-project-versions
-                                                                    (jenkins.project::versions distribution))))
-                                                      distributions/raw)))
-                         (distributions     (with-phase-error-check
-                                                (:check-platform-requirements #'errors #'(setf errors) #'report)
-                                              (check-platform-requirements distributions)))
-                         (distributions     (with-phase-error-check
-                                                (:check-access #'errors #'(setf errors) #'report
-                                                 :continuable? nil)
-                                              (check-distribution-access distributions)))
-                         (projects          (with-phase-error-check
-                                                (:instantiate/project #'errors #'(setf errors) #'report)
-                                              (instantiate-projects projects/specs distributions)))
-                         (jobs/spec         (unless dry-run?
-                                              (with-phase-error-check
-                                                  (:deploy/project #'errors #'(setf errors) #'report)
-                                                (flatten (deploy-projects projects)))))
-                         (jobs              (unless dry-run?
-                                              (mappend #'implementations jobs/spec))))
+                  (let* ((templates          (with-phase-error-check
+                                                 (:load/template #'errors #'(setf errors) #'report)
+                                               (load-templates templates)))
+                         (distributions/raw  (with-phase-error-check
+                                                 (:load/distribution #'errors #'(setf errors) #'report)
+                                               (load-distributions distributions overwrites)))
+                         (projects           (with-phase-error-check
+                                                 (:locate/project #'errors #'(setf errors) #'report)
+                                               (locate-projects distributions distributions/raw)))
+                         (projects/raw       (with-phase-error-check
+                                                 (:load/project #'errors #'(setf errors) #'report)
+                                               (load-projects/versioned projects)))
+                         (projects/specs     (with-phase-error-check
+                                                 (:analyze/project #'errors #'(setf errors) #'report)
+                                               (apply #'analyze-projects projects/raw
+                                                      :non-interactive? non-interactive?
+                                                      (append
+                                                       (when cache-directory
+                                                         (list :cache-directory cache-directory))
+                                                       (when temp-directory
+                                                         (list :temp-directory temp-directory))))))
+                         (distributions      (with-phase-error-check
+                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
+                                               (mapcar (lambda (distribution)
+                                                         (reinitialize-instance
+                                                          distribution
+                                                          :versions (resolve-project-versions
+                                                                     (jenkins.project::versions distribution))))
+                                                       distributions/raw)))
+                         (distributions      (with-phase-error-check
+                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)
+                                               (check-platform-requirements distributions)))
+                         (distributions      (with-phase-error-check
+                                                 (:check-access #'errors #'(setf errors) #'report
+                                                  :continuable? nil)
+                                               (check-distribution-access distributions)))
+                         (projects           (with-phase-error-check
+                                                 (:instantiate/project #'errors #'(setf errors) #'report)
+                                               (instantiate-projects projects/specs distributions)))
+                         (jobs/spec          (unless dry-run?
+                                               (with-phase-error-check
+                                                   (:deploy/project #'errors #'(setf errors) #'report)
+                                                 (flatten (deploy-projects projects)))))
+                         (jobs               (unless dry-run?
+                                               (mappend #'implementations jobs/spec)))
+                         (orchestration-jobs (unless dry-run?
+                                               (with-phase-error-check
+                                                   (:orchestration #'errors #'(setf errors) #'report)
+                                                 (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+                                                   (restart-case
+                                                       (configure-distributions
+                                                        distributions
+                                                        :build-flow-ignores-failures? build-flow-ignores-failures?)
+                                                     (continue (&optional condition)
+                                                       :report (lambda (stream)
+                                                                 (format stream "~@<Continue without configuring orchestration jobs~@:>"))
+                                                       (declare (ignore condition)))))))))
                     (declare (ignore templates))
 
-                    ;; Delete automatically generated jobs found on the
-                    ;; server for which no counterpart exists among the newly
-                    ;; generated jobs. This is necessary to get rid of
-                    ;; leftover jobs when projects (or project versions) are
-                    ;; deleted or renamed.
-                    (when (and (not dry-run?) delete-other?)
-                      (with-phase-error-check
-                          (:delete-other-jobs #'errors #'(setf errors) #'report)
-                        (let ((other-jobs (set-difference
-                                           (generated-jobs delete-other-pattern) jobs
-                                           :key #'jenkins.api:id :test #'string=)))
-                          (with-sequence-progress (:delete-other other-jobs)
-                            (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                                  other-jobs)))))
-
-                    ;; TODO explain
                     (unless dry-run?
-                      (with-phase-error-check
-                          (:orchestration #'errors #'(setf errors) #'report)
-                        (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                          (restart-case
-                              (configure-distributions
-                               distributions
-                               :build-flow-ignores-failures? build-flow-ignores-failures?)
-                            (continue (&optional condition)
-                              :report (lambda (stream)
-                                        (format stream "~@<Continue without configuring orchestration jobs~@:>"))
-                              (declare (ignore condition))))))
+                      ;; Delete automatically generated jobs found on
+                      ;; the server for which no counterpart exists
+                      ;; among the newly generated jobs. This is
+                      ;; necessary to get rid of leftover jobs when
+                      ;; projects (or project versions) are deleted or
+                      ;; renamed.
+                      (when delete-other?
+                        (with-phase-error-check
+                            (:delete-other-jobs #'errors #'(setf errors) #'report)
+                          (let ((other-jobs (set-difference
+                                             (generated-jobs delete-other-pattern)
+                                             (append jobs orchestration-jobs)
+                                             :key #'jenkins.api:id :test #'string=)))
+                            (with-sequence-progress (:delete-other other-jobs)
+                              (mapc (progressing #'jenkins.api::delete-job :delete-other)
+                                    other-jobs)))))
 
                       (with-phase-error-check
                           (:enable-jobs #'errors #'(setf errors) #'report)

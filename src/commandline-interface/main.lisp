@@ -742,11 +742,12 @@ A common case, deleting only jobs belonging to the distribution being generated,
       '())))
 
 (defun parse-overwrite (spec)
-  (let+ (((variable &optional value)
-          (split-sequence:split-sequence #\= spec :count 2)))
-    (when (emptyp variable)
-      (error "~@<Empty variable name in ~S.~@:>" spec))
-    (cons (make-keyword (string-upcase variable)) value)))
+  (let ((position (position #\= spec)))
+    (unless position
+      (error "~@<Variable assignment ~S is not of the form NAME=VALUE.~@:>"
+             spec))
+    (cons (make-keyword (string-upcase (subseq spec 0 position)))
+          (subseq spec (1+ position)))))
 
 (defun call-with-phase-error-check (phase errors set-errors report continuable?
                                     thunk)

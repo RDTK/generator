@@ -89,6 +89,7 @@
                 (:version :cl-json               "0.4.1")
                 :cl-store
                 :inferior-shell
+                :ironclad
 
                 (:version :rosetta               "0.2")
 

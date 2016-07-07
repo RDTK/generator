@@ -183,32 +183,31 @@
            :authors          authors
            result)))
 
-(defun analyze-git-branch/cached (cache-directory commit-key)
+(defun analyze-git-branch/cached (cache-directory key)
   (with-simple-restart (continue "~@<Do not use cache results.~@:>")
-    (let ((file (merge-pathnames commit-key cache-directory)))
+    (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Maybe restoring analysis results in ~A~@:>" file)
       (when (probe-file file)
         (log:info "~@<Restoring analysis results in ~A~@:>" file)
         (cl-store:restore file)))))
 
-(defun analyze-git-branch/cache (cache-directory commit-key results)
+(defun analyze-git-branch/cache (cache-directory key results)
   (with-simple-restart (continue "~@<Do not cache results.~@:>")
-    (let ((file (merge-pathnames commit-key cache-directory)))
+    (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Storing analysis results in ~A~@:>" file)
       (cl-store:store results file))))
 
 (defun analyze-git-branch/maybe-cached (clone-directory
                                         &rest args &key
                                         cache-directory
-                                        commit-key
+                                        key
                                         &allow-other-keys)
-  (or (when (and cache-directory commit-key)
-        (analyze-git-branch/cached cache-directory commit-key))
+  (or (when (and cache-directory key)
+        (analyze-git-branch/cached cache-directory key))
       (let ((results (apply #'analyze-git-branch clone-directory
-                            (remove-from-plist
-                             args :cache-directory :commit-key))))
-        (when (and cache-directory commit-key)
-          (analyze-git-branch/cache cache-directory commit-key results))
+                            (remove-from-plist args :cache-directory :key))))
+        (when (and cache-directory key)
+          (analyze-git-branch/cache cache-directory key results))
         results)))
 
 (defun clone-and-analyze-git-branch (source clone-directory
@@ -233,21 +232,23 @@
                                :username        username
                                :password        password
                                :non-interactive non-interactive))
+                  (key        (%sub-directory->key commit-key sub-directory))
                   (results    (analyze-git-branch/cached
-                               cache-directory commit-key)))
+                               cache-directory key)))
         (return-from clone-and-analyze-git-branch results))))
 
   ;; Clone the repository, then analyze the requested
   ;; branches/tags/commits, potentially caching the results.
-  (let ((commit-key (apply #'clone-git-repository/maybe-cached
-                           source clone-directory
-                           (remove-from-plist args :sub-directory))))
-    (log:info "~@<Cloned ~A into ~A, got commit key ~A~@:>"
-              source clone-directory commit-key)
+  (let* ((commit-key (apply #'clone-git-repository/maybe-cached
+                            source clone-directory
+                            (remove-from-plist args :sub-directory)))
+         (key        (%sub-directory->key commit-key sub-directory)))
+    (log:info "~@<Cloned ~A into ~A, got key ~A~@:>"
+              source clone-directory key)
     (analyze-git-branch/maybe-cached clone-directory
                                      :sub-directory   sub-directory
                                      :cache-directory cache-directory
-                                     :commit-key      commit-key)))
+                                     :key             key)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &key
@@ -356,3 +357,11 @@
 
 (defun %git-commit->key (commit)
   (format nil "git:~A" commit))
+
+(defun %sub-directory->key (key sub-directory)
+  (if sub-directory
+      (let* ((octets (sb-ext:string-to-octets
+                      (namestring sub-directory) :external-format :utf-8))
+             (hash   (ironclad:digest-sequence 'ironclad:sha256 octets)))
+        (format nil "~A:~(~{~2,'0X~}~)" key (coerce hash 'list)))
+      key))

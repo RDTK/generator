@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Report analysis results.
 ;;;;
-;;;; Copyright (C) 2015 Jan Moringen
+;;;; Copyright (C) 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -14,12 +14,13 @@
 (defmethod report ((object jenkins.project::distribution-spec)
                    (style  (eql :json))
                    (target pathname))
-  (ensure-directories-exist target)
-  (with-output-to-file (stream (make-pathname :name     (name object)
-                                              :type     "json"
-                                              :defaults target)
-                               :if-exists :supersede)
-    (report object style stream)))
+  (let ((name (safe-name (name object))))
+    (ensure-directories-exist target)
+    (with-output-to-file (stream (make-pathname :name     name
+                                                :type     "json"
+                                                :defaults target)
+                                 :if-exists :supersede)
+      (report object style stream))))
 
 (defmethod report ((object jenkins.project::distribution-spec)
                    (style  (eql :json))
@@ -43,9 +44,10 @@
 (defmethod report ((object jenkins.project::project-spec)
                    (style  (eql :json))
                    (target pathname))
-  (let ((directory (merge-pathnames "projects/" target)))
+  (let ((directory (merge-pathnames "projects/" target))
+        (name      (safe-name (name object))))
     (ensure-directories-exist directory)
-    (with-output-to-file (stream (make-pathname :name     (name object)
+    (with-output-to-file (stream (make-pathname :name     name
                                                 :type     "json"
                                                 :defaults directory)
                                  :if-exists :supersede)

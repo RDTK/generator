@@ -94,8 +94,8 @@
                            (when-let ((parent (when (compute-applicable-methods
                                                      #'jenkins.project::parent (list object))
                                                 (jenkins.project::parent object))))
-                             (jenkins.project::name parent))
-                           (jenkins.project::name object)))
+                             (safe-name (jenkins.project::name parent)))
+                           (safe-name (jenkins.project::name object))))
          (filename (make-pathname :name     basename
                                   :type     "png"
                                   :defaults target)))

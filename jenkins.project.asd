@@ -157,5 +157,6 @@
                  :depends-on ("project")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "util")
                               (:file     "json")
                               (:file     "graphviz")))))

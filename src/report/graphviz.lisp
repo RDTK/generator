@@ -69,11 +69,12 @@
 
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
   (with-sequence-progress (:report/graph object)
-    (map nil (lambda (element)
-               (progress "~/print-items:format-print-items/"
-                         (print-items:print-items element))
-               (report element style target))
-         object)))
+    (lparallel:pmap
+     nil (lambda (element)
+           (progress "~/print-items:format-print-items/"
+                     (print-items:print-items element))
+           (report element style target))
+     object)))
 
 (defmethod report ((object jenkins.project::distribution-spec)
                    (style  (eql :graph))
@@ -90,7 +91,9 @@
                    (style  (eql :graph))
                    (target pathname))
   (ensure-directories-exist target)
-  (let* ((basename (format nil "~@[~A-~]~A"
+  (let+ (((&flet safe-name (name)
+            (substitute #\_ #\/ name)))
+         (basename (format nil "~@[~A-~]~A"
                            (when-let ((parent (when (compute-applicable-methods
                                                      #'jenkins.project::parent (list object))
                                                 (jenkins.project::parent object))))

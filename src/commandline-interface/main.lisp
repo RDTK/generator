@@ -332,14 +332,7 @@
       (iter (for job in jobs)
             (progress "~/print-items:format-print-items/"
                       (print-items:print-items job))
-            (restart-case
-                (deploy-dependencies job)
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Skip deploying ~
-                                          dependencies of job ~S.~@:>"
-                                  job))
-                (declare (ignore condition))))))
+            (deploy-dependencies job)))
 
     jobs))
 

@@ -481,7 +481,8 @@
     (restart-case (call-next-method)
       (continue (&optional condition)
         :report (lambda (stream)
-                  (format stream "~@<Skip deployment of ~A.~@:>"
+                  (format stream "~@<Skip deploying dependencies of ~
+                                  ~A.~@:>"
                           thing))
         (declare (ignore condition))
         nil))))

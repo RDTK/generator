@@ -313,28 +313,26 @@
             (collect project)))))
 
 (defun deploy-projects (projects)
-  (let ((jobs
-          (with-sequence-progress (:deploy/project projects)
-            (iter (for project in projects)
-                  (progress "~/print-items:format-print-items/"
-                            (print-items:print-items project))
-                  (more-conditions::without-progress
-                    (restart-case
-                        (appending (flatten (deploy project)))
-                      (continue (&optional condition)
-                        :report (lambda (stream)
-                                  (format stream "~@<Skip deploying ~
+  (with-sequence-progress (:deploy/project projects)
+    (iter (for project in projects)
+          (progress "~/print-items:format-print-items/"
+                    (print-items:print-items project))
+          (more-conditions::without-progress
+            (restart-case
+                (appending (flatten (deploy project)))
+              (continue (&optional condition)
+                :report (lambda (stream)
+                          (format stream "~@<Skip deploying ~
                                                   project ~S.~@:>"
-                                          project))
-                        (declare (ignore condition)))))))))
+                                  project))
+                (declare (ignore condition))))))))
 
-    (with-sequence-progress (:deploy/dependencies jobs)
-      (iter (for job in jobs)
-            (progress "~/print-items:format-print-items/"
-                      (print-items:print-items job))
-            (deploy-dependencies job)))
-
-    jobs))
+(defun deploy-job-dependencies (jobs)
+  (with-sequence-progress (:deploy/dependencies jobs)
+    (iter (for job in jobs)
+          (progress "~/print-items:format-print-items/"
+                    (print-items:print-items job))
+          (deploy-dependencies job))))
 
 (defun enable-jobs (jobs)
   (with-sequence-progress (:enable jobs)
@@ -912,7 +910,13 @@ A common case, deleting only jobs belonging to the distribution being generated,
                          (jobs/spec          (unless dry-run?
                                                (with-phase-error-check
                                                    (:deploy/project #'errors #'(setf errors) #'report)
-                                                 (flatten (deploy-projects projects)))))
+                                                 (let ((jobs (deploy-projects projects)))
+                                                   (when (some (lambda (job)
+                                                                 (not (or (value job :no-dependencies nil) ; TODO remove
+                                                                          (string= (value job :dependencies.mode) "none"))))
+                                                               jobs)
+                                                     (deploy-job-dependencies jobs))
+                                                   jobs))))
                          (jobs               (unless dry-run?
                                                (mappend #'implementations jobs/spec)))
                          (orchestration-jobs (unless dry-run?

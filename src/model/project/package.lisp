@@ -55,10 +55,6 @@
    #:versions
    #:jobs)
 
-  ;; Version specification protocol and class
-  (:export
-   #:version-spec)
-
   ;; Template specification protocol
   (:export
    #:inherit
@@ -73,20 +69,6 @@
   (:export
    #:find-project)
 
-  ;; Provider registry
-  (:export
-   #:find-provider
-   #:find-provider/version
-   #:providers/alist)
-
-
-  ;; Requires/provides protocol
-  (:export
-   #:requires
-   #:requires-of-kind
-   #:provides
-   #:provides-of-kind)
-
   ;; Platform requirements protocol
   (:export
    #:platform-requires
@@ -94,9 +76,7 @@
 
   ;; JSON stuff
   (:export
-   #:load-template/json
-   #:load-project-spec/json
-   #:load-distribution/json)
+   #:load-template/json)
 
   (:documentation
    "Contains distribution, project and related concepts of the model."))

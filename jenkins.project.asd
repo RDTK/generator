@@ -127,9 +127,7 @@
                               (:file     "classes-spec")
                               (:file     "classes-model")
 
-                              (:file     "json")
-
-                              (:file     "progress")))
+                              (:file     "json")))
 
                 (:module     "model-aspects"
                  :pathname   "src/model/aspects"

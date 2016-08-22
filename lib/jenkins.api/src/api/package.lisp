@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -98,6 +98,7 @@
    #:credentials
    #:branches
    #:local-branch
+   #:clone-timeout
    #:wipe-out-workspace?
    #:checkout-submodules?
    #:internal-tag?

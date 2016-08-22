@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -413,6 +413,9 @@
                                         "localBranch/text()")
                                        (t
                                         "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"))
+                            :initform nil)
+    (clone-timeout          :type     integer
+                            :xpath    "extensions/hudson.plugins.git.extensions.impl.CloneOption/timeout/text()"
                             :initform nil)
     (wipe-out-workspace?    :type     (boolean/element "hudson.plugins.git.extensions.impl.WipeWorkspace")
                             :xpath    (:version

@@ -11,7 +11,7 @@
 (defmethod report ((object sequence) (style (eql :json)) (target pathname))
   (map nil (rcurry #'report style target) object))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object project-automation.model.project.stage3::distribution)
                    (style  (eql :json))
                    (target pathname))
   (let ((name (safe-name (name object))))
@@ -22,7 +22,7 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object project-automation.model.project.stage3::distribution)
                    (style  (eql :json))
                    (target stream))
   (json:with-object (target)
@@ -32,8 +32,8 @@
     (json:as-object-member ("platform-requires" target)
       (json:encode-json (platform-requires object *platform-of-interest*) target))
     (report-variables object target)
-    (let ((projects (remove-duplicates (mapcar #'parent
-                                               (versions object)))))
+    (let ((projects (remove-duplicates (mapcar #'jenkins.model:parent
+                                               (rosetta-project.model.project:versions object)))))
       (json:as-object-member ("projects" target)
         (json:with-array (target)
           (with-sequence-progress (:report/json projects)
@@ -44,7 +44,7 @@
                 (report project style target)))))))))
 
 ;; Describe project in separate file. Currently not used.
-(defmethod report ((object jenkins.model.project::project-spec)
+(defmethod report ((object project-automation.model.project.stage3::project)
                    (style  (eql :json))
                    (target pathname))
   (let ((directory (merge-pathnames "projects/" target))
@@ -56,7 +56,7 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.model.project::project-spec)
+(defmethod report ((object project-automation.model.project.stage3::project)
                    (style  (eql :json))
                    (target stream))
   (let ((implementation (implementation object)))
@@ -64,12 +64,12 @@
       (json:encode-object-member "name" (name object) target)
       (json:as-object-member ("versions" target)
         (json:with-array (target)
-          (dolist (version (versions object))
+          (dolist (version (rosetta-project.model.project:versions object))
             (json:as-array-member (target)
               (report version style target)))))
       (report-variables implementation target))))
 
-(defmethod report ((object jenkins.model.project::version-spec)
+(defmethod report ((object project-automation.model.project.stage3::project-version)
                    (style  (eql :json))
                    (target stream))
   (let ((implementation (implementation object)))
@@ -77,9 +77,9 @@
       (json:encode-object-member "name" (name object) target)
       (json:encode-object-member "access" (access object) target)
       (json:encode-object-member
-       "requires" (jenkins.model.project::%requires object) target)
+       "requires" (rosetta-project.model.dependency:direct-requires object) target) ; TODO should be transitive, effective requires instead?
       (json:encode-object-member
-       "provides" (jenkins.model.project::%provides object) target)
+       "provides" (rosetta-project.model.dependency:direct-provides object) target)
       (json:encode-object-member
        "platform-requires" (platform-requires object *platform-of-interest*) target)
       (json:as-object-member ("direct-dependencies" target)

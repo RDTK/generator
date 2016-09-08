@@ -1,6 +1,6 @@
 ;;;; spec-classes.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -357,8 +357,8 @@
 
 ;;; TODO(jmoringe, 2013-01-16): move to correct file
 
-(defmethod variables append ((thing template))
-  (mappend #'variables (inherit thing)))
+(defmethod variables :around ((thing template))
+  (append (call-next-method) (mappend #'variables (inherit thing))))
 
 (defmethod direct-aspects ((thing template))
   (copy-list (%direct-aspects thing)))

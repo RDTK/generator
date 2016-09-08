@@ -45,7 +45,7 @@
     distribution-pathnames distributions)
    :test #'equalp))
 
-(defun analyze-project (project &key cache-directory temp-directory non-interactive?)
+(defun analyze-project (project &key cache-directory temp-directory non-interactive)
   (let+ (((&labels+ do-version ((version-info . info))
             (let+ ((version-name (getf version-info :name))
                    (version-variables (remove-from-plist version-info :name))
@@ -113,7 +113,7 @@
                          :sub-directory    (when-let ((value (var :sub-directory)))
                                              (parse-namestring (concatenate 'string value "/")))
                          :history-limit    (var :scm.history-limit)
-                         :non-interactive? non-interactive?
+                         :non-interactive  non-interactive
                          (append
                           (let ((natures (var :natures :none)))
                             (unless (eq natures :none)
@@ -182,7 +182,7 @@
            (declare (ignore condition)))))
      :parts most-positive-fixnum files-and-versions)))
 
-(defun analyze-projects (projects &key cache-directory temp-directory non-interactive?)
+(defun analyze-projects (projects &key cache-directory temp-directory non-interactive)
   (jenkins.analysis::with-git-cache ()
     (let ((cache jenkins.analysis::*git-cache*))
       (with-sequence-progress (:analyze/project projects)
@@ -194,7 +194,7 @@
              (let ((jenkins.analysis::*git-cache* cache))
                (restart-case
                    (when-let ((project (apply #'analyze-project project
-                                              :non-interactive? non-interactive?
+                                              :non-interactive non-interactive
                                               (append
                                                (when cache-directory
                                                  (list :cache-directory cache-directory))
@@ -795,7 +795,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)
                                    200))
-         (non-interactive?       (clon:getopt :long-name "non-interactive"))
+         (non-interactive        (clon:getopt :long-name "non-interactive"))
          (num-processes          (clon:getopt :long-name "num-processes"))
          ((&flet restart/condition (name)
             (lambda (condition)
@@ -883,7 +883,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                          (projects/specs     (with-phase-error-check
                                                  (:analyze/project #'errors #'(setf errors) #'report)
                                                (apply #'analyze-projects projects/raw
-                                                      :non-interactive? non-interactive?
+                                                      :non-interactive non-interactive
                                                       (append
                                                        (when cache-directory
                                                          (list :cache-directory cache-directory))

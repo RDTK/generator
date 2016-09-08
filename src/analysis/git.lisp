@@ -226,6 +226,7 @@
                                      sub-directory
                                      cache-directory
                                      non-interactive
+                                     (natures        '(:auto))
                                      &allow-other-keys)
   ;; If we already have analysis results for the commit that is
   ;; current in the remote repository, return right away.
@@ -239,7 +240,9 @@
                                :username        username
                                :password        password
                                :non-interactive non-interactive))
-                  (key        (%sub-directory->key commit-key sub-directory))
+                  (key        (%natures->key
+                               natures (%sub-directory->key
+                                        sub-directory commit-key)))
                   (results    (analyze-git-branch/cached
                                cache-directory key)))
         (return-from clone-and-analyze-git-branch results))))
@@ -254,7 +257,9 @@
                       :password        password
                       :cache-directory cache-directory
                       :non-interactive non-interactive))
-         (key        (%sub-directory->key commit-key sub-directory)))
+         (key        (%natures->key
+                      natures (%sub-directory->key
+                               sub-directory commit-key))))
     (log:info "~@<Cloned ~A into ~A, got key ~A~@:>"
               source clone-directory key)
     (apply #'analyze-git-branch/maybe-cached clone-directory
@@ -360,10 +365,15 @@
 (defun %git-commit->key (commit)
   (format nil "git:~A" commit))
 
-(defun %sub-directory->key (key sub-directory)
-  (if sub-directory
-      (let* ((octets (sb-ext:string-to-octets
-                      (namestring sub-directory) :external-format :utf-8))
-             (hash   (ironclad:digest-sequence 'ironclad:sha256 octets)))
-        (format nil "~A:~(~{~2,'0X~}~)" key (coerce hash 'list)))
-      key))
+(defun %sub-directory->key (sub-directory prefix)
+  (let* ((octets (when sub-directory
+                   (sb-ext:string-to-octets
+                    (namestring sub-directory) :external-format :utf-8)))
+         (hash   (when octets
+                   (coerce (ironclad:digest-sequence 'ironclad:sha256 octets) 'list))))
+    (format nil "~A:~@[~(~{~2,'0X~}~)~]" prefix hash)))
+
+(defun %natures->key (natures prefix)
+  (let* ((natures (or natures '(:none)))
+         (sorted  (sort (map 'list #'string-downcase natures) #'string<)))
+    (format nil "~A:~{~A~^;~}" prefix sorted)))

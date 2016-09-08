@@ -171,11 +171,14 @@
     (apply function source clone-directory args)
     (git-directory-commit-key clone-directory)))
 
-(defun analyze-git-branch (clone-directory &key sub-directory)
+(defun analyze-git-branch (clone-directory
+                           &rest args
+                           &key sub-directory &allow-other-keys)
   (let* ((analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
-         (result            (analyze analyze-directory :auto))
+         (result            (apply #'analyze analyze-directory :auto
+                                   (remove-from-plist args :sub-directory)))
          (authors           (or (getf result :authors)
                                 (analyze clone-directory :git/authors))))
     (list* :scm              :git
@@ -205,7 +208,11 @@
   (or (when (and cache-directory key)
         (analyze-git-branch/cached cache-directory key))
       (let ((results (apply #'analyze-git-branch clone-directory
-                            (remove-from-plist args :cache-directory :key))))
+                            (remove-from-plist
+                             args
+                             :commit :branch :scm :username :password
+                             :history-limit :non-interactive
+                             :cache-directory :key))))
         (when (and cache-directory key)
           (analyze-git-branch/cache cache-directory key results))
         results)))
@@ -239,27 +246,25 @@
 
   ;; Clone the repository, then analyze the requested
   ;; branches/tags/commits, potentially caching the results.
-  (let* ((commit-key (apply #'clone-git-repository/maybe-cached
-                            source clone-directory
-                            (remove-from-plist args :sub-directory)))
+  (let* ((commit-key (clone-git-repository/maybe-cached
+                      source clone-directory
+                      :commit          commit
+                      :branch          branch
+                      :username        username
+                      :password        password
+                      :cache-directory cache-directory
+                      :non-interactive non-interactive))
          (key        (%sub-directory->key commit-key sub-directory)))
     (log:info "~@<Cloned ~A into ~A, got key ~A~@:>"
               source clone-directory key)
-    (analyze-git-branch/maybe-cached clone-directory
-                                     :sub-directory   sub-directory
-                                     :cache-directory cache-directory
-                                     :key             key)))
+    (apply #'analyze-git-branch/maybe-cached clone-directory
+           :key key
+           args)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :git))
-                    &key
-                    username
-                    password
+                    &rest args &key
                     (versions       (missing-required-argument :versions))
-                    sub-directory
-                    history-limit
-                    (temp-directory (default-temporary-directory))
-                    cache-directory
-                    non-interactive)
+                    (temp-directory (default-temporary-directory)))
   (let+ (((&flet find-commitish (version)
             (or (when-let ((commit (getf version :commit)))
                   (list :commit commit))
@@ -278,15 +283,12 @@
          ((&flet analyze-version (version)
             (unwind-protect
                  (let ((commitish (find-commitish version)))
-                   (cons version (apply #'clone-and-analyze-git-branch
-                                        source (make-clone-directory commitish)
-                                        :username        username
-                                        :password        password
-                                        :sub-directory   sub-directory
-                                        :history-limit   history-limit
-                                        :cache-directory cache-directory
-                                        :non-interactive non-interactive
-                                        commitish)))
+                   (cons version
+                         (apply #'clone-and-analyze-git-branch
+                                source (make-clone-directory commitish)
+                                (append commitish
+                                        (remove-from-plist
+                                         args :versions :temp-directory)))))
 
               (when (probe-file temp-directory)
                 (run `("rm" "-rf" ,temp-directory) "/"))))))

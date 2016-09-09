@@ -131,6 +131,10 @@ rm -rf \"\${temp}\""))
 
 (define-aspect (archive) (builder-defining-mixin)
     ()
+  ;; In case we are updating an existing job, remove any repository
+  ;; configuration.
+  (setf (repository job) (make-instance 'scm/null))
+  ;; Generate archive download and extraction as a shell builder.
   (let* ((url/string (var :aspect.archive.url))
          (url        (puri:uri url/string))
          (archive    (var :aspect.archive.filename

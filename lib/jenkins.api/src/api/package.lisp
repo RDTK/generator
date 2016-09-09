@@ -120,7 +120,9 @@
    #:branch
    #:sub-directory
    #:clean?
-   #:modules)
+   #:modules
+
+   #:scm/null)
 
   ;; Properties interface
   (:export

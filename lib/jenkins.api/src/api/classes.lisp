@@ -485,6 +485,9 @@
    ()
    (:name-slot nil)))
 
+(defmethod credentials ((scm scm/null))
+  '())
+
 ;;; property interface
 
 (deftype cons/parameter-definition ()

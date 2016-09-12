@@ -101,7 +101,7 @@
          ((&labels matches? (regex value)
             (etypecase value
               (null   nil)
-              (string (ppcre:scan regex value))
+              (string (ppcre:scan-to-strings regex value))
               (cons   (some (curry #'matches? regex) value))))))
     (iter (for (expression . regex) in (conditions spec))
           (let* ((value    (value expression))

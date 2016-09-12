@@ -20,7 +20,7 @@
   (root nil))
 
 (defmethod graph-object-attributes append ((graph  jenkins-dependencies)
-                                           (object jenkins.model:named-mixin))
+                                           (object project-automation.model.project.stage3::distribution))
   (let ((label `(:html ()
                   (:table ((:border "0"))
                     (:tr ()
@@ -36,7 +36,7 @@
                  :attributes (graph-object-attributes graph object)))
 
 (defmethod cl-dot:graph-object-node ((graph  jenkins-dependencies)
-                                     (object jenkins.model.project::distribution-spec))
+                                     (object project-automation.model.project.stage3::distribution))
   nil)
 
 (defstruct provided)
@@ -54,12 +54,12 @@
 (defstruct (system (:include unsatisfied)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.model.project::distribution-spec))
-  (mapcar #'jenkins.model:implementation (jenkins.model.project:versions object)))
+                                          (object project-automation.model.project.stage3::distribution))
+  (mapcar #'jenkins.model:implementation (rosetta-project.model.project:versions object)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.model.project::project))
-  (jenkins.model.project:versions object))
+                                          (object project-automation.model.project.stage3::project))
+  (rosetta-project.model.project:versions object))
 
 (flet ((dependency (spec target)
          (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"
@@ -85,8 +85,8 @@
                                              '())))))))
 
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                            (object jenkins.model.project::version))
-    (let+ ((specification (jenkins.model:specification object))
+                                            (object project-automation.model.project.stage3::project-version))
+    #+later (let+ ((specification (jenkins.model:specification object))
            (requires      (jenkins.model.project:requires specification))
            (relations     '())
            ((&flet add-relation (dependency provide)
@@ -97,7 +97,7 @@
            (system (make-system)))
       ;; Resolve requirements using things provided by the
       ;; distribution.
-      (iter (for dependency in (remove-duplicates (jenkins.model:direct-dependencies object))) ; TODO how would there be duplicates?
+      (iter (for dependency in (remove-duplicates (jenkins.model.project:direct-dependencies object))) ; TODO how would there be duplicates?
             (let ((provides (remove (jenkins.model:specification dependency) requires
                                     :test-not #'eq
                                     :key      (rcurry #'jenkins.model.project:find-provider/version
@@ -125,8 +125,8 @@
               relations)))
 
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
-                                                (object jenkins.model.project::version))
-    (let* ((specification (jenkins.model:specification object))
+                                                (object project-automation.model.project.stage3::project-version))
+    #+later (let* ((specification (jenkins.model:specification object))
            (provides      (jenkins.model.project:provides specification)))
       (when (eq object (jenkins-dependencies-root graph))
         (list (dependency provides (make-provided)))))))
@@ -150,7 +150,7 @@
                    (report element style target))))
          object))))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object project-automation.model.project.stage3::distribution)
                    (style  (eql :graph))
                    (target pathname))
   ;; One graph for the distribution OBJECT as a whole.
@@ -158,9 +158,9 @@
   ;; One graph for each project-version in OBJECT.
   (let ((directory (uiop:subpathname target (jenkins.model:name object)
                                      :type :directory)))
-    (report (jenkins.model.project:versions object) style directory)))
+    (report (rosetta-project.model.project:versions object) style target)))
 
-(defmethod report ((object jenkins.model.project::version-spec)
+(defmethod report ((object project-automation.model.project.stage3::project-version)
                    (style  (eql :graph))
                    (target pathname))
   (report (jenkins.model:implementation object) style target))

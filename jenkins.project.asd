@@ -39,7 +39,9 @@
                 (:version :rosetta-project-pkg-config      "0.1")
 
                 (:version :project-automation.frontend     "0.1")
-                (:version :project-automation.commands     "0.1")
+                (:version :project-automation.access       "0.1")
+                (:version :project-automation.analysis     "0.1")
+                ; (:version :project-automation.commands     "0.1")
 
                 (:version :jenkins.api                     "0.1")
 

@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -103,7 +103,7 @@
               (null   nil)
               (string (ppcre:scan regex value))
               (cons   (some (curry #'matches? regex) value))))))
-    (iter (for (expression regex) on (conditions spec) :by #'cddr)
+    (iter (for (expression . regex) in (conditions spec))
           (log:trace "~@<Checking ~S (=> ~S) against regex ~S.~@:>"
                      expression (value expression) regex)
           (always (matches? regex (value expression))))))

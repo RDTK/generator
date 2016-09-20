@@ -1,6 +1,6 @@
 ;;;; aspect.lisp --- Basic infrastructure for job aspects.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -154,7 +154,7 @@
                                   (all-constraints (append ',constraints
                                                            (builder-constraints
                                                             ,',aspect-var builder))))
-                             (log:trace "~@<All constraints for ~A: ~A~@:>"
+                             (log:trace "~@<All constraints for ~A: ~:A~@:>"
                                         builder all-constraints)
                              (iter (for constraint in all-constraints)
                                    (push constraint (third cell)))

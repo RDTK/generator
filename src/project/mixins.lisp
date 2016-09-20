@@ -104,9 +104,11 @@
               (string (ppcre:scan regex value))
               (cons   (some (curry #'matches? regex) value))))))
     (iter (for (expression . regex) in (conditions spec))
-          (log:trace "~@<Checking ~S (=> ~S) against regex ~S.~@:>"
-                     expression (value expression) regex)
-          (always (matches? regex (value expression))))))
+          (let* ((value    (value expression))
+                 (matches? (matches? regex value)))
+            (log:trace "~@<Checking ~S (=> ~S) against regex ~S: ~A.~@:>"
+                       expression value regex matches?)
+            (always matches?)))))
 
 ;;; `direct-variables-mixin'
 

@@ -128,6 +128,8 @@
 
   ;; Variable protocol
   (:export
+   #:*traced-variables*
+
    #:direct-variables
    #:variables
    #:lookup

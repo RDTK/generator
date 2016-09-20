@@ -66,17 +66,19 @@
 (defgeneric lookup (thing name &key if-undefined)
   (:documentation
    "Return two values:
-    1. the \"raw\" value of the variable named NAME in THING
-    2. a list of shadowed \"raw\" values of NAME in THING
+
+    1. the \"raw\" cell (a cons with the variable name in the `car'
+       and the value in the `cdr') of the variable named NAME in THING
+    2. a list of shadowed \"raw\" cells of NAME in THING
     3. a Boolean indicating whether THING has a value for NAME
 
-    The returned values are \"raw\" in the sense that substitutions of
+    The returned cells are \"raw\" in the sense that substitutions of
     them forms ${next-value|NAME}, @{next-value|NAME}, etc. remain
     untouched. See `lookup'.
 
-    Shadowed values are introduced if a variable has one value in
-    THING and other values in \"parents\" of THING which would be
-    inherited if THING did not have the variable.
+    Shadowed cells are introduced if a variable has one value in THING
+    and other values in \"parents\" of THING which would be inherited
+    if THING did not have the variable.
 
     IF-UNDEFINED controls the behavior in vase there is no variable
     named NAME in THING."))
@@ -115,7 +117,7 @@
   (when-let ((cells (remove name (variables thing)
                             :test (complement #'eq)
                             :key  #'car)))
-    (values (cdr (first cells)) (mapcar #'cdr (rest cells)) t)))
+    (values (first cells) (rest cells) t)))
 
 (defmethod lookup :around ((thing t) (name t)
                            &key
@@ -302,17 +304,20 @@
                        (values value t defaulted?))
                      (values (value thing name1) t)))
                 (first-value
-                 (values (expand (parse first-value)
-                                 (make-lookup next-values))
-                         t))
+                 (with-augmented-trace (name1 nil first-value)
+                   (values (expand (parse (cdr first-value))
+                                   (make-lookup next-values))
+                           t)))
                 (default-supplied?
-                 (values default t t))
+                 (with-augmented-trace (name1 :default (cons :unused default))
+                   (values default t t)))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
-    (if defined?
-        (expand (parse raw) (make-lookup raw/next-values))
-        (values default t))))
+    (with-augmented-trace (name thing raw)
+      (if defined?
+          (expand (parse (cdr raw)) (make-lookup raw/next-values))
+          (values default t)))))
 
 ;;; Platform requirements protocol
 

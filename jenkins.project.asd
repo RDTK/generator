@@ -78,6 +78,7 @@
                 (:version :let-plus              "0.1")
                 (:version :more-conditions       "0.1.0")
                 (:version :utilities.print-items "0.1.0")
+                (:version :utilities.print-tree  "0.1.0")
                 :lparallel
                 :log4cl
 
@@ -138,6 +139,7 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")
+                              (:file     "trace")
                               (:file     "protocol")
                               (:file     "util")
                               (:file     "variables")

@@ -587,7 +587,11 @@
                        "Write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results.")
               (flag    :long-name    "dry-run"
                        :description
-                       "Read recipes and perform the usual analysis but do not create or delete Jenkins jobs."))
+                       "Read recipes and perform the usual analysis but do not create or delete Jenkins jobs.")
+              (stropt  :long-name    "trace-variable"
+                       :argument-name "VARIABLE-NAME"
+                       :description
+                       "Trace all accesses to the specified variable."))
 
    :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "template"
@@ -862,7 +866,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                        :distribution (collect-option-values :long-name "distribution"))))
                      (overwrites    (mapcar #'parse-overwrite
                                             (collect-option-values :long-name "set"))))
-
+                (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
+                                                 (collect-option-values :long-name "trace-variable")))
                 (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
                 (with-trivial-progress (:jobs)

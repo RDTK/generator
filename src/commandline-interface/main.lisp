@@ -71,18 +71,17 @@
                              :provides  provides
                              :variables (append
                                          (jenkins.project::%direct-variables version) ; TODO
-                                         version-variables
+                                         (plist-alist version-variables)
                                          (when branch-directory
-                                           (list :branch-directory branch-directory))
+                                           (list (cons :branch-directory branch-directory)))
                                          (when description
-                                           (list :description description))
+                                           (list (cons :description description)))
                                          (when authors
-                                           (list :authors (mapcar (lambda (author)
-                                                                    (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
-                                                                  authors)))
+                                           (list (cons :authors (mapcar (lambda (author)
+                                                                          (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
+                                                                        authors))))
                                          (iter (for (key . value) in (append versions properties))
-                                               (collect (make-keyword (string-upcase key)))
-                                               (collect value))))))
+                                               (collect (cons (make-keyword (string-upcase key)) value)))))))
               ;; TODO temp
               (iter (for job in (jobs project))
                     (pushnew (string-downcase scm) (tags job) :test #'string=)))))

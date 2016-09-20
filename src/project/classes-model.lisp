@@ -30,9 +30,9 @@
     `project-spec' instances."))
 
 (defmethod direct-variables ((thing project))
-  (append (list :project-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :project-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod add-dependencies! ((thing project) (spec project-spec)
                               &key
@@ -76,9 +76,9 @@
    "Instances of this class represent versions of `project's."))
 
 (defmethod direct-variables ((thing version))
-  (append (list :version-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :version-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod add-dependencies! ((thing version) (spec version-spec)
                               &key
@@ -140,9 +140,9 @@
     to specific `version's of `project's."))
 
 (defmethod direct-variables ((thing job))
-  (append (list :job-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :job-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod add-dependencies! ((thing job) (spec job-spec)
                               &key providers)

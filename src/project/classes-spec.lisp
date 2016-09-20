@@ -33,9 +33,9 @@
    "TODO(jmoringe): document"))
 
 (defmethod direct-variables ((thing distribution-spec))
-  (append (list :distribution-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :distribution-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod platform-requires ((object distribution-spec) (platform t))
   (remove-duplicates
@@ -112,9 +112,9 @@
             (appendf (%jobs instance) (list job/clone))))))
 
 (defmethod direct-variables ((thing project-spec))
-  (append (list :project-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :project-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
@@ -127,7 +127,9 @@
           ;; :access and :platform-requires variables from parents
           ;; like `distribution-spec' instances.
           (when-let ((parent (parent thing)))
-            (remove-from-plist (variables parent) :access :platform-requires))))
+            (remove-if (lambda (cell)
+                         (member (car cell) '(:access :platform-requires)))
+                       (variables parent)))))
 
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))
@@ -213,9 +215,9 @@
          (%requires instance))))
 
 (defmethod direct-variables ((thing version-spec))
-  (append (list :version-name (name thing))
-          (when (next-method-p)
-            (call-next-method))))
+  (acons :version-name (name thing)
+         (when (next-method-p)
+           (call-next-method))))
 
 (defmethod jobs ((thing version-spec))
   (jobs (parent thing)))

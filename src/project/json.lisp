@@ -21,7 +21,7 @@
                 (error "~@<Multiple definitions of variable ~A: ~
                         ~{~S~^, ~}.~@:>"
                        key value))
-          :collect key :collect (first value))))
+          :collect (cons key (first value)))))
 
 (defun load-template/json-1 (pathname)
   (let+ ((spec (%decode-json-from-source pathname))
@@ -77,7 +77,7 @@
             (make-instance 'version-spec
                            :name      (lookup :name spec)
                            :parent    parent
-                           :variables (list* :__catalog (lookup :catalog spec)
+                           :variables (acons :__catalog (lookup :catalog spec)
                                              (process-variables (lookup :variables spec))))))
          ((&flet make-job-spec (spec parent)
             (make-instance 'job-spec
@@ -94,7 +94,7 @@
       (reinitialize-instance
        instance
        :templates (mapcar #'find-template (lookup :templates))
-       :variables (list* :__catalog (lookup :catalog)
+       :variables (acons :__catalog (lookup :catalog)
                          (process-variables (lookup :variables)))
        :versions  (mapcar (rcurry #'make-version-spec instance)
                           (if version-test
@@ -154,7 +154,7 @@
              name (pathname-name pathname)))
     (make-instance 'distribution-spec
                    :name      name
-                   :variables (list* :__catalog (lookup :catalog)
+                   :variables (acons :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables)))
                    :versions  (mapcan #'check-version (lookup :versions)))))
 

@@ -95,7 +95,7 @@
   (json:as-object-member ("variables" stream)
     (json:with-object (stream)
       (loop :for (key . raw) :in (remove-duplicates
-                                  (plist-alist (variables object))
+                                  (variables object)
                                   :key #'car :from-end t) :do
                (json:as-object-member ((string-downcase key) stream)
                  (json:with-object (stream)

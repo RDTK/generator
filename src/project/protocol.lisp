@@ -112,7 +112,7 @@
                    &key
                    if-undefined)
   (declare (ignore if-undefined))
-  (when-let ((cells (remove name (plist-alist (variables thing))
+  (when-let ((cells (remove name (variables thing)
                             :test (complement #'eq)
                             :key  #'car)))
     (values (cdr (first cells)) (mapcar #'cdr (rest cells)) t)))

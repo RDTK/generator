@@ -112,6 +112,8 @@
 
 ;;; `direct-variables-mixin'
 
+(defvar *variable-locations* (make-hash-table :weakness :value))
+
 (defclass direct-variables-mixin ()
   ((variables :initarg  :variables
               :type     list ; alist
@@ -121,6 +123,14 @@
               "TODO as a plist "))
   (:documentation
    "TODO(jmoringe): document"))
+
+(defmethod shared-initialize :around ((instance   direct-variables-mixin)
+                                      (slot-names t)
+                                      &key)
+  (call-next-method)
+  (loop :for cell :in (%direct-variables instance) :do
+     (unless (gethash cell *variable-locations*)
+       (setf (gethash cell *variable-locations*) instance))))
 
 (defmethod direct-variables ((thing direct-variables-mixin))
   (append (%direct-variables thing)
@@ -139,4 +149,5 @@
   (removef (%direct-variables thing) name :key #'car)
   (let ((cell (cons name new-value)))
     (push cell (%direct-variables thing))
+    (setf (gethash cell *variable-locations*) thing)
     new-value))

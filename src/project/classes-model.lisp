@@ -215,7 +215,7 @@
              (case kind
                (:project (string= existing-kind "project"))
                (:matrix  (string= existing-kind "matrix-project"))))
-         (log:info "~@<Updating exiting job ~A~@:>" existing-job)
+         (log:info "~@<Updating existing job ~A~@:>" existing-job)
          (setf (jenkins.api:job-config (id job)) (jenkins.api::%data job)))
         (t
          (log:warn "~@<Deleting job ~A to change kind ~A -> ~(~A~)~@:>"

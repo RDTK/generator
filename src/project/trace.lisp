@@ -72,7 +72,7 @@
       (declare (ignore depth))
       (let ((raw-cell (trace-node-raw-cell node))
             (value    (trace-node-value node)))
-        (if (equal value (cdr raw-cell))
+        (if (and raw-cell (equal value (cdr raw-cell)))
             (format stream "value: ~<~@;~S~:>" (list value))
             (format stream "raw value: ~:[«not defined»~;~:*~<~@;~S~:>~]~@:_~@:_~
                             eff value: ~<~@;~S~:>"

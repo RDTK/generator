@@ -249,12 +249,14 @@
               (if defaulted?
                   value
                   (parse value :parse-strings? (not parsed?))))))
+         ((&flet atom? (thing)
+            (typep thing '(or number string (eql t)))))
          ((&labels collapse (thing)
             (cond
-              ((typep thing '(or number string boolean))
+              ((or (atom? thing) (eq thing nil))
                thing)
-              ((every #'stringp thing)
-               (esrap:text thing))
+              ((every #'atom? thing)
+               (esrap:text (mapcar #'princ-to-string thing)))
               ((every #'listp thing)
                (reduce #'append thing))
               (t

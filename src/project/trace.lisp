@@ -101,6 +101,8 @@
         (logging-to-stream (:warn stream)
           (print-trace-tree stream node))))))
 
+(declaim (special *variable-locations*))
+
 (defun call-with-augmented-trace (name container raw-cell thunk)
   (let ((actual-container (gethash raw-cell *variable-locations*)))
     (cond

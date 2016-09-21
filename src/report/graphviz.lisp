@@ -93,16 +93,20 @@
   (ensure-directories-exist target)
   (let+ (((&flet safe-name (name)
             (substitute #\_ #\/ name)))
+         (graph    (cl-dot:generate-graph-from-roots
+                    :jenkins.dependencies (list object)))
          (basename (format nil "~@[~A-~]~A"
                            (when-let ((parent (when (compute-applicable-methods
                                                      #'jenkins.project::parent (list object))
                                                 (jenkins.project::parent object))))
                              (safe-name (jenkins.project::name parent)))
                            (safe-name (jenkins.project::name object))))
-         (filename (make-pathname :name     basename
-                                  :type     "png"
-                                  :defaults target)))
-    (cl-dot:dot-graph (cl-dot:generate-graph-from-roots
-                       :jenkins.dependencies (list object))
-                      (uiop:native-namestring filename)
-                      :format :png)))
+         ((&flet filename (type)
+            (make-pathname :name     basename
+                           :type     type
+                           :defaults target))))
+    ;; Write dot output.
+    (with-output-to-file (stream (filename "dot") :if-exists :supersede)
+      (cl-dot:print-graph graph :stream stream))
+    ;; Write PNG output.
+    (cl-dot:dot-graph graph (filename "png") :format :png)))

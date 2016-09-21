@@ -45,8 +45,13 @@
     distribution-pathnames distributions)
    :test #'equalp))
 
+(defstruct project-spec-and-versions
+  (spec     nil :type jenkins.project::project-spec :read-only t)
+  (versions nil :type list                          :read-only t))
+
 (defun analyze-project (project &key cache-directory temp-directory non-interactive)
-  (let+ (((&labels+ do-version ((version-info . info))
+  (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
+         ((&labels+ do-version ((version-info . info))
             (let+ ((version-name (getf version-info :name))
                    (version-variables (remove-from-plist version-info :name))
                    ((&plist-r/o (scm              :scm)
@@ -93,35 +98,35 @@
                           (format stream "~@<Skip version ~A.~@:>" version-info))
                 (declare (ignore condition)))))))
 
-        (handler-bind
-            ((error (lambda (condition)
-                      (error 'jenkins.analysis:analysis-error
-                             :specification project
-                             :cause         condition))))
-          (mapc #'do-version1
-                (flet ((var (name &optional default)
-                         (value project name default)))
-                  (apply #'jenkins.analysis:analyze
-                         (when-let ((value (var :repository)))
-                           (puri:uri value))
-                         :auto
-                         :scm              (var :scm)
-                         :username         (var :scm.username)
-                         :password         (var :scm.password)
-                         :versions         (var :__versions)
-                         :sub-directory    (when-let ((value (var :sub-directory)))
-                                             (parse-namestring (concatenate 'string value "/")))
-                         :history-limit    (var :scm.history-limit)
-                         :non-interactive  non-interactive
-                         (append
-                          (let ((natures (var :natures :none)))
-                            (unless (eq natures :none)
-                              (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
-                          (when cache-directory
-                            (list :cache-directory cache-directory))
-                          (when temp-directory
-                            (list :temp-directory temp-directory))))))))
-  project)
+    (handler-bind
+        ((error (lambda (condition)
+                  (error 'jenkins.analysis:analysis-error
+                         :specification project
+                         :cause         condition))))
+      (mapc #'do-version1
+            (flet ((var (name &optional default)
+                     (value project name default)))
+              (apply #'jenkins.analysis:analyze
+                     (when-let ((value (var :repository)))
+                       (puri:uri value))
+                     :auto
+                     :scm              (var :scm)
+                     :username         (var :scm.username)
+                     :password         (var :scm.password)
+                     :versions         versions
+                     :sub-directory    (when-let ((value (var :sub-directory)))
+                                         (parse-namestring (concatenate 'string value "/")))
+                     :history-limit    (var :scm.history-limit)
+                     :non-interactive  non-interactive
+                     (append
+                      (let ((natures (var :natures :none)))
+                        (unless (eq natures :none)
+                          (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
+                      (when cache-directory
+                        (list :cache-directory cache-directory))
+                      (when temp-directory
+                        (list :temp-directory temp-directory)))))))
+    project))
 
 (defun load-projects/versioned (files-and-versions)
   (with-sequence-progress (:load/project files-and-versions)
@@ -163,16 +168,16 @@
                          ,@(when tag       `(:tag       ,tag))
                          ,@(when directory `(:directory ,directory))
                          ,@(when commit    `(:commit    ,commit)))))))
-             (setf (lookup project :__versions)
-                   (append (mapcar (rcurry #'process-version :branch? t) branches)
-                           (mapcar (rcurry #'process-version :tag?    t) tags)
-                           (mapcar (rcurry #'process-version
-                                           :version-required? t
-                                           :branch?           :maybe
-                                           :tag?              :maybe
-                                           :directory?        :mabye)
-                                   versions1)))
-             (list project))
+             (list (make-project-spec-and-versions
+                    :spec     project
+                    :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
+                                      (mapcar (rcurry #'process-version :tag?    t) tags)
+                                      (mapcar (rcurry #'process-version
+                                                      :version-required? t
+                                                      :branch?           :maybe
+                                                      :tag?              :maybe
+                                                      :directory?        :mabye)
+                                              versions1)))))
          (continue (&optional condition)
            :report (lambda (stream)
                      (format stream "~@<Skip project specification ~

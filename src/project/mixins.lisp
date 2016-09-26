@@ -18,9 +18,9 @@
    "TODO(jmoringe): document"))
 
 (defmethod direct-variables ((thing named-mixin))
-  (acons :name (name thing)
-         (when (next-method-p)
-           (call-next-method))))
+  (value-acons :name (name thing)
+               (when (next-method-p)
+                 (call-next-method))))
 
 (defmethod print-items append ((object named-mixin))
   (let+ (((&labels ancestor-names (object)
@@ -147,7 +147,7 @@
                           if-undefined)
   (declare (ignore if-undefined))
   (removef (%direct-variables thing) name :key #'car)
-  (let ((cell (cons name new-value)))
+  (let ((cell (value-cons name new-value)))
     (push cell (%direct-variables thing))
     (setf (gethash cell *variable-locations*) thing)
     new-value))

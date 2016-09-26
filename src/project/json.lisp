@@ -21,7 +21,7 @@
                 (error "~@<Multiple definitions of variable ~A: ~
                         ~{~S~^, ~}.~@:>"
                        key value))
-          :collect (cons key (first value)))))
+       :collect (value-cons key (first value)))))
 
 (defun load-template/json-1 (pathname)
   (let+ ((spec (%decode-json-from-source pathname))
@@ -77,8 +77,9 @@
             (make-instance 'version-spec
                            :name      (lookup :name spec)
                            :parent    parent
-                           :variables (acons :__catalog (lookup :catalog spec)
-                                             (process-variables (lookup :variables spec))))))
+                           :variables (value-acons
+                                       :__catalog (lookup :catalog spec)
+                                       (process-variables (lookup :variables spec))))))
          ((&flet make-job-spec (spec parent)
             (make-instance 'job-spec
                            :name       (lookup :name spec)
@@ -94,8 +95,9 @@
       (reinitialize-instance
        instance
        :templates (mapcar #'find-template (lookup :templates))
-       :variables (acons :__catalog (lookup :catalog)
-                         (process-variables (lookup :variables)))
+       :variables (value-acons
+                   :__catalog (lookup :catalog)
+                   (process-variables (lookup :variables)))
        :versions  (mapcar (rcurry #'make-version-spec instance)
                           (if version-test
                               (remove-if (lambda (version)
@@ -154,8 +156,8 @@
              name (pathname-name pathname)))
     (make-instance 'distribution-spec
                    :name      name
-                   :variables (acons :__catalog (lookup :catalog)
-                                     (process-variables (lookup :variables)))
+                   :variables (value-acons :__catalog (lookup :catalog)
+                                           (process-variables (lookup :variables)))
                    :versions  (mapcan #'check-version (lookup :versions)))))
 
 (defun load-distribution/json (pathname)

@@ -76,17 +76,19 @@
                              :provides  provides
                              :variables (append
                                          (jenkins.project::%direct-variables version) ; TODO
-                                         (plist-alist version-variables)
+                                         (apply #'value-acons (append version-variables '(())))
                                          (when branch-directory
-                                           (list (cons :branch-directory branch-directory)))
+                                           (list (value-cons :branch-directory branch-directory)))
                                          (when description
-                                           (list (cons :description description)))
+                                           (list (value-cons :description description)))
                                          (when authors
-                                           (list (cons :authors (mapcar (lambda (author)
-                                                                          (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
-                                                                        authors))))
+                                           (list (value-cons
+                                                  :authors (mapcar (lambda (author)
+                                                                     (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
+                                                                   authors))))
                                          (iter (for (key . value) in (append versions properties))
-                                               (collect (cons (make-keyword (string-upcase key)) value)))))))
+                                               (collect (value-cons (make-keyword (string-upcase key))
+                                                                    value)))))))
               ;; TODO temp
               (iter (for job in (jobs project))
                     (pushnew (string-downcase scm) (tags job) :test #'string=)))))

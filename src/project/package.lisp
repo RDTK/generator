@@ -130,6 +130,12 @@
   (:export
    #:*traced-variables*
 
+   #:value-list
+   #:value-list*
+   #:value-cons
+   #:value-acons
+   #:value-parse
+
    #:direct-variables
    #:variables
    #:lookup

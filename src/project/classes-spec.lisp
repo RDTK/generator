@@ -33,9 +33,9 @@
    "TODO(jmoringe): document"))
 
 (defmethod direct-variables ((thing distribution-spec))
-  (acons :distribution-name (name thing)
-         (when (next-method-p)
-           (call-next-method))))
+  (value-acons :distribution-name (name thing)
+               (when (next-method-p)
+                 (call-next-method))))
 
 (defmethod platform-requires ((object distribution-spec) (platform t))
   (remove-duplicates
@@ -112,9 +112,9 @@
             (appendf (%jobs instance) (list job/clone))))))
 
 (defmethod direct-variables ((thing project-spec))
-  (acons :project-name (name thing)
-         (when (next-method-p)
-           (call-next-method))))
+  (value-acons :project-name (name thing)
+               (when (next-method-p)
+                 (call-next-method))))
 
 (defmethod variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
@@ -215,9 +215,9 @@
          (%requires instance))))
 
 (defmethod direct-variables ((thing version-spec))
-  (acons :version-name (name thing)
-         (when (next-method-p)
-           (call-next-method))))
+  (value-acons :version-name (name thing)
+               (when (next-method-p)
+                 (call-next-method))))
 
 (defmethod jobs ((thing version-spec))
   (jobs (parent thing)))

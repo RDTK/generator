@@ -141,6 +141,7 @@
                               (:file     "conditions")
                               (:file     "trace")
                               (:file     "protocol")
+                              (:file     "variable-model")
                               (:file     "variable-grammar")
                               (:file     "variable-evaluation")
                               (:file     "util")

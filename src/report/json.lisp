@@ -99,7 +99,7 @@
                                   :key #'car :from-end t) :do
                (json:as-object-member ((string-downcase key) stream)
                  (json:with-object (stream)
-                   (json:encode-object-member "raw" raw stream)
+                   ; (json:encode-object-member "raw" raw stream)
                    (handler-case
                        (let ((value (value object key)))
                          (json:encode-object-member "value" value stream))

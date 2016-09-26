@@ -38,14 +38,10 @@
 
 (defun expand (pattern lookup)
   (let+ (((&flet lookup (name &optional (default nil default-supplied?))
-            (let+ ((name (make-keyword (string-upcase name)))
-                   ((&values value parsed? defaulted?)
-                    (if default-supplied?
-                        (funcall lookup name default)
-                        (funcall lookup name))))
-              (if defaulted?
-                  value
-                  (parse value :parse-strings? (not parsed?))))))
+            (let ((name   (make-keyword (string-upcase name))))
+              (if default-supplied?
+                  (funcall lookup name default)
+                  (funcall lookup name)))))
          ((&flet atom? (thing)
             (typep thing '(or number string (eql t)))))
          ((&labels collapse (thing)
@@ -65,12 +61,12 @@
               ;; name and with default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
                      :default default)
-               (recur (lookup pattern default)))
+               (list (lookup pattern (lambda () (first (recur default))))))
 
               ;; Variable reference with already-evaluated variable
               ;; name and without default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
-               (recur (lookup pattern)))
+               (list (lookup pattern)))
 
               ;; Scalar variable reference with to-be-evaluated
               ;; variable name (with or without default).
@@ -83,7 +79,7 @@
                (first (recur (list* :ref/list (first (recur pattern)) rest))))
 
               ;; Atomic value.
-              ((optima:guard pattern (atom pattern))
+              ((optima:guard pattern (atom pattern)) ; TODO tighten
                (list pattern))
 
               ;; List expression.
@@ -110,24 +106,21 @@
               (cond
                 ((not (eq name1 :next-value))
                  (if default-supplied?
-                     (let+ (((&values value defaulted?) (value thing name1 default)))
-                       (values value t defaulted?))
-                     (values (value thing name1) t)))
+                     (value thing name1 default)
+                     (value thing name1)))
                 (first-value
                  (with-augmented-trace (name1 nil first-value)
-                   (values (expand (parse (cdr first-value))
-                                   (make-lookup next-values))
-                           t)))
+                   (expand (cdr first-value) (make-lookup next-values))))
                 (default-supplied?
                  (with-augmented-trace (name1 :default (cons :unused default))
-                   (values default t t)))
+                   (if (functionp default) (funcall default) default)))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
     (with-augmented-trace (name thing raw)
       (if defined?
-          (expand (parse (cdr raw)) (make-lookup raw/next-values))
-          (values default t)))))
+          (expand (cdr raw) (make-lookup raw/next-values))
+          (values (if (functionp default) (funcall default) default) t))))) ; TODO function business
 
 ;;; Casts
 

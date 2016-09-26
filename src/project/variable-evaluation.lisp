@@ -4,6 +4,27 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
+;;;; In this context, evaluation translates to computing the effective
+;;;; value of variables which mainly consists of evaluating "variable
+;;;; expressions" in the context of a set of variable bindings.
+;;;;
+;;;; The following functions are involved:
+;;;;
+;;;; value : context, name -> value
+;;;;
+;;;;   The function `value' performs such an effective value
+;;;;   computation by coordinating the `lookup' and `expand' function.
+;;;;
+;;;; lookup : context, name -> variable expression, variable expressions
+;;;;
+;;;;   `lookup' computes the value of a variable given a set of
+;;;;   variable bindings.
+;;;;
+;;;; expand : variable expression, lookup function -> value
+;;;;
+;;;;   `expand' computes the value of a "variable expression" relying
+;;;;   on `lookup' to resolve variable references.
+
 (cl:in-package #:jenkins.project)
 
 (defmethod lookup ((thing t) (name t)

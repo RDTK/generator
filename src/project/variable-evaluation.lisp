@@ -97,9 +97,8 @@
                              subpatterns)))
 
               ;; Concatenation expression.
-              ((list* first rest)
-               (let ((result (mappend #'recur (cons first rest))))
-                 (list (collapse result))))))))
+              ((list* subpatterns)
+               (list (collapse (mappend #'recur subpatterns))))))))
     (first (recur pattern))))
 
 (defmethod value ((thing t) (name t) &optional (default nil default-supplied?))

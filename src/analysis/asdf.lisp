@@ -50,7 +50,7 @@
                                         depends-on
                                         &allow-other-keys))
             (append
-             (list :versions `((:main . ,version))
+             (list :versions `((:main . ,(process-version version)))
                    :provides `((:asdf
                                 ,(string-downcase name)
                                 ,(process-version version)))

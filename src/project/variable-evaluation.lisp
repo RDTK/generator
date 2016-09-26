@@ -61,30 +61,42 @@
                       (mapcar #'ensure-list thing))))))
          ((&labels recur (pattern)
             (optima:ematch pattern
+              ;; Variable reference with already-evaluated variable
+              ;; name and with default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
                      :default default)
                (recur (lookup pattern default)))
 
+              ;; Variable reference with already-evaluated variable
+              ;; name and without default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
                (recur (lookup pattern)))
 
+              ;; Scalar variable reference with to-be-evaluated
+              ;; variable name (with or without default).
               ((list* :ref pattern rest)
                (recur (list* :ref (first (recur pattern)) rest)))
 
+              ;; List variable reference with to-be-evaluated variable
+              ;; name (with or without default.
               ((list* :ref/list pattern rest)
                (first (recur (list* :ref/list (first (recur pattern)) rest))))
 
+              ;; Atomic value.
               ((optima:guard pattern (atom pattern))
                (list pattern))
 
+              ;; List expression.
               ((list* :list subpatterns)
                (list (mappend #'recur subpatterns)))
 
+              ;; Alist expression
               ((list* :alist subpatterns)
                (list (mapcar (lambda+ ((key . value))
                                (cons key (first (recur value))))
                              subpatterns)))
 
+              ;; Concatenation expression.
               ((list* first rest)
                (let ((result (mappend #'recur (cons first rest))))
                  (list (collapse result))))))))

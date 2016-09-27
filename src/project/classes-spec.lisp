@@ -278,14 +278,13 @@
             (when (instantiate? job-spec parent)
               (when-let ((job (instantiate job-spec)))
                 (list (reinitialize-instance job :parent parent))))))
-         ((&flet prepare-job-spec (job-spec parent &optional variables)
+         ((&flet prepare-job-spec (job-spec parent)
             (let ((job-spec/copy (clone job-spec)))
               (reinitialize-instance
                job-spec/copy
                :parent    (parent job-spec)
                :variables (append (direct-variables job-spec/copy)
-                                  (direct-variables parent)
-                                  variables)))))
+                                  (direct-variables parent))))))
          ((&flet make-jobs (job-spec parent)
             (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
             (make-job (prepare-job-spec job-spec parent) parent)))

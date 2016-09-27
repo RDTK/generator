@@ -283,8 +283,7 @@
               (reinitialize-instance
                job-spec/copy
                :parent    (parent job-spec)
-               :variables (append (direct-variables job-spec/copy)
-                                  (direct-variables parent))))))
+               :variables (direct-variables job-spec/copy)))))
          ((&flet make-jobs (job-spec parent)
             (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
             (make-job (prepare-job-spec job-spec parent) parent)))

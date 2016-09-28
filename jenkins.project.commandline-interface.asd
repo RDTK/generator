@@ -20,6 +20,9 @@
                 (:version :configuration.options-syntax-ini      "0.1")
 
                 (:version :jenkins.project                       (:read-file-form "version-string.sexp"))
+
+                :project-automation.commands
+
                 (:version :jenkins.project.more-conditions-patch (:read-file-form "version-string.sexp")))
   :components  ((:module     "commandline-interface"
                  :pathname   "src/commandline-interface"

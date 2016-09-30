@@ -931,18 +931,23 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                    (check-distribution-access distributions)))
 
                          (foo (labels ((project-version (project)
-                                         (let+ (((&values url kind (&optional revision-kind revision-designator))
-                                                 (project-automation.model.project.stage2::source-information project))
-                                                ((&values kind url branches)
-                                                 (project-automation.access:probe-source url kind))  ; TODO should not be necessary when probe-sources step has been performed
-                                                (directory (project-automation.access:access-source
-                                                            url kind revision-kind revision-designator)))
-                                           (rs.f:process :guess directory builder)))
-                                       (dist-versions (distribution)
-                                         (mapcar #'project-version (rs.m.d:contents distribution :project)))
+                                         (with-simple-restart (continue "Skip project version ~A" project)
+                                           (let+ (((&values url kind (&optional revision-kind revision-designator))
+                                                   (project-automation.model.project.stage2::source-information project))
+                                                  ((&values kind url branches)
+                                                   (project-automation.access:probe-source url kind)) ; TODO should not be necessary when probe-sources step has been performed
+                                                  (directory (project-automation.access:access-source
+                                                              url kind revision-kind revision-designator)))
+                                             (list (rs.f:process :guess directory builder)))))
+                                       (dist-version (distribution)
+                                         (append (mapcan #'dist-version (rs.m.d:contents distribution :include))
+                                                 (mapcan #'project-version (rs.m.d:contents distribution :project))))
                                        (dist (distribution)
-                                         (mapcar #'dist (rs.m.d:contents distribution :include))
-                                         (mapcar #'dist-versions (rs.m.d:contents distribution :version))))))
+                                         (with-simple-restart (continue "Skip distribution ~A" distribution)
+                                           (mapcan #'dist-version (rs.m.d:contents distribution :version)))))
+                                (with-phase-error-check
+                                    (:analyze/project #'errors #'(setf errors) #'report)
+                                  (mapcan #'dist distributions))))
 
                          (projects          (with-phase-error-check
                                                 (:instantiate/project #'errors #'(setf errors) #'report)
@@ -967,6 +972,22 @@ A common case, deleting only jobs belonging to the distribution being generated,
                       #'project-automation.commands::print-node
                       (lambda (object)
                         (rs.m.d:contents object t))))
+
+                    (terpri) (terpri)
+
+                    (mapcar (lambda (x)
+                             (utilities.print-tree:print-tree
+                              *standard-output* x
+                              (utilities.print-tree:make-node-printer
+                               (lambda (stream depth object)
+                                 (declare (ignore depth))
+                                 (princ object stream)
+                                 '() #+no (project-automation.model.variable:direct-variables object))
+                               #'project-automation.commands::print-node
+                               (lambda (object)
+                                 (rs.m.d:contents object t))))
+                             (terpri))
+                            foo)
 
                     (terpri)
 

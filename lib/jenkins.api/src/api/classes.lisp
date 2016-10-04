@@ -924,7 +924,7 @@
      (environment     :type     (equals+newline/plist keyword string)
                       :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()")
 
-     (permissions     :type     string/node
+     (permissions     :type     access-control-rule
                       :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
                                  :if-multiple-matches :all))
      (jdk             :type     string
@@ -1028,16 +1028,13 @@
 
 ;;; Permissions
 
-(flet ((make-rule (action subject)
-         (format nil "~A:~A" action subject)))
+(defmethod grant ((job job) (subject string) (action cons))
+  (pushnew (list subject action) (permissions job) :test #'string=)
+  (permissions job))
 
-  (defmethod grant ((job job) (subject string) (action string))
-    (pushnew (make-rule action subject) (permissions job) :test #'string=)
-    (permissions job))
-
-  (defmethod revoke ((job job) (subject string) (action string))
-    (removef (permissions job) (make-rule action subject) :test #'string=)
-    (permissions job)))
+(defmethod revoke ((job job) (subject string) (action cons))
+  (removef (permissions job) (list  subject action) :test #'string=)
+  (permissions job))
 
 (macrolet
     ((define-permission-methods (name)
@@ -1047,10 +1044,7 @@
 
           (defmethod ,name ((job job) (subject list) (action t))
             (mapc #'(lambda (subject) (,name job subject action)) subject)
-            (permissions job))
-
-          (defmethod ,name ((job job) (subject t) (action list))
-            (,name job subject (format nil "hudson.model.~{~@(~A~)~^.~}" action))))))
+            (permissions job)))))
 
   (define-permission-methods grant)
   (define-permission-methods revoke))

@@ -1,6 +1,6 @@
 ;;;; conversion.lisp --- Conversions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -361,3 +361,28 @@
              color           "RED"
              complete-build? nil))))
   dest)
+
+;;; `access-control-rule'
+
+(deftype access-control-rule ()
+  `(cons string (cons (cons keyword list) null)))
+
+(defmethod xloc:xml-> ((value stp:element)
+                       (type  (eql 'access-control-rule))
+                       &key &allow-other-keys)
+  (xloc:with-locations-r/o (((:val action-and-subject :type 'string) "text()"))
+      value
+    (let+ (((action subject) (split-sequence #\: action-and-subject))
+           (action-parts (split-sequence #\. action :start (length "hudson.model."))))
+      (list subject (mapcar (compose #'make-keyword #'string-upcase) action-parts)))))
+
+(defmethod xloc:->xml ((value cons)
+                       (dest  stp:element)
+                       (type  (eql 'access-control-rule))
+                       &key &allow-other-keys)
+  (check-type value access-control-rule)
+  (let+ (((subject action) value))
+    (xloc:with-locations (((:val action-and-subject :type 'string) "text()"))
+        dest
+      (setf action-and-subject (format nil "hudson.model.~{~@(~A~)~^.~}:~A"
+                                       action subject)))))

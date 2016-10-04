@@ -141,7 +141,11 @@
                  (log:debug "Applying ~A to ~A" ,aspect-var ,job-var)
                  (flet ((var (name &optional (default nil default-supplied?))
                           (apply #'value ,aspect-var name
-                                 (when default-supplied? (list default)))))
+                                 (when default-supplied? (list default))))
+                        (var/typed (name type &optional (default nil default-supplied?))
+                          (as (apply #'value ,aspect-var name
+                                     (when default-supplied? (list default)))
+                              type)))
                    (declare (ignorable #'var))
                    (macrolet
                        ((constraint! ((&optional constraints tag) &body builder)

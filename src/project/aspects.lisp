@@ -41,35 +41,35 @@
               (push (list* :kind kind :name name
                            (when default (list :default default)))
                     (parameters parameters))))
-          (var :aspect.parameters.parameters))))
+          (var/typed :aspect.parameters.parameters 'list))))
 
 ;;; Retention aspect
 
 (define-aspect (retention :job-var job) () ()
-  (setf (keep/days  job) (var :aspect.retention.keep/days)
-        (keep/count job) (var :aspect.retention.keep/count)))
+  (setf (keep/days  job) (var/typed :aspect.retention.keep/days  '(or null positive-integer))
+        (keep/count job) (var/typed :aspect.retention.keep/count '(or null positive-integer))))
 
 ;;; JDK aspect
 
 (define-aspect (jdk) () ()
-  (setf (jenkins.api::jdk job) (var :aspect.jdk.jdk nil)))
+  (setf (jenkins.api::jdk job) (var/typed :aspect.jdk.jdk '(or null string) nil)))
 
 ;;; Redmine aspect
 
 (define-aspect (redmine) () ()
-  (when-let* ((instance (var :aspect.redmine.instance nil))
-              (project  (var :aspect.redmine.project nil)))
+  (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
+              (project  (var/typed :aspect.redmine.project  '(or null string) nil)))
     (setf (jenkins.api::redmine-instance job) (format nil "~A/" instance)
           (jenkins.api::redmine-project job) project)
-    (when-let ((version (var :aspect.redmine.version nil)))
+    (when-let ((version (var/typed :aspect.redmine.version '(or null string) nil)))
       (setf (jenkins.api::redmine-version job) version))))
 
 (define-aspect (redmine-and-git
                 :job-var     job
                 :constraints ((:after aspect-git)))
     () ()
-  (when-let* ((instance (var :aspect.redmine.instance nil))
-              (project  (var :aspect.redmine.project nil)))
+  (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
+              (project  (var/typed :aspect.redmine.project  '(or null string) nil)))
     (let ((repository (repository job)))
       (unless (typep repository 'scm/git)
         (error "~@<Could not find git repository in ~A.~@:>" job))
@@ -77,7 +77,7 @@
             (browser-url  repository)
             (format nil "~A/projects/~A/repository/~@[~A/~]"
                     instance project
-                    (var :aspect.redmine.repository-id nil))))))
+                    (var/typed :aspect.redmine.repository-id '(or null string) nil))))))
 
 ;;; SCM aspects
 
@@ -135,10 +135,10 @@ rm -rf \"\${temp}\""))
   ;; configuration.
   (setf (repository job) (make-instance 'scm/null))
   ;; Generate archive download and extraction as a shell builder.
-  (let* ((url/string (var :aspect.archive.url))
+  (let* ((url/string (var/typed :aspect.archive.url      'string))
          (url        (puri:uri url/string))
-         (archive    (var :aspect.archive.filename
-                          (lastcar (puri:uri-parsed-path url)))))
+         (archive    (var/typed :aspect.archive.filename 'string
+                                (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
 ${(make-remove-directory-contents/unix)}
@@ -155,32 +155,32 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
 (define-aspect (git :job-var job :aspect-var aspect) (builder-defining-mixin)
     ()
   ;; Configure GIT scm plugin.
-  (let* ((url            (var :aspect.git.url))
+  (let* ((url            (var/typed :aspect.git.url 'string))
          (url/parsed     (puri:uri url))
-         (username       (var :aspect.git.username nil))
-         (password       (var :aspect.git.password nil))
-         (credentials    (or (var :aspect.git.credentials nil)
+         (username       (var/typed :aspect.git.username '(or null string) nil))
+         (password       (var/typed :aspect.git.password '(or null string) nil))
+         (credentials    (or (var/typed :aspect.git.credentials '(or null string) nil)
                              (unless (check-access aspect :public)
                                (puri:uri-host url/parsed))))
-         (branches       (var :aspect.git.branches))
-         (local-branch   (var :aspect.git.local-branch nil)))
+         (branches       (var/typed :aspect.git.branches 'list))
+         (local-branch   (var/typed :aspect.git.local-branch '(or null string) nil)))
     (setf (repository job)
           (git (:url                    (jenkins.analysis::format-git-url
                                          url/parsed username password)
                 :credentials            credentials
                 :branches               branches
-                :clone-timeout          (var :aspect.git.clone-timeout          nil)
-                :wipe-out-workspace?    (var :aspect.git.wipe-out-workspace?    nil)
-                :clean-before-checkout? (var :aspect.git.clean-before-checkout? t)
-                :checkout-submodules?   (var :aspect.git.checkout-submodules?   nil)
-                :shallow?               (var :aspect.git.shallow?               nil)
+                :clone-timeout          (var/typed :aspect.git.clone-timeout          '(or null integer) nil)
+                :wipe-out-workspace?    (var/typed :aspect.git.wipe-out-workspace?    'boolean           nil)
+                :clean-before-checkout? (var/typed :aspect.git.clean-before-checkout? 'boolean           nil)
+                :checkout-submodules?   (var/typed :aspect.git.checkout-submodules?   'boolean           nil)
+                :shallow?               (var/typed :aspect.git.shallow?               'boolean           nil)
                 :local-branch           local-branch
                 :internal-tag?          nil))))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
-  (when-let ((sub-directory (var :sub-directory nil)))
+  (when-let ((sub-directory (var/typed :sub-directory '(or null string) nil)))
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
@@ -193,38 +193,39 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
 
-  (let* ((url          (var :aspect.subversion.url))
-         (revision     (var :aspect.subversion.revision nil))
+  (let* ((url          (var/typed :aspect.subversion.url 'string))
+         (revision     (var/typed :aspect.subversion.revision '(or null string) nil))
          (url/parsed   (puri:uri url))
          (url/parsed   (puri:copy-uri
                         url/parsed
                         :path (ppcre:regex-replace-all
                                "//+" (puri:uri-path url/parsed) "/")))
          (url/revision (format nil "~A~@[@~A~]" url/parsed revision))
-         (credentials  (or (var :aspect.subversion.credentials)
+         (credentials  (or (var/typed :aspect.subversion.credentials '(or null string) nil)
                            (unless (check-access aspect :public)
                              (puri:uri-host url/parsed)))))
     (setf (repository job)
           (svn (:url               url/revision
                 :credentials       credentials
-                :local-directory   (var :aspect.subversion.local-dir)
+                :local-directory   (var/typed :aspect.subversion.local-dir '(or null string))
                 :checkout-strategy (make-keyword
                                     (string-upcase
-                                     (var :aspect.subversion.checkout-strategy
-                                          :fresh-copy))))))))
+                                     (var/typed :aspect.subversion.checkout-strategy
+                                                '(or string (eql :fresh-copy))
+                                                :fresh-copy))))))))
 
 (define-aspect (mercurial :job-var job :aspect-var aspect)
     (builder-defining-mixin)
     ()
   ;; Configure mercurial scm plugin.
-  (let* ((url          (var :aspect.mercurial.url))
+  (let* ((url          (var/typed :aspect.mercurial.url 'string))
          (url/parsed   (puri:uri url))
-         (credentials  (or (var :aspect.mercurial.credentials nil)
+         (credentials  (or (var/typed :aspect.mercurial.credentials '(or null string) nil)
                            (unless (check-access aspect :public)
                              (puri:uri-host url/parsed))))
-         (branch       (var :aspect.mercurial.branch))
-         (tag          (var :aspect.mercurial.tag))
-         (clean?       (var :aspect.mercurial.clean?)))
+         (branch       (var/typed :aspect.mercurial.branch 'string))
+         (tag          (var/typed :aspect.mercurial.tag    'string))
+         (clean?       (var/typed :aspect.mercurial.clean? 'boolean)))
     (when (and branch tag)
       (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"
              branch tag))
@@ -241,7 +242,7 @@ ${(make-move-stuff-upwards/unix components)}")))
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
-  (when-let ((sub-directory (var :sub-directory nil)))
+  (when-let ((sub-directory (var/typed :sub-directory '(or null string) nil)))
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
@@ -254,25 +255,25 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (trigger/scm) ()
     ()
-  (push (scm (:spec (var :aspect.trigger/scm.spec)))
+  (push (scm (:spec (var/typed :aspect.trigger/scm.spec 'string)))
         (triggers job)))
 
 ;;; Timeout aspect
 
 (define-aspect (timeout) ()
     ()
-  (when-let ((value (var :aspect.timeout.timeout/minutes)))
+  (when-let ((value (var/typed :aspect.timeout.timeout/minutes 'positive-integer)))
     (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
       (setf (timeout/minutes timeout) value))))
 
 ;;; Tasks aspect
 
 (define-aspect (tasks) () ()
-  (push (tasks (:pattern         (var :aspect.tasks.pattern)
-                :exclude         (var :aspect.tasks.exclude)
-                :keywords/low    (var :aspect.tasks.keywords.low)
-                :keywords/normal (var :aspect.tasks.keywords.normal)
-                :keywords/high   (var :aspect.tasks.keywords.high)))
+  (push (tasks (:pattern         (var/typed :aspect.tasks.pattern         'list)
+                :exclude         (var/typed :aspect.tasks.exclude         'list)
+                :keywords/low    (var/typed :aspect.tasks.keywords.low    'list)
+                :keywords/normal (var/typed :aspect.tasks.keywords.normal 'list)
+                :keywords/high   (var/typed :aspect.tasks.keywords.high   'list)))
         (publishers job)))
 
 ;;; builder-defining-aspect-mixin
@@ -349,9 +350,9 @@ rm -rf \"${TEMPDIR}\"")))
 
 (define-aspect (slaves :job-var job) ()
     () ; TODO separate slaves aspect for matrix-project jobs?
-  (when-let ((value (var :aspect.slaves.slaves nil)))
+  (when-let ((value (var/typed :aspect.slaves.slaves 'list '())))
     (setf (slaves job) value))
-  (if-let ((value (var :aspect.slaves.restrict-to-slaves nil)))
+  (if-let ((value (var/typed :aspect.slaves.restrict-to-slaves 'list '())))
     (setf (can-roam? job)          nil
           (restrict-to-slaves job) value)
     (setf (can-roam? job) t)))
@@ -368,11 +369,12 @@ rm -rf \"${TEMPDIR}\"")))
       ;; Multiple copy-artifact builders which copy artifacts from
       ;; other jobs.
       (iter (for dependency in dependencies)
-            (let+ ((id      (value dependency :build-job-name))
+            (let+ ((id      (as (value dependency :build-job-name) 'string))
                    (kind    (first (ensure-list (value dependency :kind nil))))
                    (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
                                                         (aspects dependency))))
-                              (value aspect :aspect.archive-artifacts.file-pattern nil)))
+                              (as (value aspect :aspect.archive-artifacts.file-pattern nil)
+                                  '(or null string))))
                    ((&flet matrix? (kind)
                       (member kind '("matrix" "matrix-project") :test #'string-equal)))
                    (reference (format nil "~A~@[/label=$label~]"
@@ -381,8 +383,7 @@ rm -rf \"${TEMPDIR}\"")))
                 ((not pattern)
                  (log:info "~@<Upstream project ~A does not provide ~
                             archived artifacts to copy into downstream ~
-                            workspaces (variable ~S has no ~
-                            value).~@:>"
+                            workspaces (variable ~S has no value).~@:>"
                            dependency :aspect.archive-artifacts.file-pattern))
                 ((and (matrix? kind) (not (matrix? self-kind)))
                  (error "~@<Upstream job ~A is of kind ~A, downstream ~
@@ -393,7 +394,7 @@ rm -rf \"${TEMPDIR}\"")))
                                      copy-artifact)
                          (copy-artifact (:project-name reference
                                          :filter       pattern
-                                         :target       (var :upstream-dir)
+                                         :target       (var/typed :upstream-dir 'string)
                                          :flatten?     t
                                          :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
                        (builders job))
@@ -404,7 +405,7 @@ rm -rf \"${TEMPDIR}\"")))
       (when copy-artifacts?
         (push (constraint! (((:before cmake/unix)
                              (:after copy-artifact)))
-                (shell (:command #?"cd ${(var :upstream-dir)}
+                (shell (:command #?"cd ${(var/typed :upstream-dir 'string)}
 for archive in *.tar.gz ; do tar -xzf \"\${archive}\" ; done")))
               (builders job))))))
 
@@ -422,7 +423,7 @@ move ..\*.zip .
 
 (define-aspect (shell :job-var job) (builder-defining-mixin)
     ()
-  (when-let ((command (var :aspect.shell.command)))
+  (when-let ((command (var/typed :aspect.shell.command '(or null string))))
     (push (constraint! () (shell (:command command)))
           (builders job))))
 
@@ -434,9 +435,9 @@ move ..\*.zip .
     ()
   (let+ (((&flet shellify (name)
            (make-variable/sh (string-upcase name))))
-         (variables       (iter (for variable in (var :aspect.cmake.environment '())) ; TODO check these for validity?
+         (variables       (iter (for variable in (var/typed :aspect.cmake.environment 'list '())) ; TODO check these for validity?
                                 (collect (format nil "export ~A~%" variable))))
-         (build-directory (var :build-dir))
+         (build-directory (var/typed :build-dir 'string))
          ((&flet+ format-option ((name value))
             (format nil "-D~A=~A \\~%" name value)))
          (project-version (parent spec))
@@ -447,7 +448,7 @@ move ..\*.zip .
                 (iter (for (_ required) in (requires-of-kind
                                             :cmake dependency))
                       (in outer
-                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var :dependency-dir)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
+                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
                             :into finds)
                           (collect (list #?"${required}_DIR"
                                          #?"\${${(shellify required)}_DIR}")
@@ -455,14 +456,14 @@ move ..\*.zip .
                 (finally (return-from outer (values finds options)))))
          (options/raw               (append dir-options/raw
                                             (mapcar #'split-option
-                                                    (var :aspect.cmake.options '()))))
+                                                    (var/typed :aspect.cmake.options 'list '()))))
          (options                   (mapcar #'format-option options/raw))
-         (cmake-commandline-options (var :aspect.cmake.commandline-options '()))
-         (targets                   (var :aspect.cmake.targets '()))
-         (make-commandline-options  (var :aspect.cmake.make.commandline-options '()))
+         (cmake-commandline-options (var/typed :aspect.cmake.commandline-options      'list '()))
+         (targets                   (var/typed :aspect.cmake.targets                  'list '()))
+         (make-commandline-options  (var/typed :aspect.cmake.make.commandline-options 'list '()))
 
-         (before-invocation         (var :aspect.cmake.before-invocation ""))
-         (after-invocation          (var :aspect.cmake.after-invocation "")))
+         (before-invocation         (var/typed :aspect.cmake.before-invocation 'string ""))
+         (after-invocation          (var/typed :aspect.cmake.after-invocation  'string "")))
 
     (push (constraint! (((:after dependency-download)))
             (shell (:command #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
@@ -479,7 +480,7 @@ make @{make-commandline-options} @{targets}${after-invocation}")))
 
 (define-aspect (archive-artifacts :job-var job) ()
     ()
-  (when-let ((file-pattern (var :aspect.archive-artifacts.file-pattern nil)))
+  (when-let ((file-pattern (var/typed :aspect.archive-artifacts.file-pattern '(or null string) nil)))
     (with-interface (publishers job) (archiver (publisher/archive-artifacts
                                                 :files        nil
                                                 :only-latest? nil))
@@ -508,33 +509,33 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
          (maven (:properties          (mapcan (lambda (spec)
                                                 (let+ (((name value) (split-option spec)))
                                                   (list (make-keyword name) value)))
-                                              (var :aspect.maven.properties))
+                                              (var/typed :aspect.maven.properties 'list))
                                       ;; hack to prevent useless progress output
                                       ;; In the targets list because the maven
                                       ;; plugin does not have specific fields
                                       ;; for command line options
-                 :targets             (list* "-B" (var :aspect.maven.targets))
-                 :private-repository? (var :aspect.maven.private-repository?)
-                 :settings            (var :aspect.maven.settings-file :default)
-                 :global-settings     (var :aspect.maven.global-settings-file :default))))
+                 :targets             (list* "-B" (var/typed :aspect.maven.targets 'list))
+                 :private-repository? (var/typed :aspect.maven.private-repository? 'boolean)
+                 :settings            (or (var/typed :aspect.maven.settings-file        '(or null string) nil) :default)
+                 :global-settings     (or (var/typed :aspect.maven.global-settings-file '(or null string) nil) :default))))
         (builders job)))
 
 ;;; Setuptools aspect
 
 (define-aspect (setuptools :job-var job) (builder-defining-mixin)
     ()
-  (let+ ((binary         (var :aspect.setuptools.python-binary))
-         (script         (var :aspect.setuptools.script))
-         (install-prefix (var :aspect.setuptools.install-prefix nil))
+  (let+ ((binary         (var/typed :aspect.setuptools.python-binary  'string))
+         (script         (var/typed :aspect.setuptools.script         'string))
+         (install-prefix (var/typed :aspect.setuptools.install-prefix '(or null string) nil))
          ;; Options
          ((&flet+ make-option ((section name value))
             #?"\${PYTHON} ${script} setopt -c ${section} -o ${name} -s \"${value}\""))
-         (options (mapcar #'make-option (var :aspect.setuptools.options '())))
+         (options (mapcar #'make-option (var/typed :aspect.setuptools.options 'list '())))
          ;; Targets
          ((&flet+ make-target ((name &optional no-fail?))
             #?"\${PYTHON} ${script} ${name} @{(when no-fail? '("|| true"))}"))
          (targets (mapcar (compose #'make-target #'ensure-list)
-                          (var :aspect.setuptools.targets)))
+                          (var/typed :aspect.setuptools.targets 'list)))
          ;; Shell fragment that ensures existence of
          ;; {dist,site}-packages directory within install prefix.
          (ensure-install-directory
@@ -566,7 +567,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 (define-aspect (warnings :job-var job) ()
     ()
   (with-interface (publishers job) (warnings (publisher/warnings))
-    (iter (for parser in (var :warning-parsers))
+    (iter (for parser in (var/typed :warning-parsers 'list))
           (pushnew (make-instance 'warning-parser/console :name parser)
                    (console-parsers warnings)
                    :test #'string=
@@ -576,17 +577,17 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 (define-aspect (xunit :job-var job) ()
     ()
-  (let ((kind (var :aspect.xunit.kind)))
+  (let ((kind (var/typed :aspect.xunit.kind 'string)))
     (with-interface (publishers job) (publisher (publisher/xunit))
       (removef (types publisher) kind :test #'string= :key #'kind)
       (push (make-instance
              'xunit/type
              :kind                      kind
-             :pattern                   (var :aspect.xunit.pattern)
-             :skip-if-no-test-files?    (var :aspect.xunit.skip-if-no-test-files?)
-             :fail-if-not-new?          (var :aspect.xunit.fail-if-not-new?)
-             :delete-output-files?      (var :aspect.xunit.delete-output-files?)
-             :stop-processing-if-error? (var :aspect.xunit.stop-processing-if-error?))
+             :pattern                   (var/typed :aspect.xunit.pattern                   'string)
+             :skip-if-no-test-files?    (var/typed :aspect.xunit.skip-if-no-test-files?    'boolean)
+             :fail-if-not-new?          (var/typed :aspect.xunit.fail-if-not-new?          'boolean)
+             :delete-output-files?      (var/typed :aspect.xunit.delete-output-files?      'boolean)
+             :stop-processing-if-error? (var/typed :aspect.xunit.stop-processing-if-error? 'boolean))
             (types publisher)))))
 
 (define-aspect (junit :job-var job) ()
@@ -597,15 +598,15 @@ ${(or ensure-install-directory "# Not creating install directory")}
   (appendf (publishers job)
            (list (make-instance
                   'publisher/junit
-                  :pattern             (var :aspect.junit.pattern)
-                  :keep-long-stdio?    (var :aspect.junit.keep-long-stdio?)
-                  :health-scale-factor (var :aspect.junit.health-scale-factor)))))
+                  :pattern             (var/typed :aspect.junit.pattern             'string)
+                  :keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean)
+                  :health-scale-factor (var/typed :aspect.junit.health-scale-factor 'non-negative-real)))))
 
 ;;; Email notification
 
 (define-aspect (email-notification :job-var job) ()
     ()
-  (if-let ((recipients (var :aspect.email-notification.recipients)))
+  (if-let ((recipients (var/typed :aspect.email-notification.recipients 'list)))
     (with-interface (publishers job) (publisher (publisher/email-notification
                                                  :recipients recipients))
       (declare (ignore publisher)))
@@ -626,7 +627,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
   (with-interface (publishers job) (archiver (publisher/archive-artifacts
                                               :files        nil
                                               :only-latest? nil))
-    (pushnew #?"${(var :build-dir)}/*.deb" (files archiver)
+    (pushnew #?"${(var/typed :build-dir 'string)}/*.deb" (files archiver)
              :test #'string=)))
 
 (define-aspect (debian-package/cmake) (debian-package
@@ -634,8 +635,8 @@ ${(or ensure-install-directory "# Not creating install directory")}
     ()
   ;; TODO add PACKAGE_REVISION to environment
   (push (constraint! (((:after cmake/unix)))
-          (shell (:command #?"mkdir -p ${(var :build-dir)} && cd ${(var :build-dir)}
-cmake -DCPACK_CONFIG_FILE=${(var :aspect.debian-package/cmake.cpack-config-file)} \\
+          (shell (:command #?"mkdir -p ${(var/typed :build-dir 'string)} && cd ${(var/typed :build-dir 'string)}
+cmake -DCPACK_CONFIG_FILE=${(var/typed :aspect.debian-package/cmake.cpack-config-file 'string)} \\
       -DCPACK_PACKAGE_REVISION=\${PACKAGE_REVISION} \\
       ..
 umask 022
@@ -648,11 +649,11 @@ lintian -i *.deb || true
 
 (define-aspect (upload :job-var job) ()
     ()
-  (push (ssh (:target           (var :aspect.upload.target)
-              :source-files     (var :aspect.upload.source-files)
-              :excludes         (var :aspect.upload.excludes '())
-              :remove-prefix    (var :aspect.upload.remove-prefix)
-              :remote-directory (var :aspect.upload.dir)
+  (push (ssh (:target           (var/typed :aspect.upload.target        'string)
+              :source-files     (var/typed :aspect.upload.source-files  'list)
+              :excludes         (var/typed :aspect.upload.excludes      'list   '())
+              :remove-prefix    (var/typed :aspect.upload.remove-prefix 'string)
+              :remote-directory (var/typed :aspect.upload.dir           'string)
               :verbose?         nil))
         (publishers job)))
 

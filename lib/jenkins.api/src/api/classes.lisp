@@ -615,7 +615,8 @@
                                  (type  (eql ',name))
                                  &key &allow-other-keys)
             (xloc:with-locations (((:@ class) ".")
-                                  (path       "path/text()")) dest
+                                  (path       "path/text()"))
+                dest
               (etypecase value
                 ((eql :default)
                  (setf class ,default-provider)
@@ -1027,17 +1028,16 @@
 
 ;;; Permissions
 
-(defmethod grant ((job job) (subject string) (action string))
-  (pushnew (format nil "~A:~A" action subject)
-           (permissions job)
-           :test #'string=)
-  (permissions job))
+(flet ((make-rule (action subject)
+         (format nil "~A:~A" action subject)))
 
-(defmethod revoke ((job job) (subject string) (action string))
-  (removef (permissions job)
-           (format nil "~A:~A" action subject)
-           :test #'string=)
-  (permissions job))
+  (defmethod grant ((job job) (subject string) (action string))
+    (pushnew (make-rule action subject) (permissions job) :test #'string=)
+    (permissions job))
+
+  (defmethod revoke ((job job) (subject string) (action string))
+    (removef (permissions job) (make-rule action subject) :test #'string=)
+    (permissions job)))
 
 (macrolet
     ((define-permission-methods (name)

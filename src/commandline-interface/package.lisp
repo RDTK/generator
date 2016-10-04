@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,6 +16,9 @@
 
   #+sbcl (:local-nicknames
           (#:clon #:net.didierverna.clon))
+
+  (:shadowing-import-from #:jenkins.project
+   #:as)
 
   (:export
    #:main)

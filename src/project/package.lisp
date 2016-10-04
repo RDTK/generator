@@ -18,7 +18,7 @@
    #:jenkins.dsl)
 
   (:shadow
-   #:node)
+   #:node #:as)
 
   (:shadowing-import-from #:jenkins.api
    #:parameters)
@@ -133,7 +133,9 @@
    #:direct-variables
    #:variables
    #:lookup
-   #:value)
+   #:value
+
+   #:as)
 
   ;; JSON stuff
   (:export

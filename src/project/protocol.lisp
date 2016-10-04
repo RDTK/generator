@@ -108,6 +108,24 @@
     The second return value indicates whether the first return value
     is DEFAULT."))
 
+(defgeneric as (value type &key if-type-mismatch)
+  (:documentation
+   "Interpret/convert VALUE as/to an element of TYPE and return that.
+
+    Return two values: 1) VALUE or the result of converting VALUE to
+    TYPE 2) T
+
+    IF-TYPE-MISMATCH controls the behavior in case VALUE cannot be
+    interpreted as/converted to an element of TYPE. Allowed values are
+
+    'ERROR, #'ERROR
+
+      Signal an error.
+
+    NIL
+
+      Return two values: VALUE and NIL."))
+
 ;; Default behavior
 
 (defmethod lookup :around ((thing t) (name t)
@@ -120,6 +138,22 @@
             (if-undefined (simple-error
                            :format-control   "~@<Undefined variable: ~S.~@:>"
                            :format-arguments (list name)))))))
+
+(defmethod as :around ((value t) (type t) &key (if-type-mismatch #'error))
+  (let+ (((&values result match?) (call-next-method value type)))
+    (if match?
+        (values result t)
+        (error-behavior-restart-case
+            (if-type-mismatch
+             (simple-error
+              :format-control   "~@<The ~S cannot be interpreted ~
+                                 as a value of type ~S.~@:>"
+              :format-arguments (list value type)))))))
+
+(defmethod as ((value t) (type t) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (when (typep value type)
+    (values value t)))
 
 ;;; Platform requirements protocol
 

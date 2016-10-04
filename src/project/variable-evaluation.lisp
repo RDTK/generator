@@ -128,3 +128,28 @@
       (if defined?
           (expand (parse (cdr raw)) (make-lookup raw/next-values))
           (values default t)))))
+
+;;; Casts
+
+(defmethod as ((value t) (type (eql 'boolean)) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (switch (value :test #'equal)
+    ('t      (values t   t))
+    ("true"  (values t   t))
+    (nil     (values nil t))
+    ("false" (values nil t))))
+
+(defmethod as ((value t) (type cons) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (case (car type)
+    (or
+     (dolist (type (rest type))
+       (let+ (((&values value match?)
+               (as value type :if-type-mismatch nil)))
+         (when match?
+           (return-from as (values value t))))))
+    (eql
+     (when (eql value (second type))
+       (values value t)))
+    (t
+     (call-next-method))))

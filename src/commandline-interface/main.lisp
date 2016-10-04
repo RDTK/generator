@@ -501,7 +501,7 @@
 (defun configure-distribution (distribution
                                &key
                                (build-flow-ignores-failures? t))
-  (unless (value distribution :disable-ochestration-jobs nil)
+  (unless (value distribution :disable-orchestration-jobs nil)
     (let ((jobs (mappend (compose #'jobs #'implementation) (versions distribution))))
       (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
       (configure-jobs distribution jobs

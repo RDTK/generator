@@ -657,4 +657,15 @@ lintian -i *.deb || true
               :verbose?         nil))
         (publishers job)))
 
+;;; permissions aspect
+
+(define-aspect (permissions :job-var job) ()
+    ()
+  (let+ (((&flet+ normalize-permission ((subject action))
+            (list subject (mapcar (compose #'make-keyword #'string-upcase)
+                                  action))))
+         (new-permissions (var/typed :aspect.permissions.permissions '(or (eql :keep) list) :keep)))
+    (unless (eq new-permissions :keep)
+      (setf (permissions job) (mapcar #'normalize-permission new-permissions)))))
+
 #.(interpol:disable-interpol-syntax)

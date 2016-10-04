@@ -813,27 +813,29 @@ A common case, deleting only jobs belonging to the distribution being generated,
     (update-synopsis)
     (clon:make-context)
 
-    (when (option-value "general" "debug") ; TODO does this consume the clon value?
-      (describe configuration)
-      (fresh-line))
+    (let ((debug? (option-value "general" "debug")))
 
-    (when (or (emptyp (uiop:command-line-arguments))
-              (option-value "general" "help"))
-      (clon:help)
-      (uiop:quit))
-    (when (option-value "general" "version")
-      (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
-        (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
-                "build-generator" (stringp version) version))
-      (uiop:quit))
+      (when debug?
+        (describe configuration)
+        (fresh-line))
 
-    (values #'option-value configuration)))
+      (when (or (emptyp (uiop:command-line-arguments))
+                (option-value "general" "help"))
+        (clon:help)
+        (uiop:quit))
+
+      (when (option-value "general" "version")
+        (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
+          (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
+                  "build-generator" (stringp version) version))
+        (uiop:quit))
+
+      (values #'option-value configuration debug?))))
 
 (defun main ()
-  (let+ ((option-value (configure))
+  (let+ (((&values option-value &ign debug?) (configure))
          ((&flet option-value (&rest args)
             (apply option-value args)))
-         (debug?                 (option-value "general" "debug"))
          (progress-style         (option-value "general" "progress-style"))
          (*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS")))
                                    (parse-integer value)

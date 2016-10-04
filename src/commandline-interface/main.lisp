@@ -729,12 +729,19 @@ A common case, deleting only jobs belonging to the distribution being generated,
       '())))
 
 (defun parse-overwrite (spec)
-  (let ((position (position #\= spec)))
-    (unless position
-      (error "~@<Variable assignment ~S is not of the form NAME=VALUE.~@:>"
-             spec))
-    (cons (make-keyword (string-upcase (subseq spec 0 position)))
-          (subseq spec (1+ position)))))
+  (let+ ((position  (or (position #\= spec)
+                        (error "~@<Variable assignment ~S is not of the ~
+                                form NAME=VALUE.~@:>"
+                               spec)))
+         (name/raw  (subseq spec 0 position))
+         (name      (make-keyword (string-upcase name/raw)))
+         (value/raw (subseq spec (1+ position)))
+         (value     (if (and (not (emptyp value/raw))
+                             (member (aref value/raw 0) '(#\" #\{ #\[)))
+                        (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
+                          (json:decode-json-from-string value/raw))
+                        value/raw)))
+    (cons name value)))
 
 (defun call-with-phase-error-check (phase errors set-errors report continuable?
                                     thunk)

@@ -594,16 +594,26 @@
                        "Trace all accesses to the specified variable."))
 
    :item    (clon:defgroup (:header "Jenkins Options")
+              (path   :long-name     "template-directory"
+                      :type          :directory
+                      :argument-name "DIRECTORY"
+                      :description
+                      "Directory containing sub-directories in turn containing template files. Must be used in combination with the mode option to select one of the sub-directories.")
               (stropt :long-name     "template"
                       :short-name    "t"
                       :argument-name "TEMPLATE"
                       :description
-                      "Load one or more templates. This option can be supplied multiple times.")
+                      "Load one or more templates. This option can be supplied multiple times. Mutually exclusive with the mode option.")
               (stropt :long-name     "distribution"
                       :short-name    "d"
                       :argument-name "DISTRIBUTION"
                       :description
                       "Load one or more distributions. This option can be supplied multiple times.")
+              (stropt :long-name     "mode"
+                      :short-name    "m"
+                      :argument-name "MODE"
+                      :description
+                      "The mode according to which jobs should be generated. Selects a sub-directory of the directory specified using the template-directory option and thus a set of templates. Mutually exclusive with the template option.")
               (stropt :long-name     "set"
                       :short-name    "D"
                       :argument-name "VARIABLE-NAME=VALUE"
@@ -903,11 +913,26 @@ A common case, deleting only jobs belonging to the distribution being generated,
                      (delete-other?                (option-value "generation" "delete-other"))
                      (delete-other-pattern         (option-value "generation" "delete-other-pattern"))
                      (build-flow-ignores-failures? (not (option-value "generation" "build-flow-fail")))
+                     (template-directory           (option-value "generation" "template-directory"))
+                     (template                     (option-value "generation" "template"))
+                     (mode                         (option-value "generation" "mode"))
+                     (template-pattern             (cond
+                                                     ((and template mode)
+                                                      (error "~@<The options template and mode are mutually exclusive.~@~:>"))
+                                                     (template)
+                                                     (mode
+                                                      (list (merge-pathnames
+                                                             (make-pathname
+                                                              :name      :wild
+                                                              :type      "template"
+                                                              :directory `(:relative ,mode))
+                                                             template-directory)))
+                                                     (t
+                                                      (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
 
                      (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
-                                      (sort (locate-specifications
-                                             :template (option-value "generation" "template"))
+                                      (sort (locate-specifications :template template-pattern)
                                             #'string< :key #'pathname-name)))
                      (distributions (with-phase-error-check
                                         (:locate/distribution #'errors #'(setf errors) #'report)

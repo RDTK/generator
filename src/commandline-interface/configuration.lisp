@@ -74,12 +74,18 @@
 
 (configuration.options:define-schema *generation-schema*
   "Options controlling the generation of Jenkins jobs."
+  ("template-directory"   :type 'pathname
+                          :documentation
+                          "Directory containing sub-directories in turn containing template files. Must be used in combination with the mode option to select one of the sub-directories.")
   ("template"             :type '(list pathname :inherit? t)
                           :documentation
-                          "Load one or more templates.") ;  This option can be supplied multiple times.
+                          "Load one or more templates. Mutually exclusive with the mode option.") ;  This option can be supplied multiple times.
   ("distribution"         :type '(list pathname :inherit? t)
                           :documentation
                           "Load one or more distributions.") ; This option can be supplied multiple times.
+  ("mode"                 :type 'string
+                          :documentation
+                          "The mode according to which jobs should be generated. Selects a sub-directory of the directory specified using the template-directory option and thus a set of templates. Mutually exclusive with the template option.")
   ("set"                  :type '(list string :inherit? t) ; TODO list of key-value?
                            ; :short-name    "D"
                            ; :argument-name "VARIABLE-NAME=VALUE"

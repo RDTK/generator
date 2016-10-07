@@ -137,8 +137,8 @@ rm -rf \"\${temp}\""))
   ;; Generate archive download and extraction as a shell builder.
   (let* ((url/string (var/typed :aspect.archive.url      'string))
          (url        (puri:uri url/string))
-         (archive    (var/typed :aspect.archive.filename 'string
-                                (lastcar (puri:uri-parsed-path url)))))
+         (archive    (or (var/typed :aspect.archive.filename '(or null string) nil)
+                         (lastcar (puri:uri-parsed-path url)))))
     (push (constraint! (((:before t)))
             (shell (:command #?"# Clean workspace.
 ${(make-remove-directory-contents/unix)}

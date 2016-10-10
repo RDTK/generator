@@ -96,7 +96,7 @@
 
 A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$.")
   ("build-flow-fail"      :type     'boolean
-                          :default  t
+                          :default  nil
                           :documentation
                           "Configure build-flow to fail when one of the jobs coordinated by it fails."))
 

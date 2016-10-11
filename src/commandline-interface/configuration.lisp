@@ -6,7 +6,7 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
-(options:define-schema *general-schema*
+(configuration.options:define-schema *general-schema*
   "General configuration options."
   ("version"          :type 'boolean :default nil
                       :documentation
@@ -55,7 +55,7 @@
                       :documentation
                       "Trace all accesses to the specified variable."))
 
-(options:define-schema *jenkins-schema*
+(configuration.options:define-schema *jenkins-schema*
   "Options controlling communication with a Jenkins including
    authentication."
   ("base-uri"             :type    'string ; TODO puri:uri
@@ -72,7 +72,7 @@
                           :documentation
                           "API token for Jenkins authentication."))
 
-(options:define-schema *generation-schema*
+(configuration.options:define-schema *generation-schema*
   "Options controlling the generation of Jenkins jobs."
   ("template"             :type '(list pathname :inherit? t)
                           :documentation
@@ -100,7 +100,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                           :documentation
                           "Configure build-flow to fail when one of the jobs coordinated by it fails."))
 
-(options:define-schema *schema*
+(configuration.options:define-schema *schema*
   "Configuration options of the build generator."
   ("general"    *general-schema*)
   ("jenkins"    *jenkins-schema*)

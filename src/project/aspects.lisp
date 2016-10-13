@@ -59,10 +59,8 @@
 (define-aspect (redmine) () ()
   (when-let* ((instance (var/typed :aspect.redmine.instance '(or null string) nil))
               (project  (var/typed :aspect.redmine.project  '(or null string) nil)))
-    (setf (jenkins.api::redmine-instance job) (format nil "~A/" instance)
-          (jenkins.api::redmine-project job) project)
-    (when-let ((version (var/typed :aspect.redmine.version '(or null string) nil)))
-      (setf (jenkins.api::redmine-version job) version))))
+    (setf (jenkins.api::redmine-instance job) instance
+          (jenkins.api::redmine-project job)  project)))
 
 (define-aspect (redmine-and-git
                 :job-var     job

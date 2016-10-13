@@ -146,7 +146,7 @@
         (error-behavior-restart-case
             (if-type-mismatch
              (simple-error
-              :format-control   "~@<The ~S cannot be interpreted ~
+              :format-control   "~@<The value ~S cannot be interpreted ~
                                  as a value of type ~S.~@:>"
               :format-arguments (list value type)))))))
 

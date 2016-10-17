@@ -253,8 +253,9 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (trigger/scm) ()
     ()
-  (push (scm (:spec (var/typed :aspect.trigger/scm.spec 'string)))
-        (triggers job)))
+  (removef (triggers job) 'trigger/scm :key #'of-type)
+  (when-let ((trigger-spec (var/typed :aspect.trigger/scm.spec '(or null string))))
+    (push (scm (:spec trigger-spec)) (triggers job))))
 
 ;;; Timeout aspect
 

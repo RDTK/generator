@@ -920,7 +920,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                      (mode                         (option-value "generation" "mode"))
                      (template-pattern             (cond
                                                      ((and template mode)
-                                                      (error "~@<The options template and mode are mutually exclusive.~@~:>"))
+                                                      (error "~@<The options template and mode are mutually exclusive.~@:>"))
                                                      (template)
                                                      (mode
                                                       (list (merge-pathnames

@@ -239,6 +239,8 @@
               (restart-case
                   (let ((distribution (load-distribution/json file)))
                     (iter (for (name . value) in overwrites)
+                          (log:info "~@<In ~A, setting ~S to ~S.~@:>"
+                                    distribution name value)
                           (setf (lookup distribution name) value))
                     (list distribution))
                 (continue (&optional condition)

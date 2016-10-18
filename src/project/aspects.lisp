@@ -591,15 +591,15 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 (define-aspect (junit :job-var job) ()
     ()
-  ;; Remove previous configuration, if any.
   (removef (publishers job) 'publisher/junit :key #'of-type)
-  ;; Add new configuration.
-  (appendf (publishers job)
-           (list (make-instance
-                  'publisher/junit
-                  :pattern             (var/typed :aspect.junit.pattern             'string)
-                  :keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean)
-                  :health-scale-factor (var/typed :aspect.junit.health-scale-factor 'non-negative-real)))))
+  (when-let ((pattern (var/typed :aspect.junit.pattern '(or null string))))
+    (let ((keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean))
+          (health-scale-factor (var/typed :aspect.junit.health-scale-factor 'non-negative-real)))
+      (appendf (publishers job)
+               (list (make-instance 'publisher/junit
+                                    :pattern             pattern
+                                    :keep-long-stdio?    keep-long-stdio?
+                                    :health-scale-factor health-scale-factor))))))
 
 ;;; Email notification
 

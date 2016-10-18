@@ -20,7 +20,7 @@
 (defparameter +version-major+ 0
   "Major component of version number.")
 
-(defparameter +version-minor+ 8
+(defparameter +version-minor+ 9
   "Minor component of version number.")
 
 (let* ((version-file (merge-pathnames "version.sexp" *load-truename*))

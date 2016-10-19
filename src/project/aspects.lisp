@@ -336,14 +336,18 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (sloccount) (builder-defining-mixin)
     ()
-  (push (constraint! (((:before cmake/unix)))
-         (shell (:command "TEMPDIR=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
-sloccount --datadir \"${TEMPDIR}\" --wide --details \"${WORKSPACE}\" > \"${WORKSPACE}/sloccount.sc\"
-rm -rf \"${TEMPDIR}\"")))
-        (builders job))
+  (let* ((directories (var/typed :aspect.sloccount.directories 'list))
+         (arguments   (mapcar #'prin1-to-string directories)))
+    (push (constraint! (((:before cmake/unix)
+                         (:before maven)
+                         (:before setuptools)))
+            (shell (:command #?"TEMPDIR=\$(mktemp -d /tmp/tmp.XXXXXXXXXX)
+sloccount --datadir \"\${TEMPDIR}\" --wide --details @{arguments} > \"\${WORKSPACE}/sloccount.sc\"
+rm -rf \"\${TEMPDIR}\"")))
+         (builders job))
 
-  (push (sloccount (:pattern "sloccount.sc"))
-        (publishers job)))
+   (push (sloccount (:pattern "sloccount.sc"))
+         (publishers job))))
 
 ;;; Slaves aspect
 

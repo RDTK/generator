@@ -409,7 +409,7 @@ rm -rf \"\${TEMPDIR}\"")))
         (push (constraint! (((:before cmake/unix)
                              (:after copy-artifact)))
                 (shell (:command #?"cd ${(var/typed :upstream-dir 'string)}
-for archive in *.tar.gz ; do tar -xzf \"\${archive}\" ; done")))
+find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
               (builders job))))))
 
 ; dependency-download/windows

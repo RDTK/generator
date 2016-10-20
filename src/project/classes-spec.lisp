@@ -210,7 +210,7 @@
         (remove-if
          (lambda+ ((&ign name &optional version))
            (find (format nil "~(~A~@[-~A~]~)" (rs.f::normalize-name name) version)
-                 (value instance :system-packages '())
+                 (as (value instance :system-packages '()) 'list)
                  :test (lambda (a b) (ppcre:scan b a))))
          (%requires instance))))
 
@@ -238,11 +238,11 @@
                    (string (list (parse-version version))))))))
 
   (defmethod requires ((spec version-spec))
-    (append (mapcar #'parse-spec (value spec :extra-requires '()))
+    (append (mapcar #'parse-spec (as (value spec :extra-requires '()) 'list))
             (%requires spec)))
 
   (defmethod provides ((spec version-spec))
-    (append (mapcar #'parse-spec (value spec :extra-provides '()))
+    (append (mapcar #'parse-spec (as (value spec :extra-provides '()) 'list))
             (%provides spec))))
 
 (defmethod requires-of-kind ((kind t) (spec version-spec))
@@ -256,9 +256,9 @@
           :key  #'first))
 
 (defmethod check-access ((object version-spec) (lower-bound t))
-  (let ((offender (or (when (value object :scm.credentials nil)
+  (let ((offender (or (when (as (value object :scm.credentials nil) '(or null string))
                         :scm.credentials)
-                      (when (value object :scm.password nil)
+                      (when (as (value object :scm.password nil) '(or null string))
                         :scm.password))))
     (cond
       ((not offender)

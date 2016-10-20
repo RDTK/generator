@@ -165,7 +165,7 @@
       (NAME VERSION)"))
 
 (defmethod platform-requires ((object t) (platform cons))
-  (let+ ((spec (value object :platform-requires '()))
+  (let+ ((spec (as (value object :platform-requires '()) 'list))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where :test #'eq))))
          ((&flet make-key (string)
@@ -198,7 +198,7 @@
     reason as a second value."))
 
 (defmethod access ((object t))
-  (switch ((value object :access nil) :test #'equal)
+  (switch ((as (value object :access nil) '(or null string)) :test #'equal)
     (nil       :public)
     ("public"  :public)
     ("private" :private)))

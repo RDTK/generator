@@ -142,9 +142,9 @@
                                                         (member version versions
                                                                 :test #'string=)))
                                   :parent distribution))
-                  (branches      (value project :branches '()))
+                  (branches      (as (value project :branches '()) 'list))
                   (branches      (intersection versions branches :test #'string=))
-                  (tags          (value project :tags '()))
+                  (tags          (as (value project :tags '()) 'list))
                   (tags          (intersection versions tags :test #'string=))
                   (tags+branches (union branches tags))
                   (versions1     (set-difference versions tags+branches
@@ -450,14 +450,14 @@
                       '((jenkins.api:commit! job)
                         (jenkins.api:enable! job)))
                   job)))
-    (let+ ((buildflow-name      (value distribution :buildflow-name))
-           (buildflow-parallel? (value distribution :buildflow.parallel? t))
+    (let+ ((buildflow-name      (as (value distribution :buildflow-name) 'string))
+           (buildflow-parallel? (as (value distribution :buildflow.parallel? t) 'boolean))
 
-           (prepare-name        (value distribution :prepare-hook-name nil))
-           (prepare-command     (value distribution :prepare-hook/unix nil))
+           (prepare-name        (as (value distribution :prepare-hook-name nil) '(or null string)))
+           (prepare-command     (as (value distribution :prepare-hook/unix nil) '(or null string)))
 
-           (finish-name         (value distribution :finish-hook-name nil))
-           (finish-command      (value distribution :finish-hook/unix nil))
+           (finish-name         (as (value distribution :finish-hook-name nil) '(or null string)))
+           (finish-command      (as (value distribution :finish-hook/unix nil) '(or null string)))
            (finish-command      (when finish-command
                                   (format nil "jobs='~{~A~^~%~}'~2%~A"
                                           (mapcar (compose #'jenkins.api:id
@@ -465,7 +465,7 @@
                                                   jobs)
                                           finish-command)))
            ((&flet include-job? (job)
-              (not (value job :buildflow.exclude? nil))))
+              (not (as (value job :buildflow.exclude? nil) 'boolean))))
            ((&flet make-hook-job (name command)
               (progress :orchestration nil "~A" name)
               (ensure-job ("project" name)
@@ -505,7 +505,7 @@
 (defun configure-distribution (distribution
                                &key
                                (build-flow-ignores-failures? t))
-  (unless (value distribution :disable-orchestration-jobs nil)
+  (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
     (let ((jobs (mappend (compose #'jobs #'implementation) (versions distribution))))
       (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
       (configure-jobs distribution jobs
@@ -993,8 +993,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                    (:deploy/project #'errors #'(setf errors) #'report)
                                                  (let ((jobs (deploy-projects projects)))
                                                    (when (some (lambda (job)
-                                                                 (not (or (value job :no-dependencies nil) ; TODO remove
-                                                                          (string= (value job :dependencies.mode) "none"))))
+                                                                 (not (or (as (value job :no-dependencies nil) 'boolean) ; TODO remove
+                                                                          (string= (as (value job :dependencies.mode) 'string) "none"))))
                                                                jobs)
                                                      (deploy-job-dependencies jobs))
                                                    jobs))))

@@ -189,6 +189,18 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
 ${(make-move-stuff-upwards/unix components)}")))
             (builders job)))))
 
+(define-aspect (git-repository-browser
+                :job-var     job
+                :constraints ((:after aspect-git)))
+    () ()
+  (when-let* ((kind (var/typed :aspect.git-repository-browser.kind '(or null keyword) nil))
+              (url  (var/typed :aspect.git-repository-browser.url  '(or null string)  nil)))
+    (let ((repository (repository job)))
+      (unless (typep repository 'scm/git)
+        (error "~@<Could not find git repository in ~A.~@:>" job))
+     (setf (browser-kind repository) kind
+           (browser-url  repository) url))))
+
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
 
   (let* ((url          (var/typed :aspect.subversion.url 'string))

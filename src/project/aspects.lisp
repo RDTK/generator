@@ -341,9 +341,12 @@ ${(make-move-stuff-upwards/unix components)}")))
     (push (constraint! (((:before cmake/unix)
                          (:before maven)
                          (:before setuptools)))
-            (shell (:command #?"TEMPDIR=\$(mktemp -d /tmp/tmp.XXXXXXXXXX)
-sloccount --datadir \"\${TEMPDIR}\" --wide --details @{arguments} > \"\${WORKSPACE}/sloccount.sc\"
-rm -rf \"\${TEMPDIR}\"")))
+            (shell (:command #?"DATA_DIR=\$(mktemp -d /tmp/build-generator.sloccount.data.XXXXXXXXXX)
+REPORT_DIR=\$(mktemp -d /tmp/build-generator.sloccount.report.XXXXXXXXXX)
+mkdir -p \"\${REPORT_DIR}\"
+sloccount --datadir \"\${DATA_DIR}\" --wide --details @{arguments} > \"\${REPORT_DIR}/sloccount.sc\"
+mv \"\${REPORT_DIR}/sloccount.sc\" \"\${WORKSPACE}/sloccount.sc\"
+rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
          (builders job))
 
    (push (sloccount (:pattern "sloccount.sc"))

@@ -133,6 +133,10 @@
     (nil     (values nil t))
     ("false" (values nil t))))
 
+(defmethod as ((value string) (type (eql 'keyword)) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (values (make-keyword (string-upcase value)) t))
+
 (defmethod as ((value t) (type cons) &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
   (case (car type)

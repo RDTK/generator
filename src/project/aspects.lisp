@@ -370,7 +370,7 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
     () ; TODO separate slaves aspect for matrix-project jobs?
   (when-let ((value (var/typed :aspect.slaves.slaves 'list '())))
     (setf (slaves job) value))
-  (if-let ((value (var/typed :aspect.slaves.restrict-to-slaves 'list '())))
+  (if-let ((value (var/typed :aspect.slaves.restrict-to-slaves '(or null string) nil)))
     (setf (can-roam? job)          nil
           (restrict-to-slaves job) value)
     (setf (can-roam? job) t)))

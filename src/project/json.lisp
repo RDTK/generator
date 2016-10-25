@@ -53,8 +53,13 @@
                        key value))
        :collect (value-cons key (first value)))))
 
+(defun derive-template-name (pathname)
+  (let ((name (pathname-name pathname)))
+    (subseq name (1+ (position #\- name)))))
+
 (defun load-template/json-1 (pathname)
-  (let+ ((spec (%decode-json-from-source pathname))
+  (let+ ((name (derive-template-name pathname))
+         (spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
 
@@ -76,11 +81,15 @@
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
 
-         (name (lookup :name))
+
          (template (make-instance 'template)))
     (check-generator-version spec)
     (check-keys spec '(:minimum-generator-version
-                       (:name . t) :inherit :variables :aspects :jobs))
+                       :name :inherit :variables :aspects :jobs))
+    #+later (when-let ((value (lookup :name)))
+      (warn "~@<Ignoring \"name\" attribute with value ~S in template ~
+             ~A. Template names are now derived from filenames.~@:>"
+            value pathname))
     (setf (find-template name)
           (reinitialize-instance
            template

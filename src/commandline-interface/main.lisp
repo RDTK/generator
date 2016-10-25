@@ -919,8 +919,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                         (list :temp-directory temp-directory))))))
                          (distributions     (with-phase-error-check
                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
-                                              (mapcar (curry #'project-automation.model.project.stage2::transform-distribution
-                                                             builder)
+                                              (mapcar (lambda (d)
+                                                        (project-automation.model.project.stage2::transform-distribution
+                                                         builder d "nightly")) ; TODO
                                                       distributions/raw)))
                          #+no (distributions     (with-phase-error-check
                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)

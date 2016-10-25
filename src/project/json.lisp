@@ -57,12 +57,44 @@
   (let ((name (pathname-name pathname)))
     (subseq name (1+ (position #\- name)))))
 
+(defvar *template-load-stack* '())
+
+(defun call-with-loading-template (thunk name)
+  (when (member name *template-load-stack* :test #'string=)
+    (error "~@<Cyclic template inheritance~
+            ~@:_~@:_~
+            ~4@T~{~
+              ~A~^~@:_~@T->~@T~
+            ~}~@:>"
+           (reverse (list* name *template-load-stack*))))
+  (let ((*template-load-stack* (list* name *template-load-stack*)))
+    (funcall thunk)))
+
+(defmacro loading-template ((name) &body body)
+  `(call-with-loading-template (lambda () ,@body) ,name))
+
+(defun resolve-template-dependency (name context)
+  (or (find-template name :if-does-not-exist nil)
+      (let ((exact (make-pathname :name name :defaults context)))
+        (when (probe-file exact)
+          (load-template/json exact)))
+      (when-let* ((pattern (merge-pathnames
+                            (pathname (concatenate
+                                       'string
+                                       "T[0123456789][0123456789][0123456789]-"
+                                       name))
+                            context))
+                  (matches (directory pattern)))
+        (assert (length= 1 matches))
+        (load-template/json (first matches)))
+      (error "~@<Could not find template ~S referenced in ~S.~@:>"
+             name context)))
+
 (defun load-template/json-1 (pathname)
   (let+ ((name (derive-template-name pathname))
          (spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
-
          ((&flet make-aspect-spec (spec parent)
             (check-keys spec '((:name . t) (:aspect . t) :variables
                                :conditions))
@@ -72,7 +104,6 @@
                            :aspect     (lookup :aspect spec)
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
-
          ((&flet make-job-spec (spec parent)
             (check-keys spec '((:name . t) :variables :conditions))
             (make-instance 'job-spec
@@ -86,15 +117,18 @@
     (check-generator-version spec)
     (check-keys spec '(:minimum-generator-version
                        :name :inherit :variables :aspects :jobs))
-    #+later (when-let ((value (lookup :name)))
+    ;; Deprecation warning.
+    (when-let ((value (lookup :name)))
       (warn "~@<Ignoring \"name\" attribute with value ~S in template ~
              ~A. Template names are now derived from filenames.~@:>"
             value pathname))
+    ;; Load required templates and finalize the object.
     (setf (find-template name)
           (reinitialize-instance
            template
            :name      name
-           :inherit   (mapcar #'find-template (lookup :inherit))
+           :inherit   (mapcar (rcurry #'resolve-template-dependency pathname)
+                              (lookup :inherit))
            :variables (process-variables (lookup :variables))
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
@@ -104,7 +138,10 @@
                           (error "~@<Error when loading template from ~
                                   ~S: ~A~@:>"
                                  pathname condition))))
-    (load-template/json-1 pathname)))
+    (let ((name (derive-template-name pathname)))
+      (or (find-template name :if-does-not-exist nil)
+          (loading-template (name)
+            (load-template/json-1 pathname))))))
 
 (defun load-project-spec/json-1 (pathname &key version-test)
   (let+ ((spec (%decode-json-from-source pathname))

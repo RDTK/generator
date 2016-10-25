@@ -86,6 +86,7 @@
                             context))
                   (matches (directory pattern)))
         (assert (length= 1 matches))
+        (warn "~@<Template ~S uses deprecated filename schema.~@:>")
         (load-template/json (first matches)))
       (error "~@<Could not find template ~S referenced in ~S.~@:>"
              name context)))

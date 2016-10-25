@@ -53,10 +53,6 @@
                        key value))
        :collect (value-cons key (first value)))))
 
-(defun derive-template-name (pathname)
-  (let ((name (pathname-name pathname)))
-    (subseq name (1+ (position #\- name)))))
-
 (defvar *template-load-stack* '())
 
 (defun call-with-loading-template (thunk name)
@@ -75,24 +71,10 @@
 
 (defun resolve-template-dependency (name context)
   (or (find-template name :if-does-not-exist nil)
-      (let ((exact (make-pathname :name name :defaults context)))
-        (when (probe-file exact)
-          (load-template/json exact)))
-      (when-let* ((pattern (merge-pathnames
-                            (pathname (concatenate
-                                       'string
-                                       "T[0123456789][0123456789][0123456789]-"
-                                       name))
-                            context))
-                  (matches (directory pattern)))
-        (assert (length= 1 matches))
-        (warn "~@<Template ~S uses deprecated filename schema.~@:>")
-        (load-template/json (first matches)))
-      (error "~@<Could not find template ~S referenced in ~S.~@:>"
-             name context)))
+      (load-template/json (make-pathname :name name :defaults context))))
 
 (defun load-template/json-1 (pathname)
-  (let+ ((name (derive-template-name pathname))
+  (let+ ((name (pathname-name pathname))
          (spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
@@ -117,12 +99,7 @@
          (template (make-instance 'template)))
     (check-generator-version spec)
     (check-keys spec '(:minimum-generator-version
-                       :name :inherit :variables :aspects :jobs))
-    ;; Deprecation warning.
-    (when-let ((value (lookup :name)))
-      (warn "~@<Ignoring \"name\" attribute with value ~S in template ~
-             ~A. Template names are now derived from filenames.~@:>"
-            value pathname))
+                       :inherit :variables :aspects :jobs))
     ;; Load required templates and finalize the object.
     (setf (find-template name)
           (reinitialize-instance
@@ -139,7 +116,7 @@
                           (error "~@<Error when loading template from ~
                                   ~S: ~A~@:>"
                                  pathname condition))))
-    (let ((name (derive-template-name pathname)))
+    (let ((name (pathname-name pathname)))
       (or (find-template name :if-does-not-exist nil)
           (loading-template (name)
             (load-template/json-1 pathname))))))

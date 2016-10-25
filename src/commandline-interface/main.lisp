@@ -953,7 +953,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                  (:load/template #'errors #'(setf errors) #'report)
                                                (load-templates templates)))
                          (distributions/raw  (with-phase-error-check
-                                                 (:load/distribution #'errors #'(setf errors) #'report)
+                                                 (:load/distribution #'errors #'(setf errors) #'report
+                                                  :continuable? nil)
                                                (load-distributions distributions overwrites)))
                          (projects           (with-phase-error-check
                                                  (:locate/project #'errors #'(setf errors) #'report)

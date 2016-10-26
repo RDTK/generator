@@ -950,7 +950,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                 (with-trivial-progress (:jobs)
 
                   (let* ((templates          (with-phase-error-check
-                                                 (:load/template #'errors #'(setf errors) #'report)
+                                                 (:load/template #'errors #'(setf errors) #'report
+                                                  :continuable? nil)
                                                (load-templates templates)))
                          (distributions/raw  (with-phase-error-check
                                                  (:load/distribution #'errors #'(setf errors) #'report

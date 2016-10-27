@@ -4,11 +4,10 @@ set(CPACK_DEBIAN_PACKAGE_NAME         "${PACKAGE_BASE_NAME}")
 set(CPACK_DEBIAN_PACKAGE_VERSION      "${CPACK_PACKAGE_VERSION}${CPACK_PACKAGE_REVISION}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER   "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION  "Automated Build Generator
- TODO detailed explanation")
+ Generates jobs on a Jenkins server according to specifications")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
 set(CPACK_DEBIAN_PACKAGE_SECTION      "lisp")
-#set(CPACK_DEBIAN_ARCHITECTURE        "${CMAKE_SYSTEM_PROCESSOR}") # Debian uses different names here
-set(CPACK_DEBIAN_PACKAGE_DEPENDS      "common-lisp-controller (>= 5.11)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS      "")
 
 # Generate system links.
 set(COMMANDS "")

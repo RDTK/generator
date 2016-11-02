@@ -795,14 +795,14 @@
     (ignore-case?    :type     boolean
                      :xpath    "ignoreCase/text()"
                      :initform t))
-   (:name-slot nil))
+   (:name-slot pattern))
 
   ((archive-artifacts "hudson.tasks.ArtifactArchiver")
    ((files        :type     (list/comma string)
                   :xpath    "artifacts/text()")
     (only-latest? :type boolean
                   :xpath    "onlyLatest/text()"))
-   (:name-slot nil))
+   (:name-slot files))
 
   ((fingerprint "hudson.tasks.Fingerprinter")
    ((targets          :type      (list/comma string))

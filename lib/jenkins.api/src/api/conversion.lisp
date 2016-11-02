@@ -363,6 +363,26 @@
              complete-build? nil))))
   dest)
 
+;;; `health-scale-factor'
+
+(deftype health-scale-factor ()
+  '(or nil positive-real))
+
+(defmethod xloc:xml-> ((value string)
+                       (type  (eql 'health-scale-factor))
+                       &key &allow-other-keys)
+  (let ((value (with-standard-io-syntax
+                 (read-from-string value))))
+    (unless (zerop value)
+      value)))
+
+(defmethod xloc:->xml ((value real)
+                       (dest  (eql 'string))
+                       (type  (eql 'health-scale-factor))
+                       &key &allow-other-keys)
+  (with-standard-io-syntax
+    (format nil "~6,,,,,,'EG" (or value 0))))
+
 ;;; `access-control-rule'
 
 (deftype access-control-rule ()

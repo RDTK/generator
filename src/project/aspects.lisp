@@ -613,7 +613,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
   (removef (publishers job) 'publisher/junit :key #'of-type)
   (when-let ((pattern (var/typed :aspect.junit.pattern '(or null string))))
     (let ((keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean))
-          (health-scale-factor (var/typed :aspect.junit.health-scale-factor 'non-negative-real)))
+          (health-scale-factor (var/typed :aspect.junit.health-scale-factor '(or null positive-real))))
       (appendf (publishers job)
                (list (make-instance 'publisher/junit
                                     :pattern             pattern

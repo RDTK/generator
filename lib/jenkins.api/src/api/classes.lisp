@@ -866,7 +866,7 @@
     (keep-long-stdio?    :type     boolean
                          :xpath    "keepLongStdio/text()"
                          :initform nil)
-    (health-scale-factor :type     (real 0 1)
+    (health-scale-factor :type     health-scale-factor
                          :xpath    "healthScaleFactor/text()"
                          :initform 1.0))
    (:name-slot pattern)))

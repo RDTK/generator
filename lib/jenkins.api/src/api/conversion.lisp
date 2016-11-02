@@ -208,6 +208,7 @@
 ;;; plist/equals
 
 (deftype plist/equals (&optional list-type key-type value-type)
+  (declare (ignore list-type))
   `(or null (cons ,key-type (cons ,(or value-type t)))))
 
 (defmethod xloc:xml-> ((value string)

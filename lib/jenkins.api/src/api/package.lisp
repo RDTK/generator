@@ -191,6 +191,12 @@
    #:warning-parser/console
    #:name
 
+   #:publisher/checkstyle
+   #:pattern
+
+   #:publisher/pmd
+   #:pattern
+
    #:publisher/tasks
    #:threshold-limit
    #:keywords/low

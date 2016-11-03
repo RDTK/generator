@@ -773,6 +773,16 @@
                      :initform '()))
    (:name-slot nil))
 
+  ((checkstyle "hudson.plugins.checkstyle.CheckStylePublisher"
+               :plugin "checkstyle@3.46")
+   ((pattern :type (list/comma string)
+             :initform '())))
+
+  ((pmd "hudson.plugins.pmd.PmdPublisher"
+        :plugin "pmd@3.45")
+   ((pattern :type (list/comma string)
+             :initform '())))
+
   ((tasks "hudson.plugins.tasks.TasksPublisher"
           :plugin "tasks@4.35")
    ((pattern         :type     (list/comma string)

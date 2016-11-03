@@ -591,6 +591,21 @@ ${(or ensure-install-directory "# Not creating install directory")}
                    :test #'string=
                    :key  #'name))))
 
+;;; Checkstyle and PMD aspects
+
+(macrolet ((define (name publisher-name)
+             (let ((variable-name (let ((*package* (find-package '#:keyword)))
+                                    (symbolicate '#:aspect. name '#:.pattern))))
+               `(define-aspect (,name :job-var job) ()
+                    ()
+                  (removef (publishers job) ',publisher-name :key #'of-type)
+                  (when-let ((pattern (var/typed ,variable-name 'list)))
+                    (appendf (publishers job)
+                             (list (make-instance ',publisher-name
+                                                  :pattern pattern))))))))
+  (define checkstyle publisher/checkstyle)
+  (define pmd        publisher/pmd))
+
 ;;; Test result aspects
 
 (define-aspect (xunit :job-var job) ()

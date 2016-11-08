@@ -54,6 +54,16 @@
 (define-aspect (jdk) () ()
   (setf (jenkins.api::jdk job) (var/typed :aspect.jdk.jdk '(or null string) nil)))
 
+;;; Github aspect
+
+(define-aspect (github :job-var job) () ()
+  (if-let ((project-url (var/typed :aspect.github.project-url '(or null string) nil)))
+    (with-interface (properties job) (github (property/github))
+      (setf (jenkins.api:project-url github) project-url
+            (jenkins.api:display-name github)
+            (var/typed :aspect.github.display-name '(or null string) nil)))
+    (removef (properties job) 'property/github :key #'type-of)))
+
 ;;; Redmine aspect
 
 (define-aspect (redmine) () ()

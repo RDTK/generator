@@ -265,7 +265,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (trigger/scm) ()
     ()
-  (removef (triggers job) 'trigger/scm :key #'of-type)
+  (removef (triggers job) 'trigger/scm :key #'type-of)
   (when-let ((trigger-spec (var/typed :aspect.trigger/scm.spec '(or null string))))
     (push (scm (:spec trigger-spec)) (triggers job))))
 
@@ -598,7 +598,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
                                     (symbolicate '#:aspect. name '#:.pattern))))
                `(define-aspect (,name :job-var job) ()
                     ()
-                  (removef (publishers job) ',publisher-name :key #'of-type)
+                  (removef (publishers job) ',publisher-name :key #'type-of)
                   (when-let ((pattern (var/typed ,variable-name 'list)))
                     (appendf (publishers job)
                              (list (make-instance ',publisher-name
@@ -625,7 +625,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 (define-aspect (junit :job-var job) ()
     ()
-  (removef (publishers job) 'publisher/junit :key #'of-type)
+  (removef (publishers job) 'publisher/junit :key #'type-of)
   (when-let ((pattern (var/typed :aspect.junit.pattern '(or null string))))
     (let ((keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean))
           (health-scale-factor (var/typed :aspect.junit.health-scale-factor '(or null positive-real))))
@@ -643,7 +643,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
     (with-interface (publishers job) (publisher (publisher/email-notification
                                                  :recipients recipients))
       (declare (ignore publisher)))
-    (removef (publishers job) 'publisher/email-notification :key #'of-type)))
+    (removef (publishers job) 'publisher/email-notification :key #'type-of)))
 
 ;;; Debian packaging aspects
 

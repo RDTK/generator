@@ -127,7 +127,11 @@
   ;; Properties interface
   (:export
    #:property/parameters
-   #:parameters)
+   #:parameters
+
+   #:property/github
+   #:project-url
+   #:display-name)
 
   ;; Trigger interface
   (:export

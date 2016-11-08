@@ -542,7 +542,15 @@
                 :xpath    ("parameterDefinitions/*"
                            :if-multiple-matches :all)
                 :initform '()))
-   (:name-slot nil)))
+   (:name-slot nil))
+
+  ((github "com.coravy.hudson.plugins.github.GithubProjectProperty"
+           :plugin "github@1.17.1")
+   ((project-url  :type     string
+                  :xpath    "projectUrl/text()")
+    (display-name :type     string
+                  :xpath    "displayName/text()"
+                  :initform nil))))
 
 ;;; trigger interface
 

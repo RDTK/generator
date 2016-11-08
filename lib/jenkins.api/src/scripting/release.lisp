@@ -1,6 +1,6 @@
 ;;;; release.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -135,8 +135,8 @@
 
 ;;; Example
 
-#+no (release "0.10" :job-pattern     "^rs(c|b|t|bag).*-trunk"
+#+no (release "0.10" :job-pattern     "^rs(c|b|t).*-trunk"
                      :blacklist       (lambda (job)
-                                        (ppcre:scan "(merge-simulator$|maven-deploy$|performance-monitor)"
+                                        (ppcre:scan "(merge-simulator$|performance-monitor|performance-test|coordination|scxml)"
                                                     (id job)))
                      :version-pattern "-trunk")

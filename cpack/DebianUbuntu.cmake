@@ -7,7 +7,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION  "Automated Build Generator
  Generates jobs on a Jenkins server according to specifications")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
 set(CPACK_DEBIAN_PACKAGE_SECTION      "lisp")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS      "")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS      "libc6")
 
 # Generate system links.
 set(COMMANDS "")

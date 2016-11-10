@@ -1,3 +1,12 @@
+# Determine libssl package
+set(REDIRECTIONS "ERROR_FILE \"${CMAKE_CURRENT_BINARY_DIR}/which-libssl-package.1.err\"")
+execute_lisp("which-libssl-package"
+             "--eval \"(let ((*standard-output* (make-broadcast-stream)))
+                         (load \\\"${CMAKE_SOURCE_DIR}/tools-for-build/which-libssl-package.lisp\\\"))\"
+              --eval \"(princ (libssl-package))\""
+             LIBSSL_PACKAGE)
+
+# Actual CPack stuff
 set(CPACK_GENERATOR "DEB")
 
 set(CPACK_DEBIAN_PACKAGE_NAME         "${PACKAGE_BASE_NAME}")
@@ -24,6 +33,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION  "Automated Build Generator
 set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
 set(CPACK_DEBIAN_PACKAGE_SECTION      "lisp")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS      "libc6")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS   "${LIBSSL_PACKAGE}")
 
 # Generate system links.
 set(COMMANDS "")

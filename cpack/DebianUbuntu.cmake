@@ -4,7 +4,23 @@ set(CPACK_DEBIAN_PACKAGE_NAME         "${PACKAGE_BASE_NAME}")
 set(CPACK_DEBIAN_PACKAGE_VERSION      "${CPACK_PACKAGE_VERSION}${CPACK_PACKAGE_REVISION}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER   "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION  "Automated Build Generator
- Generates jobs on a Jenkins server according to specifications")
+ Generates jobs on a Jenkins server according to specifications
+ .
+ Specifications describe
+  * software projects (\\\"projects\\\"),
+  * collections of projects (\\\"distributions\\\")
+  * and ways to build particular kinds (e.g. autotools, CMake, Maven,
+    etc.) of projects (\\\"templates\\\") within a Jenkins for a given
+    purpose
+ .
+ Such purposes can be defined via templates. Common ones are:
+  * Continuous Integration: Software is built and tested whenever a
+    commit is pushed. Downstream dependencies are built in the same
+    way to detect accidental breaking changes.
+  * Continuous Deployment: Software is built and installed whenever a
+    commit is pushed.
+  * Distribution Deployment: All projects contained in a distribution
+    are built and installed in one batch.")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
 set(CPACK_DEBIAN_PACKAGE_SECTION      "lisp")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS      "libc6")

@@ -288,6 +288,29 @@
 (defgeneric extend! (job aspect spec)
   (:method-combination progn))
 
+;; Default behavior
+
+(defvar *builder-constraints* nil)
+
+(defmethod extend! progn ((job t) (aspect list) (spec t))
+  ;; Apply aspects, respecting declared ordering, and sort generated
+  ;; builders according to declared ordering.
+  (let ((*builder-constraints* (make-hash-table))
+        (aspects (sort-with-partial-order (copy-list aspect) #'aspect<)))
+    ;; Methods on `extend!' add entries to `*builder-constraints*'
+    ;; and push builders onto (builders job).
+    (reduce (rcurry #'extend! spec) aspects :initial-value job)
+
+    (log:trace "Builder constraints: ~S"
+               (hash-table-alist *builder-constraints*))
+
+    ;; Try to sort builders according to `*builder-constraints*'.
+    (setf (builders job)
+          (sort-with-partial-order
+           (builders job) (rcurry #'builder< *builder-constraints*)))
+
+    (log:trace "Sorted builders: ~A" (builders job))))
+
 ;;; Deployment protocol
 
 (defgeneric deploy (thing)

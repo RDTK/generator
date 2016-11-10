@@ -46,11 +46,6 @@
 (defmethod builder-constraints ((aspect t) (builder t))
   '())
 
-(declaim (special *builder-constraints*))
-
-(defvar *builder-constraints* nil
-  "TODO(jmoringe): document")
-
 (defmethod builder< ((left t) (right t) (constraints hash-table))
   (let+ (((&optional tag-left  name-left  constraints-left)  (gethash left constraints))
          ((&optional tag-right name-right constraints-right) (gethash right constraints))

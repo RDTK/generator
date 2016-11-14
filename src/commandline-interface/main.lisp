@@ -846,7 +846,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
         (uiop:quit))
 
       (when (option-value "general" "version")
-        (let ((version (asdf:component-version (asdf:find-system :jenkins.project))))
+        (let ((version (or (uiop:symbol-call '#:jenkins.project-system '#:version/list
+                                             :revision? t :commit? t)
+                           (asdf:component-version (asdf:find-system :jenkins.project)))))
           (format *standard-output* "~A version ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~&"
                   "build-generator" (stringp version) version))
         (uiop:quit))

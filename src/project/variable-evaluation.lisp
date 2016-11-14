@@ -56,28 +56,42 @@
               (t
                (apply #'map-product (compose #'collapse #'list)
                       (mapcar #'ensure-list thing))))))
-         ((&labels recur (pattern)
+         ((&labels drill-down (path value)
+            (reduce (lambda (key value)
+                      (cdr (assoc key value)))
+                    path :initial-value value :from-end t)))
+         ((&labels recur (pattern path)
             (optima:ematch pattern
+              ;; Make the current path available.
+              ((list (or :ref :ref/list) "structure-path")
+               (list (nreverse (mapcar #'string-downcase path))))
+
               ;; Variable reference with already-evaluated variable
               ;; name and with default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
                      :default default)
-               (list (lookup pattern (lambda () (first (recur default))))))
+               (let ((result (lookup pattern (lambda () (first (recur default path))))))
+                 (list (if (string= pattern "next-value")
+                           (drill-down path result)
+                           result))))
 
               ;; Variable reference with already-evaluated variable
               ;; name and without default.
               ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
-               (list (lookup pattern)))
+               (let ((result (lookup pattern)))
+                 (list (if (string= pattern "next-value")
+                           (drill-down path result)
+                           result))))
 
               ;; Scalar variable reference with to-be-evaluated
               ;; variable name (with or without default).
               ((list* :ref pattern rest)
-               (recur (list* :ref (first (recur pattern)) rest)))
+               (recur (list* :ref (first (recur pattern path)) rest) path))
 
               ;; List variable reference with to-be-evaluated variable
               ;; name (with or without default.
               ((list* :ref/list pattern rest)
-               (first (recur (list* :ref/list (first (recur pattern)) rest))))
+               (first (recur (list* :ref/list (first (recur pattern path)) rest) path)))
 
               ;; Atomic value.
               ((optima:guard pattern (atom pattern)) ; TODO tighten
@@ -85,18 +99,18 @@
 
               ;; List expression.
               ((list* :list subpatterns)
-               (list (mappend #'recur subpatterns)))
+               (list (mappend (rcurry #'recur path) subpatterns)))
 
               ;; Alist expression
               ((list* :alist subpatterns)
                (list (mapcar (lambda+ ((key . value))
-                               (cons key (first (recur value))))
+                               (cons key (first (recur value (list* key path)))))
                              subpatterns)))
 
               ;; Concatenation expression.
               ((list* subpatterns)
-               (list (collapse (mappend #'recur subpatterns))))))))
-    (first (recur pattern))))
+               (list (collapse (mappend (rcurry #'recur path) subpatterns))))))))
+    (first (recur pattern '()))))
 
 (defmethod value ((thing t) (name t) &optional (default nil default-supplied?))
   (let+ (((&values raw raw/next-values defined?)

@@ -8,6 +8,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION  "Automated Build Generator
 set(CPACK_DEBIAN_PACKAGE_PRIORITY     "optional")
 set(CPACK_DEBIAN_PACKAGE_SECTION      "lisp")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS      "libc6")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS   "git, subversion, mercurial, unp, lsb-release")
 
 # Generate system links.
 set(COMMANDS "")

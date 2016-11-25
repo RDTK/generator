@@ -84,6 +84,7 @@
                           :documentation
                           "Load one or more distributions.") ; This option can be supplied multiple times.
   ("mode"                 :type 'string
+                          :default "toolkit"
                           :documentation
                           "The mode according to which jobs should be generated. Selects a sub-directory of the directory specified using the template-directory option and thus a set of templates. Mutually exclusive with the template option.")
   ("set"                  :type '(list string :inherit? t) ; TODO list of key-value?

@@ -922,17 +922,25 @@ A common case, deleting only jobs belonging to the distribution being generated,
                      (template-directory           (option-value "generation" "template-directory"))
                      (template                     (option-value "generation" "template"))
                      (mode                         (option-value "generation" "mode"))
+                     (distribution                 (option-value "generation" "distribution"))
                      (template-pattern             (cond
                                                      ((and template mode)
                                                       (error "~@<The options template and mode are mutually exclusive.~@:>"))
                                                      (template)
                                                      (mode
-                                                      (list (merge-pathnames
-                                                             (make-pathname
-                                                              :name      :wild
-                                                              :type      "template"
-                                                              :directory `(:relative ,mode))
-                                                             template-directory)))
+                                                      (let ((template-directory (or template-directory
+                                                                                    (make-pathname
+                                                                                     :name     nil
+                                                                                     :type     nil
+                                                                                     :defaults (merge-pathnames
+                                                                                                #P"../templates/"
+                                                                                                (first distribution))))))
+                                                        (list (merge-pathnames
+                                                               (make-pathname
+                                                                :name      :wild
+                                                                :type      "template"
+                                                                :directory `(:relative ,mode))
+                                                               template-directory))))
                                                      (t
                                                       (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
 
@@ -942,8 +950,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                             #'string< :key #'pathname-name)))
                      (distributions (with-phase-error-check
                                         (:locate/distribution #'errors #'(setf errors) #'report)
-                                      (locate-specifications
-                                       :distribution (option-value "generation" "distribution"))))
+                                      (locate-specifications :distribution distribution)))
                      (overwrites    (mapcar #'parse-overwrite (option-value "generation" "set"))))
                 (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
                                                  (option-value "general" "trace-variable")))

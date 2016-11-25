@@ -130,6 +130,43 @@ rm -rf \"\${temp}\""))
                                 (member character '(#\_)))))
                  string))
 
+(defun wrap-shell-command (command pre post)
+  (cond
+    ((or pre post)
+     (let+ (((rest &optional (shebang ""))
+             (if (starts-with-subseq "#!" command)
+                 (let ((index (position #\Newline command)))
+                   (list (subseq command (1+ index)) (subseq command 0 (1+ index))))
+                 (list command))))
+       (concatenate 'string shebang (or pre "") rest (or post ""))))
+    (t
+     command)))
+
+(defmacro wrapped-shell-command ((aspect-name
+                                  &optional (builder-name '#:command))
+                                 &body body)
+  (let ((prefix-var-name (let ((*package* (find-package '#:keyword)))
+                           (symbolicate aspect-name '#:. builder-name '#:.prefix)))
+        (suffix-var-name (let ((*package* (find-package '#:keyword)))
+                           (symbolicate aspect-name '#:. builder-name '#:.suffix))))
+    `(let ((prefix (var/typed ,prefix-var-name '(or null string) nil))
+           (suffix (var/typed ,suffix-var-name '(or null string) nil)))
+       (wrap-shell-command (progn ,@body) prefix suffix))))
+
+(assert (string= (wrap-shell-command "foo" nil   nil)   "foo"))
+(assert (string= (wrap-shell-command "foo" nil   "baz") "foobaz"))
+(assert (string= (wrap-shell-command "foo" "bar" nil)   "barfoo"))
+(assert (string= (wrap-shell-command "foo" "bar" "baz") "barfoobaz"))
+
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   nil)
+                 (format nil "#!/bin/sh~%foo")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   "baz")
+                 (format nil "#!/bin/sh~%foobaz")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" nil)
+                 (format nil "#!/bin/sh~%barfoo")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" "baz")
+                 (format nil "#!/bin/sh~%barfoobaz")))
+
 (defun split-option (spec)
   (let ((position (position #\= spec)))
     (unless position
@@ -452,7 +489,8 @@ move ..\*.zip .
 (define-aspect (shell :job-var job) (builder-defining-mixin)
     ()
   (when-let ((command (var/typed :aspect.shell.command '(or null string))))
-    (push (constraint! () (shell (:command command)))
+    (push (constraint! ()
+            (shell (:command (wrapped-shell-command (:aspect.shell) command))))
           (builders job))))
 
 ;;; CMake aspects
@@ -494,7 +532,8 @@ move ..\*.zip .
          (after-invocation          (var/typed :aspect.cmake.after-invocation  'string "")))
 
     (push (constraint! (((:after dependency-download)))
-            (shell (:command #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
+            (shell (:command (wrapped-shell-command (:aspect.cmake)
+                               #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
 rm -f CMakeCache.txt
 
 @{variables}
@@ -503,7 +542,7 @@ rm -f CMakeCache.txt
 
 ${before-invocation}cmake @{cmake-commandline-options} @{options} ..
 make @{make-commandline-options} # not always necessary, but sometimes, sadly
-make @{make-commandline-options} @{targets}${after-invocation}")))
+make @{make-commandline-options} @{targets}${after-invocation}"))))
           (builders job))))
 
 (define-aspect (archive-artifacts :job-var job) ()
@@ -578,8 +617,9 @@ call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!
                     install-prefix))))
     ;; Put everything into a shell fragment.
     (push (constraint! (((:after dependency-download)))
-            (shell (:command (let ((interpol:*list-delimiter* #\newline))
-                               #?"PYTHON=${binary}
+            (shell (:command (wrapped-shell-command (:aspect.setuptools)
+                               (let ((interpol:*list-delimiter* #\newline))
+                                 #?"PYTHON=${binary}
 
 ${(or ensure-install-directory "# Not creating install directory")}
 
@@ -587,7 +627,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 @{(or options '("# No options configured"))}
 
 # Process targets
-@{(or targets '("# No targets configured"))}"))))
+@{(or targets '("# No targets configured"))}")))))
           (builders job))))
 
 ;;; Warnings aspect

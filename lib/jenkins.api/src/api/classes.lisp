@@ -552,7 +552,15 @@
                   :xpath    "projectUrl/text()")
     (display-name :type     string
                   :xpath    "displayName/text()"
-                  :initform nil))))
+                  :initform nil)))
+
+  ((docker "it.dockins.dockerslaves.spec.ContainerSetDefinition"
+           :plugin "docker-slaves@1.0.5")
+   ((image       :type string
+                 :xpath "buildHostImage[@class=\"it.dockins.dockerslaves.spec.ImageIdContainerDefinition\"]/image/text()")
+    (force-pull? :type boolean
+                 :xpath "buildHostImage[@class=\"it.dockins.dockerslaves.spec.ImageIdContainerDefinition\"]/forcePull/text()"))
+   (:name-slot image)))
 
 ;;; trigger interface
 

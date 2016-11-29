@@ -131,7 +131,11 @@
 
    #:property/github
    #:project-url
-   #:display-name)
+   #:display-name
+
+   #:property/docker
+   #:image
+   #:force-pull?)
 
   ;; Trigger interface
   (:export

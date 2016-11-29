@@ -841,7 +841,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                      (template-directory           (option-value "generation" "template-directory"))
                      (template                     (option-value "generation" "template"))
                      ((&values mode mode?)         (option-value "generation" "mode"))
-                     (distribution                 (option-value "generation" "distribution"))
+                     (distribution-name            (option-value "generation" "distribution"))
+                     (distribution-version         "nightly")
                      (template-pattern             (cond
                                                      ((and template mode (not (eq mode? :default)))
                                                       (error "~@<The options template and mode are mutually exclusive.~@:>"))
@@ -853,7 +854,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                                                      :type     nil
                                                                                      :defaults (merge-pathnames
                                                                                                 #P"../templates/"
-                                                                                                (first distribution))))))
+                                                                                                (first distribution-name))))))
                                                         (list (merge-pathnames
                                                                (make-pathname
                                                                 :name      :wild
@@ -869,7 +870,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                             #'string< :key #'pathname-name)))
                      (distributions (with-phase-error-check
                                         (:locate/distribution #'errors #'(setf errors) #'report)
-                                      (locate-specifications :distribution distribution)))
+                                      (locate-specifications :distribution distribution-name)))
                      (overwrites    (mapcar #'parse-overwrite (option-value "generation" "set"))))
                 (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
                                                  (option-value "general" "trace-variable")))
@@ -921,7 +922,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                 (:resolve/distribution #'errors #'(setf errors) #'report)
                                               (mapcar (lambda (d)
                                                         (project-automation.model.project.stage2::transform-distribution
-                                                         builder d "nightly")) ; TODO
+                                                         builder d distribution-version)) ; TODO
                                                       distributions/raw)))
                          #+no (distributions     (with-phase-error-check
                                                 (:check-platform-requirements #'errors #'(setf errors) #'report)

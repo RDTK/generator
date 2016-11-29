@@ -379,6 +379,47 @@
             (restrict-to-slaves job) restrict-to-slaves)
       (setf (can-roam? job) t)))
 
+(deftype platform-specification ()
+  '(cons string (or null string (cons string (or null (cons string null))))))
+
+(deftype docker-image-specification ()
+  '(cons string (cons boolean (cons platform-specification  null))))
+
+(define-aspect (docker :job-var job :spec-var spec)
+    (builder-defining-mixin)
+    ((images  :type (cons docker-image-specification list))
+     (prepare :type list))
+  "TODO
+
+   TODO"
+  (unless (length= 1 images)
+    (error "~@<The value~
+            ~@:_~@:_~
+            ~2@T~A~
+            ~@:_~@:_~
+            specifies ~D image~:P. Currently, exactly one image has ~
+            to be specified.~@:>"
+     (json:encode-json-to-string images) (length images)))
+
+  ;; Remove any existing docker properties.
+  (removef (properties job) 'property/docker :key #'type-of)
+  (loop :for (image force-pull? platform-specification) :in images :do
+     ;; Setup docker images.
+     (appendf (properties job) (list (docker (:image       image
+                                              :force-pull? force-pull?))))
+
+     ;; Inject preparation step.
+     (when-let ((prepare (uiop:symbol-call '#:jenkins.model.project '#:platform-specific-value
+                                           prepare platform-specification :prepare
+                                           :merge (lambda (values)
+                                                    (find-if-not #'null values :from-end t)))))
+       (push (constraint! (build ((:before t)
+                                  (:before git)))
+               (shell (:command (wrapped-shell-command (:aspect.docker)
+                                  prepare))))
+             (builders job)))))
+
+
 ;;; Permissions aspect
 
 (deftype permission-entry ()

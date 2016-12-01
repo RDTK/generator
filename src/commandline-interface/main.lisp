@@ -818,7 +818,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                               (finally (when values (return (values values t)))))
                         (clon:getopt :long-name name))))
               (if source
-                  (values value t)
+                  (values value :commandline)
                   (configuration.options:option-value
                    option :if-does-not-exist nil))))))
     ;; Process configuration options.
@@ -912,7 +912,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                             main (lambda () (signal condition))))))
             (with-delayed-error-reporting (:debug? debug?)
 
-              (let* ((jenkins.api:*base-url*       (option-value "jenkins" "base-uri"))
+              (let+ ((jenkins.api:*base-url*       (option-value "jenkins" "base-uri"))
                      (jenkins.api:*username*       (option-value "jenkins" "username"))
                      (jenkins.api:*password*       (or (option-value "jenkins" "password")
                                                        (option-value "jenkins" "api-token")))
@@ -921,10 +921,10 @@ A common case, deleting only jobs belonging to the distribution being generated,
                      (build-flow-ignores-failures? (not (option-value "generation" "build-flow-fail")))
                      (template-directory           (option-value "generation" "template-directory"))
                      (template                     (option-value "generation" "template"))
-                     (mode                         (option-value "generation" "mode"))
+                     ((&values mode mode?)         (option-value "generation" "mode"))
                      (distribution                 (option-value "generation" "distribution"))
                      (template-pattern             (cond
-                                                     ((and template mode)
+                                                     ((and template mode (not (eq mode? :default)))
                                                       (error "~@<The options template and mode are mutually exclusive.~@:>"))
                                                      (template)
                                                      (mode

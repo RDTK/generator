@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2016 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,6 +16,12 @@
 (defun current-platform ()
   (values (string-downcase (lsb-distribution))
           (inferior-shell:run/ss '("lsb_release" "-sc"))
+          (inferior-shell:run/ss '("uname" "-m"))))
+
+#+darwin
+(defun current-platform ()
+  (values "macos"
+          "?"
           (inferior-shell:run/ss '("uname" "-m"))))
 
 ;;; Installed packages

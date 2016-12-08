@@ -115,7 +115,7 @@
            (versions thing))
       (return-value name (hash-table-alist counts)))))
 
-(defmethod platform-requires ((object distribution) (platform t))
+#+no (defmethod platform-requires ((object distribution) (platform t))
   (remove-duplicates
    (append (call-next-method)
            (mappend (rcurry #'platform-requires platform)

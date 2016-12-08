@@ -78,6 +78,35 @@
   (:documentation
    "Return a list of person objects for ROLE in CONTAINER."))
 
+;;; Platform-specific value protocol
+
+(defgeneric platform-specific-value (spec platform name &key merge))
+
+(defmethod platform-specific-value
+    ((spec t) (platform cons) (name string)
+     &rest args &key merge)
+  (declare (ignore merge))
+  (let ((variable-name (make-keyword (string-upcase name))))
+    (apply #'platform-specific-value spec platform variable-name args)))
+
+(defmethod platform-specific-value
+    ((spec t) (platform cons) (name symbol)
+     &key
+     (merge (lambda (values)
+              (remove-duplicates (reduce #'append values :from-end t)
+                                 :test #'string=))))
+  (let+ (((&flet lookup (name &optional (where spec))
+            (cdr (assoc name where :test #'eq))))
+         ((&flet make-key (string)
+            (json:json-intern (json:camel-case-to-lisp string))))
+         ((&labels+ collect (spec (&optional platform-first &rest platform-rest))
+            (list*
+             (lookup name spec)
+             (when platform-first
+               (when-let ((child (lookup (make-key platform-first) spec)))
+                 (collect child platform-rest)))))))
+    (funcall merge (collect spec platform))))
+
 ;;; Platform requirements protocol
 
 (defgeneric platform-requires (object platform)
@@ -88,19 +117,8 @@
       (NAME VERSION)"))
 
 (defmethod platform-requires ((object t) (platform cons))
-  (let+ ((spec (value/cast object :platform-requires '()))
-         ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where :test #'eq))))
-         ((&flet make-key (string)
-            (json:json-intern (json:camel-case-to-lisp string))))
-         (requirements '())
-         ((&labels+ collect (spec (&optional platform-first &rest platform-rest))
-            (appendf requirements (lookup :packages spec))
-            (when platform-first
-              (when-let ((child (lookup (make-key platform-first) spec)))
-                (collect child platform-rest))))))
-    (collect spec platform)
-    (remove-duplicates requirements :test #'string=)))
+  (let ((spec (value/cast object :platform-requires '())))
+    (platform-specific-value spec platform :packages)))
 
 (defmethod platform-requires ((object sequence) (platform cons))
   (let ((requirements (mappend (rcurry #'platform-requires platform) object)))

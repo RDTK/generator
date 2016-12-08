@@ -29,6 +29,18 @@
   (when-let ((info (find-variable name :if-does-not-exist nil)))
     (aggregation info)))
 
+(defun platform-specific-value-adapter (spec platform name &optional (merge "append"))
+  (let ((merge (eswitch (merge :test string=)
+                 ("append"
+                  (lambda (values)
+                    (remove-duplicates (reduce #'append values :from-end t)
+                                       :test #'string=)))
+                 ("most-specific"
+                  (lambda (values)
+                    (some #'identity values))))))
+    (value-parse (platform-specific-value spec platform name
+                                          :merge merge))))
+
 ;;; `distribution-include'
 
 (defclass distribution-include (direct-variables-mixin
@@ -90,7 +102,8 @@
     specifications."))
 
 (defmethod direct-variables ((thing distribution-spec))
-  (value-acons :distribution-name (name thing)
+  (value-acons :distribution-name       (name thing)
+               :platform-specific-value #'platform-specific-value-adapter
                (when (next-method-p)
                  (call-next-method))))
 
@@ -182,7 +195,8 @@
     specifications."))
 
 (defmethod direct-variables ((thing project-spec))
-  (value-acons :project-name (name thing)
+  (value-acons :project-name            (name thing)
+               :platform-specific-value #'platform-specific-value-adapter
                (when (next-method-p)
                  (call-next-method))))
 

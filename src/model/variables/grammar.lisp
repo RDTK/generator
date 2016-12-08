@@ -1,6 +1,6 @@
 ;;;; grammar.lisp --- Grammar for value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,16 +8,16 @@
 
 (defun maybe-first (thing)
   (if (and (length= 1 thing)
-           (typep (first thing) '(or string (cons (member :ref :ref/list)))))
+           (typep (first thing) '(or string (cons (member :ref :ref/list :call :call/list)))))
       (first thing)
       thing))
 
 (esrap:defrule escaped-syntactic-character
-    (and #\\ (or #\$ #\@ #\}))
+    (and #\\ (or #\$ #\@ #\} #\)))
   (:function second))
 
 (esrap:defrule uninterpreted-$-or-@
-    (and (or #\$ #\@) (esrap:! #\{))
+    (and (or #\$ #\@) (esrap:! (or #\{ #\()))
   (:function first))
 
 (esrap:defrule text
@@ -41,10 +41,14 @@
   (:function second))
 
 (esrap:defrule reference-expr
-    (+ (or variable-reference/content variable-reference)))
+    (+ (or variable-reference/content
+           variable-reference
+           function-call)))
 
 (esrap:defrule default-expr
-    (and (+ (or variable-reference text/ended-by-} text/not-started-by-{))
+    (and (+ (or variable-reference
+                function-call
+                text/ended-by-} text/not-started-by-{))
          (esrap:& #\}))
   (:function first)
   (:function maybe-first))
@@ -64,5 +68,30 @@
         ((string= kind "@")
          (list* :ref/list content default))))))
 
+(esrap:defrule argument-expr/content
+    (+ (not (or #\Space #\) #\$ #\@)))
+  (:text t))
+
+(esrap:defrule argument-expr
+    (+ (or argument-expr/content
+           variable-reference
+           function-call))
+  (:function maybe-first))
+
+(esrap:defrule arguments
+    (and argument-expr (* (and (+ #\Space) argument-expr)))
+  (:destructure (first rest)
+    (list* first (mapcar #'second rest))))
+
+(esrap:defrule function-call
+    (and (or #\$ #\@) #\( arguments #\))
+  (:destructure (kind open arguments close)
+    (declare (ignore open close))
+    (cond
+      ((string= kind "$")
+       (list* :call      arguments))
+      ((string= kind "@")
+       (list* :call/list arguments)))))
+
 (esrap:defrule expr
-    (* (or variable-reference text)))
+    (* (or variable-reference function-call text)))

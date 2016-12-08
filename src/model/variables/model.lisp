@@ -59,6 +59,9 @@
 ;;; variable-reference ::= (:ref      expression [:default expression])
 ;;;                        (:ref/list expression [:default expression])
 ;;;
+;;; function-call      ::= (:call      expression*)
+;;;                        (:call/list expression*)
+;;;
 ;;; concatenation      ::= (expression*)
 ;;;
 ;;; list               ::= (:list expression*)
@@ -72,7 +75,9 @@
        variable-expression-concatenation
        variable-expression-list
        variable-expression-alist
-       variable-reference))
+       variable-reference
+       function-call
+       function))
 
 (defun variable-expression? (thing)
   (typep thing 'variable-expression))
@@ -85,11 +90,16 @@
                          (cons (satisfies variable-expression?) ; = variable-expression
                                null))))))
 
+(deftype function-call ()
+  `(cons (member :call :call/list)
+         (satisfies variable-expression-list-element-list?)))
+
 (defun variable-expression-concatenation? (thing)
   (and (consp thing)
        (every (of-type '(or atomic-variable-expression-value
                             variable-expression-concatenation
-                            variable-reference))
+                            variable-reference
+                            function-call))
               thing)))
 
 (deftype variable-expression-concatenation ()
@@ -136,7 +146,7 @@
 (defun value-parse (raw)
   (labels ((rec (thing)
              (cond
-               ((typep thing '(or real boolean))
+               ((typep thing '(or real boolean function))
                 thing)
                ((and (stringp thing) (emptyp thing))
                 nil)

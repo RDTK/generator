@@ -38,7 +38,9 @@
     (language.yaml:load filename :builder builder)))
 
 (defun protect-string (string)
-  (ppcre:regex-replace-all "\\${" string "\\${"))
+  (let* ((first  (ppcre:regex-replace-all "\\${"   string "\\${"))
+         (second (ppcre:regex-replace-all "\\$\\(" first  "\\$(")))
+    second))
 
 (let ((raw "${foo} \\${bar} \\baz $fez \\\\"))
   (assert (equal raw (jenkins.model.variables:value-parse

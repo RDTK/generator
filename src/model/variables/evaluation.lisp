@@ -1,6 +1,6 @@
 ;;;; evaluation.lisp --- Evaluation of value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -69,9 +69,18 @@
   `(call-with-expansion-stack (lambda () ,@body) ,name ,thing))
 
 (defun drill-down (path value)
-  (reduce (lambda (key value)
-            (cdr (assoc key value)))
-          path :initial-value value :from-end t))
+  (with-augmented-trace ((list :drill-down path) value (cons :unused value))
+    (reduce (lambda (key value)
+              ;; (check-type value (or null variable-expression-alist))
+              (cdr (assoc key value)))
+            path :initial-value value :from-end t)))
+
+(defun drill-down/raw (path value)
+  (with-augmented-trace ((list :drill-down/raw path) value (cons :unused value))
+    (reduce (lambda (key value)
+              (check-type value (or null variable-expression-alist))
+              (cdr (assoc key (cdr value))))
+            path :initial-value value :from-end t)))
 
 (defun collapse (thing)
   (let+ (((&flet atom? (thing)
@@ -87,14 +96,47 @@
        (apply #'map-product (compose #'collapse #'list)
               (mapcar #'ensure-list thing))))))
 
+(defun generate-arguments (expressions evaluate)
+  (let+ ((expressions expressions)
+         (arguments   '())
+         ((&flet fetch ()
+            (when expressions
+              (setf arguments (funcall evaluate (pop expressions))))))
+         ((&flet skip ()
+            (cond (arguments
+                   (pop arguments)
+                   t)
+                  ((typep (first expressions) '(cons (member :ref/list :call/list)))
+                   (fetch)
+                   (if arguments
+                       (progn
+                         (pop arguments)
+                         t)
+                       nil))
+                  (t
+                   (if expressions
+                       (progn
+                         (pop expressions)
+                         t)
+                       nil)
+                   ))))
+         ((&flet argument ()
+            (unless arguments
+              (fetch))
+            (if arguments
+                (values (pop arguments) t)
+                (values nil             nil)))))
+    (values #'argument #'skip)))
+
 (defun expand (pattern lookup)
   (check-type pattern variable-expression)
-  (let+ (((&flet lookup (name &optional (default nil default-supplied?))
-            (let ((name (make-keyword (string-upcase name))))
-              (if default-supplied?
-                  (funcall lookup name default)
-                  (funcall lookup name)))))
-         ((&labels recur (pattern path)
+  (let+ (((&flet lookup (fun)
+            (lambda (name &optional (default nil default-supplied?))
+              (let ((name (make-keyword (string-upcase name))))
+                (if default-supplied?
+                    (funcall fun name default)
+                    (funcall fun name))))))
+         ((&labels recur (pattern lookup path)
             (optima:ematch pattern
               ;; Make the current path available.
               ((list (or :ref :ref/list) "structure-path")
@@ -105,23 +147,41 @@
               ;; name and with or without default.
               ((list* (or :ref :ref/list) (and name (type string))
                       (or '() (list (and :default default?) default)))
-               (let ((result (if default?
-                                 (lookup name (lambda ()
-                                                (first (recur default path))))
-                                 (lookup name))))
-                 (list (if (string= name "next-value")
-                           (drill-down path result)
-                           result))))
+               (let+ (((&values result new-lookup) (if default?
+                                                       (funcall lookup name default)
+                                                       (funcall lookup name))))
+                 (if (string= name "next-value")
+                     (when-let ((value (with-augmented-trace (:next-value nil (list result))
+                                         (recur result (lookup new-lookup) '()))))
+                       (list (drill-down path (first value))))
+                     (with-augmented-trace (name nil (cons name result))
+                       (recur result (lookup new-lookup) '())))))
 
               ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
               ((list* (and (or :ref :ref/list) which) pattern rest)
-               (let* ((name     (first (recur pattern path)))
+               (let* ((name     (first (recur pattern lookup path)))
                       (resolved (list* which name rest))
-                      (result   (recur resolved path)))
+                      (result   (recur resolved lookup path)))
                  (ecase which
                    (:ref      result)
                    (:ref/list (first result)))))
+
+              ((list* (and (or :call :call/list) which) arguments) ; TODO must not be (:call)
+               (with-augmented-trace (which nil pattern)
+                 (let+ (((&values next skip) (generate-arguments
+                                              arguments (rcurry #'recur lookup path)))
+                        (designator (with-augmented-trace (:callable nil (list :callable))
+                                      (funcall next)))
+                        (callable   (etypecase designator
+                                      (string   (with-augmented-trace
+                                                    (:callable/2 nil (list designator))
+                                                  (funcall lookup designator)))
+                                      (function designator)))
+                        (result     (funcall callable arguments next skip)))
+                   (ecase which
+                     (:call      (list result))
+                     (:call/list result)))))
 
               ;; Atomic value.
               ((optima:guard pattern (atom pattern)) ; TODO tighten
@@ -129,18 +189,18 @@
 
               ;; List expression.
               ((list* :list subpatterns)
-               (list (mappend (rcurry #'recur path) subpatterns)))
+               (list (mappend (rcurry #'recur lookup path) subpatterns)))
 
               ;; Alist expression
               ((list* :alist subpatterns)
                (list (mapcar (lambda+ ((key . value))
-                               (cons key (first (recur value (list* key path)))))
+                               (cons key (first (recur value lookup (list* key path)))))
                              subpatterns)))
 
               ;; Concatenation expression.
               ((list* subpatterns)
-               (list (collapse (mappend (rcurry #'recur path) subpatterns))))))))
-    (first (recur pattern '()))))
+               (list (collapse (mappend (rcurry #'recur lookup path) subpatterns))))))))
+    (first (recur pattern (lookup lookup) '()))))
 
 (defmethod value ((thing t) (name t) &optional (default nil default-supplied?))
   (let+ (((&values raw raw/next-values defined?)
@@ -150,15 +210,20 @@
             (lambda (name1 &optional (default nil default-supplied?))
               (cond
                 ((not (eq name1 :next-value))
-                 (if default-supplied?
-                     (value thing name1 default)
-                     (value thing name1)))
+                 (let+ (((&values raw raw/next-values defined?)
+                         (lookup thing name1
+                                 :if-undefined (if default-supplied? (cons :default default) #'error))))
+                   (values (cdr raw) (make-lookup raw/next-values) (not defined?))
+                   #+no (if default-supplied?
+                            (value thing name1 default)
+                            (value thing name1))))
                 (first-value
-                 (with-augmented-trace (name1 nil first-value)
-                   (expand (cdr first-value) (make-lookup next-values))))
+                 (progn ; with-augmented-trace (name1 nil first-value)
+                   (values (cdr first-value) (make-lookup next-values))))
                 (default-supplied?
+                 (check-type default (not function))
                  (with-augmented-trace (name1 :default (cons :unused default))
-                   (if (functionp default) (funcall default) default)))
+                   (values default (make-lookup next-values) t)))
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
@@ -166,13 +231,16 @@
         (with-augmented-trace (name thing raw)
           (with-expansion-stack (name thing)
             (expand (cdr raw) (make-lookup raw/next-values))))
-        (values (if (functionp default) (funcall default) default) t)))) ; TODO function business
+        (progn
+          (check-type default (not function))
+          (values default t)))))
 
 (defmethod evaluate ((thing t) (expression t))
   (let+ (((&flet lookup (name &optional (default nil default-supplied?))
-            (if default-supplied?
-                (value thing name default)
-                (value thing name)))))
+            (value-parse ; TODO value-parse is a hack
+             (if default-supplied?
+                 (value thing name default)
+                 (value thing name))))))
     (expand expression #'lookup)))
 
 ;;; Casts

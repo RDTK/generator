@@ -121,21 +121,13 @@
                ,(make-aspect-extend!-body
                  aspect-var parameters
                  `((macrolet
-                       ((constraint! ((&optional constraints tag) &body builder)
-                          `(let* ((builder         (progn ,@builder))
-                                  (cell            (ensure-gethash
-                                                    builder *builder-constraints*
-                                                    (list ',(or tag ',name)
-                                                          (name ,',aspect-var)
-                                                          '())))
-                                  (all-constraints (append ',constraints
-                                                           (builder-constraints
-                                                            ,',aspect-var builder))))
-                             (log:trace "~@<All constraints for ~A: ~:A~@:>"
-                                        builder all-constraints)
-                             (iter (for constraint in all-constraints)
-                                   (push constraint (third cell)))
-                             builder)))
+                       ((constraint! ((phase &optional constraints tag) &body forms)
+                          (with-gensyms (step)
+                            `(let ((,step (progn ,@forms)))
+                               (register-constraints
+                                ,',aspect-var ',phase ,step ',(or tag ',name)
+                                ',constraints)
+                               ,step))))
                      ,@body)))
                ,job-var)))
 

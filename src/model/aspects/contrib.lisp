@@ -41,7 +41,7 @@ move ..\*.zip .")))
                                        builder-defining-mixin)
     ()
   ;; TODO add PACKAGE_REVISION to environment
-  (push (constraint! (((:after cmake/unix)))
+  (push (constraint! (build ((:after cmake/unix)))
                      (shell (:command #?"mkdir -p ${(var/typed :build-dir 'string)} && cd ${(var/typed :build-dir 'string)}
 cmake -DCPACK_CONFIG_FILE=${(var/typed :aspect.debian-package/cmake.cpack-config-file 'string)} \\
       -DCPACK_PACKAGE_REVISION=\${PACKAGE_REVISION} \\

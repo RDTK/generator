@@ -65,54 +65,66 @@
    "Return non-nil if the aspect LEFT should be applied before the
     aspect RIGHT."))
 
-(defgeneric builder-constraints (aspect builder)
+(defgeneric step-constraints (aspect phase step)
   (:documentation
    "Return a list of ordering constraints of one of the forms
 
       (:before (t | TAG) )
       (:after  (t | TAG) )
 
-    for BUILDER created and configured by ASPECT."))
+    for STEP which is created and configured by ASPECT in phase
+    PHASE. PHASE currently is either `build' or `publish'."))
 
-(defgeneric builder< (left right constraints)
+(defgeneric step< (left right constraints)
   (:documentation
-   "Return non-nil if CONSTRAINTS mandate that the builder LEFT should
-    be executed before the builder RIGHT."))
+   "Return non-nil if CONSTRAINTS mandate that the step LEFT should be
+    executed before the step RIGHT."))
 
 (defgeneric extend! (job aspect spec)
   (:method-combination progn))
 
 ;; Default behavior
 
-(defvar *builder-constraints* nil)
+(declaim (type (or null (cons (cons symbol hash-table) list))
+               *step-constraints*))
+(defvar *step-constraints* nil)
+
+(defmethod step-constraints ((aspect t) (phase t) (step t))
+  '())
 
 (defmethod extend! progn ((job t) (aspect list) (spec t))
   ;; Apply aspects, respecting declared ordering, and sort generated
-  ;; builders according to declared ordering.
-  (let ((*builder-constraints* (make-hash-table))
-        (aspects (sort-with-partial-order (copy-list aspect) #'aspect<)))
-    ;; Methods on `extend!' add entries to `*builder-constraints*'
-    ;; and push builders onto (builders job).
-    (reduce (lambda (job aspect)
-              (restart-case
-                  (extend! job aspect spec)
-                (continue (&optional condition)
-                  :report (lambda (stream)
-                            (format stream "~@<Do not apply ~A to ~A.~@:>"
-                                    aspect job))
-                  (declare (ignore condition))
-                  job)))
-            aspects :initial-value job)
+  ;; steps (i.e. builders and publishers) according to declared
+  ;; ordering.
+  (let+ ((*step-constraints* '())
+         (aspects (sort-with-partial-order (copy-list aspect) #'aspect<))
+         ((&flet sort-phase (phase read write)
+            (let ((unsorted    (funcall read job))
+                  (constraints (constraints-table phase)))
+              (when unsorted
+                (log:trace "~@<~@(~A~)er constraint~P:~@:_~
+                              ~@<~{• ~{~
+                                ~A ~A:~A ~@:_~
+                                ~2@T~@<~/jenkins.model.aspects:format-constraints/~@:>~
+                              ~}~^~@:_~}~@:>~
+                            ~@:>"
+                           phase (hash-table-count constraints)
+                           (hash-table-alist constraints))
 
-    (log:trace "Builder constraints: ~S"
-               (hash-table-alist *builder-constraints*))
+                ;; Try to sort steps according to CONSTRAINTS.
+                (let ((sorted (sort-with-partial-order
+                               unsorted (rcurry #'step< constraints))))
+                  (log:debug "~@<Sorted ~(~A~)er~P:~@:_~
+                              ~@<~{• ~A~^~@:_~}~@:>~@:>"
+                             phase (length sorted) sorted)
+                  (funcall write sorted job)))))))
 
-    ;; Try to sort builders according to `*builder-constraints*'.
-    (setf (builders job)
-          (sort-with-partial-order
-           (builders job) (rcurry #'builder< *builder-constraints*)))
+    ;; Methods on `extend!' add entries to `*step-constraints*' and
+    ;; push builders onto (builders job).
+    (reduce (rcurry #'extend! spec) aspects :initial-value job)
 
-    (log:trace "Sorted builders: ~A" (builders job))))
+    (sort-phase 'build   #'builders   #'(setf builders))
+    (sort-phase 'publish #'publishers #'(setf publishers))))
 
 ;;; Aspect creation protocol
 

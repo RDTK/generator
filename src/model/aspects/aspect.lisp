@@ -121,10 +121,7 @@
     (or (some (rcurry #'satisfied? right nil) constraints-left)
         (some (rcurry #'satisfied? left t)    constraints-right))))
 
-(defmethod builder-constraints ((aspect t) (builder t))
-  '())
-
-(defmethod builder< ((left t) (right t) (constraints hash-table))
+(defmethod step< ((left t) (right t) (constraints hash-table))
   (let+ (((&optional tag-left  name-left  constraints-left)  (gethash left constraints))
          ((&optional tag-right name-right constraints-right) (gethash right constraints))
          ((&flet tag-matches? (query tag &optional (allow-wild? t))
@@ -153,10 +150,10 @@
             (cond
               ((and (some-satiesfied? allow-wild-tag? allow-wild-name? '<)
                     (not (some-satiesfied? allow-wild-tag? allow-wild-name? '>)))
-               (return-from builder< t))
+               (return-from step< t))
               ((and (not (some-satiesfied? allow-wild-tag? allow-wild-name? '<))
                     (some-satiesfied? allow-wild-tag? allow-wild-name? '>))
-               (return-from builder< nil))))))
+               (return-from step< nil))))))
     (test-consistent-satisfied nil nil)
     (test-consistent-satisfied t   nil)
     (test-consistent-satisfied nil t)

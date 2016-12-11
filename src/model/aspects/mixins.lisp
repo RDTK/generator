@@ -6,15 +6,8 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
-;;; `aspect-builder-defining-mixin'
-
 (define-constant +all-marker+ "<all>"
   :test #'string=)
-
-(defclass aspect-builder-defining-mixin ()
-  ()
-  (:documentation
-   "Adds processing of builder ordering constraints."))
 
 (defun+ parse-constraint ((&whole raw kind subject))
   (let+ (((&flet parse-kind ()
@@ -43,14 +36,65 @@
               :datum         raw
               :expected-type '(or (eql +all-marker+) cons))))))
 
-(defmethod builder-constraints ((aspect  aspect-builder-defining-mixin)
-                                (builder t))
-  (let+ ((builder-type    (type-of builder))
+(defun constraints-table (phase)
+  (let ((index *step-constraints*))
+    (or (assoc-value index phase)
+        (let* ((table (make-hash-table :test #'eq))
+               (index (acons phase table index)))
+          (setf *step-constraints* index)
+          table))))
+
+(defun register-constraints (aspect phase step tag constraints)
+  (let* ((constraints (append constraints
+                              (step-constraints aspect phase step)))
+         (cell        (ensure-gethash
+                       step (constraints-table phase)
+                       (list tag (name aspect) '()))))
+    (log:trace "~@<All constraints for ~A~@:_~
+                ~/jenkins.model.aspects::format-constraints/~@:>"
+               step constraints)
+    (appendf (third cell) constraints)))
+
+;;; `aspect-builder-defining-mixin'
+
+(defclass aspect-builder-defining-mixin ()
+  ()
+  (:documentation
+   "Adds processing of builder ordering constraints."))
+
+(defmethod step-constraints ((aspect aspect-builder-defining-mixin)
+                             (phase  (eql 'build))
+                             (step   t))
+  (let+ ((step-type       (type-of step))
          (variable        (format-symbol
                            :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
-                           (let ((type-string (string builder-type)))
+                           (let ((type-string (string step-type)))
                              (subseq type-string (length "builder/")))))
          (constraints/raw (value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
-    (log:trace "Constraints for ~A in ~A: ~S" builder variable constraints)
+    (log:trace "~@<Constraints for ~A in ~A~:@_~
+                ~/jenkins.model.aspects::format-constraints/~@:>"
+               step variable constraints)
+    constraints))
+
+;;; `aspect-publisher-defining-mixin'
+
+(defclass aspect-publisher-defining-mixin ()
+  ()
+  (:documentation
+   "Adds processing of publisher ordering constraints."))
+
+(defmethod step-constraints ((aspect aspect-publisher-defining-mixin)
+                             (phase  (eql 'publish))
+                             (step   t))
+  (let+ ((step-type       (type-of step))
+         (variable        (format-symbol
+                           :keyword "ASPECT.PUBLISHER-CONSTRAINTS.~@:(~A~)"
+                           (let ((type-string (string step-type)))
+                             (subseq type-string (length "publisher/")))))
+         (constraints/raw (value aspect variable nil))
+         (constraints     (mapcar #'parse-constraint constraints/raw)))
+    (log:trace "~@<Constraints for ~A in ~A~:@_~
+                ~/jenkins.model.aspects::format-constraints/~@:>"
+               step variable constraints)
     constraints))

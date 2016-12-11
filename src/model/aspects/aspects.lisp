@@ -245,7 +245,7 @@ rm -rf \"\${temp}\""))
   ;; Generate archive download and extraction as a shell builder.
   (let* ((url/parsed (puri:uri url))
          (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed)))))
-    (push (constraint! (((:before t)))
+    (push (constraint! (build ((:before t)))
             (shell (:command #?"# Clean workspace.
 ${(make-remove-directory-contents/unix)}
 
@@ -338,7 +338,7 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
-      (push (constraint! (((:before t)))
+      (push (constraint! (build ((:before t)))
               (shell (:command #?"${(make-remove-directory-contents/unix
                                      :exclude (list ".git" first))}
 
@@ -451,7 +451,7 @@ ${(make-move-stuff-upwards/unix components)}")))
     (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
-      (push (constraint! (((:before t)))
+      (push (constraint! (build ((:before t)))
               (shell (:command #?"${(make-remove-directory-contents/unix
                                      :exclude (list ".hg" first))}
 
@@ -483,7 +483,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 ;;; Tasks aspect
 
-(define-aspect (tasks) ()
+(define-aspect (tasks) (publisher-defining-mixin)
   ((pattern               :type list #|of string|#
     :documentation
     "Filename patterns specifying which workspace files to scan for
@@ -502,22 +502,24 @@ ${(make-move-stuff-upwards/unix components)}")))
     :documentation
     "Keywords indicating high-priority open tasks."))
   "Adds an open tasks publisher to the generated job."
-  (push (tasks (:pattern         pattern
-                :exclude         exclude
-                :keywords/low    keywords.low
-                :keywords/normal keywords.normal
-                :keywords/high   keywords.high))
+  (push (constraint! (publish)
+          (tasks (:pattern         pattern
+                  :exclude         exclude
+                  :keywords/low    keywords.low
+                  :keywords/normal keywords.normal
+                  :keywords/high   keywords.high)))
         (publishers job)))
 
 ;;; SLOCcount aspect
 
-(define-aspect (sloccount) (builder-defining-mixin)
+(define-aspect (sloccount) (builder-defining-mixin
+                            publisher-defining-mixin)
     ((directories :type list))
   "Adds a sloccount publisher to the generated job."
   (let ((arguments (mapcar #'prin1-to-string directories)))
-    (push (constraint! (((:before cmake/unix)
-                         (:before maven)
-                         (:before setuptools)))
+    (push (constraint! (build ((:before cmake/unix)
+                               (:before maven)
+                               (:before setuptools)))
             (shell (:command #?"DATA_DIR=\$(mktemp -d /tmp/build-generator.sloccount.data.XXXXXXXXXX)
 REPORT_DIR=\$(mktemp -d /tmp/build-generator.sloccount.report.XXXXXXXXXX)
 mkdir -p \"\${REPORT_DIR}\"
@@ -526,7 +528,7 @@ mv \"\${REPORT_DIR}/sloccount.sc\" \"\${WORKSPACE}/sloccount.sc\"
 rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
           (builders job)))
 
-  (push (sloccount (:pattern "sloccount.sc"))
+   (push (constraint! (publish) (sloccount (:pattern "sloccount.sc")))
         (publishers job)))
 
 ;;; Slaves aspect
@@ -607,7 +609,7 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
                           job ~A is of kind ~A.~@:>"
                          dependency kind job self-kind))
                  (t
-                  (push (constraint! (((:after sloccount))
+                  (push (constraint! (build ((:after sloccount))
                                       copy-artifact)
                           (copy-artifact (:project-name reference
                                           :filter       pattern
@@ -620,8 +622,8 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
        ;; Shell builder which unpacks dependencies. Has to run after
        ;; artifact download, obviously.
        (when copy-artifacts?
-         (push (constraint! (((:before cmake/unix)
-                              (:after copy-artifact)))
+         (push (constraint! (build ((:before cmake/unix)
+                                    (:after copy-artifact)))
                  (shell (:command #?"cd ${upstream-dir}
 find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
                (builders job))))))
@@ -637,7 +639,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! ()
+  (push (constraint! (build)
           (shell (:command (wrapped-shell-command (:aspect.shell) command))))
         (builders job)))
 
@@ -652,7 +654,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! () (batch (:command command)))
+  (push (constraint! (build) (batch (:command command)))
         (builders job)))
 
 ;;; CMake aspects
@@ -680,7 +682,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (((:after dependency-download)))
+  (push (constraint! (build ((:after dependency-download)))
           (shell (:command (wrapped-shell-command (:aspect.cmake/unix) command))))
         (builders job)))
 
@@ -752,7 +754,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
 ;;; Archive artifact
 
-(define-aspect (archive-artifacts :job-var job) ()
+(define-aspect (archive-artifacts :job-var job) (publisher-defining-mixin)
     (((file-pattern (bail)) :type (or null string)
       :documentation
       "An Ant-style file pattern designating the files that should be
@@ -768,6 +770,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
                                               :files        nil
                                               :only-latest? nil))
     (when file-pattern
+      (constraint! (publish) archiver) ; TODO slightly wrong
       (pushnew file-pattern (files archiver) :test #'string=))))
 
 ;;; Maven aspect
@@ -795,7 +798,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! ()
+  (push (constraint! (build)
          (maven (:properties          (mapcan (lambda (spec)
                                                 (let+ (((name value) (split-option spec)))
                                                   (list (make-keyword name) value)))
@@ -873,7 +876,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
                          export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\""
                     install-prefix))))
     ;; Put everything into a shell fragment.
-    (push (constraint! (((:after dependency-download)))
+    (push (constraint! (build ((:after dependency-download)))
             (shell (:command (wrapped-shell-command (:aspect.setuptools)
                                (let ((interpol:*list-delimiter* #\newline))
                                  #?"PYTHON=${python-binary}
@@ -889,7 +892,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 ;;; Warnings aspect
 
-(define-aspect (warnings :job-var job) ()
+(define-aspect (warnings :job-var job) (publisher-defining-mixin)
     ((parsers :type list #|of string|#
       :documentation
       "Names of parsers to apply to the output of the generated job.
@@ -908,7 +911,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 ;;; Checkstyle and PMD aspects
 
 (macrolet ((define (name publisher-name display-name)
-             `(define-aspect (,name :job-var job) ()
+             `(define-aspect (,name :job-var job) (publisher-defining-mixin)
                   ((pattern :type list
                     :documentation
                     "Analysis results should be read from files
@@ -917,15 +920,15 @@ ${(or ensure-install-directory "# Not creating install directory")}
                          display-name)
                 (removef (publishers job) ',publisher-name :key #'type-of)
                 (when pattern
-                  (appendf (publishers job)
-                           (list (make-instance ',publisher-name
-                                                :pattern pattern)))))))
+                  (push (constraint! (publish)
+                          (make-instance ',publisher-name :pattern pattern))
+                        (publishers job))))))
   (define checkstyle publisher/checkstyle "CheckStyle")
   (define pmd        publisher/pmd        "PMD"))
 
 ;;; Test result aspects
 
-(define-aspect (xunit :job-var job) ()
+(define-aspect (xunit :job-var job) (publisher-defining-mixin)
     ((kind                      :type string)
      (pattern                   :type (or null string))
      (skip-if-no-test-files?    :type boolean)
@@ -946,7 +949,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
              :stop-processing-if-error? stop-processing-if-error?)
             (types publisher)))))
 
-(define-aspect (junit :job-var job) ()
+(define-aspect (junit :job-var job) (publisher-defining-mixin)
     ((pattern              :type (or null string)
       :documentation
       "Test results should be read from files matching the pattern.")
@@ -967,16 +970,17 @@ ${(or ensure-install-directory "# Not creating install directory")}
   (removef (publishers job) 'publisher/junit :key #'type-of)
   ;; Add new configuration.
   (when pattern
-    (appendf (publishers job)
-             (list (make-instance 'publisher/junit
-                                  :pattern              pattern
-                                  :keep-long-stdio?     keep-long-stdio?
-                                  :health-scale-factor  health-scale-factor
-                                  :allow-empty-results? allow-empty-results?)))))
+    (push (constraint! (publish)
+            (make-instance 'publisher/junit
+                           :pattern              pattern
+                           :keep-long-stdio?     keep-long-stdio?
+                           :health-scale-factor  health-scale-factor
+                           :allow-empty-results? allow-empty-results?))
+          (publishers job))))
 
 ;;; Email notification
 
-(define-aspect (email-notification :job-var job) ()
+(define-aspect (email-notification :job-var job) (publisher-defining-mixin)
     ((recipients           :type list #|of string|#
       :documentation
       "A list of email addresses to which notifications in case of a
@@ -986,17 +990,17 @@ ${(or ensure-install-directory "# Not creating install directory")}
       "Controls whether the authors of build-breaking commits are
        treated as additional recipients."))
   "Adds email notification in case of failed builds to a generated job."
-  (if recipients
-      (with-interface (publishers job)
-          (publisher (publisher/email-notification
-                      :recipients           recipients
-                      :send-to-individuals? send-to-perpetrator?))
-        (declare (ignore publisher)))
-      (removef (publishers job) 'publisher/email-notification :key #'type-of)))
+  (removef (publishers job) 'publisher/email-notification :key #'type-of)
+  (when recipients
+    (push (constraint! (publish)
+            (make-instance 'publisher/email-notification
+                           :recipients           recipients
+                           :send-to-individuals? send-to-perpetrator?))
+          (publishers job))))
 
 ;;; Upload aspect
 
-(define-aspect (upload :job-var job) ()
+(define-aspect (upload :job-var job) (publisher-defining-mixin)
     ((target             :type string
       :documentation
       "The name of the machine to which artifacts should be uploaded.")
@@ -1018,12 +1022,13 @@ ${(or ensure-install-directory "# Not creating install directory")}
       :documentation
       "Control the verbosity of the plugin during the upload process."))
   "Adds a publisher for uploads build results to the generated job."
-  (push (ssh (:target           target
-              :source-files     source-files
-              :excludes         excludes
-              :remove-prefix    remove-prefix
-              :remote-directory remote-directory
-              :verbose?         verbose?))
+  (push (constraint! (publish)
+          (ssh (:target           target
+                :source-files     source-files
+                :excludes         excludes
+                :remove-prefix    remove-prefix
+                :remote-directory remote-directory
+                :verbose?         verbose?)))
         (publishers job)))
 
 ;;; permissions aspect
@@ -1064,6 +1069,6 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! () (groovy (:code code))) (builders job)))
+  (push (constraint! (build) (groovy (:code code))) (builders job)))
 
 #.(interpol:disable-interpol-syntax)

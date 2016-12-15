@@ -279,6 +279,7 @@
               (when-let ((job (instantiate job-spec)))
                 (list (reinitialize-instance job :parent parent))))))
          ((&flet prepare-job-spec (job-spec parent)
+            (declare (ignore parent))
             (let ((job-spec/copy (clone job-spec)))
               (reinitialize-instance
                job-spec/copy

@@ -118,11 +118,11 @@
   (let+ (((&flet name->class-name (name)
             (symbolicate '#:aspect- (string-upcase name))))
          (class-name (name->class-name name)))
-    `(prog1
-         (defclass ,class-name (,@(mapcar #'name->class-name super-aspects) aspect) ()
-           (:default-initargs
-            ,@(when constraints
-                `(:constraints ',constraints))))
+    `(progn
+       (defclass ,class-name (,@(mapcar #'name->class-name super-aspects) aspect) ()
+         (:default-initargs
+          ,@(when constraints
+              `(:constraints ',constraints))))
 
        ,@(when variables
            `((defmethod variables append ((aspect ,class-name))
@@ -158,7 +158,9 @@
                                  (push constraint (third cell)))
                            builder)))
                    ,@body))
-               ,job-var))))))
+               ,job-var)))
+
+       ',class-name)))
 
 (defmacro define-aspect ((name &key (job-var    'job)
                                     (aspect-var 'aspect)

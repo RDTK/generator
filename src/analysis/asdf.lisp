@@ -100,7 +100,7 @@
               `(,name ,value))))
          ;; Combine descriptions of analyzed systems.
          ((&flet maybe-property/description (name)
-            (let ((values (remove-if (lambda+ ((&whole foo system-name &ign))
+            (let ((values (remove-if (lambda+ ((system-name &ign))
                                        (ppcre:scan "tests?$" system-name))
                                      (property-values name))))
               (case (length values)

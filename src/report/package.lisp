@@ -19,6 +19,7 @@
   (:shadowing-import-from #:jenkins.project
    #:as)
 
+  ;; Report protocol
   (:export
    #:report)
 

@@ -69,26 +69,26 @@
                                                               :name   version-name
                                                               :parent project)))
                                   (push version (versions project))
-                                  version)))
-                   (version (reinitialize-instance
-                             version
-                             :requires  requires
-                             :provides  provides
-                             :variables (append
-                                         (jenkins.project::%direct-variables version) ; TODO
-                                         (apply #'value-acons (append version-variables '(())))
-                                         (when branch-directory
-                                           (list (value-cons :branch-directory branch-directory)))
-                                         (when description
-                                           (list (value-cons :description description)))
-                                         (when authors
-                                           (list (value-cons
-                                                  :authors (mapcar (lambda (author)
-                                                                     (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
-                                                                   authors))))
-                                         (iter (for (key . value) in (append versions properties))
-                                               (collect (value-cons (make-keyword (string-upcase key))
-                                                                    value)))))))
+                                  version))))
+              (reinitialize-instance
+               version
+               :requires  requires
+               :provides  provides
+               :variables (append
+                           (jenkins.project::%direct-variables version) ; TODO
+                           (apply #'value-acons (append version-variables '(())))
+                           (when branch-directory
+                             (list (value-cons :branch-directory branch-directory)))
+                           (when description
+                             (list (value-cons :description description)))
+                           (when authors
+                             (list (value-cons
+                                    :authors (mapcar (lambda (author)
+                                                       (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
+                                                     authors))))
+                           (iter (for (key . value) in (append versions properties))
+                                 (collect (value-cons (make-keyword (string-upcase key))
+                                                      value)))))
               ;; TODO temp
               (iter (for job in (jobs project))
                     (pushnew (string-downcase scm) (tags job) :test #'string=)))))

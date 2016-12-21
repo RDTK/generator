@@ -77,7 +77,9 @@
             (optima:ematch pattern
               ;; Make the current path available.
               ((list (or :ref :ref/list) "structure-path")
-               (list (nreverse (mapcar #'string-downcase path))))
+               (list
+                (with-augmented-trace (:structure-path nil)
+                  (nreverse (mapcar #'string-downcase (rest path))))))
 
               ;; Variable reference with already-evaluated variable
               ;; name and with default.

@@ -39,6 +39,9 @@
   (and (listp thing)
        (every (of-type 'variable-expression-value-alist-element) thing)))
 
+(deftype variable-expression-value-alist ()
+  `(satisfies variable-expression-value-alist?))
+
 ;;; Unevaluated Expressions
 ;;;
 ;;; In addition to atomic values (of type `string', `real' or

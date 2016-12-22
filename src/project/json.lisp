@@ -14,6 +14,28 @@
                 this generator is version ~S.~@:>"
                required-version provided-version)))))
 
+(defun check-keys (object &optional expected (exhaustive? t))
+  (let+ ((seen     '())
+         (expected (mapcar #'ensure-list expected))
+         (extra    '())
+         ((&flet invalid-keys (reason keys)
+            (error "~@<~A key~P: ~{~A~^, ~}.~@:>"
+                   reason (length keys) keys))))
+    (loop :for (key . value) :in object :do
+       (cond
+         ((member key seen :test #'eq)
+          (error "~@<Duplicate key: ~A.~@:>" key))
+         ((member key expected :test #'eq :key #'car)
+          (alexandria:removef expected key :test #'eq :key #'car))
+         (t
+          (push key extra)))
+       (push key seen))
+    (when-let ((missing (remove nil expected :key #'cdr)))
+      (invalid-keys "Missing required" (mapcar #'car missing)))
+    (when (and exhaustive? extra)
+      (invalid-keys "Unexpected" extra)))
+  object)
+
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
     (loop :for (key . value) :in alist :do
@@ -37,6 +59,8 @@
             (cdr (assoc name where))))
 
          ((&flet make-aspect-spec (spec parent)
+            (check-keys spec '((:name . t) (:aspect . t) :variables
+                               :filter :conditions))
             (make-instance 'aspect-spec
                            :name       (lookup :name spec)
                            :parent     parent
@@ -46,6 +70,7 @@
                            :conditions (lookup :conditions spec))))
 
          ((&flet make-job-spec (spec parent)
+            (check-keys spec '((:name . t) :tags :variables :conditions))
             (make-instance 'job-spec
                            :name       (lookup :name spec)
                            :parent     parent
@@ -56,6 +81,8 @@
          (name (lookup :name))
          (template (make-instance 'template)))
     (check-generator-version spec)
+    (check-keys spec '(:minimum-generator-version
+                       (:name . t) :inherit :variables :aspects :jobs))
     (setf (find-template name)
           (reinitialize-instance
            template
@@ -77,6 +104,7 @@
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where))))
          ((&flet make-version-spec (spec parent)
+            (check-keys spec '((:name . t) :variables :catalog))
             (make-instance 'version-spec
                            :name      (lookup :name spec)
                            :parent    parent
@@ -91,6 +119,9 @@
                            :conditions (lookup :conditions spec))))
          (name (lookup :name)))
     (check-generator-version spec)
+    (check-keys spec '(:minimum-generator-version
+                       (:name . t) (:templates . t) (:variables . t)
+                       :versions :catalog))
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"
@@ -155,6 +186,9 @@
                (setf (gethash (first version) projects-seen) version)
                (list version))))))
     (check-generator-version spec)
+    (check-keys spec '(:minimum-generator-version
+                       (:name . t) :variables (:versions . t)
+                       :catalog))
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"

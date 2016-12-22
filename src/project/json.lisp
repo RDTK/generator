@@ -6,6 +6,14 @@
 
 (cl:in-package #:jenkins.project)
 
+(defun check-generator-version (spec)
+  (when-let ((required-version (cdr (assoc :minimum-generator-version spec))))
+    (let ((provided-version (jenkins.project-system:version/string)))
+      (unless (uiop:version-compatible-p provided-version required-version)
+        (error "~@<The template requires generator version ~S, but ~
+                this generator is version ~S.~@:>"
+               required-version provided-version)))))
+
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
     (loop :for (key . value) :in alist :do
@@ -47,12 +55,7 @@
 
          (name (lookup :name))
          (template (make-instance 'template)))
-    (when-let ((required-version (lookup :minimum-generator-version)))
-      (let ((provided-version (jenkins.project-system:version/string)))
-        (unless (uiop:version-compatible-p provided-version required-version)
-          (error "~@<The template requires generator version ~S, but ~
-                  this generator is version ~S.~@:>"
-                 required-version provided-version))))
+    (check-generator-version spec)
     (setf (find-template name)
           (reinitialize-instance
            template
@@ -87,6 +90,7 @@
                            :tags       (lookup :tags spec)
                            :conditions (lookup :conditions spec))))
          (name (lookup :name)))
+    (check-generator-version spec)
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"
@@ -150,6 +154,7 @@
               (t
                (setf (gethash (first version) projects-seen) version)
                (list version))))))
+    (check-generator-version spec)
     (unless (string= name (pathname-name pathname))
       (error "~@<Value of \"name\" attribute, ~S, does not match ~
               filename ~S.~@:>"

@@ -12,14 +12,9 @@
   (with-sequence-progress (:templates files)
     (mapcan (lambda (file)
               (progress "~S" file)
-              (restart-case
-                  (list (load-template/json file))
-                (continue (&optional condition)
-                  :report (lambda (stream)
-                            (format stream "~@<Skip template ~
-                                            specification ~S.~@:>"
-                                    file))
-                  (declare (ignore condition)))))
+              (with-simple-restart
+                  (continue "~@<Skip template specification ~S.~@:>" file)
+                (list (load-template/json file))))
             files)))
 
 (defun locate-projects (distribution-pathnames distributions)
@@ -99,12 +94,9 @@
               (iter (for job in (jobs project))
                     (pushnew (string-downcase scm) (tags job) :test #'string=)))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
-            (restart-case
-                (do-version arg)
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Skip version ~A.~@:>" version-info))
-                (declare (ignore condition)))))))
+            (with-simple-restart
+                (continue "~@<Skip version ~A.~@:>" version-info)
+              (do-version arg)))))
 
     (handler-bind
         ((error (lambda (condition)
@@ -141,57 +133,52 @@
     (lparallel:pmapcan
      (lambda+ ((file versions distribution))
        (progress "~A" file)
-       (restart-case
-           (let+ ((project       (reinitialize-instance
-                                  (load-project-spec/json
-                                   file :version-test (lambda (version)
-                                                        (member version versions
-                                                                :test #'string=)))
-                                  :parent distribution))
-                  (branches      (as (value project :branches '()) 'list))
-                  (branches      (intersection versions branches :test #'string=))
-                  (tags          (as (value project :tags '()) 'list))
-                  (tags          (intersection versions tags :test #'string=))
-                  (tags+branches (union branches tags))
-                  (versions1     (set-difference versions tags+branches
-                                                 :test #'string=))
-                  ((&flet process-version (name &key version-required? branch? tag? directory?)
-                     (let+ ((version (or (find name (versions project)
-                                               :test #'string= :key #'name)
-                                         (when version-required?
-                                           (error "~@<No version section ~
-                                                   for version ~S in ~
-                                                   project ~A.~@:>"
-                                                  name project))))
-                            ((&flet version-var (name &optional default)
-                               (if version
-                                   (value version name default)
-                                   default)))
-                            (branch    (when branch?    (version-var :branch (when (eq branch? t) name))))
-                            (tag       (when tag?       (version-var :tag (when (eq tag? t) name))))
-                            (directory (when directory? (version-var :directory)))
-                            (commit    (version-var :commit)))
-                       `(:name   ,name
-                         ,@(when branch    `(:branch    ,branch))
-                         ,@(when tag       `(:tag       ,tag))
-                         ,@(when directory `(:directory ,directory))
-                         ,@(when commit    `(:commit    ,commit)))))))
-             (list (make-project-spec-and-versions
-                    :spec     project
-                    :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
-                                      (mapcar (rcurry #'process-version :tag?    t) tags)
-                                      (mapcar (rcurry #'process-version
-                                                      :version-required? t
-                                                      :branch?           :maybe
-                                                      :tag?              :maybe
-                                                      :directory?        :mabye)
-                                              versions1)))))
-         (continue (&optional condition)
-           :report (lambda (stream)
-                     (format stream "~@<Skip project specification ~
-                                     ~S.~@:>"
-                             file))
-           (declare (ignore condition)))))
+       (with-simple-restart
+           (continue "~@<Skip project specification ~S.~@:>" file)
+         (let+ ((project       (reinitialize-instance
+                                (load-project-spec/json
+                                 file :version-test (lambda (version)
+                                                      (member version versions
+                                                              :test #'string=)))
+                                :parent distribution))
+                (branches      (as (value project :branches '()) 'list))
+                (branches      (intersection versions branches :test #'string=))
+                (tags          (as (value project :tags '()) 'list))
+                (tags          (intersection versions tags :test #'string=))
+                (tags+branches (union branches tags))
+                (versions1     (set-difference versions tags+branches
+                                               :test #'string=))
+                ((&flet process-version (name &key version-required? branch? tag? directory?)
+                   (let+ ((version (or (find name (versions project)
+                                             :test #'string= :key #'name)
+                                       (when version-required?
+                                         (error "~@<No version section ~
+                                                 for version ~S in ~
+                                                 project ~A.~@:>"
+                                                name project))))
+                          ((&flet version-var (name &optional default)
+                             (if version
+                                 (value version name default)
+                                 default)))
+                          (branch    (when branch?    (version-var :branch (when (eq branch? t) name))))
+                          (tag       (when tag?       (version-var :tag (when (eq tag? t) name))))
+                          (directory (when directory? (version-var :directory)))
+                          (commit    (version-var :commit)))
+                     `(:name   ,name
+                       ,@(when branch    `(:branch    ,branch))
+                       ,@(when tag       `(:tag       ,tag))
+                       ,@(when directory `(:directory ,directory))
+                       ,@(when commit    `(:commit    ,commit)))))))
+           (list (make-project-spec-and-versions
+                  :spec     project
+                  :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
+                                    (mapcar (rcurry #'process-version :tag?    t) tags)
+                                    (mapcar (rcurry #'process-version
+                                                    :version-required? t
+                                                    :branch?           :maybe
+                                                    :tag?              :maybe
+                                                    :directory?        :mabye)
+                                            versions1)))))))
      :parts most-positive-fixnum files-and-versions)))
 
 (defun analyze-projects (projects &key cache-directory temp-directory non-interactive)
@@ -204,21 +191,16 @@
                      (print-items:print-items project))
            (more-conditions::without-progress
              (let ((jenkins.analysis::*git-cache* cache))
-               (restart-case
-                   (when-let ((project (apply #'analyze-project project
-                                              :non-interactive non-interactive
-                                              (append
-                                               (when cache-directory
-                                                 (list :cache-directory cache-directory))
-                                               (when temp-directory
-                                                 (list :temp-directory temp-directory))))))
-                     (list (setf (find-project (name project)) project)))
-                 (continue (&optional condition)
-                   :report (lambda (stream)
-                             (format stream "~@<Skip analyzing project ~
-                                             ~A.~@:>"
-                                     project))
-                   (declare (ignore condition)))))))
+               (with-simple-restart
+                   (continue "~@<Skip analyzing project ~A.~@:>" project)
+                 (when-let ((project (apply #'analyze-project project
+                                            :non-interactive non-interactive
+                                            (append
+                                             (when cache-directory
+                                               (list :cache-directory cache-directory))
+                                             (when temp-directory
+                                               (list :temp-directory temp-directory))))))
+                   (list (setf (find-project (name project)) project)))))))
          :parts most-positive-fixnum projects)))))
 
 (defun resolve-project-version (project version)
@@ -230,13 +212,10 @@
 (defun resolve-project-versions (versions)
   (mapcan (lambda+ ((project &rest versions))
             (mapcan (lambda (version)
-                      (restart-case
-                          (list (resolve-project-version project version))
-                        (continue (&optional condition)
-                          :report (lambda (stream)
-                                    (format stream "~@<Skip version ~A of project ~A.~@:>"
-                                            version project))
-                          (declare (ignore condition)))))
+                      (with-simple-restart
+                          (continue "~@<Skip version ~A of project ~A.~@:>"
+                                    version project)
+                        (list (resolve-project-version project version))))
                     versions))
           versions))
 
@@ -244,19 +223,14 @@
   (with-sequence-progress (:load/distribution files)
     (mapcan (lambda (file)
               (progress "~S" file)
-              (restart-case
-                  (let ((distribution (load-distribution/json file)))
-                    (iter (for (name . value) in overwrites)
-                          (log:info "~@<In ~A, setting ~S to ~S.~@:>"
-                                    distribution name value)
-                          (setf (lookup distribution name) value))
-                    (list distribution))
-                (continue (&optional condition)
-                  :report (lambda (stream)
-                            (format stream "~@<Skip distribution ~
-                                            specification ~S.~@:>"
-                                    file))
-                  (declare (ignore condition)))))
+              (with-simple-restart
+                  (continue "~@<Skip distribution specification ~S.~@:>" file)
+                (let ((distribution (load-distribution/json file)))
+                  (iter (for (name . value) in overwrites)
+                        (log:info "~@<In ~A, setting ~S to ~S.~@:>"
+                                  distribution name value)
+                        (setf (lookup distribution name) value))
+                  (list distribution))))
             files)))
 
 (defun check-platform-requirements
@@ -271,38 +245,29 @@
                (length requirements) requirements)
     (when (and platform installed-packages)
       (dolist (requirement requirements)
-        (restart-case
-            (or (find requirement installed-packages
-                      :test #'string= :key #'first)
-                (error 'jenkins.analysis:unfulfilled-platform-dependency-error
-                       :dependency requirement))
-          (continue (&optional condition)
-            :report (lambda (stream)
-                      (format stream "~@<Ignore the requirement ~A and ~
-                                      continue.~@:>"
-                              requirement))
-            (declare (ignore condition)))))))
+        (with-simple-restart
+            (continue "~@<Ignore the requirement ~A.~@:>" requirement)
+          (or (find requirement installed-packages
+                    :test #'string= :key #'first)
+              (error 'jenkins.analysis:unfulfilled-platform-dependency-error
+                     :dependency requirement))))))
   distributions)
 
 (defun check-distribution-access (distributions)
   (mapcan (lambda (distribution)
-            (restart-case
-                (let+ (((&values access? problem)
-                        (check-access distribution t)))
-                  (cond
-                    (access?
-                     (list distribution))
-                    (problem
-                     (error problem))
-                    (t
-                     (error "~@<Unsuitable access declaration in ~
-                             distribution ~A.~@:>"
-                            distribution))))
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Skip distribution ~A.~@:>"
-                                  distribution))
-                (declare (ignore condition)))))
+            (with-simple-restart
+                (continue "~@<Skip distribution ~A.~@:>" distribution)
+              (let+ (((&values access? problem)
+                      (check-access distribution t)))
+                (cond
+                  (access?
+                   (list distribution))
+                  (problem
+                   (error problem))
+                  (t
+                   (error "~@<Unsuitable access declaration in ~
+                           distribution ~A.~@:>"
+                          distribution))))))
           distributions))
 
 ;; Deployment
@@ -332,14 +297,9 @@
           (progress "~/print-items:format-print-items/"
                     (print-items:print-items project))
           (more-conditions::without-progress
-            (restart-case
-                (appending (flatten (deploy project)))
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Skip deploying ~
-                                                  project ~S.~@:>"
-                                  project))
-                (declare (ignore condition))))))))
+            (with-simple-restart
+                (continue "~@<Skip deploying project ~S.~@:>" project)
+              (appending (flatten (deploy project))))))))
 
 (defun deploy-job-dependencies (jobs)
   (with-sequence-progress (:deploy/dependencies jobs)
@@ -352,14 +312,9 @@
   (with-sequence-progress (:enable jobs)
     (iter (for job in jobs)
           (progress "~S" (jenkins.api:id job))
-          (restart-case
-              (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))
-            (continue (&optional condition)
-              :report (lambda (stream)
-                        (format stream "~@<Skip enabling job ~
-                                        ~A.~@:>"
-                                job))
-              (declare (ignore condition)))))))
+          (with-simple-restart
+              (continue "~@<Skip enabling job ~A.~@:>" job)
+            (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))))))
 
 (defun generated-jobs (&optional pattern)
   (remove "automatically generated" (apply #'jenkins.api:all-jobs
@@ -731,22 +686,15 @@ A common case, deleting only jobs belonging to the distribution being generated,
 ;;; Main
 
 (defun locate-specifications (kind namestrings)
-  (restart-case
-      (or (iter (for namestring in namestrings)
-                (if-let ((matches (collect-inputs (parse-namestring namestring))))
-                  (appending matches)
-                  (warn "~@<~A pattern ~S did not match anything.~@:>"
-                        kind namestring)))
-          (error "~@<None of the ~A patterns ~{~S~^, ~} matched ~
-                  anything.~@:>"
-                 kind namestrings))
-    (continue (&optional condition)
-      :report (lambda (stream)
-                (format stream "~@<Continue without loading ~A ~
-                                specifications.~@:>"
-                        kind))
-      (declare (ignore condition))
-      '())))
+  (with-simple-restart (continue "~@<Do not load ~A specifications.~@:>" kind)
+    (or (iter (for namestring in namestrings)
+              (if-let ((matches (collect-inputs (parse-namestring namestring))))
+                (appending matches)
+                (warn "~@<~A pattern ~S did not match anything.~@:>"
+                      kind namestring)))
+        (error "~@<None of the ~A patterns ~{~S~^, ~} matched ~
+                anything.~@:>"
+               kind namestrings))))
 
 (defun parse-overwrite (spec)
   (let+ ((position  (or (position #\= spec)
@@ -1021,14 +969,11 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                (with-phase-error-check
                                                    (:orchestration #'errors #'(setf errors) #'report)
                                                  (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                                                   (restart-case
-                                                       (configure-distributions
-                                                        distributions
-                                                        :build-flow-ignores-failures? build-flow-ignores-failures?)
-                                                     (continue (&optional condition)
-                                                       :report (lambda (stream)
-                                                                 (format stream "~@<Continue without configuring orchestration jobs~@:>"))
-                                                       (declare (ignore condition)))))))))
+                                                   (with-simple-restart
+                                                       (continue "~@<Continue without configuring orchestration jobs~@:>")
+                                                     (configure-distributions
+                                                      distributions
+                                                      :build-flow-ignores-failures? build-flow-ignores-failures?)))))))
                     (declare (ignore templates))
 
                     (unless dry-run?

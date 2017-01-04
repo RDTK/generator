@@ -720,7 +720,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                               (mapcar (curry #'project-automation.model.project.stage3::transform-distribution
                                                              builder)
                                                       distributions)))
-                         #+no (jobs/spec         (unless dry-run?
+                         (jobs/spec         (unless dry-run?
                                               (with-phase-error-check
                                                   (:deploy/project #'errors #'(setf errors) #'report)
                                                 (flatten (deploy-projects projects)))))

@@ -1,6 +1,6 @@
 ;;;; aspects.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -750,5 +750,12 @@ lintian -i *.deb || true
          (new-permissions (var/typed :aspect.permissions.permissions '(or (eql :keep) list) :keep)))
     (unless (eq new-permissions :keep)
       (setf (permissions job) (mapcar #'normalize-permission new-permissions)))))
+
+;;; groovy script aspects
+
+(define-aspect (groovy :job-var job) ()
+    ()
+  (when-let ((code (var/typed :aspect.groovy.code '(or null string))))
+    (push (constraint! () (groovy (:code code))) (builders job))))
 
 #.(interpol:disable-interpol-syntax)

@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -176,7 +176,10 @@
    #:project-name
    #:filter
    #:target
-   #:flatten?)
+   #:flatten?
+
+   #:builder/groovy
+   #:code)
 
   ;; Publisher interface
   (:export

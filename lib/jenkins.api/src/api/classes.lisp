@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -692,7 +692,13 @@
     ;; TODO(jmoringe, 2012-12-13): temp
     (clazz        :type  string
                   :xpath "selector/@class"))
-   (:name-slot project-name)))
+   (:name-slot project-name))
+
+  ((groovy "hudson.plugins.groovy.Groovy"
+           :plugin "groovy@1.30")
+   ((code :type  string
+          :xpath "scriptSource[@class=\"hudson.plugins.groovy.StringScriptSource\"]/command/text()"))
+   (:name-slot code)))
 
 ;;; publisher interface
 

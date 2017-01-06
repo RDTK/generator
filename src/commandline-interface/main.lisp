@@ -49,6 +49,12 @@
   (spec     nil :type jenkins.project::project-spec :read-only t)
   (versions nil :type list                          :read-only t))
 
+(defmethod print-items:print-items append ((object project-spec-and-versions))
+  (let+ (((&structure-r/o project-spec-and-versions- spec versions) object)
+         (versions (mapcar (rcurry #'getf :name) versions)))
+    (append (print-items:print-items spec)
+            `((:versions ,versions ":~{~A~^,~}" ((:after :name)))))))
+
 (defun analyze-project (project &key cache-directory temp-directory non-interactive)
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
          ((&labels+ do-version ((version-info . info))

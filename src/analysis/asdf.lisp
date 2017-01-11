@@ -1,6 +1,6 @@
 ;;;; asdf.lisp --- Analysis of ASDF projects.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -33,12 +33,6 @@
                      (process-version (third dependency))))
               ((or string symbol)
                (list :asdf (string-downcase dependency))))))
-         (system-systems (mappend #'ql-dist:provided-systems (ql:system-list)))
-         ((&flet systems-system? (spec)
-            (find (dependency-name spec) system-systems
-                  :test #'equal :key #'ql-dist:name)))
-         ((&flet effective-dependencies (depends-on)
-            (remove-if #'systems-system? depends-on)))
          ((&flet+ process-system-form ((&ign name
                                         &key
                                         version
@@ -55,9 +49,8 @@
                                 ,(string-downcase name)
                                 ,(process-version version)))
                    :requires (mapcar #'dependency->list
-                                     (effective-dependencies
-                                      (append defsystem-depends-on
-                                              depends-on))))
+                                     (append defsystem-depends-on
+                                             depends-on)))
              (when description `(:description ,description))
              (when author      `(:authors (,author)))
              (when maintainer  `(:maintainers (,maintainer)))

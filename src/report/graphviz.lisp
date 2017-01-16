@@ -122,7 +122,9 @@
      nil (lambda (element)
            (progress "~/print-items:format-print-items/"
                      (print-items:print-items element))
-           (report element style target))
+           (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
+                                          style element)
+             (report element style target)))
      object)))
 
 (defmethod report ((object jenkins.project::distribution-spec)

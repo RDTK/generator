@@ -1,6 +1,6 @@
 ;;;; main.lisp --- Entry-point of commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -1009,8 +1009,11 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                  (if (consp thing) (first thing) thing)))
                           (jenkins.report:report
                            (maybe-first distributions) :json report-directory)
-                          (jenkins.report:report
-                           (maybe-first distributions) :graph report-directory))))))))))
+                          (with-simple-restart (continue "Skip graph report")
+                            (if (setf cl-dot:*dot-path* (cl-dot::find-dot))
+                                (jenkins.report:report
+                                 (maybe-first distributions) :graph report-directory)
+                                (error "~@<Could not find dot program.~@:>"))))))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

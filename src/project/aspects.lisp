@@ -506,19 +506,25 @@ move ..\*.zip .
          (build-directory (var/typed :build-dir 'string))
          ((&flet+ format-option ((name value))
             (format nil "-D~A=~A \\~%" name value)))
-         (project-version (parent spec))
-         (dependencies    (mapcar #'specification (list* project-version
-                                                         (dependencies project-version))))
+         (project-version   (parent spec))
+         (dependencies      (mapcar #'specification
+                                    (list* project-version
+                                           (dependencies project-version))))
+         (seen-requirements (make-hash-table :test #'eq))
          ((&values finds dir-options/raw)
           (iter outer (for dependency in dependencies)
-                (iter (for (_ required) in (requires-of-kind
-                                            :cmake dependency))
-                      (in outer
-                          (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
-                            :into finds)
-                          (collect (list #?"${required}_DIR"
-                                         #?"\${${(shellify required)}_DIR}")
-                            :into options)))
+                (iter (for required in (requires-of-kind :cmake dependency))
+                      (when-let ((provider (find-provider/version
+                                            required :if-does-not-exist nil)))
+                        (unless (gethash provider seen-requirements)
+                          (setf (gethash provider seen-requirements) t)
+                          (let ((required (second required)))
+                            (in outer
+                                (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
+                                  :into finds)
+                                (collect (list #?"${required}_DIR"
+                                               #?"\${${(shellify required)}_DIR}")
+                                  :into options))))))
                 (finally (return-from outer (values finds options)))))
          (options/raw               (append dir-options/raw
                                             (mapcar #'split-option

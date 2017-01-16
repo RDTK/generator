@@ -1,6 +1,6 @@
 ;;;; graphviz.lisp --- Graph generation for projects and dependencies.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -73,7 +73,7 @@
                                                :arrowtail :dot
                                                :dir       :both)) ; work around dot bug
                                             (:requires
-                                             `(:color  "red"
+                                             `(:color     "red"
                                                :arrowhead :dot
                                                :arrowtail :none))))))))
 

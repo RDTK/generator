@@ -224,7 +224,7 @@
   (:documentation
    "Return non-nil when SPEC should be instantiated."))
 
-(defgeneric instantiate (spec)
+(defgeneric instantiate (spec &key parent specification-parent)
   (:documentation
    "Instantiate the specification SPEC and return the created
     object.
@@ -241,7 +241,8 @@
 (defmethod instantiate? ((spec t) (parent t))
   t)
 
-(defmethod instantiate :around ((spec t))
+(defmethod instantiate :around ((spec t) &key parent specification-parent)
+  (declare (ignore parent specification-parent))
   (with-condition-translation
       (((error instantiation-error)
         :specification spec))

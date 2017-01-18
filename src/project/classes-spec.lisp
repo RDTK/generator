@@ -81,13 +81,6 @@
               :accessor versions
               :initform '()
               :documentation
-              "")
-   (jobs      :initarg  :jobs
-              :type     list ; of job-spec
-              :reader   jobs
-              :accessor %jobs
-              :initform '()
-              :documentation
               ""))
   (:documentation
    "Instances of this class describe projects.
@@ -98,18 +91,6 @@
 
     In addition, `project-spec' instances directly contain version and
     job specifications."))
-
-(defmethod shared-initialize :after ((instance   project-spec)
-                                     (slot-names t)
-                                     &key)
-  (iter (for job in (mappend #'jobs (templates instance)))
-        (unless (find (name job) (%jobs instance)
-                      :test #'string=
-                      :key  #'name)
-          (let ((job/clone (clone job)))
-            (reinitialize-instance job/clone
-                                   :parent instance)
-            (appendf (%jobs instance) (list job/clone))))))
 
 (defmethod direct-variables ((thing project-spec))
   (value-acons :project-name (name thing)
@@ -133,20 +114,22 @@
 
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))
-                     :test #'string=
-                     :key  #'name))
-
-#+no (defmethod jobs ((thing project-spec))
-  (remove-duplicates (mapcan #'jobs (templates thing))
                      :test     #'string=
                      :key      #'name
                      :from-end t))
 
-(defmethod instantiate ((spec project-spec))
+(defmethod jobs ((thing project-spec))
+  (remove-duplicates (mappend #'jobs (templates thing))
+                     :test     #'string=
+                     :key      #'name
+                     :from-end t))
+
+(defmethod instantiate ((spec project-spec) &key parent specification-parent)
+  (declare (ignore parent specification-parent))
   (let+ (((&flet make-version (spec parent)
             (when (instantiate? spec parent)
-              (when-let ((version (instantiate spec)))
-                (list (reinitialize-instance version :parent parent))))))
+              (when-let ((version (instantiate spec :parent parent)))
+                (list version)))))
          (name (name spec))
          (project (make-instance 'project
                                  :name      name
@@ -218,6 +201,9 @@
                (when (next-method-p)
                  (call-next-method))))
 
+(defmethod aspects ((thing version-spec))
+  (aspects (parent thing)))
+
 (defmethod jobs ((thing version-spec))
   (jobs (parent thing)))
 
@@ -272,27 +258,19 @@
       (t
        (call-next-method)))))
 
-(defmethod instantiate ((spec version-spec))
+(defmethod instantiate ((spec version-spec) &key parent specification-parent)
+  (declare (ignore specification-parent))
   (let+ (((&flet make-job (job-spec parent)
             (when (instantiate? job-spec parent)
-              (when-let ((job (instantiate job-spec)))
-                (list (reinitialize-instance job :parent parent))))))
-         ((&flet prepare-job-spec (job-spec parent)
-            (declare (ignore parent))
-            (let ((job-spec/copy (clone job-spec)))
-              (reinitialize-instance
-               job-spec/copy
-               :parent    (parent job-spec)
-               :variables (direct-variables job-spec/copy)))))
-         ((&flet make-jobs (job-spec parent)
-            (log:trace "~@<No variants of ~A~@:>" job-spec) ; TODO remove
-            (make-job (prepare-job-spec job-spec parent) parent)))
+              (when-let ((job (instantiate job-spec :parent parent :specification-parent spec)))
+                (list job)))))
          (version (make-instance 'version
                                  :name      (name spec)
-                                 :variables (direct-variables spec))))
+                                 :parent    parent
+                                 :variables (%direct-variables spec))))
     (reinitialize-instance
      version
-     :jobs (mapcan (rcurry #'make-jobs version) (jobs spec)))))
+     :jobs (mapcan (rcurry #'make-job version) (jobs spec)))))
 
 ;;; `job-spec' class
 
@@ -305,23 +283,18 @@
   (:documentation
    "TODO(jmoringe): document"))
 
-(defmethod instantiate ((spec job-spec))
+(defmethod instantiate ((spec job-spec) &key parent specification-parent)
   (let+ (((&flet make-aspect (spec parent)
             (when (instantiate? spec parent)
-              (when-let ((aspect (instantiate spec)))
-                (list (reinitialize-instance aspect :parent parent))))))
+              (when-let ((aspect (instantiate spec :parent parent)))
+                (list aspect)))))
          (job (make-instance 'job
                              :name      (name spec)
-                             :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
+                             :parent    parent
+                             :variables (copy-list (%direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
      job :aspects (mapcan (rcurry #'make-aspect job)
-                          (aspects (parent spec))))))
-
-(defmethod clone ((thing job-spec))
-  (make-instance 'job-spec
-                 :name       (name thing)
-                 :variables  (direct-variables thing)
-                 :conditions (conditions thing)))
+                          (aspects specification-parent)))))
 
 ;;; `template' class
 
@@ -391,11 +364,13 @@
   (:documentation
    "TODO(jmoringe): document"))
 
-(defmethod instantiate ((spec aspect-spec))
+(defmethod instantiate ((spec aspect-spec) &key parent specification-parent)
+  (declare (ignore specification-parent))
   ;; TODO(jmoringe, 2013-01-16): find-aspect-class
   (let* ((class-name (let ((*package* #.*package*))
                        (symbolicate '#:aspect- (string-upcase (aspect spec)))))
          (class      (find-class class-name)))
     (make-instance class
                    :name      (name spec)
-                   :variables (direct-variables spec))))
+                   :parent    parent
+                   :variables (%direct-variables spec))))

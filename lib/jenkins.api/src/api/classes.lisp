@@ -205,7 +205,9 @@
                (print-unreadable-object (object stream :type t :identity t)
                  (let* ((value (,name-slot object))
                         (end   (when (stringp value)
-                                 (or (position #\Newline value) (length value)))))
+                                 (min (or (position #\Newline value)
+                                          (length value))
+                                      30))))
                    (princ (if end (subseq value 0 end) value) stream)))))))))
 
 (defmacro define-interface-implementations ((name

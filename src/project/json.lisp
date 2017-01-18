@@ -111,12 +111,6 @@
                            :variables (value-acons
                                        :__catalog (lookup :catalog spec)
                                        (process-variables (lookup :variables spec))))))
-         ((&flet make-job-spec (spec parent)
-            (make-instance 'job-spec
-                           :name       (lookup :name spec)
-                           :parent     parent
-                           :tags       (lookup :tags spec)
-                           :conditions (lookup :conditions spec))))
          (name (lookup :name)))
     (check-generator-version spec)
     (check-keys spec '(:minimum-generator-version
@@ -139,9 +133,7 @@
                                            (let ((name (lookup :name version)))
                                              (not (funcall version-test name))))
                                          (lookup :versions))
-                              (lookup :versions)))
-       :jobs      (mapcar (rcurry #'make-job-spec instance)
-                          (lookup :jobs))))))
+                              (lookup :versions)))))))
 
 (defun load-project-spec/json (pathname &key version-test)
   (handler-bind ((error (lambda (condition)

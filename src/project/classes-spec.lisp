@@ -81,13 +81,6 @@
               :accessor versions
               :initform '()
               :documentation
-              "")
-   (jobs      :initarg  :jobs
-              :type     list ; of job-spec
-              :reader   jobs
-              :accessor %jobs
-              :initform '()
-              :documentation
               ""))
   (:documentation
    "Instances of this class describe projects.
@@ -137,8 +130,7 @@
                      :key  #'name))
 
 #+no (defmethod jobs ((thing project-spec))
-  (remove-duplicates (append (direct-jobs thing)
-                             (mapcan #'jobs (templates thing)))
+  (remove-duplicates (mapcan #'jobs (templates thing))
                      :test     #'string=
                      :key      #'name
                      :from-end t))

@@ -683,13 +683,15 @@ ${(or ensure-install-directory "# Not creating install directory")}
     ()
   (removef (publishers job) 'publisher/junit :key #'type-of)
   (when-let ((pattern (var/typed :aspect.junit.pattern '(or null string))))
-    (let ((keep-long-stdio?    (var/typed :aspect.junit.keep-long-stdio?    'boolean))
-          (health-scale-factor (var/typed :aspect.junit.health-scale-factor '(or null positive-real))))
+    (let ((keep-long-stdio?     (var/typed :aspect.junit.keep-long-stdio?     'boolean))
+          (health-scale-factor  (var/typed :aspect.junit.health-scale-factor  '(or null positive-real)))
+          (allow-empty-results? (var/typed :aspect.junit.allow-empty-results? 'boolean)))
       (appendf (publishers job)
                (list (make-instance 'publisher/junit
-                                    :pattern             pattern
-                                    :keep-long-stdio?    keep-long-stdio?
-                                    :health-scale-factor health-scale-factor))))))
+                                    :pattern              pattern
+                                    :keep-long-stdio?     keep-long-stdio?
+                                    :health-scale-factor  health-scale-factor
+                                    :allow-empty-results? allow-empty-results?))))))
 
 ;;; Email notification
 

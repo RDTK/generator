@@ -233,7 +233,8 @@
    #:publisher/junit
    #:pattern
    #:keep-long-stdio?
-   #:health-scale-factor)
+   #:health-scale-factor
+   #:allow-empty-results?)
 
   ;; Build
   (:export

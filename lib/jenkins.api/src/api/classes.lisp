@@ -885,14 +885,16 @@
 
   ((junit "hudson.tasks.junit.JUnitResultArchiver"
           :plugin "junit@1.4")
-   ((pattern             :type     string
-                         :xpath    "testResults/text()")
-    (keep-long-stdio?    :type     boolean
-                         :xpath    "keepLongStdio/text()"
-                         :initform nil)
-    (health-scale-factor :type     health-scale-factor
-                         :xpath    "healthScaleFactor/text()"
-                         :initform 1.0))
+   ((pattern              :type     string
+                          :xpath    "testResults/text()")
+    (keep-long-stdio?     :type     boolean
+                          :xpath    "keepLongStdio/text()"
+                          :initform nil)
+    (health-scale-factor  :type     health-scale-factor
+                          :xpath    "healthScaleFactor/text()"
+                          :initform 1.0)
+    (allow-empty-results? :type     boolean
+                          :xpath    "allowEmptyResults/text()"))
    (:name-slot pattern)))
 
 (define-model-class job ()

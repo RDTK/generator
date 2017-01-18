@@ -510,21 +510,21 @@ move ..\*.zip .
          (dependencies      (mapcar #'specification
                                     (list* project-version
                                            (dependencies project-version))))
-         (seen-requirements (make-hash-table :test #'eq))
+         (seen-requirements (make-hash-table :test #'equal))
+         ((&flet make-find (required)
+            #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"))
+         ((&flet make-option (required)
+            (list #?"${required}_DIR" #?"\${${(shellify required)}_DIR}")))
          ((&values finds dir-options/raw)
           (iter outer (for dependency in dependencies)
                 (iter (for required in (requires-of-kind :cmake dependency))
                       (when-let ((provider (find-provider/version
-                                            required :if-does-not-exist nil)))
-                        (unless (gethash provider seen-requirements)
-                          (setf (gethash provider seen-requirements) t)
-                          (let ((required (second required)))
-                            (in outer
-                                (collect #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"
-                                  :into finds)
-                                (collect (list #?"${required}_DIR"
-                                               #?"\${${(shellify required)}_DIR}")
-                                  :into options))))))
+                                            required :if-does-not-exist nil))
+                                 (required (second required)))
+                        (unless (gethash required seen-requirements)
+                          (setf (gethash required seen-requirements) t)
+                          (in outer (collect (make-find required) :into finds)
+                              (collect (make-option required) :into options)))))
                 (finally (return-from outer (values finds options)))))
          (options/raw               (append dir-options/raw
                                             (mapcar #'split-option

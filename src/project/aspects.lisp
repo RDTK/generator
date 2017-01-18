@@ -640,12 +640,13 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 (define-aspect (warnings :job-var job) ()
     ()
-  (with-interface (publishers job) (warnings (publisher/warnings))
-    (iter (for parser in (var/typed :aspect.warnings.parsers 'list))
-          (pushnew (make-instance 'warning-parser/console :name parser)
-                   (console-parsers warnings)
-                   :test #'string=
-                   :key  #'name))))
+  (when-let ((parsers (var/typed :aspect.warnings.parsers 'list)))
+    (with-interface (publishers job) (warnings (publisher/warnings))
+      (iter (for parser in parsers)
+            (pushnew (make-instance 'warning-parser/console :name parser)
+                     (console-parsers warnings)
+                     :test #'string=
+                     :key  #'name)))))
 
 ;;; Checkstyle and PMD aspects
 

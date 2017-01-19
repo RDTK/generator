@@ -896,7 +896,8 @@
                           :xpath    "healthScaleFactor/text()"
                           :initform 1.0)
     (allow-empty-results? :type     boolean
-                          :xpath    "allowEmptyResults/text()"))
+                          :xpath    "allowEmptyResults/text()"
+                          :initform nil))
    (:name-slot pattern)))
 
 (define-model-class job ()

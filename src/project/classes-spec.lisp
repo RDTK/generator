@@ -81,6 +81,13 @@
               :accessor versions
               :initform '()
               :documentation
+              "")
+   (jobs      :initarg  :jobs
+              :type     list ; of job-spec
+              :reader   jobs
+              :accessor %jobs
+              :initform '()
+              :documentation
               ""))
   (:documentation
    "Instances of this class describe projects.

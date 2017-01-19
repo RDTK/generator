@@ -38,6 +38,10 @@
                       [ \\t\\n]+~
                       \"?([$0-9][^ )\"]*)\"?~
                     )?~
+                    (?:~
+                      [^)]+COMPONENTS~
+                      ((?:[ \\t\\n]+\"?[^ \\t\\n)\"]+\"?)*)~
+                    )?~
                     [^)]*~
                   \\)")
    :multi-line-mode       t
@@ -147,16 +151,16 @@
          ((&values project-version components)
           (extract-project-version source)))
 
+    (ppcre:do-register-groups (project) (*project-scanner* source)
+      (pushnew (cons "CMAKE_PROJECT_NAME" project) variables :test #'equal)
+      (pushnew (cons "PROJECT_NAME" project) variables :test #'equal))
+
     (values
      (list
       :versions
       (progn
         (iter (for component in components)
               (pushnew component versions :test #'string= :key #'car))
-
-        (ppcre:do-register-groups (project) (*project-scanner* source)
-          (pushnew (cons "CMAKE_PROJECT_NAME" project) variables :test #'equal)
-          (pushnew (cons "PROJECT_NAME" project) variables :test #'equal))
 
         (let ((found-project-version? project-version)
               (length))
@@ -197,25 +201,36 @@
       :provides
       (remove-duplicates
        (append
-        (iter (for file in config-files)
-              (let* ((name             (cmake-config-file->project-name/dont-normalize file))
-                     (name/lower-case  (string-downcase name))
-                     (name/upper-case  (string-upcase name))
-                     (version/resolved (when project-version
-                                         (%resolve-cmake-variables ; TODO project-version above should get same treatment
-                                          project-version versions
-                                          :if-unresolved nil)))
-                     (version          (with-simple-restart (continue "Continue without version")
-                                         (when (and project-version (not version/resolved))
-                                           (error "~@<Could not resolve project version ~S.~@:>"
-                                                  project-version))
-                                         (when version/resolved
-                                          (parse-version version/resolved)))))
-                (collect (list* :cmake name (when version (list version))))
-                (unless (string= name/upper-case name)
-                  (collect (list* :cmake name/upper-case (when version (list version)))))
-                (unless (string= name/lower-case name)
-                  (collect (list* :cmake name/lower-case (when version (list version)))))))
+        (or (iter (for file in config-files)
+                  (let* ((name             (cmake-config-file->project-name/dont-normalize file))
+                         (name/lower-case  (string-downcase name))
+                         (name/upper-case  (string-upcase name))
+                         (version/resolved (when project-version
+                                             (%resolve-cmake-variables ; TODO project-version above should get same treatment
+                                              project-version versions
+                                              :if-unresolved nil)))
+                         (version          (with-simple-restart (continue "Continue without version")
+                                             (when (and project-version (not version/resolved))
+                                               (error "~@<Could not resolve project version ~S.~@:>"
+                                                      project-version))
+                                             (when version/resolved
+                                               (parse-version version/resolved)))))
+                    (collect (list* :cmake name (when version (list version))))
+                    (unless (string= name/upper-case name)
+                      (collect (list* :cmake name/upper-case (when version (list version)))))
+                    (unless (string= name/lower-case name)
+                      (collect (list* :cmake name/lower-case (when version (list version)))))))
+
+            (when-let ((name (%resolve-cmake-variables ; TODO project-version above should get same treatment
+                              "${CMAKE_PROJECT_NAME}" variables
+                              :if-unresolved nil)))
+              (list (list* :cmake name
+                           (when project-version
+                             (when-let ((resolved (%resolve-cmake-variables ; TODO project-version above should get same treatment
+                                                   project-version versions
+                                                   :if-unresolved nil)))
+                               (list (parse-version resolved))))))))
+
         (iter (for file in pkg-config-template-files)
               (let* ((content (read-file-into-string file))
                      (content (%resolve-cmake-variables content variables)))
@@ -230,27 +245,29 @@
        (iter (for file in (list* main-file extra-files))
              (let ((content (read-file-into-string file)))
                ;; find_package()
-               (ppcre:do-register-groups (name version)
+               (ppcre:do-register-groups (name version components)
                    (*find-package-scanner* content)
-                 (let ((name/resolved    (%resolve-cmake-variables
-                                          name versions :if-unresolved nil))
-                       (version/resolved (when version
-                                           (%resolve-cmake-variables
-                                            version versions :if-unresolved nil))))
-                   (with-simple-restart (continue "Skip the dependency")
-                     (when (not name/resolved)
-                       (error "~@<Could not resolve name ~S in ~
+                 (if (string-equal name "catkin")
+                     (appending (%cmake-analyze-catkin components))
+                     (let ((name/resolved    (%resolve-cmake-variables
+                                              name versions :if-unresolved nil))
+                           (version/resolved (when version
+                                               (%resolve-cmake-variables
+                                                version versions :if-unresolved nil))))
+                       (with-simple-restart (continue "Skip the dependency")
+                         (when (not name/resolved)
+                           (error "~@<Could not resolve name ~S in ~
                                find_package() expression.~@:>"
-                              name))
-                     (with-simple-restart
-                         (continue "Treat the dependency as not versioned")
-                       (when (and version (not version/resolved))
-                         (error "~@<Could not resolve version ~S in ~
+                                  name))
+                         (with-simple-restart
+                             (continue "Treat the dependency as not versioned")
+                           (when (and version (not version/resolved))
+                             (error "~@<Could not resolve version ~S in ~
                                  find_package() expression.~@:>"
-                                version)))
-                     (collect (list* :cmake name/resolved
-                                     (when version/resolved
-                                       (list (parse-version version/resolved))))))))
+                                    version)))
+                         (collect (list* :cmake name/resolved
+                                         (when version/resolved
+                                           (list (parse-version version/resolved)))))))))
                ;; pkg_{check,search}_module()
                (ppcre:do-register-groups (variable modules)
                    (*pkg-check-modules-scanner* content)
@@ -315,3 +332,13 @@
         (extract-dependencies "CPACK_DEBIAN_PACKAGE_RECOMMENDS" :recommends content)
         :dependencies/debian/suggests
         (extract-dependencies "CPACK_DEBIAN_PACKAGE_SUGGESTS" :suggests content))))))
+
+;;; Utility functions
+
+(defun %cmake-analyze-catkin (components)
+  (let ((result '()))
+    (ppcre:do-matches-as-strings (component
+                                  "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
+                                  components)
+      (push (list :cmake component) result))
+    result))

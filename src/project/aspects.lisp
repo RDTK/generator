@@ -507,57 +507,55 @@ move ..\*.zip .
                            :spec-var spec)
     (builder-defining-mixin)
     ()
-  (let+ (((&flet shellify (name)
-           (make-variable/sh (string-upcase name))))
-         (variables       (iter (for variable in (var/typed :aspect.cmake.environment 'list '())) ; TODO check these for validity?
-                                (collect (format nil "export ~A~%" variable))))
-         (build-directory (var/typed :build-dir 'string))
-         ((&flet+ format-option ((name value))
-            (format nil "-D~A=~A \\~%" name value)))
-         (project-version   (parent spec))
-         (dependencies      (mapcar #'specification
-                                    (list* project-version
-                                           (dependencies project-version))))
-         (seen-requirements (make-hash-table :test #'equal))
-         ((&flet make-find (required)
-            #?"${(shellify required)}_DIR=\"\$(find \"${(var/typed :dependency-dir 'string)}\" -type f \\( -name \"${required}Config.cmake\" -o -name \"${(string-downcase required)}-config.cmake\" \\) -exec dirname {} \\; -quit)\"\n"))
-         ((&flet make-option (required)
-            (list #?"${required}_DIR" #?"\${${(shellify required)}_DIR}")))
-         ((&values finds dir-options/raw)
-          (iter outer (for dependency in dependencies)
-                (iter (for required in (requires-of-kind :cmake dependency))
-                      (when-let ((provider (find-provider/version
-                                            required :if-does-not-exist nil))
-                                 (required (second required)))
-                        (unless (gethash required seen-requirements)
-                          (setf (gethash required seen-requirements) t)
-                          (in outer (collect (make-find required) :into finds)
-                              (collect (make-option required) :into options)))))
-                (finally (return-from outer (values finds options)))))
-         (options/raw               (append dir-options/raw
-                                            (mapcar #'split-option
-                                                    (var/typed :aspect.cmake.options 'list '()))))
-         (options                   (mapcar #'format-option options/raw))
-         (cmake-commandline-options (var/typed :aspect.cmake.commandline-options      'list '()))
-         (targets                   (var/typed :aspect.cmake.targets                  'list '()))
-         (make-commandline-options  (var/typed :aspect.cmake.make.commandline-options 'list '()))
+  (push (constraint! (((:after dependency-download)))
+          (shell (:command (wrapped-shell-command (:aspect.cmake)
+                             (var/typed :aspect.cmake.command 'string)))))
+        (builders job)))
 
-         (before-invocation         (var/typed :aspect.cmake.before-invocation 'string ""))
-         (after-invocation          (var/typed :aspect.cmake.after-invocation  'string "")))
+(let+ (((&flet shellify (name)
+          (make-variable/sh (string-upcase name))))
+       ((&flet map-cmake-requirements (function aspect)
+          (let* ((project-version   (parent (parent aspect)))
+                 (dependencies      (mapcar #'specification
+                                            (list* project-version
+                                                   (dependencies project-version))))
+                 (seen-requirements (make-hash-table :test #'equal)))
+            (iter outer (for dependency in dependencies)
+                  (iter (for required in (requires-of-kind :cmake dependency))
+                        (when-let ((provider (find-provider/version
+                                              required :if-does-not-exist nil))
+                                   (required (second required)))
+                          (unless (gethash required seen-requirements)
+                            (setf (gethash required seen-requirements) t)
+                            (in outer (collect (funcall function required))))))))))
+       ((&flet result (name raw)
+          (values (cons name (value-parse raw)) '() t))))
 
-    (push (constraint! (((:after dependency-download)))
-            (shell (:command (wrapped-shell-command (:aspect.cmake)
-                               #?"mkdir -p \"${build-directory}\" && cd \"${build-directory}\"
-rm -f CMakeCache.txt
+  (defmethod lookup ((thing aspect-cmake/unix) (name (eql :aspect.cmake.find-commands))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let+ (((&flet make-find (required)
+              (format nil "~A_DIR=\"$(find \"${dependency-dir}\" ~
+                                           -type f ~
+                                           \\( ~
+                                             -name \"~AConfig.cmake\" ~
+                                             -o -name \"~:*~(~A~)-config.cmake\" ~
+                                           \\) ~
+                                           -exec dirname {} \\; ~
+                                           -quit~
+                                  )\"~%"
+                      (shellify required) required))))
+      (result name (map-cmake-requirements #'make-find thing))))
 
-@{variables}
+  (defmethod lookup ((thing aspect-cmake/unix) (name (eql :aspect.cmake.dir-options))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let+ (((&flet make-option (required)
+              (format nil "~A_DIR=\\${~A_DIR}"
+                      required (shellify required)))))
+      (result name (map-cmake-requirements #'make-option thing)))))
 
-@{finds}
-
-${before-invocation}cmake @{cmake-commandline-options} @{options} ..
-make @{make-commandline-options} # not always necessary, but sometimes, sadly
-make @{make-commandline-options} @{targets}${after-invocation}"))))
-          (builders job))))
+;;; Archive artifacts aspect
 
 (define-aspect (cmake/win32 :job-var job)
     (builder-defining-mixin)

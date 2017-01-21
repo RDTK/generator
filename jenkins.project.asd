@@ -1,6 +1,6 @@
 ;;;; jenkins.project.asd ---
 ;;;;
-;;;; Copyright (C) 2011-2016 Jan Moringen
+;;;; Copyright (C) 2011-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -97,7 +97,10 @@
                 (:version :jenkins.api           "0.1")
 
                 :cl-dot)
-  :components  ((:module     "version"
+  :components  ((:file       "cxml-hack"
+                 :pathname   "src/cxml-patch")
+
+                (:module     "version"
                  :pathname   "src/version"
                  :serial     t
                  :components ((:file     "package")

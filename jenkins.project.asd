@@ -132,6 +132,7 @@
                               (:file     "ant")
                               (:file     "setuptools")
                               (:file     "ros-package")
+                              (:file     "ros-packages")
 
                               ;; Platform analysis
                               (:file     "platform")))

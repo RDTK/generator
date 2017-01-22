@@ -54,7 +54,7 @@
                                                  :if-multiple-matches :all))
         document
       (append `(:versions ((:main ,version))
-                :provides ((:ros-package ,name))
+                :provides ((:ros-package ,name ,(parse-version version)))
                 :requires ,(mapcan (lambda+ ((kind name &optional version))
                                      (when (string= kind "build")
                                        `((:ros-package ,name

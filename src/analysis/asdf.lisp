@@ -83,7 +83,7 @@
          ((&flet maybe-property/first (name)
             (when-let ((value (property-value/first name)))
               `(,name ,value))))
-         ;; Append the value in the analyzed systems.
+         ;; Append the values in the analyzed systems.
          ((&flet property-value/append (name)
             (remove-duplicates (reduce #'append (property-values name)
                                        :key #'second)

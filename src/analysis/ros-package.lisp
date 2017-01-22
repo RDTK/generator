@@ -1,6 +1,6 @@
 ;;;; ros-package.lisp --- Analysis of ROS packages.
 ;;;;
-;;;; Copyright (C) 2013, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2015, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -85,7 +85,7 @@
     (list* name :role role (when email (list :email email)))))
 
 (deftype list/depend ()
-  "(PHASE . DEPENDENCY)
+  "(PHASE DEPENDENCY)
 
    where PHASE is either t, or the name of a phase."
   '(cons string (cons string null)))

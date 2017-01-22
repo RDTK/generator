@@ -55,9 +55,10 @@
         document
       (append `(:versions ((:main ,version))
                 :provides ((:ros-package ,name))
-                :requires ,(mapcan (lambda+ ((kind name))
+                :requires ,(mapcan (lambda+ ((kind name &optional version))
                                      (when (string= kind "build")
-                                       `((:ros-package ,name))))
+                                       `((:ros-package ,name
+                                          ,@(when version `(,(parse-version version)))))))
                                    dependencies))
               (cond
                 (description/long  `(:description ,description/long))
@@ -85,22 +86,25 @@
     (list* name :role role (when email (list :email email)))))
 
 (deftype list/depend ()
-  "(PHASE DEPENDENCY)
+  "(PHASE DEPENDENCY &optional MINIMUM-VERSION)
 
    where PHASE is either t, or the name of a phase."
-  '(cons string (cons string null)))
+  '(cons string (cons string (or null (cons string null)))))
 
 (defmethod xloc:xml-> ((value stp:element) (type (eql 'list/depend))
                        &key
                        inner-types)
   (declare (ignore inner-types))
-  (xloc:with-locations-r/o (((:name name) ".")
-                            (value        "text()"))
+  (xloc:with-locations-r/o
+      (((:name name) ".")
+       (value        "text()")
+       (version>=    "@version_gte" :if-no-match :do-nothing))
       value
     (list (if (string= name "depend")
               t
               (subseq name 0 (- (length name) (length "_depend"))))
-          value)))
+          value
+          version>=)))
 
 (deftype cons/url ()
   '(cons string string))

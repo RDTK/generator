@@ -699,9 +699,12 @@ ${(or ensure-install-directory "# Not creating install directory")}
 (define-aspect (email-notification :job-var job) ()
     ()
   (if-let ((recipients (var/typed :aspect.email-notification.recipients 'list)))
-    (with-interface (publishers job) (publisher (publisher/email-notification
-                                                 :recipients recipients))
-      (declare (ignore publisher)))
+    (let ((send-to-perpetrator? (var/typed :aspect.email-notification.send-to-perpetrator? 'boolean)))
+      (with-interface (publishers job)
+          (publisher (publisher/email-notification
+                      :recipients           recipients
+                      :send-to-individuals? send-to-perpetrator?))
+        (declare (ignore publisher))))
     (removef (publishers job) 'publisher/email-notification :key #'type-of)))
 
 ;;; Debian packaging aspects

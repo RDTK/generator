@@ -493,6 +493,14 @@ move ..\*.zip .
             (shell (:command (wrapped-shell-command (:aspect.shell) command))))
           (builders job))))
 
+;;; Batch aspect
+
+(define-aspect (batch :job-var job) (builder-defining-mixin)
+    ()
+  (when-let ((command (var/typed :aspect.batch.command '(or null string))))
+    (push (constraint! () (batch (:command command)))
+          (builders job))))
+
 ;;; CMake aspects
 
 (define-aspect (cmake/unix :job-var  job
@@ -551,6 +559,15 @@ make @{make-commandline-options} # not always necessary, but sometimes, sadly
 make @{make-commandline-options} @{targets}${after-invocation}"))))
           (builders job))))
 
+(define-aspect (cmake/win32 :job-var job)
+    (builder-defining-mixin)
+    ()
+  (push (constraint! (((:after dependency-download)))
+          (batch (:command (var/typed :aspect.cmake/win32.command 'string))))
+        (builders job)))
+
+;;; Archive artifact
+
 (define-aspect (archive-artifacts :job-var job) ()
     ()
   (when-let ((file-pattern (var/typed :aspect.archive-artifacts.file-pattern '(or null string) nil)))
@@ -558,21 +575,6 @@ make @{make-commandline-options} @{targets}${after-invocation}"))))
                                                 :files        nil
                                                 :only-latest? nil))
       (pushnew file-pattern (files archiver) :test #'string=))))
-
-(define-aspect (cmake/windows) (builder-defining-mixin) ()
-  (push (constraint! ()
-         (batch (:command "setlocal EnableDelayedExpansion
-
-SET COMMON_ROOT=VS%VS_VERSION%COMNTOOLS
-call \"!%COMMON_ROOT%!/vsvars32.bat\"
-
-ECHO %MSVC100_VOL%
-SET VOL_VAR=MSVC%VS_VERSION%_VOL
-
-SET /A TEST_PORT=5000+%VS_VERSION%
-
-call project\build_vs.bat -DCMAKE_BUILD_TYPE=debug -DPROTOBUF_ROOT=\"!%VOL_VAR%!\protobuf\" \"-DRSC_DIR=%WORKSPACE%\upstream\RSC\share\rsc0.9\" \"-DRSBProtocol_DIR=%WORKSPACE%\upstream\RSBProtocol\share\rsbprotocol\" -DSPREAD_ROOT=!%VOL_VAR%!\spread -DTEST_SPREAD_PORT=%TEST_PORT%")))
-        (builders job)))
 
 ;;; Maven aspect
 

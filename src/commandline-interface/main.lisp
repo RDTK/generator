@@ -78,6 +78,8 @@
                :variables (append
                            (jenkins.project::%direct-variables version) ; TODO
                            (apply #'value-acons (append version-variables '(())))
+                           (when scm
+                             (list (value-cons :scm (string-downcase scm))))
                            (when branch-directory
                              (list (value-cons :branch-directory branch-directory)))
                            (when description

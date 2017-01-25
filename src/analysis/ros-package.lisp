@@ -56,7 +56,8 @@
       (append `(:versions ((:main ,version))
                 :provides ((:ros-package ,name ,(parse-version version)))
                 :requires ,(mapcan (lambda+ ((kind name &optional version))
-                                     (when (string= kind "build")
+                                     (when (member kind '("build" "test")
+                                                   :test #'string=)
                                        `((:ros-package ,name
                                           ,@(when version `(,(parse-version version)))))))
                                    dependencies))

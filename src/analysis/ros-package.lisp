@@ -108,7 +108,7 @@
           version>=)))
 
 (deftype cons/url ()
-  '(cons string string))
+  '(cons (or string (eql :default)) string))
 
 (defmethod xloc:xml-> ((value stp:element) (type (eql 'cons/url))
                        &key

@@ -4,29 +4,46 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
+;;;; Partially based on
+;;;; https://github.com/ros-infrastructure/rep/blob/master/rep-0140.rst
+
 (cl:in-package #:jenkins.analysis)
 
 (define-constant +ros-package-name+ "package/name/text()"
-  :test #'string=)
+  :test #'string=
+  :documentation
+  "Name of the package. Required.")
 
 (define-constant +ros-package-version+ "package/version/text()"
-  :test #'string=)
+  :test #'string=
+  :documentation
+  "Version of the package. Required.
+
+   The format is MAJOR.MINOR.PATCH where each part is numeric only.")
 
 (define-constant +ros-package-description/brief+ "package/description/@brief"
   :test #'string=)
 
 (define-constant +ros-package-description/long+ "package/description/text()"
-  :test #'string=)
+  :test #'string=
+  :documentation
+  "Description of the package. Required.
+
+   Can consist of multiple lines and may contain XHTML.")
 
 (define-constant +ros-package-persons+
   "package/*[local-name() = \"author\" or local-name() = \"maintainer\"]"
   :test #'string=)
 
 (define-constant +ros-package-license+ "package/license/text()"
-  :test #'string=)
+  :test #'string=
+  :documentation
+  "Name of license for the package, e.g. BSD, GPL, LGPL. Required.")
 
 (define-constant +ros-package-url+ "package/url"
-  :test #'string=)
+  :test #'string=
+  :documentation
+  "Uniform Resource Locator for associated website, bug tracker etc.")
 
 (define-constant +ros-package-dependencies+
   "package/*[contains(local-name(), \"depend\")]"

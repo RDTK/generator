@@ -205,24 +205,13 @@
          (list* mechanism name
                 (when (first version) (list (first version))))))
 
-  (let ((system-packages   (as (value instance :system-packages '()) 'list))
-        (platform-provides (mapcar (lambda+ ((nature name &optional version))
-                                            `((,(make-keyword (string-upcase nature))
-                                               ,name
-                                               ,@(when version `(,(parse-version version))))
-                                              .
-                                              :system-package))
-                                   (as (value instance :platform-provides '()) 'list))))
-    (setf (%requires instance)
-          (remove-if
-           (lambda+ ((&whole required &ign name &optional version))
-             (or (find (format nil "~(~A~@[-~A~]~)" (rs.f::normalize-name name) version)
-                       system-packages
-                       :test (lambda (a b) (ppcre:scan b a)))
-                 (find-provider/version required
-                                        :providers         platform-provides
-                                        :if-does-not-exist nil)))
-           (%requires instance)))))
+  (setf (%requires instance)
+        (remove-if
+         (lambda+ ((&ign name &optional version))
+           (find (format nil "~(~A~@[-~A~]~)" (rs.f::normalize-name name) version)
+                 (as (value instance :system-packages '()) 'list)
+                 :test (lambda (a b) (ppcre:scan b a))))
+         (%requires instance))))
 
 (defmethod direct-variables ((thing version-spec))
   (value-acons :version-name (name thing)

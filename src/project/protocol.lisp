@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -182,6 +182,15 @@
 (defmethod platform-requires ((object sequence) (platform cons))
   (let ((requirements (mappend (rcurry #'platform-requires platform) object)))
     (remove-duplicates requirements :test #'string=)))
+
+(defun platform-provides (object)
+  (mapcar (lambda+ ((nature name &optional version))
+            `((,(make-keyword (string-upcase nature))
+                ,name
+                ,@(when version `(,(parse-version version))))
+              .
+              :system-package))
+          (as (value object :platform-provides '()) 'list)))
 
 ;;; Access protocol
 

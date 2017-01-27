@@ -51,6 +51,8 @@
                                      (object unsatisfied))
   (make-instance 'cl-dot:node :attributes `(:label "" :shape :none)))
 
+(defstruct (system (:include unsatisfied)))
+
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                           (object jenkins.project::distribution-spec))
   (mapcar #'jenkins.project:implementation (jenkins.project::versions object)))
@@ -59,37 +61,42 @@
                                           (object jenkins.project::project))
   (jenkins.project::versions object))
 
-(flet ((unresolved-depedency (spec kind)
-         (let ((label (format nil "~{~(~A~):~A~^:~{~A~^.~}~}" spec)))
+(flet ((dependency (spec target)
+         (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"
+                              spec)))
            (make-instance 'cl-dot:attributed
-                          :object     (ecase kind
-                                        (:provides (make-provided))
-                                        (:requires (make-unsatisfied)))
+                          :object     target
                           :attributes `(:label ,label
-                                        ,@(ecase kind
-                                            (:provides
+                                        ,@(typecase target
+                                            (provided
                                              `(:color     "green"
                                                :arrowhead :none
                                                :arrowtail :dot
                                                :dir       :both)) ; work around dot bug
-                                            (:requires
+                                            (system
+                                             `(:color     "orange"
+                                               :arrowhead :dot
+                                               :arrowtail :none))
+                                            (unsatisfied
                                              `(:color     "red"
                                                :arrowhead :dot
-                                               :arrowtail :none))))))))
+                                               :arrowtail :none))
+                                            (t
+                                             '())))))))
 
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                             (object jenkins.project::version))
     (let+ ((specification (jenkins.project::specification object))
            (requires      (jenkins.project::requires specification))
-           (unsatisfied   (remove-if (rcurry #'jenkins.project::find-provider/version
-                                             :if-does-not-exist nil)
-                                     requires))
            (relations     '())
            ((&flet add-relation (dependency provide)
               (push provide (cdr (or (assoc dependency relations :test #'eq)
                                      (let ((cell (cons dependency '())))
                                        (push cell relations)
-                                       cell)))))))
+                                       cell))))))
+           (system (make-system)))
+      ;; Resolve requirements using things provided by the
+      ;; distribution.
       (iter (for dependency in (remove-duplicates (jenkins.project::direct-dependencies object))) ; TODO how would there be duplicates?
             (let ((provides (remove (jenkins.project::specification dependency) requires
                                     :test-not #'eq
@@ -98,23 +105,31 @@
 
               (iter (for provide in (or provides '(nil)))
                     (add-relation dependency provide))))
-
-      (append
-       (mapcar (lambda+ ((dependency . provides))
-                 (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"
-                                      provides)))
-                   (make-instance 'cl-dot:attributed
-                                  :object     dependency
-                                  :attributes `(:label ,label))))
-               relations)
-       (mapcar (rcurry #'unresolved-depedency :requires) unsatisfied))))
+      ;; Resolve requirements using things provided by the platform.
+      (mapc (lambda (requirement)
+              (cond
+                ((jenkins.project::find-provider/version
+                  requirement :if-does-not-exist nil))
+                ((jenkins.project::find-provider/version
+                  requirement
+                  :providers         (jenkins.project::platform-provides object)
+                  :if-does-not-exist nil)
+                 (when (eq object (jenkins-dependencies-root graph))
+                   (add-relation system requirement)))
+                (t
+                 (add-relation (make-unsatisfied) requirement))))
+            requires)
+      ;; Make and return edge descriptions.
+      (mapcar (lambda+ ((target . specs))
+                (dependency specs target))
+              relations)))
 
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
                                                 (object jenkins.project::version))
     (let* ((specification (jenkins.project::specification object))
            (provides      (jenkins.project::provides specification)))
       (when (eq object (jenkins-dependencies-root graph))
-        (mapcar (rcurry #'unresolved-depedency :provides) provides)))))
+        (list (dependency provides (make-provided)))))))
 
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
   (with-sequence-progress (:report/graph object)

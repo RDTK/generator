@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -96,14 +96,21 @@
                                             :test #'string= :key #'name))))
                    ((&flet+ order ((&ign . left-provider) (&ign . right-provider))
                       (> (count-jobs left-provider) (count-jobs right-provider))))
-                   (candidate (implementation
-                               (apply #'find-provider/version requires
-                                      (if providers-supplied?
-                                          (list :providers providers)
-                                          (list :order #'order))))))
-              (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-              (unless (eq candidate thing)
-                (pushnew candidate (%direct-dependencies thing))))
+                   (candidate (when-let ((match (apply #'find-provider/version requires
+                                                       :if-does-not-exist nil
+                                                       (if providers-supplied?
+                                                           (list :providers providers)
+                                                           (list :order #'order)))))
+                                (implementation match))))
+              (cond
+                (candidate
+                 (log:trace "~@<Best candidate is ~S.~@:>" candidate)
+                 (unless (eq candidate thing)
+                   (pushnew candidate (%direct-dependencies thing))))
+                (t
+                 (let ((platform-provides (platform-provides thing)))
+                   (find-provider/version
+                    requires :providers platform-provides)))))
           (continue (&optional condition)
             :report (lambda (stream)
                       (format stream "~@<Skip requirement ~S.~@:>"

@@ -1,6 +1,6 @@
 ;;;; conversion.lisp --- Conversions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -386,6 +386,18 @@
 ;;; `access-control-rule'
 
 (deftype access-control-rule ()
+  "Values are of the form
+
+     (SUBJECT (ACTION1 ACTION2 ...))
+
+   where SUBJECT is the name of the user or group as a string and
+   ACTION1, ACTION2, ... are keywords naming the action in question.
+
+   A typical example looks like this:
+
+     (\"joeuser\" (:item :build))
+
+   ."
   `(cons string (cons (cons keyword list) null)))
 
 (defmethod xloc:xml-> ((value stp:element)

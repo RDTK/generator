@@ -45,6 +45,12 @@
   :documentation
   "Uniform Resource Locator for associated website, bug tracker etc.")
 
+(define-constant +ros-package-url/lax+ "package/url[normalize-space(text())]"
+  :test #'string=
+  :documentation
+  "Like `+ros-package-url+' but allow and ignore (nonsensical)
+   <url></url> elements.")
+
 (define-constant +ros-package-dependencies+
   "package/*[contains(local-name(), \"depend\")]"
   :test #'string=)
@@ -65,7 +71,7 @@
                                                  :if-multiple-matches :all)
          (license                                +ros-package-license+
                                                  :if-no-match :do-nothing)
-         ((:val url :type 'cons/url)             +ros-package-url+
+         ((:val url :type 'cons/url)             +ros-package-url/lax+
                                                  :if-multiple-matches :all)
          ((:val dependencies :type 'list/depend) +ros-package-dependencies+
                                                  :if-multiple-matches :all))

@@ -106,16 +106,9 @@
          ;; Compute required and provided systems.
          (requires (property-value/append :requires))
          (provides (property-value/append :provides)))
-    ;; Reduce to effectively required system.
-    (setf requires (set-difference
-                    requires provides
-                    :test (lambda+ ((&ign required-name &optional required-version)
-                                    (&ign provided-name &optional provided-version))
-                            (and (string= required-name provided-name)
-                                 (version-matches required-version provided-version)))))
     (append (list :versions (property-value/first :versions)
                   :provides provides
-                  :requires requires)
+                  :requires (effective-requires requires provides))
             (maybe-property/description :description)
             (maybe-property/append      :authors)
             (maybe-property/append      :maintainers)

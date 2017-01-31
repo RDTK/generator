@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -122,3 +122,13 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
 (defun %print-process-spec (stream spec &optional colon? at?)
   (declare (ignore colon? at?))
   (inferior-shell:print-process-spec spec stream))
+
+;;; Utilities for dependencies
+
+(defun effective-requires (requires provides)
+  (set-difference
+   requires provides
+   :test (lambda+ ((&ign required-name &optional required-version)
+                   (&ign provided-name &optional provided-version))
+           (and (string= required-name provided-name)
+                (version-matches required-version provided-version)))))

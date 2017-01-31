@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -292,46 +292,6 @@
          `((:license . ,license)))))
 
      versions)))
-
-
-
-(defmethod analyze ((directory pathname)
-                    (kind      (eql :cmake/debian))
-                    &key)
-  (let+ (((&values info versions) (analyze directory :cmake))
-
-         ((&flet extract-field (name content)
-            (when-let* ((regex (ppcre:create-scanner
-                                (format nil "set\\(~A[ ]+\"?((?:[^,\"]+[, ]*)*)\"?\\)" name)
-                                :multi-line-mode       t
-                                :case-insensitive-mode t))
-                        (temp  (nth-value 1 (ppcre:scan-to-strings regex content)))
-                        (match (aref temp 0)))
-              (mapcar (curry #'string-trim '(#\Space #\Tab #\Newline))
-                      (split-sequence #\, match)))))
-         ((&flet extract-dependencies (name kind content)
-            (iter (for value in (extract-field name content))
-                  (ppcre:register-groups-bind (name relation version)
-                      ("([^ ]+)(?:[ ]+\\(([<>=]+)[ ]+([0-9.]+)\\))?" value)
-                    (collect (list :debian
-                                   (%resolve-cmake-variables name versions)
-                                   (when version
-                                     (%resolve-cmake-variables version versions))
-                                   (when relation (find-symbol relation :cl))
-                                   kind)))))))
-
-    (append
-     info
-     (when-let* ((file (first
-                        (find-files (merge-pathnames "c*/*ebian*.cmake" directory))))
-                 (content (read-file-into-string file)))
-       (list
-        :dependencies/debian/depends
-        (extract-dependencies "CPACK_DEBIAN_PACKAGE_DEPENDS" :depends content)
-        :dependencies/debian/recommends
-        (extract-dependencies "CPACK_DEBIAN_PACKAGE_RECOMMENDS" :recommends content)
-        :dependencies/debian/suggests
-        (extract-dependencies "CPACK_DEBIAN_PACKAGE_SUGGESTS" :suggests content))))))
 
 ;;; Utility functions
 

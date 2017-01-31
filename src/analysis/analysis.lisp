@@ -1,6 +1,6 @@
 ;;;; analysis.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -23,13 +23,8 @@
        (when (probe-file (merge-pathnames "package.xml" directory) )
          '(:ros-package))
 
-       (cond
-         ((and (probe-file (merge-pathnames "CMakeLists.txt" directory))
-               (directory (merge-pathnames "c*/*ebian*.cmake" directory)))
-          '(:cmake/debian))
-
-         ((probe-file (merge-pathnames "CMakeLists.txt" directory))
-          '(:cmake))))
+       (when (probe-file (merge-pathnames "CMakeLists.txt" directory))
+         '(:cmake)))
 
       '(:freestyle)))
 

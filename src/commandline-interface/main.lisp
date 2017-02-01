@@ -520,7 +520,6 @@
                        "Enable debug mode.")
               (enum    :long-name     "progress-style"
                        :enum          '(:none :cmake :one-line)
-                       :default-value :cmake
                        :description
                        "Progress display style.")
               (flag    :long-name    "non-interactive"

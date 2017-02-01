@@ -11,14 +11,14 @@
 
 (defparameter *set-version-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*([_A-Z]*VERSION[_A-Z]*)[ \\t\\n]+\"?([$0-9][^ )\"]*)\"?[^)]*\\)"
+   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*((?!ENV{)[_A-Z]*VERSION[_A-Z]*)[ \\t\\n]+\"?([$0-9][^ )\"]*)\"?[^)]*\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")
 
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*([^ \\t\\n]*)[ \\t\\n]+\"?([^ \\t\\n)\"]*)\"?[^)]*\\)"
+   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*((?!ENV{)[^ \\t\\n]*)[ \\t\\n]+\"?([^ \\t\\n)\"]*)\"?[^)]*\\)"
    :multi-line-mode       t
    :case-insensitive-mode t)
   "TODO(jmoringe): document")

@@ -715,33 +715,42 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
 (defun call-with-phase-error-check (phase errors set-errors report continuable?
                                     thunk)
-  (prog1
-      (funcall thunk)
-    (when-let* ((errors       (funcall errors))
-                (phase-errors (remove-if (of-type 'phase-condition) errors)))
-      (restart-case
-          (error 'simple-phase-error
-                 :phase            phase
-                 :format-control   "~@<~D error~:P during ~A phase.~@[
-                                    This error is fatal.~]~@:>"
-                 :format-arguments (list (length phase-errors) phase
-                                         (not continuable?)))
-        (continue (&optional condition)
-          :report (lambda (stream)
-                    (format stream "~@<Ignore the error:P in phase ~A ~
-                                    and continue.~@:>"
-                            (length phase-errors) phase))
-          :test   (lambda (condition)
-                    (declare (ignore condition))
-                    continuable?)
-          (declare (ignore condition))
-          (funcall set-errors
-                   (append (set-difference errors phase-errors)
-                           (list (make-condition 'deferred-phase-error
-                                                 :phase      phase
-                                                 :conditions phase-errors))))
-          (funcall report)
-          (funcall set-errors '()))))))
+  (let ((start (get-internal-real-time)))
+    (format t "START ~A~%" phase)
+    (unwind-protect
+         (prog1
+             (funcall thunk)
+           (when-let* ((errors       (funcall errors))
+                       (phase-errors (remove-if (of-type 'phase-condition) errors)))
+             (restart-case
+                 (error 'simple-phase-error
+                        :phase            phase
+                        :format-control   "~@<~D error~:P during ~A phase.~@[ ~
+                                           This error is fatal.~]~@:>"
+                        :format-arguments (list (length phase-errors) phase
+                                                (not continuable?)))
+               (continue (&optional condition)
+                 :report (lambda (stream)
+                           (format stream "~@<Ignore the error:P in phase ~A ~
+                                           and continue.~@:>"
+                                   (length phase-errors) phase))
+                 :test   (lambda (condition)
+                           (declare (ignore condition))
+                           continuable?)
+                 (declare (ignore condition))
+                 (funcall set-errors
+                          (append (set-difference errors phase-errors)
+                                  (list (make-condition 'deferred-phase-error
+                                                        :phase      phase
+                                                        :conditions phase-errors))))
+                 (terpri)
+                 (funcall report)
+                 (funcall set-errors '())))))
+      (let ((end (get-internal-real-time)))
+        (format t "~&END   ~A, ~,3F second~:P~2%"
+                phase
+                (/ (- end start)
+                   internal-time-units-per-second))))))
 
 (defmacro with-phase-error-check ((phase errors set-errors report
                                    &key

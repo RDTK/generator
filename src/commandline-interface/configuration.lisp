@@ -1,6 +1,6 @@
 ;;;; configuration.lisp --- Configuration for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -20,7 +20,7 @@
   ("debug"            :type 'boolean :default nil
                       :documentation
                       "Enable debug mode.")
-  ("progress-style"   :type '(member :none :cmake)
+  ("progress-style"   :type '(member :none :cmake :one-line)
                       :default :cmake
                       :documentation
                       "Progress display style.")

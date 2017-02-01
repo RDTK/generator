@@ -519,7 +519,7 @@
                        :description
                        "Enable debug mode.")
               (enum    :long-name     "progress-style"
-                       :enum          '(:none :cmake)
+                       :enum          '(:none :cmake :one-line)
                        :default-value :cmake
                        :description
                        "Progress display style.")
@@ -869,7 +869,21 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                  (:none)
                                  (:cmake
                                   (princ condition)
-                                  (fresh-line))))))))
+                                  (fresh-line))
+                                 (:one-line
+                                  (let* ((progress      (progress-condition-progress condition))
+                                         (progress/real (progress->real progress))
+                                         (width    20))
+                                    (format t "~C[2K[~VA] ~A~C[G"
+                                            #\Escape
+                                            width
+                                            (make-string (floor progress/real (/ width))
+                                                         :initial-element #\#)
+                                            condition
+                                            #\Escape)
+                                    (if (eq progress t)
+                                        (terpri)
+                                        (force-output))))))))))
           (lparallel:task-handler-bind ((error effective-error-policy)
                                         (more-conditions:progress-condition
                                          (lambda (condition)

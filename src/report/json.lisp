@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Report analysis results.
 ;;;;
-;;;; Copyright (C) 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -36,9 +36,12 @@
                                                (versions object)))))
       (json:as-object-member ("projects" target)
         (json:with-array (target)
-          (dolist (project projects)
-            (json:as-array-member (target)
-              (report project style target))))))))
+          (with-sequence-progress (:report/json projects)
+            (dolist (project projects)
+              (progress "~/print-items:format-print-items/"
+                        (print-items:print-items project))
+              (json:as-array-member (target)
+                (report project style target)))))))))
 
 ;; Describe project in separate file. Currently not used.
 (defmethod report ((object jenkins.project::project-spec)
@@ -96,13 +99,13 @@
     (json:with-object (stream)
       (loop :for (key . raw) :in (remove-duplicates
                                   (variables object)
-                                  :key #'car :from-end t) :do
-               (json:as-object-member ((string-downcase key) stream)
-                 (json:with-object (stream)
-                   ; (json:encode-object-member "raw" raw stream)
-                   (handler-case
-                       (let ((value (value object key)))
-                         (json:encode-object-member "value" value stream))
-                     (error (condition)
-                       (let ((error (princ-to-string condition)))
-                         (json:encode-object-member "error" error stream))))))))))
+                                  :key #'car :from-end t)
+         :do (json:as-object-member ((string-downcase key) stream)
+               (json:with-object (stream)
+                 ;; (json:encode-object-member "raw" raw stream)
+                 (handler-case
+                     (let ((value (value object key)))
+                       (json:encode-object-member "value" value stream))
+                   (error (condition)
+                     (let ((error (princ-to-string condition)))
+                       (json:encode-object-member "error" error stream))))))))))

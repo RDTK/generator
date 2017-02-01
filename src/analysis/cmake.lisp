@@ -9,19 +9,6 @@
 (defparameter *main-cmake-file-name* "CMakeLists.txt"
   "TODO(jmoringe): document")
 
-(defparameter *set-version-scanner*
-  (ppcre:create-scanner
-   (format nil "^[ \\t]*set[ \\t\\n]*\\(~
-                  [ \\t\\n]*((?!ENV{)[_A-Z]*VERSION[_A-Z]*)~
-                  [ \\t\\n]+\"?~
-                    ([$0-9][^ )\"]*)~
-                  \"?~
-                  [^)]*~
-                \\)")
-   :multi-line-mode       t
-   :case-insensitive-mode t)
-  "Finds set(<name>_VERSION <version>) calls.")
-
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner
    (format nil "^[ \\t]*set[ \\t\\n]*\\(~
@@ -47,6 +34,15 @@
    :case-insensitive-mode t)
   "Finds project(<name> …) calls.")
 
+(defparameter *subdirectory-scanner*
+  (ppcre:create-scanner
+   (format nil "^[ \\t]*(?:subdirs|add_subdirectory)[ \\t\\n]*\\(~
+                  ([^)]*)~
+                \\)")
+   :multi-line-mode       t
+   :case-insensitive-mode t)
+  "Finds add_subdirectory(<name> …) calls.")
+
 (defparameter *find-package-scanner*
   (ppcre:create-scanner
    (format nil "^[ \\t]*find_package[ \\t\\n]*\\(~
@@ -57,7 +53,20 @@
                   )?~
                   (?:~
                     [^)]+COMPONENTS~
-                    ((?:[ \\t\\n]+\"?[^ \\t\\n)\"]+\"?)*)~
+                    ((?:[ \\t\\n]+\"?~
+                      (?!(?:EXACT|QUIET|CONFIG|NO_MODULE|NO_POLICY_SCOPE~
+                            |NAMES|CONFIGS|HINTS|PATHS|PATH_SUFFIXES~
+                            |NO_DEFAULT_PATH|NO_CMAKE_ENVIRONMENT_PATH~
+                            |NO_CMAKE_PATH|NO_SYSTEM_ENVIRONMENT_PATH~
+                            |NO_CMAKE_PACKAGE_REGISTRY|NO_CMAKE_BUILDS_PATH~
+                            |NO_CMAKE_SYSTEM_PATH~
+                            |NO_CMAKE_SYSTEM_PACKAGE_REGISTRY~
+                            |CMAKE_FIND_ROOT_PATH_BOTH~
+                            |ONLY_CMAKE_FIND_ROOT_PATH~
+                            |NO_CMAKE_FIND_ROOT_PATH)
+                         [ \\t\\n)])~
+                      [^ \\t\\n)\"]+~
+                    \"?)*)~
                   )?~
                   [^)]*~
                 \\)")
@@ -69,13 +78,18 @@
   (ppcre:create-scanner
    (format nil "^[ \\t]*pkg_(?:check|search)_modules?[ \\t\\n]*\\(~
                   [ \\t\\n]*~
-                  ([-_.A-Za-z0-9]+)~
+                    ([-_.A-Za-z0-9]+)~
                   (?:~
                     [ \\t\\n]+~
-                    (?:REQUIRED|QUIET)~
+                      (?:REQUIRED|QUIET)~
                   )*~
-                  [ \\t\\n]*~
-                  ([-_.A-Za-z0-9${}<>=]*)~
+                  ((?:~
+                    [ \\t\\n]+\"?~
+                      (?!(?:REQUIRED|QUIET)[ \\t\\n)])~
+                      [^ \\t\\n)\"]+~
+                    \"?~
+                  )*)~
+                  [^)]*~
                 \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
@@ -86,9 +100,20 @@
                         (nth-value 1 (ppcre:scan-to-strings
                                       *pkg-check-modules-scanner* input)))))
       '(("pkg_check_modules(FOO REQUIRED QUIET bar)"
-         #("FOO" "bar"))
+         #("FOO" " bar"))
         ("pkg_check_modules(BIOROB_CPP REQUIRED biorob-cpp-0.3>=0.3.1)"
-         #("BIOROB_CPP" "biorob-cpp-0.3>=0.3.1"))))
+         #("BIOROB_CPP" " biorob-cpp-0.3>=0.3.1"))
+        ("PKG_CHECK_MODULES(GSTREAMER REQUIRED
+           \"gstreamer-${GSTREAMER_VERSION_SUFFIX}\"
+           \"gstreamer-base-${GSTREAMER_VERSION_SUFFIX}\"
+           \"gstreamer-audio-${GSTREAMER_VERSION_SUFFIX}\")"
+         #("GSTREAMER"
+           "
+           \"gstreamer-${GSTREAMER_VERSION_SUFFIX}\"
+           \"gstreamer-base-${GSTREAMER_VERSION_SUFFIX}\"
+           \"gstreamer-audio-${GSTREAMER_VERSION_SUFFIX}\""))
+        ("pkg_check_modules(foo REQUIRED foo bar QUIET)"
+         #("foo" " foo bar"))))
 
 (defparameter *project-version-scanner*
   (ppcre:create-scanner
@@ -108,218 +133,358 @@
    :case-insensitive-mode t)
   "Finds define_project_version(…) calls.")
 
-(defun format-version (major &optional minor patch)
-  (format nil "~D~{~@[.~D~]~}" major (list minor patch)))
-
-(defun find-cmake-files (directory)
-  (values
-   (or (probe-file (merge-pathnames *main-cmake-file-name* directory))
-       (error "~@<Could not find main ~S file in ~S.~@:>"
-              *main-cmake-file-name* directory))
-   (find-files (merge-pathnames "*/**/CMakeLists.txt" directory))))
-
-(defun find-cmake-config-files (directory)
-  (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
-          (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
-
-(defun find-pkg-config-template-files (directory)
-  (find-files (merge-pathnames #P"**/*.pc.*" directory)))
-
-(defun cmake-config-file->project-name/dont-normalize (pathname)
+(defun cmake-config-file->project-name (pathname)
   (ppcre:regex-replace "(.*)(?:Config|-config)(?:\\..+)"
                        (pathname-name pathname)
                        "\\1"))
 
-(defun cmake-config-file->project-name (pathname &rest args)
-  (apply #'rs.f::normalize-name
-         (ppcre:regex-replace "(.*)(?:Config|-config)(?:\\..+)"
-                              (pathname-name pathname)
-                              "\\1")
-         args))
+(defun format-version (major &optional minor patch)
+  (format nil "~D~{~@[.~D~]~}" major (list minor patch)))
 
 (defun extract-project-version (source)
   (ppcre:register-groups-bind (prefix major minor patch)
       (*project-version-scanner* source)
+    (log:debug "~@<Found define_project_version(…) call with prefix ~S ~
+                version components ~S ~S ~S~@:>"
+              prefix major minor patch)
     (let+ (((&flet make-component (name value)
-              (cons (format nil "~AVERSION_~A" prefix name) value))))
-      (values (format-version major minor patch)
+              (list (format nil "~AVERSION~@[_~A~]" prefix name) value)))
+           (version (format-version major minor patch)))
+      (values version
               (mapcar #'make-component
-                      (list "MAJOR" "MINOR" "PATCH")
-                      (list major minor patch))))))
+                      (list "MAJOR" "MINOR" "PATCH" nil)
+                      (list major   minor   patch   version))))))
 
-(defun %resolve-cmake-variables (spec versions &key (if-unresolved :partial))
+(defun %cmake-resolve-variables (spec variables &key (if-unresolved :partial))
   (iter (repeat 32)
         (while (or (find #\$ spec) (find #\@ spec)))
-        (iter (for (name . value) in versions)
+        (iter (for (name . value) in variables)
               (when value
                 (setf spec (ppcre:regex-replace-all
-                            (list :sequence "${" name "}") spec value))
+                            `(:sequence "${" ,name "}") spec value))
                 (setf spec (ppcre:regex-replace-all
-                            (list :sequence "@" name "@") spec value))))
+                            `(:sequence "@" ,name "@") spec value))))
         (finally (return (cond
                            ((not (ppcre:scan "[${}@]" spec))
                             spec)
+                           ((functionp if-unresolved)
+                            (funcall if-unresolved spec))
                            ((eq if-unresolved :partial)
                             spec)
                            (t
                             if-unresolved))))))
 
-(defmethod analyze ((directory pathname)
-                    (kind      (eql :cmake))
+(defun %cmake-resolution-error (thing context)
+  (error "~@<Could not resolve ~S in ~A.~@:>"
+         thing context))
+
+(defun %cmake-continuable-resolution-error (context report)
+  (lambda (expression)
+    (if report
+        (with-simple-restart (continue report)
+          (%cmake-resolution-error expression context))
+        (%cmake-resolution-error expression context))))
+
+(defmethod analyze ((source pathname) (kind (eql :cmake))
                     &key)
-  (let+ ((versions '())
-         (variables '())
-         ((&values main-file extra-files) (find-cmake-files directory))
-         (pkg-config-template-files (find-pkg-config-template-files directory))
-         (source (read-file-into-string* main-file))
+  ;; Remove the internal-use :secondary-files property.
+  (remove-from-plist (analyze source :cmake/one-directory) :secondary-files))
 
-         (config-files (find-cmake-config-files directory))
+(defmethod analyze ((source pathname) (kind (eql :cmake/one-directory))
+                    &key
+                    parent-variables)
+  (log:info "~@<Analyzing directory ~S~@:>" source)
+  (let+ ((lists-file (merge-pathnames *main-cmake-file-name* source))
+         ((&values (&plist-r/o (provides :provides) (requires :requires))
+                   variables
+                   sub-directories)
+          (analyze lists-file :cmake/one-file
+                   :parent-variables parent-variables))
+         (project-version (third (first provides)))
+         ;; Analyze sub-projects.
+         (sub-projects
+          (mapcan (lambda (directory)
+                    (when (uiop:directory-exists-p directory)
+                      (with-simple-restart
+                          (continue "~@<Skip sub-directory ~S~@:>" directory)
+                        (list (analyze directory kind
+                                       :parent-variables variables)))))
+                  sub-directories))
+         ((&flet property-values (name)
+            (loop :for project       in sub-projects
+                  :for project-name  = (second (first (getf project :provides)))
+                  :for project-value = (getf project name)
+                  :when project-value
+                  :collect (list project-name project-value))))
+         ;; Append the values in the analyzed projects.
+         ((&flet property-value/append (name)
+            (remove-duplicates (reduce #'append (property-values name)
+                                       :key #'second)
+                               :test #'equal)))
+         ((&flet property-value/dependencies (name &key (test #'version>=))
+            (let ((all (reduce #'append (property-values name) :key #'second)))
+              (merge-dependencies all :test test))))
+         (sub-provides        (property-value/dependencies :provides))
+         (sub-requires        (property-value/dependencies :requires))
+         (sub-secondary-files (property-value/append :secondary-files))
+         ;; Analyze CMake config-mode template files and pkg-config
+         ;; template files not already covered by sub-projects.
+         ((&flet analyze-secondary (files kind)
+            (iter (for file in files)
+                  (log:info "~@<Analyzing secondary file ~S~@:>" file)
+                  (with-simple-restart (continue "Skip file ~S" file)
+                    (appending (analyze file kind
+                                        :variables       variables
+                                        :project-version project-version))))))
+         (config-mode-files    (%cmake-find-config-mode-templates source))
+         (config-mode-provides (analyze-secondary
+                                (set-difference
+                                 config-mode-files sub-secondary-files
+                                 :test #'equalp)
+                                :cmake/config-mode-template))
+         (pkg-config-files     (%cmake-find-pkg-config-template-files source))
+         (pkg-config-provides  (analyze-secondary
+                                (set-difference
+                                 pkg-config-files sub-secondary-files
+                                 :test #'equalp)
+                                :cmake/pkg-config-template))
+         ;; Compute effective requires and provides.
+         (provides             (merge-dependencies
+                                (append provides sub-provides
+                                        config-mode-provides
+                                        pkg-config-provides)))
+         (requires             (merge-dependencies
+                                (append requires sub-requires))))
+    `(:provides        ,provides
+      :requires        ,(effective-requires requires provides)
+      :secondary-files ,(append config-mode-files pkg-config-files))))
 
+(defmethod analyze ((source pathname)
+                    (kind   (eql :cmake/one-file))
+                    &key
+                    (parent-variables '()))
+  (let+ ((content (read-file-into-string* source))
          ((&values project-version components)
-          (extract-project-version source)))
+          (extract-project-version content))
+         (variables parent-variables)
+         ((&flet add-variable! (name value)
+            (log:trace "~@<Adding variable ~A = ~A~@:>" name value)
+            (push (cons name value) variables)))
+         ((&flet find-variable (name &key (test #'string=))
+            (cdr (find name variables :test test :key #'car)))))
+    ;; Collect all variables.
+    (ppcre:do-register-groups (key value) (*set-variable-scanner* content)
+      (add-variable! key value))
+    ;; Collect variables for project(…) calls.
+    (ppcre:do-register-groups (project) (*project-scanner* content)
+      (log:debug "~@<Found project(…) call with name ~S~@:>" project)
+      (add-variable! "CMAKE_PROJECT_NAME" project)
+      (add-variable! "PROJECT_NAME"       project))
+    ;; If we found a define_project_version(…) call, use the versions
+    ;; defined there.
+    (mapc (curry #'apply #'add-variable!) components)
 
-    (ppcre:do-register-groups (project) (*project-scanner* source)
-      (pushnew (cons "CMAKE_PROJECT_NAME" project) variables :test #'equal)
-      (pushnew (cons "PROJECT_NAME" project) variables :test #'equal))
-
-    (iter (for component in components)
-          (pushnew component versions :test #'string= :key #'car))
-
-    (let ((found-project-version? project-version)
-          (length))
-      (ppcre:do-register-groups (version value)
-          (*set-version-scanner* source)
-        (when (and (not found-project-version?)
-                   (or  (not length)
-                        (< (length version) length))
-                   #+no (not (ppcre:scan "(_MAJOR|_MINOR|_PATCH)$" version))
-                   (ends-with-subseq "VERSION" version :test #'string-equal)
-                   (some (lambda (file)
-                           (let* ((name1 (cmake-config-file->project-name file))
-                                  (name2 (cmake-config-file->project-name file :separator nil)))
-                             (or (starts-with-subseq name1 (rs.f::normalize-name version))
-                                 (starts-with-subseq name2 (rs.f::normalize-name version)))))
-                         config-files))
-          (setf length          (length version)
-                project-version value))
-        (pushnew (cons version value) versions :test #'equal)))
-
-    (ppcre:do-register-groups (key value)
-        (*set-variable-scanner* source)
-      (pushnew (cons key value) variables :test #'equal))
-
-    (unless project-version
-      (let ((major (cdr (find "VERSION_MAJOR$" versions
-                              :test #'ppcre:scan :key  #'car)))
-            (minor (cdr (find "VERSION_MINOR$" versions
-                              :test #'ppcre:scan :key  #'car)))
-            (patch (cdr (find "VERSION_PATCH$" versions
-                              :test #'ppcre:scan :key  #'car))))
-
-        (when major
-          (setf project-version (format-version major minor patch)))))
-
-    (values
-     (list
-      :provides
-      (merge-dependencies
-       (append
-        (or (iter (for file in config-files)
-                  (let* ((name             (cmake-config-file->project-name/dont-normalize file))
-                         (name/lower-case  (string-downcase name))
-                         (name/upper-case  (string-upcase name))
-                         (version/resolved (when project-version
-                                             (%resolve-cmake-variables ; TODO project-version above should get same treatment
-                                              project-version versions
-                                              :if-unresolved nil)))
-                         (version          (with-simple-restart (continue "Continue without version")
-                                             (when (and project-version (not version/resolved))
-                                               (error "~@<Could not resolve project version ~S.~@:>"
-                                                      project-version))
-                                             (when version/resolved
-                                               (parse-version version/resolved)))))
-                    (collect (list* :cmake name (when version (list version))))
-                    (unless (string= name/upper-case name)
-                      (collect (list* :cmake name/upper-case (when version (list version)))))
-                    (unless (string= name/lower-case name)
-                      (collect (list* :cmake name/lower-case (when version (list version)))))))
-
-            (when-let ((name (%resolve-cmake-variables ; TODO project-version above should get same treatment
+    ;; Compute and resolve name and version, analyze find_package(…)
+    ;; and pkg_(search|check)_module(…) calls.
+    (let+ (((&flet find/suffix (name)
+              (find-variable name :test #'ends-with-subseq)))
+           (name/resolved    (%cmake-resolve-variables
                               "${CMAKE_PROJECT_NAME}" variables
-                              :if-unresolved nil)))
-              (list (list* :cmake name
-                           (when project-version
-                             (when-let ((resolved (%resolve-cmake-variables ; TODO project-version above should get same treatment
-                                                   project-version versions
-                                                   :if-unresolved nil)))
-                               (list (parse-version resolved))))))))
+                              :if-unresolved nil))
+           (version          (or project-version
+                                 (find/suffix "VERSION")
+                                 (let+ (((major minor patch)
+                                         (mapcar #'find/suffix
+                                                 '("VERSION_MAJOR"
+                                                   "VERSION_MINOR"
+                                                   "VERSION_PATCH"))))
+                                   (when major
+                                     (format-version major minor patch)))))
+           (version/resolved (%cmake-resolve-variables
+                              version variables :if-unresolved nil)))
+      (values
+       (list
+        :provides (when name/resolved
+                    (list (%cmake-make-dependency name/resolved version/resolved)))
+        :requires (append (%cmake-analyze-find-packages content variables)
+                          (%cmake-analyze-pkg-configs content variables)))
+       variables
+       (%cmake-analyze-sub-directories
+        content variables
+        (uiop:pathname-directory-pathname source))))))
 
-        (iter (for file in pkg-config-template-files)
-              (let* ((content (read-file-into-string file))
-                     (content (%resolve-cmake-variables content variables)))
-                (when-let* ((result (with-input-from-string (stream content)
-                                      (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
-                            (provides (getf result :provides)))
-                  (appending provides))))))
+(defun %cmake-analyze-sub-directory (arguments variables directory)
+  (let+ (((&flet resolve (expression &optional continue-report)
+            (%cmake-resolve-variables
+             expression variables
+             :if-unresolved (%cmake-continuable-resolution-error
+                             "subdirs(…) or add_subdirectory(…) expression"
+                             continue-report))))
+         (arguments          (%cmake-split-arguments arguments))
+         (arguments/resolved (mapcar (rcurry #'resolve "Ignore the module")
+                                     arguments)))
+    (log:debug "~@<Found subdirs(…) or add_subdirectory(…) call with ~
+                director~@P ~{~{~S~^ → ~S~}~^, ~}~@:>"
+              (length arguments)
+              (mapcar #'%cmake-list-unless-equal
+                      arguments arguments/resolved))
+    (mapcan (lambda (sub-directory)
+              (when sub-directory
+                (list (merge-pathnames
+                       (make-pathname :directory `(:relative ,sub-directory))
+                       directory))))
+            arguments/resolved)))
 
-      :requires
-      (merge-dependencies
-       (iter (for file in (list* main-file extra-files))
-             (let ((content (read-file-into-string file)))
-               ;; find_package()
-               (ppcre:do-register-groups (name version components)
-                   (*find-package-scanner* content)
-                 (if (string-equal name "catkin")
-                     (appending (%cmake-analyze-catkin components))
-                     (let ((name/resolved    (%resolve-cmake-variables
-                                              name versions :if-unresolved nil))
-                           (version/resolved (when version
-                                               (%resolve-cmake-variables
-                                                version versions :if-unresolved nil))))
-                       (with-simple-restart (continue "Skip the dependency")
-                         (when (not name/resolved)
-                           (error "~@<Could not resolve name ~S in ~
-                               find_package() expression.~@:>"
-                                  name))
-                         (with-simple-restart
-                             (continue "Treat the dependency as not versioned")
-                           (when (and version (not version/resolved))
-                             (error "~@<Could not resolve version ~S in ~
-                                 find_package() expression.~@:>"
-                                    version)))
-                         (collect (list* :cmake name/resolved
-                                         (when version/resolved
-                                           (list (parse-version version/resolved)))))))))
-               ;; pkg_{check,search}_module()
-               (ppcre:do-register-groups (variable modules)
-                   (*pkg-check-modules-scanner* content)
-                 (declare (ignore variable))
-                 (ppcre:do-matches-as-strings (module
-                                               "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
-                                               modules)
-                   (let+ ((module (string-trim '(#\") module))
-                          (resolved (%resolve-cmake-variables module variables))
-                          ((name &optional version)
-                           (or (ppcre:register-groups-bind (name version)
-                                   ("([^>=]+)>=(.*)" resolved)
-                                 (list name version))
-                               (list resolved))))
-                     (collect (list* :pkg-config name
-                                     (when version (list (parse-version version)))))))))))
+(defun %cmake-analyze-sub-directories (content variables directory)
+  (let ((result '()))
+    (ppcre:do-register-groups (arguments)
+        (*subdirectory-scanner* content)
+      (with-simple-restart (continue "Skip the dependency")
+        (appendf result (%cmake-analyze-sub-directory
+                         arguments variables directory))))
+    result))
 
-      :properties
-      (append
-       (when-let ((license (analyze directory :license)))
-         `((:license . ,license)))))
+(defun %cmake-analyze-find-package (name version components variables)
+  (let+ (((&flet resolve (expression &optional continue-report)
+            (%cmake-resolve-variables
+             expression variables
+             :if-unresolved (%cmake-continuable-resolution-error
+                             "find_package(…) expression"
+                             continue-report))))
+         (name/resolved       (resolve name))
+         (version/resolved    (when version
+                                (resolve version "Treat the dependency as not versioned")))
+         (components          (%cmake-split-arguments components))
+         (components/resolved (mapcar (rcurry #'resolve "Ignore the component")
+                                      components)))
+    (log:debug "~@<Found find_package(…) call with ~
+                ~{~S~^ → ~S~}~
+                ~@[ version ~{~S~^ → ~S~}~]~
+                ~@[ components ~{~{~S~^ → ~S~}~^, ~}~]~@:>"
+               (%cmake-list-unless-equal name name/resolved)
+               (%cmake-list-unless-equal version version/resolved)
+               (mapcar #'%cmake-list-unless-equal
+                       components components/resolved))
+    (if (string-equal name "catkin")
+        (mapcar #'%cmake-make-dependency (remove nil components/resolved))
+        (list (%cmake-make-dependency name/resolved version/resolved)))))
 
-     versions)))
+(defun %cmake-analyze-find-packages (content variables)
+  (let ((result '()))
+    (ppcre:do-register-groups (name version components)
+        (*find-package-scanner* content)
+      (with-simple-restart (continue "Skip the dependency")
+        (appendf result (%cmake-analyze-find-package
+                         name version components variables))))
+    result))
+
+(defun %cmake-parse-pkg-config-module (spec)
+  (ppcre:register-groups-bind (name version) ("([^>=]+)>=(.*)" spec)
+    (return-from %cmake-parse-pkg-config-module (values name version)))
+  spec)
+
+(defun %cmake-analyze-pkg-config (variable modules variables)
+  (let+ (((&flet resolve (expression &optional continue-report)
+            (%cmake-resolve-variables
+             expression variables
+             :if-unresolved (%cmake-continuable-resolution-error
+                             "pkg_(search|check)_module(…) expression"
+                             continue-report))))
+         (modules          (%cmake-split-arguments modules))
+         (modules/resolved (mapcar (rcurry #'resolve "Ignore the module")
+                                   modules)))
+    (log:debug "~@<Found pkg_(search|check)_module(…) call with ~
+                output ~S modules ~{~{~S~^ → ~S~}~^, ~}~@:>"
+               variable
+               (mapcar #'%cmake-list-unless-equal
+                       modules modules/resolved))
+    (mapcan (lambda (module)
+              (when module
+                (with-simple-restart (continue "Skip module ~S" module)
+                  (let+ (((&values name version)
+                          (%cmake-parse-pkg-config-module module)))
+                    (list (%cmake-make-dependency name version :pkg-config))))))
+            modules/resolved)))
+
+(defun %cmake-analyze-pkg-configs (content variables)
+  (let ((result '()))
+    (ppcre:do-register-groups (variable modules)
+        (*pkg-check-modules-scanner* content)
+      (with-simple-restart (continue "Skip the dependency")
+        (appendf result (%cmake-analyze-pkg-config
+                         variable modules variables))))
+    result))
+
+;;; CMake Config-mode Template Files
+
+(defun %cmake-find-config-mode-templates (directory)
+  (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
+          (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
+
+(defmethod analyze ((source pathname)
+                    (kind   (eql :cmake/config-mode-template))
+                    &key
+                    project-version)
+  (let ((name (cmake-config-file->project-name source)))
+    (%cmake-make-dependencies name :version project-version)))
+
+;;; pkg-config Template Files
+
+(defun %cmake-find-pkg-config-template-files (directory)
+  (find-files (merge-pathnames #P"**/*.pc.*" directory)))
+
+(defmethod analyze ((source pathname)
+                    (kind   (eql :cmake/pkg-config-template))
+                    &key
+                    variables)
+  (let* ((name    (first (split-sequence #\. (pathname-name source))))
+         (content (read-file-into-string source))
+         (content (%cmake-resolve-variables content variables)))
+    (when-let* ((result (with-input-from-string (stream content)
+                          (analyze stream :pkg-config :name name))))
+      (getf result :provides))))
 
 ;;; Utility functions
 
-(defun %cmake-analyze-catkin (components)
+(defun %cmake-make-dependency (name &optional version (nature :cmake))
+  (list* nature name (typecase version
+                       (string (list (parse-version version)))
+                       (cons   (list version)))))
+
+(defun %cmake-make-dependencies (name
+                                 &key
+                                 version
+                                 (add-lower-case? t)
+                                 (add-upper-case? t))
+  (let ((name/lower-case (when add-lower-case?
+                           (string-downcase name)))
+        (name/upper-case (when add-upper-case?
+                           (string-upcase name))))
+    (append
+     (list (%cmake-make-dependency name version))
+     (when (and name/lower-case (string/= name/lower-case name))
+       (list (%cmake-make-dependency name/lower-case version)))
+     (when (and name/upper-case (string/= name/upper-case name))
+       (list (%cmake-make-dependency name/upper-case version))))))
+
+(defun %cmake-project-version-from-variables (versions)
+  (let+ (((&flet find-component (name)
+            (cdr (find (format nil "VERSION_~A" name) versions
+                       :test #'ends-with-subseq :key #'car))))
+         ((major minor patch)
+          (mapcar #'find-component '("MAJOR" "MINOR" "PATCH"))))
+    (when major
+      (log:debug "~@<Found version in variables ~A~@[.~A~@[.~A~]~]~@:>"
+                 major minor patch)
+      (format-version major minor patch))))
+
+(defun %cmake-split-arguments (arguments)
   (let ((result '()))
-    (ppcre:do-matches-as-strings (component
-                                  "(?:\"[^\"]*\"|[^ \\t\\n\"]+)"
-                                  components)
-      (push (list :cmake component) result))
-    result))
+    (ppcre:do-matches-as-strings
+        (argument "(?:\"[^\"]*\"|[^ \\t\\n\"]+)" arguments)
+      (push (string-trim '(#\") argument) result))
+    (nreverse result)))
+
+(defun %cmake-list-unless-equal (first second)
+  (when first
+    (list* first (unless (equal first second) (list second)))))

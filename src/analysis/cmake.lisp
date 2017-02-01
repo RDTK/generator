@@ -119,7 +119,6 @@
    (find-files (merge-pathnames "*/**/CMakeLists.txt" directory))))
 
 (defun find-cmake-config-files (directory)
-  "TODO(jmoringe): document"
   (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
           (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
 

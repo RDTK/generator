@@ -11,42 +11,59 @@
 
 (defparameter *set-version-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*((?!ENV{)[_A-Z]*VERSION[_A-Z]*)[ \\t\\n]+\"?([$0-9][^ )\"]*)\"?[^)]*\\)"
+   (format nil "^[ \\t]*set[ \\t\\n]*\\(~
+                  [ \\t\\n]*((?!ENV{)[_A-Z]*VERSION[_A-Z]*)~
+                  [ \\t\\n]+\"?~
+                    ([$0-9][^ )\"]*)~
+                  \"?~
+                  [^)]*~
+                \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds set(<name>_VERSION <version>) calls.")
 
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*set[ \\t\\n]*\\([ \\t\\n]*((?!ENV{)[^ \\t\\n]*)[ \\t\\n]+\"?([^ \\t\\n)\"]*)\"?[^)]*\\)"
+   (format nil "^[ \\t]*set[ \\t\\n]*\\(~
+                  [ \\t\\n]*((?!ENV{)[^ \\t\\n]*)~
+                  [ \\t\\n]+\"?~
+                    ([^ \\t\\n)\"]*)~
+                  \"?~
+                  [^)]*~
+                \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds set(<name> <value>) calls.")
 
 (defparameter *project-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*project[ \\t\\n]*\\([ \\t]*([^ )]*)[^)]*\\)"
+   (format nil "^[ \\t]*project[ \\t\\n]*\\(~
+                  [ \\t\\n]*\"?~
+                    ([^ \\t\\n)\"]*)~
+                  \"?~
+                  [^)]*~
+                \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds project(<name> …) calls.")
 
 (defparameter *find-package-scanner*
   (ppcre:create-scanner
-   #.(format nil "^[ \\t]*find_package[ \\t\\n]*\\(~
-                    [ \\t\\n]*([-_.A-Za-z0-9${}]+)~
-                    (?:~
-                      [ \\t\\n]+~
-                      \"?([$0-9][^ )\"]*)\"?~
-                    )?~
-                    (?:~
-                      [^)]+COMPONENTS~
-                      ((?:[ \\t\\n]+\"?[^ \\t\\n)\"]+\"?)*)~
-                    )?~
-                    [^)]*~
-                  \\)")
+   (format nil "^[ \\t]*find_package[ \\t\\n]*\\(~
+                  [ \\t\\n]*([-_.A-Za-z0-9${}]+)~
+                  (?:~
+                    [ \\t\\n]+~
+                    \"?([$0-9][^ )\"]*)\"?~
+                  )?~
+                  (?:~
+                    [^)]+COMPONENTS~
+                    ((?:[ \\t\\n]+\"?[^ \\t\\n)\"]+\"?)*)~
+                  )?~
+                  [^)]*~
+                \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds find_package(…) calls.")
 
 (defparameter *pkg-check-modules-scanner* ; TODO semantics: check requires all modules; search requires at least one
   (ppcre:create-scanner
@@ -62,7 +79,7 @@
                 \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds pkg_{check,search}_module(…) calls.")
 
 (mapc (lambda+ ((input expected))
         (assert (equalp expected
@@ -75,10 +92,21 @@
 
 (defparameter *project-version-scanner*
   (ppcre:create-scanner
-   "^[ \\t]*define_project_version\\(([_A-Z]+)[ \\t]+\"?([$0-9][^ )\"]*)\"?[ \\t]+\"?([$0-9][^ )\"]*)\"?[ \\t]+\"?([$0-9][^ )\"]*)\"?"
+   (format nil "^[ \\t]*define_project_version\\(~
+                  [ \\t\\n]*~
+                    ([_A-Z]+)~
+                  [ \\t\\n]+\"?~
+                    ([$0-9][^ )\"]*)~
+                  \"?~
+                  [ \\t\\n]+\"?~
+                    ([$0-9][^ )\"]*)~
+                  \"?~
+                  [ \\t\\n]+\"?~
+                    ([$0-9][^ )\"]*)~
+                  \"?")
    :multi-line-mode       t
    :case-insensitive-mode t)
-  "TODO(jmoringe): document")
+  "Finds define_project_version(…) calls.")
 
 (defun format-version (major &optional minor patch)
   (format nil "~D~{~@[.~D~]~}" major (list minor patch)))

@@ -81,6 +81,9 @@
             (remove-duplicates (reduce #'append (property-values name)
                                        :key #'second)
                                :test #'equal)))
+         ((&flet property-value/dependencies (name)
+            (merge-dependencies
+             (reduce #'append (property-values name) :key #'second))))
          ((&flet maybe-property/append (name)
             (when-let ((value (property-value/append name)))
               `(,name ,value))))
@@ -97,8 +100,8 @@
                                          ~{~{~A: ~A~}~^~2%~}"
                                     (sort values #'string< :key #'first))))))))
          ;; Compute required and provided systems.
-         (requires (property-value/append :requires))
-         (provides (property-value/append :provides)))
+         (requires (property-value/dependencies :requires))
+         (provides (property-value/dependencies :provides)))
     `(:provides ,provides
       :requires ,(effective-requires requires provides)
       ,@(maybe-property/description :description)

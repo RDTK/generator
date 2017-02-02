@@ -1,6 +1,6 @@
 ;;;; maven.lisp --- Analysis of maven projects.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -106,13 +106,12 @@
                                   (and (eq              mechanism1 mechanism2)
                                        (string=         name1      name2)
                                        (version-matches version1   version2)))))
-          (append (list :versions `((:main ,name+version)) ; TODO remove
-                        :provides provides
-                        :requires requires)
-                  (when description `(:description ,description))
-                  (when url         `(:url         ,url))
-                  (when license     `(:license     ,license))
-                  (when properties  `(:properties  ,properties))))))))
+          `(:provides ,provides
+            :requires ,requires
+            ,@(when description `(:description ,description))
+            ,@(when url         `(:url         ,url))
+            ,@(when license     `(:license     ,license))
+            ,@(when properties  `(:properties  ,properties))))))))
 
 ;;; Utility functions
 

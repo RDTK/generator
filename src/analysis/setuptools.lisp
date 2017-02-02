@@ -172,17 +172,10 @@
                               (append
                                (argument "setup_requires" t)
                                (argument "install_requires" t)))))
-    (append
-     (list :versions `((:main . ,version))
-           :provides `((:setuptools ,name ,version))
-           :requires requires)
-     (when description
-       `(:description ,description))
-     (when keywords
-       `(:keywords ,keywords))
-     (when url
-       `(:url ,url))
-     (when authors
-       `(:authors ,authors))
-     (when license
-       `(:license ,license)))))
+    `(:provides ((:setuptools ,name ,version))
+      :requires ,requires
+      ,@(when description `(:description ,description))
+      ,@(when keywords    `(:keywords    ,keywords))
+      ,@(when url         `(:url         ,url))
+      ,@(when authors     `(:authors     ,authors))
+      ,@(when license     `(:license     ,license)))))

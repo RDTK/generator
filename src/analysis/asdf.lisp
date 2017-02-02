@@ -43,18 +43,16 @@
                                         defsystem-depends-on
                                         depends-on
                                         &allow-other-keys))
-            (append
-             (list :versions `((:main . ,(process-version version)))
-                   :provides `((:asdf
-                                ,(string-downcase name)
-                                ,(process-version version)))
-                   :requires (mapcar #'dependency->list
-                                     (append defsystem-depends-on
-                                             depends-on)))
-             (when description `(:description ,description))
-             (when author      `(:authors (,author)))
-             (when maintainer  `(:maintainers (,maintainer)))
-             (when license     `(:license ,license))))))
+            `(:provides ((:asdf
+                          ,(string-downcase name)
+                          ,(process-version version)))
+              :requires ,(mapcar #'dependency->list
+                                 (append defsystem-depends-on
+                                         depends-on))
+              ,@(when description `(:description ,description))
+              ,@(when author      `(:authors     (,author)))
+              ,@(when maintainer  `(:maintainers (,maintainer)))
+              ,@(when license     `(:license     ,license))))))
     (mapcar #'process-system-form (%extract-system-definition-forms file))))
 
 (defmethod analyze ((directory pathname)
@@ -101,13 +99,12 @@
          ;; Compute required and provided systems.
          (requires (property-value/append :requires))
          (provides (property-value/append :provides)))
-    (append (list :versions (property-value/first :versions)
-                  :provides provides
-                  :requires (effective-requires requires provides))
-            (maybe-property/description :description)
-            (maybe-property/append      :authors)
-            (maybe-property/append      :maintainers)
-            (maybe-property/first       :license))))
+    `(:provides ,provides
+      :requires ,(effective-requires requires provides)
+      ,@(maybe-property/description :description)
+      ,@(maybe-property/append      :authors)
+      ,@(maybe-property/append      :maintainers)
+      ,@(maybe-property/first       :license))))
 
 ;;; Utility functions
 

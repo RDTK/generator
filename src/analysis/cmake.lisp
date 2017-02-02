@@ -182,49 +182,45 @@
       (pushnew (cons "CMAKE_PROJECT_NAME" project) variables :test #'equal)
       (pushnew (cons "PROJECT_NAME" project) variables :test #'equal))
 
+    (iter (for component in components)
+          (pushnew component versions :test #'string= :key #'car))
+
+    (let ((found-project-version? project-version)
+          (length))
+      (ppcre:do-register-groups (version value)
+          (*set-version-scanner* source)
+        (when (and (not found-project-version?)
+                   (or  (not length)
+                        (< (length version) length))
+                   #+no (not (ppcre:scan "(_MAJOR|_MINOR|_PATCH)$" version))
+                   (ends-with-subseq "VERSION" version :test #'string-equal)
+                   (some (lambda (file)
+                           (let* ((name1 (cmake-config-file->project-name file))
+                                  (name2 (cmake-config-file->project-name file :separator nil)))
+                             (or (starts-with-subseq name1 (rs.f::normalize-name version))
+                                 (starts-with-subseq name2 (rs.f::normalize-name version)))))
+                         config-files))
+          (setf length          (length version)
+                project-version value))
+        (pushnew (cons version value) versions :test #'equal)))
+
+    (ppcre:do-register-groups (key value)
+        (*set-variable-scanner* source)
+      (pushnew (cons key value) variables :test #'equal))
+
+    (unless project-version
+      (let ((major (cdr (find "VERSION_MAJOR$" versions
+                              :test #'ppcre:scan :key  #'car)))
+            (minor (cdr (find "VERSION_MINOR$" versions
+                              :test #'ppcre:scan :key  #'car)))
+            (patch (cdr (find "VERSION_PATCH$" versions
+                              :test #'ppcre:scan :key  #'car))))
+
+        (when major
+          (setf project-version (format-version major minor patch)))))
+
     (values
      (list
-      :versions
-      (progn
-        (iter (for component in components)
-              (pushnew component versions :test #'string= :key #'car))
-
-        (let ((found-project-version? project-version)
-              (length))
-          (ppcre:do-register-groups (version value)
-              (*set-version-scanner* source)
-            (when (and (not found-project-version?)
-                       (or  (not length)
-                            (< (length version) length))
-                       #+no (not (ppcre:scan "(_MAJOR|_MINOR|_PATCH)$" version))
-                       (ends-with-subseq "VERSION" version :test #'string-equal)
-                       (some (lambda (file)
-                               (let* ((name1 (cmake-config-file->project-name file))
-                                      (name2 (cmake-config-file->project-name file :separator nil)))
-                                 (or (starts-with-subseq name1 (rs.f::normalize-name version))
-                                     (starts-with-subseq name2 (rs.f::normalize-name version)))))
-                             config-files))
-              (setf length          (length version)
-                    project-version value))
-            (pushnew (cons version value) versions :test #'equal)))
-
-        (ppcre:do-register-groups (key value)
-            (*set-variable-scanner* source)
-          (pushnew (cons key value) variables :test #'equal))
-
-        (unless project-version
-          (let ((major (cdr (find "VERSION_MAJOR$" versions
-                                  :test #'ppcre:scan :key  #'car)))
-                (minor (cdr (find "VERSION_MINOR$" versions
-                                  :test #'ppcre:scan :key  #'car)))
-                (patch (cdr (find "VERSION_PATCH$" versions
-                                  :test #'ppcre:scan :key  #'car))))
-
-            (when major
-              (setf project-version (format-version major minor patch)))))
-
-        `((:main ,(%resolve-cmake-variables project-version versions))))
-
       :provides
       (remove-duplicates
        (append

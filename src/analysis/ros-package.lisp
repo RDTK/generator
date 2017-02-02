@@ -76,23 +76,23 @@
          ((:val dependencies :type 'list/depend) +ros-package-dependencies+
                                                  :if-multiple-matches :all))
         document
-      (append `(:versions ((:main ,version))
-                :provides ((:ros-package ,name ,(parse-version version)))
-                :requires ,(mapcan (lambda+ ((kind name &optional version))
-                                     (when (member kind '("build" "test")
-                                                   :test #'string=)
-                                       `((:ros-package ,name
-                                          ,@(when version `(,(parse-version version)))))))
-                                   dependencies))
-              (cond
-                (description/long  `(:description ,description/long))
-                (description/brief `(:description ,description/brief)))
-              (when url     `(:url ,(cdr (first url))))
-              (when license `(:license ,license))
-              (when persons `(:authors ,(mapcar (lambda+ ((name &key role email))
-                                                  (declare (ignore role))
-                                                  (format nil "~A~@[ <~A>~]" name email))
-                                                persons)))))))
+      `(:provides ((:ros-package ,name ,(parse-version version)))
+        :requires ,(mapcan (lambda+ ((kind name &optional version))
+                             (when (member kind '("build" "test")
+                                           :test #'string=)
+                               `((:ros-package ,name
+                                               ,@(when version `(,(parse-version version)))))))
+                           dependencies)
+        ,@(cond
+            (description/long  `(:description ,description/long))
+            (description/brief `(:description ,description/brief)))
+        ,@(when url `(:url ,(cdr (first url))))
+        ,@(when license `(:license ,license))
+        ,@(when persons
+            `(:authors ,(mapcar (lambda+ ((name &key role email))
+                                  (declare (ignore role))
+                                  (format nil "~A~@[ <~A>~]" name email))
+                                persons)))))))
 
 ;;; Conversion helpers
 

@@ -99,15 +99,8 @@
           ;; Since sub-modules can depend on each other, remove
           ;; requirements that are provided by the project (including
           ;; sub-modules).
-          (setf requires (set-difference
-                          requires provides
-                          :test (lambda+ ((mechanism1 name1 &optional version1)
-                                          (mechanism2 name2 &optional version2))
-                                  (and (eq              mechanism1 mechanism2)
-                                       (string=         name1      name2)
-                                       (version-matches version1   version2)))))
           `(:provides ,provides
-            :requires ,requires
+            :requires ,(effective-requires requires provides)
             ,@(when description `(:description ,description))
             ,@(when url         `(:url         ,url))
             ,@(when license     `(:license     ,license))

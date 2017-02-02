@@ -222,7 +222,7 @@
     (values
      (list
       :provides
-      (remove-duplicates
+      (merge-dependencies
        (append
         (or (iter (for file in config-files)
                   (let* ((name             (cmake-config-file->project-name/dont-normalize file))
@@ -260,11 +260,10 @@
                 (when-let* ((result (with-input-from-string (stream content)
                                       (analyze stream :pkg-config :name (first (split-sequence #\. (pathname-name file))))))
                             (provides (getf result :provides)))
-                  (appending provides)))))
-       :test #'equal)
+                  (appending provides))))))
 
       :requires
-      (remove-duplicates
+      (merge-dependencies
        (iter (for file in (list* main-file extra-files))
              (let ((content (read-file-into-string file)))
                ;; find_package()
@@ -306,8 +305,7 @@
                                  (list name version))
                                (list resolved))))
                      (collect (list* :pkg-config name
-                                     (when version (list (parse-version version))))))))))
-       :test #'equal)
+                                     (when version (list (parse-version version)))))))))))
 
       :properties
       (append

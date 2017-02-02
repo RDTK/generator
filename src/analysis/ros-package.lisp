@@ -58,6 +58,14 @@
 (defmethod analyze ((directory pathname)
                     (kind      (eql :ros-package))
                     &key)
+  (let ((package.xml-info (analyze directory :ros-package.xml))
+        (cmake-info       (analyze directory :cmake)))
+    `(:requires ,(getf cmake-info :requires)
+      ,@(remove-from-plist package.xml-info :requires))))
+
+(defmethod analyze ((directory pathname)
+                    (kind      (eql :ros-package.xml))
+                    &key)
   (let* ((package-file (merge-pathnames "package.xml" directory))
          (document     (cxml:parse package-file (stp:make-builder))))
     (xloc:with-locations-r/o

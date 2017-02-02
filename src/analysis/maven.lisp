@@ -79,8 +79,8 @@
                 (let+ ((sub-directory (merge-pathnames (concatenate 'string name "/") directory))
                        ((&plist-r/o (provides :provides) (requires :requires))
                         (analyze sub-directory :maven)))
-                  (unionf sub-provides provides :test #'equal)
-                  (unionf sub-requires requires :test #'equal))))
+                  (appendf sub-provides provides)
+                  (appendf sub-requires requires))))
              ((&flet+ process-dependency ((name version1))
                 (list* :maven (%resolve-maven-value name #'property-value)
                        (when version1
@@ -91,11 +91,13 @@
         ;; `sub-requires'.
         (mapc #'process-sub-project modules)
         ;; Combine results for "main module" and sub-modules.
-        (let ((provides `(,(process-dependency name+version)
-                          ,@sub-provides))
-              (requires `(,@(mapcar (compose #'process-dependency #'id->name+version)
-                                    dependencies)
-                          ,@sub-requires)))
+        (let ((provides (merge-dependencies
+                         `(,(process-dependency name+version)
+                            ,@sub-provides)))
+              (requires (merge-dependencies
+                         `(,@(mapcar (compose #'process-dependency #'id->name+version)
+                                     dependencies)
+                             ,@sub-requires))))
           ;; Since sub-modules can depend on each other, remove
           ;; requirements that are provided by the project (including
           ;; sub-modules).

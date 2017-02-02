@@ -301,14 +301,11 @@
       (mapcan
        (lambda (version)
          (progress "~A" version)
-         (restart-case
-             (list (analyze-version version))
-           (continue (&optional condition)
-             :report (lambda (stream)
-                       (format stream "~<Ignore ~A and continue with ~
-                                       the next version.~@:>"
-                               version))
-             (declare (ignore condition)))))
+         (with-simple-restart
+             (continue "~<Ignore ~A and continue with the next ~
+                        version.~@:>"
+                       version)
+           (list (analyze-version version))))
        versions))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/authors))

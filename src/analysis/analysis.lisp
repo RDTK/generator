@@ -88,14 +88,10 @@
 
 (defmethod analyze ((source pathname) (kind cons) &rest args &key)
   (mapcan (lambda (kind)
-            (restart-case
-                (list (apply #'analyze source kind args))
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~@<Do not analyze ~A with ~
-                                          nature ~A~@:>"
-                                  source kind))
-                (declare (ignore condition)))))
+            (with-simple-restart (continue "~@<Do not analyze ~A with ~
+                                            nature ~A~@:>"
+                                           source kind)
+              (list (apply #'analyze source kind args))))
           kind))
 
 (defmethod analyze ((source pathname) (kind (eql :freestyle))

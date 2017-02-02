@@ -63,13 +63,8 @@
   (let+ ((systems
           (iter (for file in (find-files (merge-pathnames "*.asd" directory)))
                 (log:info "~@<Analyzing ~S.~@:>" file)
-                (restart-case
-                    (appending (analyze file :asdf/one-file))
-                  (continue (&optional condition)
-                    :report (lambda (stream)
-                              (format stream "~@<Skip file ~S.~@:>"
-                                      file))
-                    (declare (ignore condition))))))
+                (with-simple-restart (continue "~@<Skip file ~S.~@:>" file)
+                  (appending (analyze file :asdf/one-file)))))
          ((&flet property-values (name)
             (loop :for system       in systems
                   :for system-name  = (second (first (getf system :provides)))

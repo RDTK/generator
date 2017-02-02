@@ -1,6 +1,6 @@
 ;;;; mercurial.lisp --- Support for the mercurial DVCS.
 ;;;;
-;;;; Copyright (C) 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2014, 2015, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -40,33 +40,27 @@
            (with-sequence-progress (:analyze/version versions)
              (iter (for version in versions)
                    (progress "~A" version)
-
-                   (restart-case
-                       (progn
-                         (let ((commit (or (getf version :commit)
-                                           (getf version :tag)
-                                           (getf version :branch)
-                                           (error "~@<No commit, tag or ~
+                   (with-simple-restart
+                       (continue "~<Ignore ~A and continue with the ~
+                                  next version.~@:>"
+                                 version)
+                       (let ((commit (or (getf version :commit)
+                                         (getf version :tag)
+                                         (getf version :branch)
+                                         (error "~@<No commit, tag or ~
                                                  branch specified in ~
                                                  ~S~@:>"
-                                                  version))))
+                                                version))))
 
-                           (%run-mercurial `("checkout" ,commit) clone-directory)
+                         (%run-mercurial `("checkout" ,commit) clone-directory)
 
-                           (let ((result (list* :scm              :mercurial
-                                                :branch-directory nil
-                                                (analyze-directory analyze-directory))))
-                             (unless (getf result :authors)
-                               (setf (getf result :authors)
-                                     (analyze clone-directory :mercurial/authors)))
-                             (collect (cons version result)))))
-                     (continue (&optional condition)
-                       :report (lambda (stream)
-                                 (format stream "~<Ignore ~A and ~
-                                                 continue with the ~
-                                                 next version.~@:>"
-                                         version))
-                       (declare (ignore condition)))))))
+                         (let ((result (list* :scm              :mercurial
+                                              :branch-directory nil
+                                              (analyze-directory analyze-directory))))
+                           (unless (getf result :authors)
+                             (setf (getf result :authors)
+                                   (analyze clone-directory :mercurial/authors)))
+                           (collect (cons version result))))))))
 
       (when (probe-file clone-directory)
         (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))

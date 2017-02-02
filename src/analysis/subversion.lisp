@@ -1,6 +1,6 @@
 ;;;; subversion.lisp --- Analyze subversion repositories.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -94,14 +94,11 @@
     (with-sequence-progress (:analyze/branch locations)
       (iter (for (version directory commit) in locations)
             (progress "~A" version)
-            (restart-case
-                (collect (analyze-location version directory commit))
-              (continue (&optional condition)
-                :report (lambda (stream)
-                          (format stream "~<Ignore ~A and continue ~
-                                          with the next branch.~@:>"
-                                  version))
-                (declare (ignore condition))))))))
+            (with-simple-restart
+                (continue "~<Ignore ~A and continue with the next ~
+                           branch.~@:>"
+                          version)
+              (collect (analyze-location version directory commit)))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/authors))
                     &key

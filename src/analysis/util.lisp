@@ -128,7 +128,8 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
 (defun effective-requires (requires provides)
   (set-difference
    requires provides
-   :test (lambda+ ((&ign required-name &optional required-version)
-                   (&ign provided-name &optional provided-version))
-           (and (string= required-name provided-name)
+   :test (lambda+ ((required-nature required-name &optional required-version)
+                   (provided-nature provided-name &optional provided-version))
+           (and (eq              required-nature  provided-nature)
+                (string=         required-name    provided-name)
                 (version-matches required-version provided-version)))))

@@ -133,3 +133,16 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
            (and (eq              required-nature  provided-nature)
                 (string=         required-name    provided-name)
                 (version-matches required-version provided-version)))))
+
+(defun merge-dependencies (dependencies &key (test #'version>=))
+  (let ((seen (make-hash-table :test #'equal)))
+    (iter (for dependency in dependencies)
+          (let+ (((nature name &optional version) dependency)
+                 (key (cons nature name)))
+            (setf (gethash key seen)
+                  (let ((current (gethash key seen)))
+                    (if (or (not current)
+                            (funcall test version (third current)))
+                        dependency
+                        current)))))
+    (hash-table-values seen)))

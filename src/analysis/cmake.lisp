@@ -52,9 +52,10 @@
                     \"?([$0-9][^ )\"]*)\"?~
                   )?~
                   (?:~
-                    [^)]+COMPONENTS~
+                    [^)]*?~
+                    (?:[ \\t\\n]+COMPONENTS)?~
                     ((?:[ \\t\\n]+\"?~
-                      (?!(?:EXACT|QUIET|CONFIG|NO_MODULE|NO_POLICY_SCOPE~
+                      (?!(?:EXACT|QUIET|REQUIRED|CONFIG|NO_MODULE|NO_POLICY_SCOPE~
                             |NAMES|CONFIGS|HINTS|PATHS|PATH_SUFFIXES~
                             |NO_DEFAULT_PATH|NO_CMAKE_ENVIRONMENT_PATH~
                             |NO_CMAKE_PATH|NO_SYSTEM_ENVIRONMENT_PATH~
@@ -63,10 +64,10 @@
                             |NO_CMAKE_SYSTEM_PACKAGE_REGISTRY~
                             |CMAKE_FIND_ROOT_PATH_BOTH~
                             |ONLY_CMAKE_FIND_ROOT_PATH~
-                            |NO_CMAKE_FIND_ROOT_PATH)
+                            |NO_CMAKE_FIND_ROOT_PATH)~
                          [ \\t\\n)])~
                       [^ \\t\\n)\"]+~
-                    \"?)*)~
+                    \"?)+)~
                   )?~
                   [^)]*~
                 \\)")

@@ -250,7 +250,7 @@ ${(make-move-stuff-upwards/unix components)}")))
 
 (define-aspect (subversion :job-var job :aspect-var aspect) () ()
 
-  (let* ((url          (var/typed :aspect.subversion.url 'string))
+  (let* ((url          (var/typed :aspect.subversion.url      'string))
          (revision     (var/typed :aspect.subversion.revision '(or null string) nil))
          (url/parsed   (puri:uri url))
          (url/parsed   (puri:copy-uri

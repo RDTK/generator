@@ -145,11 +145,11 @@
                 (t
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
-    (with-augmented-trace (name thing raw)
-      (with-expansion-stack (name thing)
-        (if defined?
-            (expand (cdr raw) (make-lookup raw/next-values))
-            (values (if (functionp default) (funcall default) default) t)))))) ; TODO function business
+    (if defined?
+        (with-augmented-trace (name thing raw)
+          (with-expansion-stack (name thing)
+            (expand (cdr raw) (make-lookup raw/next-values))))
+        (values (if (functionp default) (funcall default) default) t)))) ; TODO function business
 
 ;;; Casts
 

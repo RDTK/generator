@@ -11,16 +11,6 @@
 
 ;;; Input
 
-(defun load-templates (files)
-  (with-sequence-progress (:templates files)
-    (mapcan (lambda (file)
-              (progress "~S" file)
-              (with-simple-restart
-                  (continue "~@<Skip template specification ~S.~@:>" file)
-                (list (load-template/json
-                       file :generator-version *generator-version*))))
-            files)))
-
 (defun check-platform-requirements
     (distributions
      &key
@@ -628,7 +618,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                      (t
                                                       (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
 
-                     (templates     (with-phase-error-check
+                     #+no (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
                                       (sort (locate-specifications :template template-pattern)
                                             #'string< :key #'pathname-name)))
@@ -651,6 +641,11 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                                                (make-pathname :name      nil
                                                                                               :type      nil
                                                                                               :directory '(:relative :back "projects"))
+                                                                               (first distributions))
+                                                                              (merge-pathnames
+                                                                               (make-pathname :name      nil
+                                                                                              :type      nil
+                                                                                              :directory `(:relative :back "templates" ,mode))
                                                                                (first distributions)))))
                          (locations         (make-instance 'rs.f:location-repository))
                          (builder           (service-provider:make-provider 'rs.m.d::builder
@@ -659,7 +654,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                                             :resolver   resolver
                                                                             :locations  locations))
 
-                         (templates         (with-phase-error-check
+                         #+no (templates         (with-phase-error-check
                                                 (:load/template #'errors #'(setf errors) #'report
                                                  :continuable? nil)
                                               (load-templates templates)))

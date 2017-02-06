@@ -1,6 +1,6 @@
 ;;;; variable-evaluation.lisp --- Evaluation of value expressions.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,6 +26,19 @@
 ;;;;   on `lookup' to resolve variable references.
 
 (cl:in-package #:jenkins.project)
+
+(defvar *stack* '())
+
+(defun call-with-expansion-stack (thunk name thing)
+  (let ((key (list name thing)))
+    (when (find key *stack* :test #'equal)
+      (error 'expression-cycle-error
+             :path (reverse (list* key *stack*))))
+    (let ((*stack* (list* key *stack*)))
+      (funcall thunk))))
+
+(defmacro with-expansion-stack ((name thing) &body body)
+  `(call-with-expansion-stack (lambda () ,@body) ,name ,thing))
 
 (defmethod lookup ((thing t) (name t)
                    &key
@@ -133,9 +146,10 @@
                  (error "~@<No next value for ~A.~@:>"
                         name)))))))
     (with-augmented-trace (name thing raw)
-      (if defined?
-          (expand (cdr raw) (make-lookup raw/next-values))
-          (values (if (functionp default) (funcall default) default) t))))) ; TODO function business
+      (with-expansion-stack (name thing)
+        (if defined?
+            (expand (cdr raw) (make-lookup raw/next-values))
+            (values (if (functionp default) (funcall default) default) t)))))) ; TODO function business
 
 ;;; Casts
 

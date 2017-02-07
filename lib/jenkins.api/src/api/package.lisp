@@ -71,6 +71,7 @@
    #:block-on-upstream-build?
    #:can-roam?
    #:restrict-to-slaves
+   #:disabled?
 
    #:properties     #:properties-of-type
    #:triggers       #:triggers-of-type ; Interface-based children

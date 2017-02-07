@@ -920,6 +920,8 @@
 
 (define-model-class job ()
     ((description                :type     string)
+     (disabled?                  :type     boolean
+                                 :xpath    "disabled/text()")
      (keep/days                  :type     (or (eql -1) positive-integer)
                                  :xpath    "logRotator/daysToKeep/text()")
      (keep/count                 :type     (or (eql -1) positive-integer)

@@ -19,7 +19,6 @@
   <description/>
   <keepDependencies>false</keepDependencies>
   <canRoam>true</canRoam>
-  <disabled>true</disabled>
   <actions/>
   <properties/>
   <logRotator>

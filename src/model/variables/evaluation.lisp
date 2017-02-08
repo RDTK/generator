@@ -70,7 +70,8 @@
 
 (defun drill-down (path value)
   (reduce (lambda (key value)
-            (cdr (assoc key value)))
+            (check-type value (or null variable-expression-alist))
+            (cdr (assoc key (cdr value))))
           path :initial-value value :from-end t))
 
 (defun collapse (thing)

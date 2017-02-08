@@ -13,42 +13,35 @@
       thing))
 
 (esrap:defrule escaped-syntactic-character
-    (and #\\ (or #\$ #\@ #\} #\)))
+    (and #\\ (or #\$ #\@ #\}))
   (:function second))
 
 (esrap:defrule uninterpreted-$-or-@
     (and (or #\$ #\@) (esrap:! (or #\{ #\()))
   (:function first))
 
+(esrap:defrule text-character
+    (or escaped-syntactic-character
+        uninterpreted-$-or-@
+        (not (or #\$ #\@))))
+
 (esrap:defrule text
-    (+ (or escaped-syntactic-character
-           uninterpreted-$-or-@
-           (not (or #\$ #\@))))
+    (+ text-character)
   (:text t))
 
-(esrap:defrule variable-reference/content
-    (+ (not (or #\| #\} #\$ #\@)))
+(esrap:defrule reference-expr/content
+    (+ (and (esrap:! (or #\| #\})) text-character))
   (:text t))
-
-(esrap:defrule text/ended-by-}
-    (and (+ (or escaped-syntactic-character (not (or #\$ #\@ #\}))))
-         (esrap:& #\}))
-  (:function first)
-  (:text t))
-
-(esrap:defrule text/not-started-by-{
-    (and (esrap:! #\}) text)
-  (:function second))
 
 (esrap:defrule reference-expr
-    (+ (or variable-reference/content
+    (+ (or reference-expr/content
            variable-reference
            function-call)))
 
 (esrap:defrule default-expr
-    (and (+ (or variable-reference
-                function-call
-                text/ended-by-} text/not-started-by-{))
+    (and (+ (or reference-expr/content
+                variable-reference
+                function-call))
          (esrap:& #\}))
   (:function first)
   (:function maybe-first))
@@ -68,8 +61,14 @@
         ((string= kind "@")
          (list* :ref/list content default))))))
 
+(esrap:defrule argument-expr/escaped-syntactic-character
+    (and #\\ (or #\Space #\)))
+  (:function second))
+
 (esrap:defrule argument-expr/content
-    (+ (not (or #\Space #\) #\$ #\@)))
+    (+ (and (esrap:! (or #\Space #\)))
+            (or argument-expr/escaped-syntactic-character
+                text-character)))
   (:text t))
 
 (esrap:defrule argument-expr

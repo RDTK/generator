@@ -44,4 +44,47 @@
      ("@{a|a${b}}" ((:ref/list ("a") :default ("a" (:ref ("b"))))))
      ("@{@{a}}"    ((:ref/list ((:ref/list ("a"))))))
 
-     ("foo${a}"    ("foo" (:ref ("a")))))))
+     ("foo${a}"    ("foo" (:ref ("a"))))
+
+     ("\\${find \\{ \\}}"   ("${find \\{ \\}}"))
+
+     ;; Function call syntax
+     ("$(foo bar baz ${foo} $(whoop ${a|$(call)}))" ((:call ("foo") ("bar") ("baz") (:ref ("foo")))))
+
+     ;; Escapes
+     ("\\${bar}"            ("${bar}"))
+     ("\\$(bar)"            ("$(bar)"))
+     ("\\$(find \\( \\\\))" ("$(find \\( \\\\))"))
+     ("\\$(foo)"            ("$(foo)"))
+     ("\\( \\)"             ("\\( \\)"))
+     ("$(foo \\) bar)"      ((:call "foo" ")" "bar"))))))
+
+;; (value-parse "${foo|}")
+;;
+;; (defclass test (direct-variables-mixin
+;;                 jenkins.model:parented-mixin)
+;;   ())
+;;
+;;
+;;
+;;
+;; (let* ((pa (make-instance 'test
+;;                           :variables `((:y . ,(value-parse "b"))
+;;                                        (:z . ,(value-parse '(-5))))))
+;;
+;;        (ci (make-instance 'test
+;;                           :parent pa
+;;                           :variables `((:a   . 1)
+;;                                        (:b   . ,(value-parse '(2 3)))
+;;                                        (:foo . ,(lambda (&rest args)
+;;                                                   (value-parse args)))
+;;                                        (:c   . ,(value-parse "$(foo ${a} @{b})"))
+;;
+;;                                        (:x   . ,(value-parse (json:decode-json-from-string
+;;                                                               "{ \"a\": { \"b\": \"$(x c)\" }, \"c\": [ 4, 5 ] }")))
+;;                                        (:y   . ,(value-parse '("a" "${next-value}")))
+;;                                        (:z   . ,(value-parse (json:decode-json-from-string
+;;                                                                "[ 1, 2, \"@(x @{y})\", \"@{next-value}\" ]")))))))
+;;   (values (value ci :c) (value ci :z)))
+;;
+;; (push :z *traced-variables*)

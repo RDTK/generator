@@ -49,30 +49,32 @@
                             :key  #'car)))
     (values (first cells) (rest cells) t)))
 
+(defun drill-down (path value)
+  (reduce (lambda (key value)
+            (cdr (assoc key value)))
+          path :initial-value value :from-end t))
+
+(defun collapse (thing)
+  (let+ (((&flet atom? (thing)
+            (typep thing '(or number string (eql t))))))
+    (cond
+      ((or (atom? thing) (eq thing nil))
+       thing)
+      ((every #'atom? thing)
+       (esrap:text (mapcar #'princ-to-string thing)))
+      ((every #'listp thing)
+       (reduce #'append thing))
+      (t
+       (apply #'map-product (compose #'collapse #'list)
+              (mapcar #'ensure-list thing))))))
+
 (defun expand (pattern lookup)
   (check-type pattern variable-expression)
   (let+ (((&flet lookup (name &optional (default nil default-supplied?))
-            (let ((name   (make-keyword (string-upcase name))))
+            (let ((name (make-keyword (string-upcase name))))
               (if default-supplied?
                   (funcall lookup name default)
                   (funcall lookup name)))))
-         ((&flet atom? (thing)
-            (typep thing '(or number string (eql t)))))
-         ((&labels collapse (thing)
-            (cond
-              ((or (atom? thing) (eq thing nil))
-               thing)
-              ((every #'atom? thing)
-               (esrap:text (mapcar #'princ-to-string thing)))
-              ((every #'listp thing)
-               (reduce #'append thing))
-              (t
-               (apply #'map-product (compose #'collapse #'list)
-                      (mapcar #'ensure-list thing))))))
-         ((&labels drill-down (path value)
-            (reduce (lambda (key value)
-                      (cdr (assoc key value)))
-                    path :initial-value value :from-end t)))
          ((&labels recur (pattern path)
             (optima:ematch pattern
               ;; Make the current path available.

@@ -114,7 +114,7 @@
                      &key if-undefined)
     (declare (ignore if-undefined))
     (let+ (((&flet make-find (required)
-              (format nil "~A_DIR=\"$(find \"${dependency-dir}\" ~
+              (format nil "~A_DIR=\"\\$(find \"${dependency-dir}\" ~
                                            -type f ~
                                            \\( ~
                                              -name \"~AConfig.cmake\" ~

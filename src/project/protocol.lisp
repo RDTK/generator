@@ -299,7 +299,16 @@
         (aspects (sort-with-partial-order (copy-list aspect) #'aspect<)))
     ;; Methods on `extend!' add entries to `*builder-constraints*'
     ;; and push builders onto (builders job).
-    (reduce (rcurry #'extend! spec) aspects :initial-value job)
+    (reduce (lambda (job aspect)
+              (restart-case
+                  (extend! job aspect spec)
+                (continue (&optional condition)
+                  :report (lambda (stream)
+                            (format stream "~@<Do not apply ~A to ~A.~@:>"
+                                    aspect job))
+                  (declare (ignore condition))
+                  job)))
+            aspects :initial-value job)
 
     (log:trace "Builder constraints: ~S"
                (hash-table-alist *builder-constraints*))

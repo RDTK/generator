@@ -246,18 +246,12 @@
   (with-condition-translation
       (((error instantiation-error)
         :specification spec))
-    (restart-case
-        (let ((implementation (call-next-method)))
-          (setf (%specification implementation) spec)
-          (push implementation (%implementations spec))
-          (assert implementation)
-          implementation)
-      (continue (&optional condition)
-        :report (lambda (stream)
-                  (format stream "~@<Skip instantiation of ~A.~@:>"
-                          spec))
-        (declare (ignore condition))
-        nil))))
+    (with-simple-restart (continue "~@<Skip instantiation of ~A.~@:>" spec)
+      (let ((implementation (call-next-method)))
+        (setf (%specification implementation) spec)
+        (push implementation (%implementations spec))
+        (assert implementation)
+        implementation))))
 
 (defmethod add-dependencies! :around ((thing t) (spec t)
                                       &key providers)
@@ -265,14 +259,10 @@
   (with-condition-translation
       (((error instantiation-error)
         :specification spec))
-    (restart-case (call-next-method)
-      (continue (&optional condition)
-        :report (lambda (stream)
-                  (format stream "~@<Skip adding dependencies to ~A ~
-                                  according to ~A.~@:>"
-                          thing spec))
-        (declare (ignore condition))
-        nil))))
+    (with-simple-restart (continue "~@<Skip adding dependencies to ~A ~
+                                    according to ~A.~@:>"
+                                   thing spec)
+      (call-next-method))))
 
 ;;; Aspect protocol
 
@@ -340,23 +330,14 @@
   (with-condition-translation
       (((error deployment-error)
         :thing thing))
-    (restart-case (call-next-method)
-      (continue (&optional condition)
-        :report (lambda (stream)
-                  (format stream "~@<Skip deployment of ~A.~@:>"
-                          thing))
-        (declare (ignore condition))
-        nil))))
+    (with-simple-restart (continue "~@<Skip deployment of ~A.~@:>" thing)
+      (call-next-method))))
 
 (defmethod deploy-dependencies :around ((thing t))
   (with-condition-translation
       (((error deployment-error)
         :thing thing))
-    (restart-case (call-next-method)
-      (continue (&optional condition)
-        :report (lambda (stream)
-                  (format stream "~@<Skip deploying dependencies of ~
-                                  ~A.~@:>"
-                          thing))
-        (declare (ignore condition))
-        nil))))
+    (with-simple-restart (continue "~@<Skip deploying dependencies of ~
+                                    ~A.~@:>"
+                                   thing)
+      (call-next-method))))

@@ -20,6 +20,7 @@
    #:variable-condition-name
 
    #:undefined-variable-condition
+   #:undefined-variable-warning
    #:undefined-variable-error)
 
   ;; Variables
@@ -49,5 +50,19 @@
 
    #:direct-variables-mixin)
 
+  ;; Variable schema protocol
+  (:export
+   #:variable-info-name
+   #:variable-info-type
+   #:variable-info-documentation
+
+   #:all-variables
+   #:find-variable ; also setf
+   #:note-variable
+
+   #:define-variable
+
+   #:check-variable-access)
+
   (:documentation
-   "Variable model, syntax, lookup and expansion."))
+   "Variable model, syntax, lookup, expansion and schema."))

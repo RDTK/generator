@@ -155,6 +155,7 @@
                               (:file     "conditions")
                               (:file     "variables")
                               (:file     "protocol")
+                              (:file     "schema")
                               (:file     "trace")
                               (:file     "model")
                               (:file     "grammar")

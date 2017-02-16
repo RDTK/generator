@@ -6,6 +6,8 @@
 
 (cl:in-package #:jenkins.model.variables)
 
+;;; Evaluation-related conditions
+
 (define-condition expression-cycle-error (error)
   ((path :initarg :path
          :type    list
@@ -44,6 +46,13 @@
   (:documentation
    "Superclass for condition classes related to access to undefined
     variables."))
+
+(define-condition undefined-variable-warning (undefined-variable-condition
+                                              style-warning)
+  ()
+  (:documentation
+   "Signaled when an access to an undefined variable is detected at
+    compile-time."))
 
 (define-condition undefined-variable-error (undefined-variable-condition
                                             error)

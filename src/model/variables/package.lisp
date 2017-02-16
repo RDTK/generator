@@ -19,6 +19,8 @@
    #:variable-condition
    #:variable-condition-name
 
+   #:unused-variable-warning
+
    #:undefined-variable-condition
    #:undefined-variable-warning
    #:undefined-variable-error)
@@ -62,6 +64,7 @@
 
    #:define-variable
 
+   #:check-variable-liveness
    #:check-variable-access)
 
   (:documentation

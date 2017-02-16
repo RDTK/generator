@@ -28,6 +28,8 @@
 
 (defvar *variables* (make-hash-table :test #'eq))
 
+(defvar *variable-uses* (make-hash-table :test #'eq))
+
 (defun all-variables ()
   (hash-table-values *variables*))
 
@@ -37,7 +39,7 @@
 (defun (setf find-variable) (info name)
   (setf (gethash name *variables*) info))
 
-(defun note-variable (name type &optional documentation)
+(defun note-variable (name type &optional documentation assume-used?)
   (let ((variable (if-let ((existing (find-variable name)))
                     (reinitialize-instance existing
                                            :name          name
@@ -48,7 +50,12 @@
                                          :name          name
                                          :type          type
                                          :documentation documentation)))))
+    (when assume-used?
+      (note-variable-use variable))
     variable))
+
+(defun note-variable-use (variable)
+  (incf (gethash variable *variable-uses* 0)))
 
 ;;; Macros
 
@@ -58,9 +65,17 @@
 
 ;;; Compile-time checks
 
+(defun check-variable-liveness ()
+  (maphash (lambda (name variable)
+             (unless (gethash variable *variable-uses*)
+               (warn 'unused-variable-warning :name name)))
+           *variables*))
+
 (defun check-variable-access (name)
   (if-let ((variable (find-variable name)))
-    variable
+    (progn
+      (note-variable-use variable)
+      variable)
     (progn
       (warn 'undefined-variable-warning :name name)
       nil)))

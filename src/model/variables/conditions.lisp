@@ -37,6 +37,18 @@
   (:documentation
    "Superclass for variable-related condition classes."))
 
+(define-condition unused-variable-warning (variable-condition
+                                           style-warning)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Variable ~S is defined but never used.~@:>"
+             (variable-condition-name condition))))
+
+  (:documentation
+   "Signaled when an access to an undefined variable is detected at
+    compile-time."))
+
 (define-condition undefined-variable-condition (variable-condition)
   ()
   (:report

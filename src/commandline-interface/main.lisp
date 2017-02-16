@@ -1042,3 +1042,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
           (report-error *error-output* condition))
         (uiop:quit 2)))
     (uiop:quit (if non-dependency-errors? 1 0))))
+
+(eval-when (:load-toplevel)
+  (check-variable-liveness))

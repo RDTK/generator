@@ -137,17 +137,6 @@
                               ;; Platform analysis
                               (:file     "platform")))
 
-                (:module     "model"
-                 :pathname   "src/model"
-                 :depends-on ("model-variables")
-                 :serial     t
-                 :components ((:file     "package")
-                              (:file     "conditions")
-                              (:file     "protocol")
-                              (:file     "util")
-
-                              (:file     "mixins")))
-
                 (:module     "model-variables"
                  :pathname   "src/model/variables"
                  :serial     t
@@ -160,6 +149,20 @@
                               (:file     "model")
                               (:file     "grammar")
                               (:file     "evaluation")
+
+                              (:file     "mixins")))
+
+                (:module     "model"
+                 :pathname   "src/model"
+                 :depends-on ("model-variables")
+                 :serial     t
+                 :components ((:file     "package")
+
+                              (:file     "schema")
+
+                              (:file     "conditions")
+                              (:file     "protocol")
+                              (:file     "util")
 
                               (:file     "mixins")))
 

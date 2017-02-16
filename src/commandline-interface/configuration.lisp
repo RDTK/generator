@@ -53,7 +53,10 @@
   ("trace-variable"   :type '(list string :inherit? t)
                       ; :argument-name "VARIABLE-NAME"
                       :documentation
-                      "Trace all accesses to the specified variable."))
+                      "Trace all accesses to the specified variable.")
+  ("info-variables"   :type 'boolean :default nil
+                      :documentation
+                      "Show information about variables."))
 
 (configuration.options:define-schema *jenkins-schema*
   "Options controlling communication with a Jenkins including

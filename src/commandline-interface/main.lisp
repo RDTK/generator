@@ -553,7 +553,10 @@
               (stropt  :long-name    "trace-variable"
                        :argument-name "VARIABLE-NAME"
                        :description
-                       "Trace all accesses to the specified variable."))
+                       "Trace all accesses to the specified variable.")
+              (flag    :long-name     "info-variables"
+                       :description
+                       "Show information about variables."))
 
    :item    (clon:defgroup (:header "Jenkins Options")
               (path   :long-name     "template-directory"
@@ -813,7 +816,27 @@ A common case, deleting only jobs belonging to the distribution being generated,
                   "build-generator" (stringp version) version))
         (uiop:quit))
 
+
+      (when (option-value "general" "info-variables")
+        (print-variable-info *standard-output*)
+        (uiop:quit))
+
       (values #'option-value configuration debug?))))
+
+(defun print-variable-info (stream)
+  (let ((sorted (sort (copy-list (all-variables)) #'string<
+                      :key #'variable-info-name)))
+    (format stream "~@<~{~{~
+                      \"~(~A~)\"~@[: ~(~A~)~]~
+                      ~@[~@:_~2@T~<~A~:>~]~
+                    ~}~^~@:_~@:_~}~:>"
+            (mapcar (lambda (variable)
+                      (let+ (((&structure-r/o variable-info- name type documentation)
+                              variable))
+                        (list name
+                              (unless (eq type t) type)
+                              (when documentation (list documentation)))))
+                    sorted))))
 
 (defun main ()
   (let+ (((&values option-value &ign debug?) (configure))

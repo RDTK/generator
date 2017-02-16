@@ -558,7 +558,7 @@
                        :description
                        "Show information about variables."))
 
-   :item    (clon:defgroup (:header "Jenkins Options")
+   :item    (clon:defgroup (:header "Processing Options")
               (path   :long-name     "template-directory"
                       :type          :directory
                       :argument-name "DIRECTORY"
@@ -583,7 +583,9 @@
                       :short-name    "D"
                       :argument-name "VARIABLE-NAME=VALUE"
                       :description
-                      "Overwrite a variable after loading the distribution. Arguments to this option have to be of the form VARIABLE-NAME=VALUE. This option can be supplied multiple times.")
+                      "Overwrite a variable after loading the distribution. Arguments to this option have to be of the form VARIABLE-NAME=VALUE. This option can be supplied multiple times."))
+
+   :item    (clon:defgroup (:header "Jenkins Options")
               (stropt :long-name     "base-uri"
                       :short-name    "b"
                       :argument-name "URI"

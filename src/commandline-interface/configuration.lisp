@@ -61,19 +61,19 @@
 (configuration.options:define-schema *jenkins-schema*
   "Options controlling communication with a Jenkins including
    authentication."
-  ("base-uri"             :type    'string ; TODO puri:uri
-                          :default "https://localhost:8080"
-                          :documentation
-                          "Jenkins base URI.")
-  ("username"             :type    'string
-                          :documentation
-                          "Username for Jenkins authentication.")
-  ("password"             :type    'string
-                          :documentation
-                          "Password for Jenkins authentication.")
-  ("api-token"            :type    'string
-                          :documentation
-                          "API token for Jenkins authentication."))
+  ("base-uri"  :type    'string ; TODO puri:uri
+               :default "https://localhost:8080"
+               :documentation
+               "Jenkins base URI.")
+  ("username"  :type    'string
+               :documentation
+               "Username for Jenkins authentication.")
+  ("password"  :type    'string
+               :documentation
+               "Password for Jenkins authentication.")
+  ("api-token" :type    'string
+               :documentation
+               "API token for Jenkins authentication."))
 
 (configuration.options:define-schema *generation-schema*
   "Options controlling the generation of Jenkins jobs."

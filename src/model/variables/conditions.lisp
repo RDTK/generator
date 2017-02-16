@@ -22,3 +22,32 @@
   (:documentation
    "This error is signaled when a cycle is detected during variable
     expansion."))
+
+;;; Variable schema conditions
+
+(define-condition variable-condition (condition)
+  ((name :initarg :name
+         :reader  variable-condition-name
+         :documentation
+         "Stores the name of the variable."))
+  (:default-initargs
+   :name (missing-required-initarg 'variable-condition :name))
+  (:documentation
+   "Superclass for variable-related condition classes."))
+
+(define-condition undefined-variable-condition (variable-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Access to undefined variable ~S.~@:>"
+             (variable-condition-name condition))))
+  (:documentation
+   "Superclass for condition classes related to access to undefined
+    variables."))
+
+(define-condition undefined-variable-error (undefined-variable-condition
+                                            error)
+  ()
+  (:documentation
+   "Signaled when an access to an undefined variable occurs at
+    runtime."))

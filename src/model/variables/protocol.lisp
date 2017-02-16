@@ -80,9 +80,7 @@
     (if found?
         (values value more-values found?)
         (error-behavior-restart-case
-            (if-undefined (simple-error
-                           :format-control   "~@<Undefined variable: ~S.~@:>"
-                           :format-arguments (list name)))))))
+            (if-undefined (undefined-variable-error :name name))))))
 
 (defmethod as :around ((value t) (type t) &key (if-type-mismatch #'error))
   (let+ (((&values result match?) (call-next-method value type)))

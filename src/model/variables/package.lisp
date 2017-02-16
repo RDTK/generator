@@ -14,7 +14,13 @@
   ;; Conditions
   (:export
    #:expression-cycle-error
-   #:expression-cycle-error-path)
+   #:expression-cycle-error-path
+
+   #:variable-condition
+   #:variable-condition-name
+
+   #:undefined-variable-condition
+   #:undefined-variable-error)
 
   ;; Variables
   (:export

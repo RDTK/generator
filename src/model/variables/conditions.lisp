@@ -18,7 +18,7 @@
                      ~@:_~@:_.~@:>"
              (expression-cycle-error-path condition))))
   (:default-initargs
-      :path (missing-required-initarg 'expression-cycle-error :path))
+   :path (missing-required-initarg 'expression-cycle-error :path))
   (:documentation
    "This error is signaled when a cycle is detected during variable
     expansion."))

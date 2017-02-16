@@ -102,8 +102,8 @@
                          :specification project
                          :cause         condition))))
       (mapc #'do-version1
-            (flet ((var (name &optional default)
-                     (value project name default)))
+            (macrolet ((var (name &optional default)
+                         `(value project ,name ,default)))
               (apply #'jenkins.analysis:analyze
                      (when-let ((value (var :repository)))
                        (puri:uri value))

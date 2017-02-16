@@ -39,21 +39,25 @@
          (append (or external-format (safe-external-format-argument))
                  (remove-from-plist args :external-format))))
 
+(declaim (ftype (function (string string
+                                  &key
+                                  (:window array-index)
+                                  (:upper-bound array-index))
+                          (values array-index &optional))
+                edit-distance))
 (defun edit-distance (str1 str2
                       &key
                       (window      1000)
                       (upper-bound 200))
   "Calculates the Levenshtein distance between STR1 and STR2, returns
-an editing distance (int).
+   an editing distance (int).
 
-Source: Wikibook
-http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Common_Lisp"
+   Source: Wikibook
+   http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Common_Lisp"
   (let ((n (length str1))
         (m (length str2)))
     ;; Check trivial cases
     (cond
-      ((not (and (typep n 'fixnum) (typep m 'fixnum)))
-       (error "~@<Inputs too large.~@:>"))
       ((zerop n)
        m)
       ((zerop m)
@@ -61,25 +65,31 @@ http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distan
       (t
        ;; We need to store only two columns---the current one that is
        ;; being built and the previous one.
-       (let ((col      (make-array (1+ m) :element-type 'fixnum))
-             (prev-col (coerce (iota (1+ m)) `(simple-array fixnum (,(1+ m))))))
+       (let ((col      (make-array (1+ m) :element-type 'array-index))
+             (prev-col (make-array (1+ m)
+                                   :element-type     '(unsigned-byte 62)
+                                   :initial-contents (iota (1+ m)))))
          ;; Loop across all chars of each string
-         #+no (declare (type (simple-array fixnum) col prev-col))
          (dotimes (i n)
            (setf (aref col 0) (1+ i))
            (let ((current
-                   (iter (for j :from (max (- i window) 0) :below (min (+ i window) m))
+                  (iter (for (the array-index j)
+                             :from (max (- i window) 0)
+                             :below (min (+ i window) m))
                          (let ((value (min (1+ (aref col j))
                                            (1+ (aref prev-col (1+ j)))
                                            (+ (aref prev-col j)
-                                              (if (char-equal (schar str1 i) (schar str2 j)) 0 1)))))
+                                              (if (char-equal (schar str1 i) (schar str2 j))
+                                                  0
+                                                  1)))))
                            (setf (aref col (1+ j)) value)
                            (minimizing value)))))
+             (declare (type array-index current))
              (when (> current upper-bound)
                (return-from edit-distance upper-bound)))
-           (fill col most-positive-fixnum
+           (fill col (1- array-dimension-limit)
                  :start 0 :end (min (max (- i window) 0) m))
-           (fill col most-positive-fixnum
+           (fill col (1- array-dimension-limit)
                  :start (min (+ i window) (1- m)) :end m)
            (rotatef col prev-col))
          (aref prev-col m))))))

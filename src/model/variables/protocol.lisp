@@ -1,6 +1,6 @@
-;;;; package.lisp --- Package definition for the model.variables module.
+;;;; Protocol.lisp --- Protocol provided by the model.variables module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 

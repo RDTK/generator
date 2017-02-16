@@ -84,6 +84,12 @@
          ((&structure-r/o variable-info- name type) variable)
          (value (value aspect name '%undefined)))
     (cond
+      ;; HACK treat nil permissively
+      ((and (null value) (not (typep value type)))
+       (if (and default? (equal value default))
+           (list value)
+           (throw '%bail nil)))
+
       ((not (eq value '%undefined))
        (with-condition-translation
            (((error argument-type-error)

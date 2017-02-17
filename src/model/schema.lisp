@@ -269,6 +269,10 @@
      No up/downstream relations should be established between
      generated jobs.")
 
+(define-variable :upstream-dir string
+  "Directory in which artifacts copied from upstream jobs should be
+   placed.")
+
 ;; Buildflow variables
 
 (define-variable :disable-orchestration-jobs boolean

@@ -58,6 +58,8 @@
    #:variable-info-type
    #:variable-info-documentation
 
+   #:make-variable-info
+
    #:all-variables
    #:find-variable ; also setf
    #:note-variable

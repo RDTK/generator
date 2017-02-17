@@ -22,6 +22,12 @@
    :name (missing-required-initarg 'variable-info :name)
    :type (missing-required-initarg 'variable-info :type)))
 
+(defun make-variable-info (name type &optional documentation)
+  (make-instance 'variable-info
+                 :name          name
+                 :type          type
+                 :documentation documentation))
+
 (defmethod print-items:print-items append ((object variable-info))
   (let+ (((&structure-r/o variable-info- name type) object))
     `((:name ,name "~A") (:type ,type ": ~A"))))
@@ -46,10 +52,7 @@
                                            :type          type
                                            :documentation documentation)
                     (setf (find-variable name)
-                          (make-instance 'variable-info
-                                         :name          name
-                                         :type          type
-                                         :documentation documentation)))))
+                          (make-variable-info name type documentation)))))
     (when assume-used?
       (note-variable-use variable))
     variable))

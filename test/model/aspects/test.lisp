@@ -1,5 +1,33 @@
 (cl:in-package #:jenkins.model.aspects.test)
 
+;; `make-remove-directory-contents/unix' smoke test
+
+(assert
+ (string= (make-remove-directory-contents/unix)
+          "find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \\;"))
+(assert
+ (string= (make-remove-directory-contents/unix :exclude "foo")
+          "find . -mindepth 1 -maxdepth 1 -not -name \"foo\" -exec rm -rf {} \\;"))
+(assert
+ (string= (make-remove-directory-contents/unix :exclude '("b\"ar" "foo"))
+          "find . -mindepth 1 -maxdepth 1 -not \\( -name \"b\\\"ar\" -o -name \"foo\" \\) -exec rm -rf {} \\;"))
+
+;; `wrapped-shell-command' smoke test
+
+(assert (string= (wrap-shell-command "foo" nil   nil)   "foo"))
+(assert (string= (wrap-shell-command "foo" nil   "baz") "foobaz"))
+(assert (string= (wrap-shell-command "foo" "bar" nil)   "barfoo"))
+(assert (string= (wrap-shell-command "foo" "bar" "baz") "barfoobaz"))
+
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   nil)
+                 (format nil "#!/bin/sh~%foo")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   "baz")
+                 (format nil "#!/bin/sh~%foobaz")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" nil)
+                 (format nil "#!/bin/sh~%barfoo")))
+(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" "baz")
+                 (format nil "#!/bin/sh~%barfoobaz")))
+
 ;; `parse-constraint' smoke test
 
 (mapc (lambda+ ((json expected))

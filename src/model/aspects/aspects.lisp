@@ -95,15 +95,6 @@
                         ~[~:*~;-not -name ~{~S~} ~:;-not \\( ~{-name ~S~^ -o ~} \\) ~]~
                         -exec rm -rf {} \\;"
             (length exclude) exclude)))
-(assert
- (string= (make-remove-directory-contents/unix)
-          "find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \\;"))
-(assert
- (string= (make-remove-directory-contents/unix :exclude "foo")
-          "find . -mindepth 1 -maxdepth 1 -not -name \"foo\" -exec rm -rf {} \\;"))
-(assert
- (string= (make-remove-directory-contents/unix :exclude '("b\"ar" "foo"))
-          "find . -mindepth 1 -maxdepth 1 -not \\( -name \"b\\\"ar\" -o -name \"foo\" \\) -exec rm -rf {} \\;"))
 
 (defun make-move-stuff-upwards/unix (stuff)
   "Move contents of STUFF, which is a list of one or more directory
@@ -152,20 +143,6 @@ rm -rf \"\${temp}\""))
     `(let ((prefix (var/typed ,prefix-var-name '(or null string) nil))
            (suffix (var/typed ,suffix-var-name '(or null string) nil)))
        (wrap-shell-command (progn ,@body) prefix suffix))))
-
-(assert (string= (wrap-shell-command "foo" nil   nil)   "foo"))
-(assert (string= (wrap-shell-command "foo" nil   "baz") "foobaz"))
-(assert (string= (wrap-shell-command "foo" "bar" nil)   "barfoo"))
-(assert (string= (wrap-shell-command "foo" "bar" "baz") "barfoobaz"))
-
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   nil)
-                 (format nil "#!/bin/sh~%foo")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   "baz")
-                 (format nil "#!/bin/sh~%foobaz")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" nil)
-                 (format nil "#!/bin/sh~%barfoo")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" "baz")
-                 (format nil "#!/bin/sh~%barfoobaz")))
 
 (defun split-option (spec)
   (let ((position (position #\= spec)))

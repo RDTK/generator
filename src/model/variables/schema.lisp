@@ -74,14 +74,16 @@
                (warn 'unused-variable-warning :name name)))
            *variables*))
 
-(defun check-variable-access (name)
+(defun check-variable-access (name &key (if-undefined #'warn))
   (if-let ((variable (find-variable name)))
     (progn
       (note-variable-use variable)
       variable)
-    (progn
-      (warn 'undefined-variable-warning :name name)
-      nil)))
+    (error-behavior-restart-case
+        (if-undefined (undefined-variable-error :name name)
+                      :warning-condition undefined-variable-warning)
+      (use-value (value)
+        value))))
 
 (define-compiler-macro lookup (&whole form thing name &key if-undefined)
   (declare (ignore thing if-undefined))

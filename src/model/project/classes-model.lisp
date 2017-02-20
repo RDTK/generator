@@ -136,7 +136,7 @@
                         :reader   aspects
                         :initform '()
                         :documentation
-                        ""))
+                        "List of aspects associated to the job."))
   (:documentation
    "Instances of this class represent build jobs which are associated
     to specific `version's of `project's."))
@@ -158,9 +158,8 @@
                    (or (find dependency-name (jobs dependency)
                              :test #'string= :key #'name)
                        (error "~@<Could not find ~S in the jobs of ~
-                                  ~A~@[ (~{~A~^, ~})~]~@:>"
-                              dependency-name dependency
-                              (jobs dependency)))))
+                               ~A~@[ (~{~A~^, ~})~]~@:>"
+                              dependency-name dependency (jobs dependency)))))
               (pushnew dependency (%direct-dependencies thing)))))))
 
 (defmethod deploy ((thing job))
@@ -188,6 +187,7 @@
     ;; TODO temp
     (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)
 
+    ;; Create the actual Jenkins job.
     (let* ((existing-job  (when (jenkins.api:job? (id job))
                            (jenkins.api:job (id job))))
            (existing-kind (when existing-job
@@ -196,12 +196,14 @@
         ((not existing-job)
          (log:info "~@<Creating new job ~A~@:>" job)
          (jenkins.api::make-job (id job) (jenkins.api::%data job)))
+
         ((or (equal kind existing-kind)
              (case kind
                (:project (string= existing-kind "project"))
                (:matrix  (string= existing-kind "matrix-project"))))
          (log:info "~@<Updating existing job ~A~@:>" existing-job)
          (setf (jenkins.api:job-config (id job)) (jenkins.api::%data job)))
+
         (t
          (log:warn "~@<Deleting job ~A to change kind ~A -> ~(~A~)~@:>"
                    job (jenkins.api:kind existing-job) kind)

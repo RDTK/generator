@@ -28,6 +28,22 @@
 
       '(:freestyle)))
 
+(defun guess-scm (url scm)
+  (let+ (((&accessors-r/o (scheme puri:uri-scheme)) url)
+         (source/string nil)
+         ((&flet source/string ()
+            (or source/string (setf source/string (princ-to-string url)))))
+         ((&flet source-contains (substring)
+            (search substring (source/string) :test #'char-equal))))
+    (cond
+      (scm                          (make-keyword (string-upcase scm)))
+      ((member scheme '(:git :svn)) scheme)
+      ((source-contains "git")      :git)
+      ((source-contains "svn")      :svn)
+      ((source-contains "hg")       :mercurial)
+      (t                            (error "~@<Cannot handle URI ~A.~@:>"
+                                           url)))))
+
 (defmethod analyze ((source puri:uri) (kind (eql :auto))
                     &rest args
                     &key
@@ -36,21 +52,10 @@
                     (temp-directory #P"/tmp/"))
   (setf (puri:uri-fragment source) nil)
 
-  (let+ (((&accessors-r/o (scheme puri:uri-scheme)) source)
-         (source/string (princ-to-string source))
-         (scheme (case scheme
-                   ((:git :svn) scheme)
-                   (t           (cond
-                                  (scm
-                                   (make-keyword (string-upcase scm)))
-                                  ((search "git" source/string :test #'char-equal) :git)
-                                  ((search "svn" source/string :test #'char-equal) :svn)
-                                  ((search "hg" source/string :test #'char-equal) :mercurial)
-                                  (t (error "~@<Cannot handle URI ~A.~@:>"
-                                            source))))))
-         (temp-directory (default-temporary-directory
-                          :base temp-directory :hint "project")))
-    (apply #'analyze source scheme
+  (let ((kind           (guess-scm source scm))
+        (temp-directory (default-temporary-directory
+                            :base temp-directory :hint "project")))
+    (apply #'analyze source kind
            :versions       versions
            :temp-directory temp-directory
            (remove-from-plist args :versions :temp-directory))))
@@ -59,14 +64,9 @@
                     &key
                     (natures nil natures-supplied?)
                     branches)
-  (let ((natures (cond
-                   (natures-supplied?
-                    natures)
-                   ((guess-project-natures source))
-                   (t
-                    (error "~@<Could not automatically determine the ~
-                            project nature of ~S.~@:>"
-                           source)))))
+  (let ((natures (if natures-supplied?
+                     natures
+                     (guess-project-natures source))))
     (log:info "~@<Analyzing ~A ~:[without natures~:;with nature~*~:P ~
                ~2:*~{~A~^, ~}~]~@:>"
               source natures (length natures))
@@ -94,6 +94,5 @@
               (list (apply #'analyze source kind args))))
           kind))
 
-(defmethod analyze ((source pathname) (kind (eql :freestyle))
-                    &key)
+(defmethod analyze ((source pathname) (kind (eql :freestyle)) &key)
   '())

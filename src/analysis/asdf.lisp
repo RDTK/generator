@@ -71,6 +71,13 @@
                   :collect (list system-name system-value))))
          ;; Use the first value available in any of the analyzed
          ;; systems.
+         ((&flet+ test-system? (system-name)
+            (ppcre:scan "tests?$" system-name)))
+         ((&flet system-names ()
+            (loop :for system in systems
+               :collect (second (first (getf system :provides))))))
+         ((&flet system-names-if (predicate)
+            (remove-if (complement predicate) (system-names))))
          ((&flet property-value/first (name)
             (second (first (property-values name)))))
          ((&flet maybe-property/first (name)
@@ -89,9 +96,8 @@
               `(,name ,value))))
          ;; Combine descriptions of analyzed systems.
          ((&flet maybe-property/description (name)
-            (let ((values (remove-if (lambda+ ((system-name &ign))
-                                       (ppcre:scan "tests?$" system-name))
-                                     (property-values name))))
+            (let ((values (remove-if #'test-system? (property-values name)
+                                     :key #'first)))
               (case (length values)
                 (0 nil)
                 (1 `(,name ,(second (first values))))
@@ -102,8 +108,10 @@
          ;; Compute required and provided systems.
          (requires (property-value/dependencies :requires))
          (provides (property-value/dependencies :provides)))
-    `(:provides ,provides
-      :requires ,(effective-requires requires provides)
+    `(:provides     ,provides
+      :requires     ,(effective-requires requires provides)
+      :systems      ,(system-names-if (complement #'test-system?))
+      :test-systems ,(system-names-if #'test-system?)
       ,@(maybe-property/description :description)
       ,@(maybe-property/append      :authors)
       ,@(maybe-property/append      :maintainers)

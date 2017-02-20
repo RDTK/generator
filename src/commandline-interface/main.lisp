@@ -63,6 +63,10 @@
                                 (provides         :provides)
                                 (properties       :properties))
                     info)
+                   (other-results (remove-from-plist info
+                                                     :scm :branch-directory
+                                                     :requires :provides
+                                                     :properties))
                    (version (or (find version-name (versions project)
                                       :key #'name :test #'string=)
                                 (let ((version (make-instance 'version-spec
@@ -77,6 +81,7 @@
                :variables (append
                            (jenkins.model.variables:direct-variables version) ; TODO
                            (apply #'value-acons (append version-variables '(())))
+
                            (when scm
                              (list (value-cons :scm (string-downcase scm))))
                            (when branch-directory
@@ -90,7 +95,11 @@
                                                      authors))))
                            (iter (for (key . value) in properties)
                                  (collect (value-cons (make-keyword (string-upcase key))
-                                                      value))))))))
+                                                      value)))
+
+                           (iter (for (key value) :on other-results :by #'cddr)
+                                 (let ((key (format-symbol '#:keyword "ANALYSIS.~A" key)))
+                                   (collect (value-cons key value)))))))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)

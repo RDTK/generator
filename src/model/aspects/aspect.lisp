@@ -92,7 +92,8 @@
                                              (required-argument :spec-var)))
                                (aspect-var (when body
                                              (required-argument :aspect-var)))
-                               constraints)
+                               constraints
+                               documentation)
   (let+ (((&flet name->class-name (name)
             (symbolicate '#:aspect- (string-upcase name))))
          (class-name (name->class-name name)))
@@ -100,7 +101,9 @@
        (defclass ,class-name (,@(mapcar #'name->class-name super-aspects) aspect) ()
          (:default-initargs
           ,@(when constraints
-              `(:constraints ',constraints))))
+              `(:constraints ',constraints)))
+         ,@(when documentation
+             `((:documentation ,documentation))))
 
        (service-provider:register-provider/class
         'aspect ,(make-keyword name) :class ',class-name )
@@ -151,8 +154,11 @@
                          variables
                          &body body)
   "Define an aspect class named NAME with SUPER-ASPECTS."
-  (make-aspect-class-form name super-aspects variables body
-                          :job-var     job-var
-                          :aspect-var  aspect-var
-                          :spec-var    spec-var
-                          :constraints constraints))
+  (let+ (((&values body &ign documentation)
+          (parse-body body :documentation t)))
+    (make-aspect-class-form name super-aspects variables body
+                            :job-var       job-var
+                            :aspect-var    aspect-var
+                            :spec-var      spec-var
+                            :constraints   constraints
+                            :documentation documentation)))

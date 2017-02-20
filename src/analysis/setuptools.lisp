@@ -166,8 +166,7 @@
                         (split-persons email)))
          (authors     (mapcar #'format-person
                               authors (or emails (circular-list nil))))
-         (license     (or (argument "license")
-                          (analyze directory :license)))
+         (license     (argument "license"))
          (requires    (mapcar (rcurry #'process-dependency globals)
                               (append
                                (argument "setup_requires" t)

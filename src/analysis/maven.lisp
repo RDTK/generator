@@ -41,7 +41,6 @@
         document
       (let+ ((id/merged    (if id/parent (merge-ids id id/parent) id))
              (name+version (id->name+version id/merged))
-             (license      (or license (analyze directory :license)))
              (sub-provides '())
              (sub-requires '())
              ((&flet project-property (name prefix id)

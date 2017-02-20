@@ -86,6 +86,16 @@
                        (appendf (gethash key merged) (ensure-list value))))))
          (hash-table-plist merged))))))
 
+(defmethod analyze :around ((source pathname) (kind (eql :auto)) &key)
+  (let ((result (call-next-method)))
+    (cond
+      ((getf result :license)
+       result)
+      ((when-let ((license (analyze source :license)))
+         (list* :license license result)))
+      (t
+       result))))
+
 (defmethod analyze ((source pathname) (kind cons) &rest args &key)
   (mapcan (lambda (kind)
             (with-simple-restart (continue "~@<Do not analyze ~A with ~

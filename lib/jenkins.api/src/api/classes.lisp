@@ -809,13 +809,15 @@
 
   ((checkstyle "hudson.plugins.checkstyle.CheckStylePublisher"
                :plugin "checkstyle@3.46")
-   ((pattern :type (list/comma string)
-             :initform '())))
+   ((pattern :type     (list/comma string)
+             :initform '()))
+   (:name-slot pattern))
 
   ((pmd "hudson.plugins.pmd.PmdPublisher"
-        :plugin "pmd@3.45")
-   ((pattern :type (list/comma string)
-             :initform '())))
+        :plugin "pmd@3.46")
+   ((pattern :type     (list/comma string)
+             :initform '()))
+   (:name-slot pattern))
 
   ((tasks "hudson.plugins.tasks.TasksPublisher"
           :plugin "tasks@4.35")

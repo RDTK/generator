@@ -73,7 +73,7 @@
          (dotimes (i n)
            (setf (aref col 0) (1+ i))
            (let ((current
-                  (iter (for (the array-index j)
+                  (iter (for (the (or (eql -1) array-index) j)
                              :from (max (- i window) 0)
                              :below (min (+ i window) m))
                          (let ((value (min (1+ (aref col j))

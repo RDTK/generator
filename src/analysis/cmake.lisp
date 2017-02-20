@@ -256,9 +256,10 @@
                                         pkg-config-provides)))
          (requires             (merge-dependencies
                                 (append requires sub-requires))))
-    `(:provides        ,provides
-      :requires        ,(effective-requires requires provides)
-      :secondary-files ,(append config-mode-files pkg-config-files))))
+    `(:provides              ,provides
+      :requires              ,(effective-requires requires provides)
+      :programming-languages ("C++") ; TODO actual analysis
+      :secondary-files       ,(append config-mode-files pkg-config-files))))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))

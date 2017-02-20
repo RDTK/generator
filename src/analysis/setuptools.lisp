@@ -1,6 +1,6 @@
 ;;;; setuptools.lisp ---
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -172,8 +172,9 @@
                               (append
                                (argument "setup_requires" t)
                                (argument "install_requires" t)))))
-    `(:provides ((:setuptools ,name ,version))
-      :requires ,requires
+    `(:provides              ((:setuptools ,name ,version))
+      :requires              ,requires
+      :programming-languages ("Python")
       ,@(when description `(:description ,description))
       ,@(when keywords    `(:keywords    ,keywords))
       ,@(when url         `(:url         ,url))

@@ -108,10 +108,11 @@
          ;; Compute required and provided systems.
          (requires (property-value/dependencies :requires))
          (provides (property-value/dependencies :provides)))
-    `(:provides     ,provides
-      :requires     ,(effective-requires requires provides)
-      :systems      ,(system-names-if (complement #'test-system?))
-      :test-systems ,(system-names-if #'test-system?)
+    `(:provides              ,provides
+      :requires              ,(effective-requires requires provides)
+      :programming-languages ("Common Lisp")
+      :systems               ,(system-names-if (complement #'test-system?))
+      :test-systems          ,(system-names-if #'test-system?)
       ,@(maybe-property/description :description)
       ,@(maybe-property/append      :authors)
       ,@(maybe-property/append      :maintainers)

@@ -101,8 +101,9 @@
           ;; Since sub-modules can depend on each other, remove
           ;; requirements that are provided by the project (including
           ;; sub-modules).
-          `(:provides ,provides
-            :requires ,(effective-requires requires provides)
+          `(:provides              ,provides
+            :requires              ,(effective-requires requires provides)
+            :programming-languages ("Java")
             ,@(when description `(:description ,description))
             ,@(when url         `(:url         ,url))
             ,@(when license     `(:license     ,license))

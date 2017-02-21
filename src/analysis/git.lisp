@@ -1,6 +1,6 @@
 ;;;; git.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -192,13 +192,18 @@
       (log:info "~@<Maybe restoring analysis results in ~A~@:>" file)
       (when (probe-file file)
         (log:info "~@<Restoring analysis results in ~A~@:>" file)
-        (cl-store:restore file)))))
+        (let+ (((version . data) (cl-store:restore file)))
+          (unless (string= version *cache-version*)
+            (error "~@<Stored results have been produced by version ~A ~
+                    while this is version ~A.~@:>"
+                   version *cache-version*))
+          data)))))
 
 (defun analyze-git-branch/cache (cache-directory key results)
   (with-simple-restart (continue "~@<Do not cache results.~@:>")
     (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Storing analysis results in ~A~@:>" file)
-      (cl-store:store results file))))
+      (cl-store:store (cons *cache-version* results) file))))
 
 (defun analyze-git-branch/maybe-cached (clone-directory
                                         &rest args &key

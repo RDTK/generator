@@ -111,6 +111,7 @@
                  :depends-on ("version")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "variables")
                               (:file     "util")
                               (:file     "conditions")
                               (:file     "protocol")

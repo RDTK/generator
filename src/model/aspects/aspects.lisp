@@ -645,7 +645,7 @@ ${(or ensure-install-directory "# Not creating install directory")}
 
 ;;; groovy script aspects
 
-(define-aspect (groovy :job-var job) ()
+(define-aspect (groovy :job-var job) (builder-defining-mixin)
     ()
   (when-let ((code (var/typed :aspect.groovy.code '(or null string))))
     (push (constraint! () (groovy (:code code))) (builders job))))

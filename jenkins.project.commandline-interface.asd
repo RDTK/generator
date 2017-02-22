@@ -15,6 +15,8 @@
                 :iterate
                 (:version :more-conditions                       "0.2")
 
+                :architecture.builder-protocol.print-tree
+
                 :net.didierverna.clon
                 (:version :configuration.options                 "0.1")
                 (:version :configuration.options-syntax-ini      "0.1")

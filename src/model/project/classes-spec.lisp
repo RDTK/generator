@@ -44,7 +44,7 @@
                                                 reasons))))
          t)))
 
-(flet ((distribution-jobs (distribution)
+#+later (flet ((distribution-jobs (distribution)
          (let ((versions (remove nil (mapcar #'implementation
                                              (versions distribution)))))
            (remove-if-not (lambda (job)

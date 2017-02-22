@@ -557,248 +557,250 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
         (handler-bind ((error effective-error-policy)
                        (more-conditions:progress-condition
-                         (lambda (condition)
-                           (sb-sys:without-interrupts
-                             (bt:with-lock-held (lock)
-                               (case progress-style
-                                 (:none)
-                                 (:cmake
-                                  (princ condition)
-                                  (fresh-line))
-                                 (:one-line
-                                  (let* ((progress      (progress-condition-progress condition))
-                                         (progress/real (progress->real progress))
-                                         (width    20))
-                                    (format t "~C[2K[~VA] ~A~C[G"
-                                            #\Escape
-                                            width
-                                            (make-string (floor progress/real (/ width))
-                                                         :initial-element #\#)
-                                            condition
-                                            #\Escape)
-                                    (if (eq progress t)
-                                        (terpri)
-                                        (force-output))))))))))
+                        (lambda (condition)
+                          (sb-sys:without-interrupts
+                            (bt:with-lock-held (lock)
+                              (case progress-style
+                                (:none)
+                                (:cmake
+                                 (princ condition)
+                                 (fresh-line))
+                                (:one-line
+                                 (let* ((progress      (progress-condition-progress condition))
+                                        (progress/real (progress->real progress))
+                                        (width    20))
+                                   (format t "~C[2K[~VA] ~A~C[G"
+                                           #\Escape
+                                           width
+                                           (make-string (floor progress/real (/ width))
+                                                        :initial-element #\#)
+                                           condition
+                                           #\Escape)
+                                   (if (eq progress t)
+                                       (terpri)
+                                       (force-output))))))))))
           (lparallel:task-handler-bind ((error effective-error-policy)
                                         (more-conditions:progress-condition
                                          (lambda (condition)
                                            (bt:interrupt-thread
                                             main (lambda () (signal condition))))))
-            (with-delayed-error-reporting (:debug? debug?)
+                                       (with-delayed-error-reporting (:debug? debug?)
 
-              (let+ ((jenkins.api:*base-url*       (option-value "jenkins" "base-uri"))
-                     (jenkins.api:*username*       (option-value "jenkins" "username"))
-                     (jenkins.api:*password*       (or (option-value "jenkins" "password")
-                                                       (option-value "jenkins" "api-token")))
-                     (delete-other?                (option-value "generation" "delete-other"))
-                     (delete-other-pattern         (option-value "generation" "delete-other-pattern"))
-                     (template-directory           (option-value "generation" "template-directory"))
-                     (template                     (option-value "generation" "template"))
-                     ((&values mode mode?)         (option-value "generation" "mode"))
-                     (distribution-name            (option-value "generation" "distribution"))
-                     (distribution-version         "nightly")
-                     (template-pattern             (cond
-                                                     ((and template mode (not (eq mode? :default)))
-                                                      (error "~@<The options template and mode are mutually exclusive.~@:>"))
-                                                     (template)
-                                                     (mode
-                                                      (let ((template-directory (or template-directory
-                                                                                    (make-pathname
-                                                                                     :name     nil
-                                                                                     :type     nil
-                                                                                     :defaults (merge-pathnames
-                                                                                                #P"../templates/"
-                                                                                                (first distribution-name))))))
-                                                        (list (merge-pathnames
-                                                               (make-pathname
-                                                                :name      :wild
-                                                                :type      "template"
-                                                                :directory `(:relative ,mode))
-                                                               template-directory))))
-                                                     (t
-                                                      (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
+                                         (let+ ((jenkins.api:*base-url*       (option-value "jenkins" "base-uri"))
+                                                (jenkins.api:*username*       (option-value "jenkins" "username"))
+                                                (jenkins.api:*password*       (or (option-value "jenkins" "password")
+                                                                                  (option-value "jenkins" "api-token")))
+                                                (delete-other?                (option-value "generation" "delete-other"))
+                                                (delete-other-pattern         (option-value "generation" "delete-other-pattern"))
+                                                (template-directory           (option-value "generation" "template-directory"))
+                                                (template                     (option-value "generation" "template"))
+                                                ((&values mode mode?)         (option-value "generation" "mode"))
+                                                (distribution-name            (option-value "generation" "distribution"))
+                                                (distribution-version         "nightly")
+                                                (template-pattern             (cond
+                                                                                ((and template mode (not (eq mode? :default)))
+                                                                                 (error "~@<The options template and mode are mutually exclusive.~@:>"))
+                                                                                (template)
+                                                                                (mode
+                                                                                 (let ((template-directory (or template-directory
+                                                                                                               (make-pathname
+                                                                                                                :name     nil
+                                                                                                                :type     nil
+                                                                                                                :defaults (merge-pathnames
+                                                                                                                           #P"../templates/"
+                                                                                                                           (first distribution-name))))))
+                                                                                   (list (merge-pathnames
+                                                                                          (make-pathname
+                                                                                           :name      :wild
+                                                                                           :type      "template"
+                                                                                           :directory `(:relative ,mode))
+                                                                                          template-directory))))
+                                                                                (t
+                                                                                 (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
 
-                     #+no (templates     (with-phase-error-check
-                                        (:locate/template #'errors #'(setf errors) #'report)
-                                      (sort (locate-specifications :template template-pattern)
-                                            #'string< :key #'pathname-name)))
-                     (distributions (with-phase-error-check
-                                        (:locate/distribution #'errors #'(setf errors) #'report)
-                                      (locate-specifications :distribution distribution-name)))
-                     (overwrites    (mapcar #'parse-overwrite (option-value "generation" "set"))))
-                (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
-                                                 (option-value "general" "trace-variable")))
-                (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+                                                #+no (templates     (with-phase-error-check
+                                                                        (:locate/template #'errors #'(setf errors) #'report)
+                                                                      (sort (locate-specifications :template template-pattern)
+                                                                            #'string< :key #'pathname-name)))
+                                                (distributions (with-phase-error-check
+                                                                   (:locate/distribution #'errors #'(setf errors) #'report)
+                                                                 (locate-specifications :distribution distribution-name)))
+                                                (overwrites    (mapcar #'parse-overwrite (option-value "generation" "set"))))
+                                           (setf *traced-variables* (mapcar (compose #'make-keyword #'string-upcase)
+                                                                            (option-value "general" "trace-variable")))
+                                           (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
-                (with-trivial-progress (:jobs)
+                                           (with-trivial-progress (:jobs)
 
-                  (let* ((repository        (make-instance 'rs.m.d::base-repository))
-                         (resolver          (make-instance 'rs.f:search-path-resolver
-                                                           :search-path (list (make-pathname :name     nil
-                                                                                             :type     nil
-                                                                                             :defaults (first distributions))
-                                                                              (merge-pathnames
-                                                                               (make-pathname :name      nil
-                                                                                              :type      nil
-                                                                                              :directory '(:relative :back "projects"))
-                                                                               (first distributions))
-                                                                              (merge-pathnames
-                                                                               (make-pathname :name      nil
-                                                                                              :type      nil
-                                                                                              :directory `(:relative :back "templates" ,mode))
-                                                                               (first distributions)))))
-                         (locations         (make-instance 'rs.f:location-repository))
-                         (builder           (service-provider:make-provider 'rs.m.d::builder
-                                                                            :model
-                                                                            :repository repository
-                                                                            :resolver   resolver
-                                                                            :locations  locations))
+                                             (let* ((repository        (make-instance 'rs.m.d::base-repository))
+                                                    (resolver          (make-instance 'rs.f:search-path-resolver
+                                                                                      :search-path (list (make-pathname :name     nil
+                                                                                                                        :type     nil
+                                                                                                                        :defaults (first distributions))
+                                                                                                         (merge-pathnames
+                                                                                                          (make-pathname :name      nil
+                                                                                                                         :type      nil
+                                                                                                                         :directory '(:relative :back "projects"))
+                                                                                                          (first distributions))
+                                                                                                         (merge-pathnames
+                                                                                                          (make-pathname :name      nil
+                                                                                                                         :type      nil
+                                                                                                                         :directory `(:relative :back "templates" ,mode))
+                                                                                                          (first distributions)))))
+                                                    (locations         (make-instance 'rs.f:location-repository))
+                                                    (builder           (service-provider:make-provider 'rs.m::builder
+                                                                                                       :model
+                                                                                                       :repository repository
+                                                                                                       :resolver   resolver
+                                                                                                       :locations  locations))
 
-                         #+no (templates         (with-phase-error-check
-                                                (:load/template #'errors #'(setf errors) #'report
-                                                 :continuable? nil)
-                                              (load-templates templates)))
-                         (distributions/raw (with-phase-error-check
-                                                (:load/distribution #'errors #'(setf errors) #'report)
-                                              (rs.f:process :distribution-recipe distributions builder)
-                                              #+later overwrites))
-                         #+no (projects          (with-phase-error-check
-                                                (:locate/project #'errors #'(setf errors) #'report)
-                                              (locate-projects distributions distributions/raw)))
-                         #+no (projects/raw      (with-phase-error-check
-                                                (:load/project #'errors #'(setf errors) #'report)
-                                              (load-projects/versioned projects)))
-                         #+no (projects/specs    (with-phase-error-check
-                                                (:analyze/project #'errors #'(setf errors) #'report)
-                                              (apply #'analyze-projects projects/raw
-                                                     :non-interactive non-interactive
-                                                     (append
-                                                      (when cache-directory
-                                                        (list :cache-directory cache-directory))
-                                                      (when temp-directory
-                                                        (list :temp-directory temp-directory))))))
-                         (distributions     (with-phase-error-check
-                                                (:resolve/distribution #'errors #'(setf errors) #'report)
-                                              (mapcar (lambda (d)
-                                                        (project-automation.model.project.stage2::transform-distribution
-                                                         builder d distribution-version)) ; TODO
-                                                      distributions/raw)))
-                         #+no (distributions     (with-phase-error-check
-                                                (:check-platform-requirements #'errors #'(setf errors) #'report)
-                                              (check-platform-requirements distributions)))
-                         #+no (distributions     (with-phase-error-check
-                                                (:check-access #'errors #'(setf errors) #'report
-                                                 :continuable? nil)
-                                                   (check-distribution-access distributions)))
+                                                    #+no (templates         (with-phase-error-check
+                                                                                (:load/template #'errors #'(setf errors) #'report
+                                                                                                :continuable? nil)
+                                                                              (load-templates templates)))
+                                                    (distributions/raw (with-phase-error-check
+                                                                           (:load/distribution #'errors #'(setf errors) #'report)
+                                                                         (rs.f:process :distribution-recipe distributions builder)
+                                                                         #+later overwrites))
+                                                    #+no (projects          (with-phase-error-check
+                                                                                (:locate/project #'errors #'(setf errors) #'report)
+                                                                              (locate-projects distributions distributions/raw)))
+                                                    #+no (projects/raw      (with-phase-error-check
+                                                                                (:load/project #'errors #'(setf errors) #'report)
+                                                                              (load-projects/versioned projects)))
+                                                    #+no (projects/specs    (with-phase-error-check
+                                                                                (:analyze/project #'errors #'(setf errors) #'report)
+                                                                              (apply #'analyze-projects projects/raw
+                                                                                     :non-interactive non-interactive
+                                                                                     (append
+                                                                                      (when cache-directory
+                                                                                        (list :cache-directory cache-directory))
+                                                                                      (when temp-directory
+                                                                                        (list :temp-directory temp-directory))))))
+                                                    (distributions     (with-phase-error-check
+                                                                           (:resolve/distribution #'errors #'(setf errors) #'report)
+                                                                         (mapcar (lambda (d)
+                                                                                   (project-automation.model.project.stage2::transform-distribution
+                                                                                    builder d distribution-version)) ; TODO
+                                                                                 distributions/raw)))
+                                                    #+no (distributions     (with-phase-error-check
+                                                                                (:check-platform-requirements #'errors #'(setf errors) #'report)
+                                                                              (check-platform-requirements distributions)))
+                                                    #+no (distributions     (with-phase-error-check
+                                                                                (:check-access #'errors #'(setf errors) #'report
+                                                                                               :continuable? nil)
+                                                                              (check-distribution-access distributions)))
 
-                         (foo (labels ((project-version (project)
-                                         (with-simple-restart (continue "Skip project version ~A" project)
-                                           (let+ (((&values url kind (&optional revision-kind revision-designator))
-                                                   (project-automation.model.project.stage2::source-information project))
-                                                  ((&values kind url branches)
-                                                   (project-automation.access:probe-source url kind)) ; TODO should not be necessary when probe-sources step has been performed
-                                                  (directory (project-automation.access:access-source
-                                                              url kind revision-kind revision-designator)))
-                                             (list (rs.f:process :guess directory builder)))))
-                                       (dist-version (distribution)
-                                         (append (mapcan #'dist-version (rs.m.d:contents distribution :include))
-                                                 (mapcan #'project-version (rs.m.d:contents distribution :project))))
-                                       (dist (distribution)
-                                         (with-simple-restart (continue "Skip distribution ~A" distribution)
-                                           (mapcan #'dist-version (rs.m.d:contents distribution :version)))))
-                                (with-phase-error-check
-                                    (:analyze/project #'errors #'(setf errors) #'report)
-                                  (mapcan #'dist distributions))))
+                                                    (analysis-results (make-hash-table :test #'eq))
+                                                    (foo (labels ((project-version (project)
+                                                                    (with-simple-restart (continue "Skip project version ~A" project)
+                                                                      (let+ (((&values url kind (&optional revision-kind revision-designator))
+                                                                              (project-automation.model.project.stage2::source-information project))
+                                                                             ((&values kind url branches)
+                                                                              (when url
+                                                                                (project-automation.access:probe-source url kind))) ; TODO should not be necessary when probe-sources step has been performed
+                                                                             (directory (when (and kind url)
+                                                                                          (project-automation.access:access-source
+                                                                                           url kind revision-kind revision-designator))))
+                                                                        (when directory
+                                                                          (setf (gethash project analysis-results)
+                                                                                (flatten (ensure-list (rs.f:process :guess directory builder))))))))
+                                                                  (dist-version (distribution)
+                                                                    (append (mappend #'dist-version (rs.m.d:contents distribution :include))
+                                                                            (mappend #'project-version (rs.m.d:contents distribution :project))))
+                                                                  (dist (distribution)
+                                                                    (with-simple-restart (continue "Skip distribution ~A" distribution)
+                                                                      (mappend #'dist-version (rs.m.d:contents distribution :version)))))
+                                                           (with-phase-error-check
+                                                               (:analyze/project #'errors #'(setf errors) #'report)
+                                                             (prog1
+                                                                 (mapcan #'dist distributions)
+                                                               (log:warn (hash-table-alist analysis-results))))))
 
-                         (projects          (with-phase-error-check
-                                                (:instantiate/project #'errors #'(setf errors) #'report)
-                                              (mapcar (curry #'project-automation.model.project.stage3::transform-distribution
-                                                             builder)
-                                                      distributions)))
-                         (jobs/spec         (unless dry-run?
-                                              (with-phase-error-check
-                                                  (:deploy/project #'errors #'(setf errors) #'report)
-                                                (flatten (deploy-projects projects)))))
-                         #+no (jobs              (unless dry-run?
-                                              (mappend #'implementations jobs/spec))))
-                    (declare (ignore templates))
+                                                    (projects          (with-phase-error-check
+                                                                           (:instantiate/project #'errors #'(setf errors) #'report)
+                                                                         (mapcar (lambda (distribution)
+                                                                                   (project-automation.model.project.stage3::transform-distribution
+                                                                                    builder distribution analysis-results))
+                                                                                 distributions)))
+                                                    (distributions/4   (with-phase-error-check
+                                                                           (:stage-4 #'errors #'(setf errors) #'report)
+                                                                         (mapcar (lambda (distribution)
+                                                                                   (project-automation.model.project.stage4::transform-distribution
+                                                                                    builder distribution))
+                                                                                 projects)))
+                                                    (jobs/spec         (unless dry-run?
+                                                                         (with-phase-error-check
+                                                                             (:deploy/project #'errors #'(setf errors) #'report)
+                                                                           (flatten (deploy-projects distributions/4)))))
+                                                    #+no (jobs              (unless dry-run?
+                                                                              (mappend #'implementations jobs/spec))))
 
-                    (utilities.print-tree:print-tree
-                     *standard-output* (first distributions)
-                     (utilities.print-tree:make-node-printer
-                      (lambda (stream depth object)
-                        (declare (ignore depth))
-                        (princ object stream)
-                        '() #+no (project-automation.model.variable:direct-variables object))
-                      #'project-automation.commands::print-node
-                      (lambda (object)
-                        (rs.m.d:contents object t))))
+                                               (with-phase-error-check (:dump #'errors #'(setf errors) #'report)
 
-                    (terpri) (terpri)
+                                                 (let ((builder (c2mop:class-prototype (find-class 'rs.f::model-builder))))
+                                                   (with-simple-restart (continue "Skip dumping stage2 tree")
+                                                     (architecture.builder-protocol.print-tree:serialize
+                                                      builder (first distributions) *standard-output*))
+                                                   (terpri) (terpri)
 
-                    (mapcar (lambda (x)
-                             (utilities.print-tree:print-tree
-                              *standard-output* x
-                              (utilities.print-tree:make-node-printer
-                               (lambda (stream depth object)
-                                 (declare (ignore depth))
-                                 (princ object stream)
-                                 '() #+no (project-automation.model.variable:direct-variables object))
-                               #'project-automation.commands::print-node
-                               (lambda (object)
-                                 (rs.m.d:contents object t))))
-                             (terpri))
-                            foo)
+                                                   (with-simple-restart (continue "Skip dumping dependency tree")
+                                                     (map nil (lambda (x)
+                                                                (architecture.builder-protocol.print-tree:serialize
+                                                                 builder x *standard-output*)
+                                                                (terpri))
+                                                          foo))
 
-                    (terpri)
+                                                   (with-simple-restart (continue "Skip dumping stage3 tree")
+                                                     (architecture.builder-protocol.print-tree:serialize
+                                                      builder (first projects) *standard-output*))
+                                                   (terpri) (terpri))
 
-                    (utilities.print-tree:print-tree
-                     *standard-output* (first projects)
-                     (utilities.print-tree:make-node-printer
-                      (lambda (stream depth object)
-                        (declare (ignore depth))
-                        (princ object stream)
-                        '() #+no (project-automation.model.variable:direct-variables object))
-                      #'project-automation.commands::print-node
-                      (lambda (object)
-                        (rs.m.d:contents object t))))
+                                                 (with-simple-restart (continue "Skip dumping stage4 tree")
+                                                   (architecture.builder-protocol.print-tree:serialize
+                                                    builder (first distributions/4) *standard-output*)))
 
-                    #+no (unless dry-run?
-                           ;; Delete automatically generated jobs
-                           ;; found on the server for which no
-                           ;; counterpart exists among the newly
-                           ;; generated jobs. This is necessary to get
-                           ;; rid of leftover jobs when projects (or
-                           ;; project versions) are deleted or
-                           ;; renamed.
-                           (when delete-other?
-                             (with-phase-error-check
-                                 (:delete-other-jobs #'errors #'(setf errors) #'report)
-                               (let* ((other-jobs (set-difference
-                                                   (jenkins.api:all-jobs delete-other-pattern)
-                                                   all-jobs
-                                                   :key #'jenkins.api:id :test #'string=))
-                                      (generated-jobs (remove-if-not #'generated? other-jobs)))
-                                 (with-sequence-progress (:delete-other generated-jobs)
-                                   (mapc (progressing #'jenkins.api:delete-job :delete-other)
-                                         generated-jobs)))))
+                                               #+no (unless dry-run?
+                                                      ;; Delete automatically generated jobs
+                                                      ;; found on the server for which no
+                                                      ;; counterpart exists among the newly
+                                                      ;; generated jobs. This is necessary to get
+                                                      ;; rid of leftover jobs when projects (or
+                                                      ;; project versions) are deleted or
+                                                      ;; renamed.
+                                                      (when delete-other?
+                                                        (with-phase-error-check
+                                                            (:delete-other-jobs #'errors #'(setf errors) #'report)
+                                                          (let* ((other-jobs (set-difference
+                                                                              (jenkins.api:all-jobs delete-other-pattern)
+                                                                              all-jobs
+                                                                              :key #'jenkins.api:id :test #'string=))
+                                                                 (generated-jobs (remove-if-not #'generated? other-jobs)))
+                                                            (with-sequence-progress (:delete-other generated-jobs)
+                                                              (mapc (progressing #'jenkins.api:delete-job :delete-other)
+                                                                    generated-jobs)))))
 
-                           (with-phase-error-check
-                               (:list-credentials #'errors #'(setf errors) #'report)
-                             (list-credentials jobs)))
+                                                      (with-phase-error-check
+                                                          (:enable-jobs #'errors #'(setf errors) #'report)
+                                                        (enable-jobs (remove-if-not #'jenkins.api:disabled?
+                                                                                    all-jobs)))
 
-                    #+no (when report-directory
-                      (with-phase-error-check
-                          (:report #'errors #'(setf errors) #'report)
-                        (flet ((maybe-first (thing)
-                                 (if (consp thing) (first thing) thing)))
-                          (jenkins.report:report
-                           (maybe-first distributions) :json report-directory)
-                          (with-simple-restart (continue "Skip graph report")
-                            (if (setf cl-dot:*dot-path* (cl-dot::find-dot))
-                                (jenkins.report:report
-                                 (maybe-first distributions) :graph report-directory)
-                                (error "~@<Could not find dot program.~@:>"))))))))))))
+                                                      (with-phase-error-check
+                                                          (:list-credentials #'errors #'(setf errors) #'report)
+                                                        (list-credentials jobs)))
+
+                                               #+no (when report-directory
+                                                      (with-phase-error-check
+                                                          (:report #'errors #'(setf errors) #'report)
+                                                        (flet ((maybe-first (thing)
+                                                                 (if (consp thing) (first thing) thing)))
+                                                          (jenkins.report:report
+                                                           (maybe-first distributions) :json report-directory)
+                                                          (with-simple-restart (continue "Skip graph report")
+                                                            (if (setf cl-dot:*dot-path* (cl-dot::find-dot))
+                                                                (jenkins.report:report
+                                                                 (maybe-first distributions) :graph report-directory)
+                                                                (error "~@<Could not find dot program.~@:>"))))))))))))
 
       (abort (&optional condition)
         :report (lambda (stream)

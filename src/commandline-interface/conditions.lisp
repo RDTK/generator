@@ -10,26 +10,27 @@
 
 (defun report-error (stream condition &optional colon? at?)
   (declare (ignore at?))
-  (typecase condition
-    (deferred-phase-problem-condition
-     (princ condition stream))
-    (unfulfilled-project-dependency-error
-     (format stream "~@<~A: ~A~@:>"
-             (instantiation-condition-specification condition)
-             (root-cause condition)))
-    (t
-     (let+ (((&flet output ()
-               (format stream "~@<~A:~
+  (let ((*print-length* 100))
+    (typecase condition
+      (deferred-phase-problem-condition
+       (princ condition stream))
+      (unfulfilled-project-dependency-error
+       (format stream "~@<~A: ~A~@:>"
+               (instantiation-condition-specification condition)
+               (root-cause condition)))
+      (t
+       (let+ (((&flet output ()
+                 (format stream "~@<~A:~
                                ~@:_~2@T~<~A~:>~
                                ~:>"
-                       (type-of condition) (list condition)))))
-       (if colon?
-           (ignore-errors
-            (alexandria:unwind-protect-case ()
-                (output)
-              (:abort
-               (format stream "<error printing condition>~%"))))
-           (output))))))
+                         (type-of condition) (list condition)))))
+         (if colon?
+             (ignore-errors
+               (alexandria:unwind-protect-case ()
+                   (output)
+                 (:abort
+                  (format stream "<error printing condition>~%"))))
+             (output)))))))
 
 ;;; Dependency error reporting
 

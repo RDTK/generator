@@ -54,6 +54,7 @@
 
   ;; Variable schema protocol
   (:export
+   #:variable-info
    #:variable-info-name
    #:variable-info-type
    #:variable-info-documentation

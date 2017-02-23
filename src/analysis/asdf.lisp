@@ -50,8 +50,8 @@
                                  (append defsystem-depends-on
                                          depends-on))
               ,@(when description `(:description ,description))
-              ,@(when author      `(:authors     (,author)))
-              ,@(when maintainer  `(:maintainers (,maintainer)))
+              ,@(when author      `(:authors     ,(ensure-list author)))
+              ,@(when maintainer  `(:maintainers ,(ensure-list maintainer)))
               ,@(when license     `(:license     ,license))))))
     (mapcar #'process-system-form (%extract-system-definition-forms file))))
 

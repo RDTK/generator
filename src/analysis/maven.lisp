@@ -29,7 +29,7 @@
                                                      :if-no-match :do-nothing)
          (url                                        "project/url/text()"
                                                      :if-no-match :do-nothing)
-         (license                                    "licenses/license/name/text()"
+         (license                                    "project/licenses/license/name/text()"
                                                      :if-no-match :do-nothing)
          ((:val properties :type 'cons/property)     "project/properties/*"
                                                      :if-multiple-matches :all)

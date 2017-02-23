@@ -189,6 +189,8 @@
 
                               (:file     "aspect")
                               (:file     "mixins")
+                              (:file     "macros")
+
                               (:file     "aspects")))
 
                 (:module     "report"

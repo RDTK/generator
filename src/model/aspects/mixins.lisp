@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Mixin classes for aspect classes.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,24 +8,27 @@
 
 ;;; `aspect-builder-defining-mixin'
 
+(define-constant +all-marker+ "<all>"
+  :test #'string=)
+
 (defclass aspect-builder-defining-mixin ()
   ()
   (:documentation
-   "TODO"))
+   "Adds processing of builder ordering constraints."))
 
 (defun+ parse-constraint ((&whole raw kind subject))
   (let+ (((&flet parse-kind ()
             (make-keyword (string-upcase kind))))
          ((&flet parse-class-or-tag (value)
-            (if (or (equal value "<all>") (eq value t))
+            (if (or (equal value +all-marker+) (eq value t))
                 t
                 (intern (string-upcase value) #.*package*))))
          ((&flet parse-name (value)
-            (if (or (equal value "<all>") (eq value t))
+            (if (or (equal value +all-marker+) (eq value t))
                 t
                 value))))
     (cond
-      ((equal subject "<all>")
+      ((equal subject +all-marker+)
        (list (parse-kind) t t))
       ((stringp subject)
        (list (parse-kind) (parse-class-or-tag subject) t))
@@ -38,7 +41,7 @@
       (t
        (error 'type-error
               :datum         raw
-              :expected-type '(or (eql "<all>") cons))))))
+              :expected-type '(or (eql +all-marker+) cons))))))
 
 (defmethod builder-constraints ((aspect  aspect-builder-defining-mixin)
                                 (builder t))

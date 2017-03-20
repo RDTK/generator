@@ -773,21 +773,21 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 ;;; Maven aspect
 
 (define-aspect (maven :job-var job) (builder-defining-mixin)
-    (((properties           '())      :type list #|of string|#
+    (((properties           '()) :type list #|of string|#
       :documentation
       "A list of Maven properties that should be set for the build.
        Entries are of the form NAME=VALUE.")
-     (targets                         :type list #|of string|#
+     (targets                    :type list #|of string|#
       :documentation
       "A list of names of Maven targets that should be built.")
-     (private-repository?             :type boolean
+     (private-repository?        :type boolean
       :documentation
       "See documentation of the Maven plugin.")
-     ((settings-file        :default) :type (or string (eql :default))
+     ((settings-file        nil) :type (or null string)
       :documentation
       "Name of a Maven settings file that should be used for the Maven
        invocation.")
-     ((global-settings-file :default) :type (or string (eql :default))
+     ((global-settings-file nil) :type (or null string)
       :documentation
       "Name of a global Maven settings file that should be used for
        the Maven invocation."))
@@ -806,8 +806,8 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
                                       ;; for command line options
                  :targets             (list* "-B" targets)
                  :private-repository? private-repository?
-                 :settings            settings-file
-                 :global-settings     global-settings-file)))
+                 :settings            (or settings-file :default)
+                 :global-settings     (or global-settings-file :default))))
         (builders job)))
 
 ;;; Setuptools aspect

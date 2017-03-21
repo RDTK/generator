@@ -84,9 +84,8 @@
                               &key
                               (providers nil providers-supplied?))
   (iter (for requires in (requires spec))
-        (log:trace "~@<Trying to satisfy requirement ~S for ~A~:[~; ~
-                    considering providers ~S~].~@:>"
-                   requires thing providers-supplied? providers)
+        (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
+                   requires thing)
         (with-simple-restart (continue "~@<Skip requirement ~S.~@:>" requires)
           (let+ (((&flet instantiable-jobs (spec)
                     (remove-if-not (rcurry #'instantiate? spec) (jobs spec))))

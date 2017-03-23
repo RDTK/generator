@@ -8,7 +8,6 @@
 
 ;; TODO(jmoringe, 2013-02-21): find better location for these macros
 (defmacro ensure-interface ((accessor object) (class &rest initargs))
-  "TODO(jmoringe): document"
   (once-only (object)
     (with-gensyms (implementation)
       `(or (find-if (of-type ',class) (,accessor ,object))
@@ -18,7 +17,6 @@
 
 (defmacro with-interface ((accessor object) (var (class &rest initargs))
                           &body body)
-  "TODO(jmoringe): document"
   `(let ((,var (ensure-interface (,accessor ,object) (,class ,@initargs))))
      ,@body))
 

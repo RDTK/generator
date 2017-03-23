@@ -9,8 +9,6 @@
 ;;; Win32-related aspects
 
 (define-aspect dependency-download/win32 (builder-defining-mixin) ()
-  ;; TODO share code for determining artifacts to copy with UNIX
-  ;; dependency download
   (puse (constraint! ()
           (batch (:command "cd upstream
 unzip -o *.zip
@@ -40,7 +38,6 @@ move ..\*.zip .")))
 (define-aspect (debian-package/cmake) (debian-package
                                        builder-defining-mixin)
     ()
-  ;; TODO add PACKAGE_REVISION to environment
   (push (constraint! (build ((:after cmake/unix)))
                      (shell (:command #?"mkdir -p ${(var/typed :build-dir 'string)} && cd ${(var/typed :build-dir 'string)}
 cmake -DCPACK_CONFIG_FILE=${(var/typed :aspect.debian-package/cmake.cpack-config-file 'string)} \\

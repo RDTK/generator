@@ -71,7 +71,7 @@
   :maintainer  "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :version     #.(version/string)
   :license     "LLGPLv3" ; see COPYING file for details.
-  :description "TODO"
+  :description "Generates Jenkins jobs from different kinds of recipes."
   :depends-on  (:alexandria
                 (:version :split-sequence        "1.1")
                 :iterate

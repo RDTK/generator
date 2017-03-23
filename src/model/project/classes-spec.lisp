@@ -28,9 +28,12 @@
              :type     list ; of version-spec
              :reader   versions
              :documentation
-             "TODO"))
+             "Stores a list of project version specifications."))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Instances represent specifications of distributions.
+
+    Basically consists of variables and a set of project version
+    specifications."))
 
 (defmethod direct-variables ((thing distribution-spec))
   (value-acons :distribution-name (name thing)
@@ -176,7 +179,10 @@
 
               ."))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Instances are project version specifications.
+
+    Consists of variables, additional requirements and provided things
+    and instantiation conditions."))
 
 (defmethod shared-initialize :after ((instance   version-spec)
                                      (slot-names t)
@@ -281,7 +287,7 @@
                     parented-mixin)
   ()
   (:documentation
-   "TODO(jmoringe): document"))
+   "Specification of a build job to be generated."))
 
 (defmethod instantiate ((spec job-spec) &key parent specification-parent)
   (let+ (((&flet make-aspect (spec parent)
@@ -319,7 +325,7 @@
             :documentation
             ""))
   (:documentation
-   "TODO(jmoringe): document"))
+   "A collection of variables, aspects and jobs to use for a project version."))
 
 ;;; TODO(jmoringe, 2013-01-16): move to correct file
 
@@ -362,7 +368,7 @@
   (:default-initargs
    :aspect (missing-required-initarg 'aspect-spec :aspect))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Specification of an aspect that should be applied to a build job."))
 
 (defmethod instantiate ((spec aspect-spec) &key parent specification-parent)
   (declare (ignore specification-parent))

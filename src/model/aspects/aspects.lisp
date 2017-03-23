@@ -183,11 +183,6 @@ mv -T \"${first}\" \"\${temp}/\"
 find \"\${temp}/${rest/string}\" -mindepth 1 -maxdepth 1 -exec mv {} . \\;
 rm -rf \"\${temp}\""))
 
-(defun slashify (namestring) ; TODO uiop:ensure-directory-pathname
-  (if (ends-with #\/ namestring)
-      namestring
-      (concatenate 'string namestring "/")))
-
 (defun make-variable/sh (string)
   (substitute-if #\_ (lambda (character)
                        (not (or (alphanumericp character)
@@ -335,7 +330,7 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
+    (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (build ((:before t)))
@@ -448,7 +443,7 @@ ${(make-move-stuff-upwards/unix components)}")))
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (let+ ((sub-directory (parse-namestring (slashify sub-directory)))
+    (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
            ((&whole components first &rest &ign)
             (rest (pathname-directory sub-directory))))
       (push (constraint! (build ((:before t)))

@@ -15,7 +15,7 @@
          :documentation
          ""))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Intended to be mixed into classes representing named model objects."))
 
 (defmethod direct-variables ((thing named-mixin))
   (value-acons :name (name thing)
@@ -42,7 +42,7 @@
            :documentation
            ""))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Intended to be mixed into classes representing parented model objects."))
 
 (defmethod variables append ((thing parented-mixin))
   (when-let ((parent (parent thing)))
@@ -89,7 +89,7 @@
                :documentation
                ""))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Intended to be mixed into model classes with conditional instantiation."))
 
 (defmethod instantiate? ((spec conditional-mixin) (parent t))
   (log:debug "~@<Checking whether to instantiate ~A with parent ~A~@:>"
@@ -111,4 +111,3 @@
                         match~;~:*match ~S~]~@:>"
                        expression value regex matches?)
             (always matches?)))))
-

@@ -245,9 +245,6 @@
 (define-variable :dependency-job-name string
   "Internal.")
 
-(define-variable :no-dependencies boolean
-  "Deprecated. Use dependencies.mode instead.")
-
 (define-variable :dependencies.mode string ; TODO (member :direct :minimal :none) would be nice
   "Controls up/downstream relations between generated jobs.
 

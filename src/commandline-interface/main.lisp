@@ -1038,8 +1038,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                    (:deploy/project #'errors #'(setf errors) #'report)
                                                  (let ((jobs (deploy-projects projects)))
                                                    (when (some (lambda (job)
-                                                                 (not (or (as (value job :no-dependencies nil) 'boolean) ; TODO remove
-                                                                          (string= (as (value job :dependencies.mode) 'string) "none"))))
+                                                                 (not (string= (as (value job :dependencies.mode) 'string) "none")))
                                                                jobs)
                                                      (deploy-job-dependencies jobs))
                                                    jobs))))

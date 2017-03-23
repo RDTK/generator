@@ -213,15 +213,14 @@
 
 (defmethod deploy-dependencies ((thing job))
   (let ((relevant-dependencies
-         (unless (as (value thing :no-dependencies nil) 'boolean) ; TODO remove
-           (eswitch ((as (value thing :dependencies.mode "direct") 'string)
-                     :test #'equal)
-             ("direct"
-              (direct-dependencies thing))
-             ("minimal"
-              (minimal-dependencies thing))
-             ("none"
-              '())))))
+         (eswitch ((as (value thing :dependencies.mode "direct") 'string)
+                   :test #'equal)
+           ("direct"
+            (direct-dependencies thing))
+           ("minimal"
+            (minimal-dependencies thing))
+           ("none"
+            '()))))
     (iter (for upstream-job in relevant-dependencies)
           (with-simple-restart (continue "~@<Do not relate ~A -> ~A~@:>"
                                          upstream-job thing)

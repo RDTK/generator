@@ -7,7 +7,7 @@
 (cl:in-package #:jenkins.analysis)
 
 (defparameter *main-cmake-file-name* "CMakeLists.txt"
-  "TODO(jmoringe): document")
+  "The filename of the CMake file for a project.")
 
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner

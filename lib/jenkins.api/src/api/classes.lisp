@@ -99,17 +99,18 @@
 
          ((&flet+ make-default-initarg ((name
                                          &key
-                                         (initarg   (make-keyword name))
+                                         (initarg       (make-keyword name))
                                          (optional? t)
-                                         (initform  :TODO-let-plus      initform-supplied?)
+                                         (initform  nil initform-supplied?)
                                          &allow-other-keys))
+            (declare (ignore initform))
             (unless (or optional? initform-supplied?)
               `(,initarg (missing-required-initarg ',name ,initarg)))))
 
          ((&flet+ make-xml->slot ((name
                                    &key
                                    (type      t)
-                                   (xpath     (format (cdr '(1)) "./~(~A~)/text()" name)) ; TODO(jmoringe, 2012-12-21): let+ workaround
+                                   (xpath     (format nil "./~(~A~)/text()" name))
                                    (optional? t)
                                    &allow-other-keys))
             (when xpath
@@ -126,7 +127,7 @@
          ((&flet+ make-slot->xml ((name
                                    &key
                                    (type      t)
-                                   (xpath     (format (cdr '(1)) "./~(~A~)/text()" name))
+                                   (xpath     (format nil "./~(~A~)/text()" name))
                                    (optional? t)
                                    &allow-other-keys))
             (when xpath

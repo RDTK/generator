@@ -225,7 +225,15 @@
                  :xpath "buildHostImage[@class=\"it.dockins.dockerslaves.spec.ImageIdContainerDefinition\"]/image/text()")
     (force-pull? :type boolean
                  :xpath "buildHostImage[@class=\"it.dockins.dockerslaves.spec.ImageIdContainerDefinition\"]/forcePull/text()"))
-   (:name-slot image)))
+   (:name-slot image))
+
+  ((redmine "hudson.plugins.redmine.RedmineProjectProperty"
+            :plugin "redmine@0.21")
+   ((instance     :type     string
+                  :xpath    "redmineWebsiteName/text()")
+    (project-name :type     string
+                  :xpath    "projectName/text()"))
+   (:name-slot project-name)))
 
 ;;; trigger interface
 
@@ -638,19 +646,7 @@
                     :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
                                :if-multiple-matches :all))
    (jdk             :type     string
-                    :xpath    "jdk/text()")
-   ;; TODO these will be moved into the appropriate interfaces
-   (redmine-instance :type     string
-                     :xpath    #+TODO (:version
-                                       ("redmine@0.14"
-                                        "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineWebsite/text()")
-                                       (t
-                                        "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineWebsiteName/text()"))
-                               "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineWebsiteName/text()")
-   (redmine-version :type     string
-                    :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/redmineVersionNumber/text()")
-   (redmine-project :type     string
-                    :xpath    "properties/hudson.plugins.redmine.RedmineProjectProperty/projectName/text()"))
+                    :xpath    "jdk/text()"))
   (:get-func (lambda (id)      (job-config id)))
   (:put-func (lambda (id data) (setf (job-config id) data))))
 

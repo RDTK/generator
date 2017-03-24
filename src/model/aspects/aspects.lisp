@@ -203,14 +203,14 @@
 
 ;;; Redmine aspects
 
-(define-aspect (redmine) ()
-    (((instance (bail)) :type string
+(define-aspect (redmine :job-var job) ()
+    (((instance nil) :type (or null string)
       :documentation
       "Redmine instance in which the project associated to the
        generated job resides.
 
        A matching entry has to exist in Jenkin's global settings.")
-     ((project  (bail)) :type string
+     ((project  nil) :type (or null string)
       :documentation
       "Name of the Redmine project to which the generated job should
        be associated."))
@@ -222,8 +222,11 @@
    It is recommended to use the full base URL of the actual Redmine as
    the respective name since the redmine-and-git aspect can reuse this
    information.  "
-  (setf (jenkins.api::redmine-instance job) instance
-        (jenkins.api::redmine-project job)  project))
+  (if (and instance project)
+      (with-interface (properties job) (redmine (property/redmine))
+        (setf (jenkins.api:instance     redmine) instance
+              (jenkins.api:project-name redmine) project))
+      (removef (properties job) 'property/redmine :key #'type-of)))
 
 (define-aspect (redmine-and-git
                 :job-var     job

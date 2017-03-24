@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for api module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -140,7 +140,11 @@
 
    #:property/docker
    #:image
-   #:force-pull?)
+   #:force-pull?
+
+   #:property/redmine
+   #:instance
+   #:project-name)
 
   ;; Trigger interface
   (:export

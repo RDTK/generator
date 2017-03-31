@@ -9,7 +9,8 @@
 (defun check-generator-version (spec)
   (when-let ((required-version (cdr (assoc :minimum-generator-version spec))))
     (let ((provided-version (jenkins.project-system:version/string)))
-      (unless (uiop:version-compatible-p provided-version required-version)
+      (unless (version-matches (parse-version required-version)
+                               (parse-version provided-version))
         (error "~@<The template requires generator version ~S, but ~
                 this generator is version ~S.~@:>"
                required-version provided-version)))))

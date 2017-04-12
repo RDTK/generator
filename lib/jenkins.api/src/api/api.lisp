@@ -121,6 +121,7 @@
            (exists-name :exists-name (format-symbol *package* "~A?" name))
 
            (make-name   :make-name   (format-symbol *package* "MAKE-~A" name))
+           (make-path   :make-path   "createItem")
 
            (copy-name   :copy-name   (format-symbol *package* "COPY-~A" name))
 
@@ -160,7 +161,7 @@
                                        '(simple-array (unsigned-byte 8) (*)))
                         :method       :post))
 
-             (define-operation (,make-name :path "createItem") (name config)
+             (define-operation (,make-name :path ,make-path) (name config)
                (request :name         name
                         :content-type "text/xml"
                         :content      (coerce
@@ -169,7 +170,7 @@
                         :method       :post))))
 
        ;; TODO name or object
-       (define-operation (,copy-name :path "createItem") (source-name new-name)
+       (define-operation (,copy-name :path ,make-path) (source-name new-name)
          (request :name   new-name
                   :mode   "copy"
                   :from   source-name

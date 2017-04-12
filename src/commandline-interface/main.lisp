@@ -433,46 +433,46 @@
                 (jenkins.api:builders
                  (jenkins.dsl:shell (:command (or command
                                                   "# <nothing to do>"))))))))
-      (append
-       ;; Maybe create hook jobs
-       (when prepare-name
-         (list (make-hook-job prepare-name prepare-command)))
+      (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+        (append
+         ;; Maybe create hook jobs
+         (when prepare-name
+           (list (make-hook-job prepare-name prepare-command)))
 
-       (when finish-name
-         (list (make-hook-job finish-name  finish-command)))
+         (when finish-name
+           (list (make-hook-job finish-name  finish-command)))
 
-       ;; Create bluildflow job
-       (when buildflow-name
-         (progress :orchestration nil "~A" buildflow-name)
-         (let ((schedule (funcall (if buildflow-parallel?
-                                      #'schedule-jobs/parallel
-                                      #'schedule-jobs/serial)
-                                  (remove-if-not #'include-job? jobs)))
-               (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
-                                        "build-flow-plugin@0.10")
-                                       buildflow-name
-                                       :commit? nil))))
-           (configure-buildflow-job
-            job schedule
-            :prepare-name     prepare-name
-            :finish-name      finish-name
-            :ignore-failures? build-flow-ignores-failures?)
-           (jenkins.api:commit! job)
-           (jenkins.api:enable! job)
-           (list job)))))))
+         ;; Create bluildflow job
+         (when buildflow-name
+           (progress :orchestration nil "~A" buildflow-name)
+           (let ((schedule (funcall (if buildflow-parallel?
+                                        #'schedule-jobs/parallel
+                                        #'schedule-jobs/serial)
+                                    (remove-if-not #'include-job? jobs)))
+                 (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
+                                          "build-flow-plugin@0.10")
+                                         buildflow-name
+                                         :commit? nil))))
+             (configure-buildflow-job
+              job schedule
+              :prepare-name     prepare-name
+              :finish-name      finish-name
+              :ignore-failures? build-flow-ignores-failures?)
+             (jenkins.api:commit! job)
+             (jenkins.api:enable! job)
+             (list job))))))))
 
 (defun configure-view (name jobs)
-  (let ((view (make-instance 'jenkins.api:view
-                             :id   name
-                             :jobs '())))
-    (if (jenkins.api::view? name)
-        (jenkins.api::update! view)
-        (jenkins.api:make-view name (jenkins.api::%data view)))
-    (setf (jenkins.api:jobs view) (mapcar #'jenkins.api:id jobs))
-    (stp:serialize (jenkins.api::%data view)
-                   (cxml:make-character-stream-sink *standard-output* :indentation 2))
-    (jenkins.api:commit! view)
-    view))
+  (with-trivial-progress (:view "~A" name)
+    (let ((view (make-instance 'jenkins.api:view
+                               :id   name
+                               :jobs '())))
+      (if (jenkins.api::view? name)
+          (jenkins.api::update! view)
+          (jenkins.api:make-view name (jenkins.api::%data view)))
+      (setf (jenkins.api:jobs view) (mapcar #'jenkins.api:id jobs))
+      (jenkins.api:commit! view)
+      view)))
 
 (defun configure-distribution (distribution
                                &key
@@ -480,16 +480,17 @@
   (let* ((jobs               (mappend (compose #'jobs #'implementation)
                                       (versions distribution)))
          (orchestration-jobs (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
-                               (configure-jobs
-                                distribution jobs
-                                :build-flow-ignores-failures? build-flow-ignores-failures?)))
+                               (with-simple-restart
+                                   (continue "~@<Continue without configuring orchestration jobs~@:>")
+                                 (configure-jobs
+                                  distribution jobs
+                                  :build-flow-ignores-failures? build-flow-ignores-failures?))))
          (all-jobs           (append (mapcar #'implementation jobs)
                                      orchestration-jobs)))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
-    (when-let ((create? (as (value distribution :view.create? nil) 'boolean))
-               (name    (value distribution :view.name)))
-      (with-trivial-progress (:view "~A" name)
-        (log:error all-jobs)
+    (when-let* ((create? (as (value distribution :view.create? nil) 'boolean))
+                (name    (value distribution :view.name)))
+      (with-simple-restart (continue "~@<Continue without creating a view~@:>")
         (configure-view name all-jobs)))
     (values jobs orchestration-jobs all-jobs)))
 
@@ -1070,12 +1071,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
                          (orchestration-jobs (unless dry-run?
                                                (with-phase-error-check
                                                    (:orchestration #'errors #'(setf errors) #'report)
-                                                 (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-                                                   (with-simple-restart
-                                                       (continue "~@<Continue without configuring orchestration jobs~@:>")
-                                                     (configure-distributions
-                                                      distributions
-                                                      :build-flow-ignores-failures? build-flow-ignores-failures?)))))))
+                                                 (configure-distributions
+                                                  distributions
+                                                  :build-flow-ignores-failures? build-flow-ignores-failures?)))))
                     (declare (ignore templates))
 
                     (unless dry-run?

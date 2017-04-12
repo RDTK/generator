@@ -303,3 +303,13 @@
 (define-variable :finish-hook/unix string
   "A fragment of shell code that should be run by the \"finish-hook\"
    job.")
+
+;;; View variables
+
+(define-variable :view.create? boolean
+  "If true, create an associated view for each created distribution.")
+
+(define-variable :view.name string
+  "The name of the associated view for the current distribution.
+
+   Has no effect if the value of view.create? is not true.")

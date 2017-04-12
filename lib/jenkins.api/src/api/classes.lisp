@@ -157,7 +157,7 @@
              (when get-func `(:get-func ,get-func))
              (when put-func `(:put-func ,put-func))
              (mappend #'make-default-initarg slots)
-             (second (find :default-initargs options :key #'first))))
+             (rest (find :default-initargs options :key #'first))))
          ,@(remove-if (lambda (key)
                         (member key '(:name-slot :version-slot
                                       :get-func :put-func

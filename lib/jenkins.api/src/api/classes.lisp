@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -1124,12 +1124,3 @@
 
 (defmethod job ((item item) &key &allow-other-keys)
   (job (job-name item)))
-
-;;; `view' class
-
-(define-model-class view ()
-    ((jobs :type  string
-           :xpath ("job/name/text()"
-                   :if-multiple-matches :all)))
-  (:get-func (lambda (id)      (view-config id)))
-  (:put-func (lambda (id data) (setf (view-config id) data))))

@@ -402,6 +402,8 @@
 
 ;;; View-related operations
 
+(defclass view () ()) ; forward declaration
+
 (define-items view
   (:prefix      "view")
   (:id          "name")

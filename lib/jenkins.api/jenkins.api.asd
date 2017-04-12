@@ -1,6 +1,6 @@
 ;;;; jenkins.api.asd --- System definition for the jenkins.api system.
 ;;;;
-;;;; Copyright (C) 2011, 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2011-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -54,7 +54,13 @@
                 (:version :drakma          "1.2.8")
                 (:version :xml.location    "0.2.0")
                 (:version :cl-json         "0.4.1"))
-  :components  ((:module     "api"
+  :components  ((:module     "model"
+                 :pathname   "src/api/model"
+                 :depends-on ("api")
+                 :serial     t
+                 :components ((:file     "view")))
+
+                (:module     "api"
                  :pathname   "src/api"
                  :serial     t
                  :components ((:file     "package")

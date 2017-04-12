@@ -461,14 +461,37 @@
            (jenkins.api:enable! job)
            (list job)))))))
 
+(defun configure-view (name jobs)
+  (let ((view (make-instance 'jenkins.api:view
+                             :id   name
+                             :jobs '())))
+    (if (jenkins.api::view? name)
+        (jenkins.api::update! view)
+        (jenkins.api:make-view name (jenkins.api::%data view)))
+    (setf (jenkins.api:jobs view) (mapcar #'jenkins.api:id jobs))
+    (stp:serialize (jenkins.api::%data view)
+                   (cxml:make-character-stream-sink *standard-output* :indentation 2))
+    (jenkins.api:commit! view)
+    view))
+
 (defun configure-distribution (distribution
                                &key
                                (build-flow-ignores-failures? t))
-  (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
-    (let ((jobs (mappend (compose #'jobs #'implementation) (versions distribution))))
-      (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
-      (configure-jobs distribution jobs
-                      :build-flow-ignores-failures? build-flow-ignores-failures?))))
+  (let* ((jobs               (mappend (compose #'jobs #'implementation)
+                                      (versions distribution)))
+         (orchestration-jobs (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
+                               (configure-jobs
+                                distribution jobs
+                                :build-flow-ignores-failures? build-flow-ignores-failures?)))
+         (all-jobs           (append (mapcar #'implementation jobs)
+                                     orchestration-jobs)))
+    (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
+    (when-let ((create? (as (value distribution :view.create? nil) 'boolean))
+               (name    (value distribution :view.name)))
+      (with-trivial-progress (:view "~A" name)
+        (log:error all-jobs)
+        (configure-view name all-jobs)))
+    (values jobs orchestration-jobs all-jobs)))
 
 (defun configure-distributions (distributions
                                 &key

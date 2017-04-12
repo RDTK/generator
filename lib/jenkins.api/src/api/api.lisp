@@ -1,6 +1,6 @@
 ;;;; api.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -410,4 +410,6 @@
   (:all-filter  "views[name]")
   (:all-field   :views)
 
-  (:config-path (format nil "view/~A/api/xml" name)))
+  (:make-path   "createView")
+
+  (:config-path (format nil "view/~A/config.xml" name)))

@@ -57,11 +57,8 @@
                    (version-variables (remove-from-plist version-info :name))
                    ((&plist-r/o (scm              :scm)
                                 (branch-directory :branch-directory)
-                                (authors          :authors)
-                                (description      :description)
                                 (requires         :requires)
-                                (provides         :provides)
-                                (properties       :properties))
+                                (provides         :provides))
                     info)
                    (other-results (remove-from-plist info
                                                      :scm :branch-directory
@@ -81,22 +78,10 @@
                :variables (append
                            (jenkins.model.variables:direct-variables version) ; TODO
                            (apply #'value-acons (append version-variables '(())))
-
                            (when scm
                              (list (value-cons :scm (string-downcase scm))))
                            (when branch-directory
                              (list (value-cons :branch-directory branch-directory)))
-                           (when description
-                             (list (value-cons :description description)))
-                           (when authors
-                             (list (value-cons
-                                    :authors (mapcar (lambda (author)
-                                                       (ppcre:regex-replace-all "(@|\\$)" author "\\\\\\1"))
-                                                     authors))))
-                           (iter (for (key . value) in properties)
-                                 (collect (value-cons (make-keyword (string-upcase key))
-                                                      value)))
-
                            (iter (for (key value) :on other-results :by #'cddr)
                                  (let ((key (format-symbol '#:keyword "ANALYSIS.~A" key)))
                                    (collect (value-cons key value)))))))))

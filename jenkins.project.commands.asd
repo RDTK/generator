@@ -41,4 +41,6 @@
 
                               (:file       "command-info-variables")
                               (:file       "command-info-aspects")
-                              (:file       "command-generate")))))
+                              (:file       "command-generate")
+
+                              (:file       "command-validate")))))

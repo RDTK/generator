@@ -63,6 +63,9 @@
                 (log:info "~@<Analyzing ~S.~@:>" file)
                 (with-simple-restart (continue "~@<Skip file ~S.~@:>" file)
                   (appending (analyze file :asdf/one-file)))))
+         (systems (remove-duplicates systems
+                                     :test #'equal
+                                     :key  (rcurry #'getf :provides)))
          ((&flet property-values (name)
             (loop :for system       in systems
                   :for system-name  = (second (first (getf system :provides)))

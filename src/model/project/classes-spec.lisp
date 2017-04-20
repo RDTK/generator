@@ -135,9 +135,9 @@
                 (list version)))))
          (name (name spec))
          (project (make-instance 'project
-                                 :name      name
-                                 :variables (variables spec) ; TODO(jmoringe, 2013-03-06): or direct-variables?
-                                 )))
+                                 :name          name
+                                 :variables     (variables spec) ; TODO(jmoringe, 2013-03-06): or direct-variables?
+                                 :specification spec)))
     (reinitialize-instance
      project
      :versions (mapcan (rcurry #'make-version project) (versions spec)))))

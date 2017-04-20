@@ -179,7 +179,17 @@
          (when match?
            (return-from as (values value t))))))
     (eql
-     (when (eql value (second type))
-       (values value t)))
+     (let+ ((expected (second type))
+            ((&flet convert ()
+               (let+ ((type (typecase expected
+                              (keyword 'keyword)
+                              (t       (class-name (class-of expected)))))
+                      ((&values value match?) (as value type
+                                                  :if-type-mismatch nil)))
+                 (when (and match? (eql value expected))
+                   (values value t))))))
+       (if (eql value expected)
+           (values value t)
+           (convert))))
     (t
      (call-next-method))))

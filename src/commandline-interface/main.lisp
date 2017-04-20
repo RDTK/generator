@@ -754,7 +754,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
   (let ((start (get-internal-real-time)))
     (format t "START ~A~%" phase)
     (unwind-protect
-         (prog1
+         (multiple-value-prog1
              (funcall thunk)
            (when-let* ((errors       (funcall errors))
                        (phase-errors (remove-if (of-type 'phase-condition) errors)))

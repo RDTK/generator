@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -14,9 +14,16 @@
               :accessor %direct-variables
               :initform '()
               :documentation
-              "TODO as a plist "))
+              "Stores direct variables definitions as an alist with
+               elements of the form
+
+                 (NAME . EXPRESSION)
+
+               where NAME is a keyword naming the variable and
+               EXPRESSION a `variable-expression', the unevaluated
+               value of the variable."))
   (:documentation
-   "TODO(jmoringe): document"))
+   "Adds a list of direct variable definition cells."))
 
 (defmethod shared-initialize :around ((instance   direct-variables-mixin)
                                       (slot-names t)

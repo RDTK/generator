@@ -102,9 +102,9 @@
 
 (defgeneric direct-variables (thing)
   (:documentation
-   "Return a plist of the variables stored in THING.
+   "Return a alist of the variables stored in THING.
 
-    The returned plist does not include variables THING inherited from
+    The returned alist does not include variables THING inherited from
     other objects.
 
     See `variables'."))
@@ -114,7 +114,7 @@
   (:documentation
    "Return a plist of all the variables provided by THING.
 
-    The returned plist may include variables THING inherited from
+    The returned alist may include variables THING inherited from
     other objects.
 
     See `direct-variables'."))

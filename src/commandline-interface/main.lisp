@@ -506,9 +506,17 @@
 (defun configure-distributions (distributions
                                 &key
                                 (build-flow-ignores-failures? t))
-  (mapcan (rcurry #'configure-distribution
-                  :build-flow-ignores-failures? build-flow-ignores-failures?)
-          distributions))
+  (values-list
+   (reduce (lambda+ ((jobs orchestration-jobs all-jobs) distribution)
+             (let+ (((&values jobs1 orchestration-jobs1 all-jobs1)
+                     (configure-distribution
+                      distribution
+                      :build-flow-ignores-failures? build-flow-ignores-failures?)))
+               (list (append jobs1               jobs)
+                     (append orchestration-jobs1 orchestration-jobs)
+                     (append all-jobs1           all-jobs))))
+           distributions
+           :initial-value '(() () ()))))
 
 (defun list-credentials (jobs)
   (let+ ((all-credentials (make-hash-table :test #'equal))
@@ -1025,7 +1033,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                 (with-trivial-progress (:jobs)
 
-                  (let* ((templates          (with-phase-error-check
+                  (let+ ((templates          (with-phase-error-check
                                                  (:load/template #'errors #'(setf errors) #'report
                                                   :continuable? nil)
                                                (load-templates templates)))
@@ -1077,12 +1085,13 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                    jobs))))
                          (jobs               (unless dry-run?
                                                (mappend #'implementations jobs/spec)))
-                         (orchestration-jobs (unless dry-run?
-                                               (with-phase-error-check
-                                                   (:orchestration #'errors #'(setf errors) #'report)
-                                                 (configure-distributions
-                                                  distributions
-                                                  :build-flow-ignores-failures? build-flow-ignores-failures?)))))
+                         ((&values &ign orchestration-jobs)
+                          (unless dry-run?
+                            (with-phase-error-check
+                                (:orchestration #'errors #'(setf errors) #'report)
+                              (configure-distributions
+                               distributions
+                               :build-flow-ignores-failures? build-flow-ignores-failures?)))))
                     (declare (ignore templates))
 
                     (unless dry-run?

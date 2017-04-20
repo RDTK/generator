@@ -27,6 +27,34 @@
 
 (cl:in-package #:jenkins.model.variables)
 
+;;; Merging lookup results
+
+(defun+ merge-lookup-results ((left-value  left-more  left-defined?)
+                              (right-value right-more right-defined?))
+  (cond
+    ((and left-defined? right-defined?)
+     (list left-value (append left-more (list right-value) right-more) t))
+    (left-defined?
+     (list left-value left-more t))
+    (right-defined?
+     (list right-value right-more t))
+    (t
+     '(nil () nil))))
+
+(defun merge-lookup-values (left-value  left-more  left-defined?
+                            right-value right-more right-defined?)
+  (cond
+    ((and left-defined? right-defined?)
+     (values left-value (append left-more (list right-value) right-more) t))
+    (left-defined?
+     (values left-value left-more t))
+    (right-defined?
+     (values right-value right-more t))
+    (t
+     (values nil () nil))))
+
+;;;
+
 (defvar *stack* '())
 
 (defun call-with-expansion-stack (thunk name thing)

@@ -39,6 +39,9 @@
 
   ;; Lookup protocol
   (:export
+   #:merge-lookup-results
+   #:merge-lookup-values
+
    #:lookup
    #:expand
    #:value

@@ -1059,13 +1059,33 @@ ${(or ensure-install-directory "# Not creating install directory")}
 ;;; groovy script aspects
 
 (define-aspect (groovy :job-var job) (builder-defining-mixin)
-    (((code (bail)) :type string
+    (((kind :system) :type (or (eql :system) (eql :normal))
       :documentation
-      "The groovy code to execute in the build step."))
+      "The execution environment of the build step.
+
+       \"system\"
+
+         The code is executed in the Jenkins master and can (assuming
+         suitable permissions) manipulate all model objects.
+
+       \"normal\"
+
+         The code is executed in a forked JVM on the slave executing
+         the surrounding build.")
+     ((code (bail))  :type string
+      :documentation
+      "The groovy code to execute in the build step.")
+     ((sandbox? nil) :type boolean
+      :documentation
+      "?"))
   "Configures a Groovy build step for the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (build) (groovy (:code code))) (builders job)))
+  (push (constraint! (build)
+          (ecase kind
+            (:system (system-groovy (:code code :sandbox? sandbox?)))
+            (:normal (groovy        (:code code)))))
+        (builders job)))
 
 #.(interpol:disable-interpol-syntax)

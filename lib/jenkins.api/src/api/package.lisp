@@ -183,7 +183,9 @@
    #:flatten?
 
    #:builder/groovy
-   #:code)
+   #:builder/system-groovy
+   #:code
+   #:sandbox?)
 
   ;; Publisher interface
   (:export

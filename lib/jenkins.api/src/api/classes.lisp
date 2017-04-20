@@ -706,9 +706,18 @@
    (:name-slot project-name))
 
   ((groovy "hudson.plugins.groovy.Groovy"
-           :plugin "groovy@1.30")
+           :plugin "groovy@2.0")
    ((code :type  string
           :xpath "scriptSource[@class=\"hudson.plugins.groovy.StringScriptSource\"]/command/text()"))
+   (:name-slot code))
+
+  ((system-groovy "hudson.plugins.groovy.SystemGroovy"
+                  :plugin "groovy@2.0")
+   ((code     :type     string
+              :xpath    "source[@class=\"hudson.plugins.groovy.StringSystemScriptSource\"]/script[@plugin=\"script-security@1.27\"]/script/text()")
+    (sandbox? :type     boolean
+              :xpath    "source[@class=\"hudson.plugins.groovy.StringSystemScriptSource\"]/script[@plugin=\"script-security@1.27\"]/sandbox/text()"
+              :initform nil))
    (:name-slot code)))
 
 ;;; publisher interface

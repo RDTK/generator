@@ -290,19 +290,27 @@
 ;; Buildflow variables
 
 (define-variable :disable-orchestration-jobs boolean
-  "If true, do not generate a buildflow job and the associated prepare
+  "Deprecated. Do not use.
+
+   If true, do not generate a buildflow job and the associated prepare
    and finish jobs for a distribution.")
 
 (define-variable :buildflow-name string
-  "Name of the buildflow job that should be generated for a
+  "Deprecated. Do not use.
+
+   Name of the buildflow job that should be generated for a
    distribution.")
 
 (define-variable :buildflow.parallel? boolean
-  "If true, generate a buildflow in which jobs that are know to be
+  "Deprecated. Do not use.
+
+   If true, generate a buildflow in which jobs that are know to be
    paralellizable are built in parallel to some extent.")
 
 (define-variable :buildflow.exclude? boolean
-  "If true in a project, do include any Jenkins jobs associated to the
+  "Deprecated. Do not use.
+
+   If true in a project, do include any Jenkins jobs associated to the
    project in generated buildflow jobs.")
 
 (define-variable :prepare-hook-name string

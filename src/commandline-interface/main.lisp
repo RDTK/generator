@@ -282,7 +282,9 @@
 (defun instantiate-projects (specs
                              &optional
                              (distributions nil distributions-supplied?))
-  (let+ ((projects (mapcar #'instantiate specs))
+  (assert (length= 1 distributions))
+  (let+ ((projects (mapcar (rcurry #'instantiate :parent (first distributions))
+                           specs))
          ((&flet find-version (version)
             (when-let ((dist (find version distributions
                                    :test #'member
@@ -331,145 +333,18 @@
 
 ;;; Toolkit specific stuff
 
-(defun configure-buildflow-job (buildflow-job jobs
-                                &key
-                                prepare-name
-                                finish-name
-                                (ignore-failures? t))
-  (let+ (((&labels format-flow (jobs)
-            (etypecase jobs
-              ((cons (eql :parallel))
-               (format nil "parallel (~%~2@T~<~@;~{{~A}~^,~%~}~:>~%)"
-                       (list (mapcar #'format-flow (rest jobs)))))
-              ((cons (eql :serial))
-               (format nil "~%~2@T~<~@;~{~A~^~%~}~:>~%"
-                       (list (mapcar #'format-flow (rest jobs)))))
-              (t
-               (format nil "~:[~:;ignore(ABORTED) {~%~2@T~]~
-                            build(~S, tag: buildId)~
-                            ~2:*~:[~:;~%}~]"
-                       ignore-failures? jobs)))))
-         (script (format nil "buildId = build.time.format('yyyy-MM-dd_HH-mm-ss')~2%~
-                              ~@[build(\"~A\", tag: buildId)~2%~]~
-                              ~A~
-                              ~@[~2%build(\"~A\", tag: buildId)~]"
-                         prepare-name (format-flow jobs) finish-name)))
-    (setf (jenkins.api::dsl buildflow-job) script)))
-
-(defun schedule-jobs/serial (jobs)
-  (let+ ((ordered (jenkins.model::sort-with-partial-order ; TODO
-                   (copy-list jobs)
-                   (lambda (left right)
-                     (member left (direct-dependencies right)))))
-         ((&flet job->id (job)
-            (jenkins.api:id (implementation job)))))
-    `(:serial ,@(mapcar #'job->id ordered))))
-
-(defun schedule-jobs/parallel (jobs)
-  (let+ (((&flet sort-jobs (jobs)
-            (jenkins.model::sort-with-partial-order ; TODO
-             (copy-list jobs)
-             (lambda (left right)
-               (member left (direct-dependencies right))))))
-         ((&labels find-components (jobs)
-            (let+ ((nodes (make-hash-table))
-                   ((&flet add-job (job)
-                      (let ((component '()))
-                        (dolist (upstream (intersection jobs (list* job (dependencies job))))
-                          (unionf component (gethash upstream nodes (list upstream)))
-                          (dolist (member component)
-                            (setf (gethash member nodes) component)))))))
-              (mapc #'add-job jobs)
-              (let ((components (mapcar #'sort-jobs
-                                        (remove-duplicates
-                                         (hash-table-values nodes)))))
-                (cond
-                  ((not (length= 1 components))
-                   `(:parallel ,@(mapcar #'find-components components)))
-                  ((length= 1 (first components))
-                   (jenkins.api:id (implementation (first (first components)))))
-                  (t
-                   (let+ ((component (first components))
-                          (index (floor (length component) 2))
-                          (left (find-components (subseq component 0 index)))
-                          (right (find-components (subseq component index)))
-                          ((&flet splice (spec)
-                             (if (typep spec '(cons (eql :serial)))
-                                 (rest spec)
-                                 (list spec)))))
-                     `(:serial ,@(splice left) ,@(splice right))))))))))
-    (find-components jobs)))
-
-(define-constant +description-automatically-generated+
-  "!!! This job is automatically generated - do not modify by hand. !!!"
-  :test #'string=)
-
-(defun configure-jobs (distribution jobs
-                       &key build-flow-ignores-failures?)
-  (macrolet ((ensure-job ((kind name &key (commit? t)) &body body)
-               `(let ((job (jenkins.dsl:job (,kind ,name) ,@body)))
-                  (if (jenkins.api:job? (jenkins.api:id job))
-                      (setf (jenkins.api:job-config (jenkins.api:id job))
-                            (jenkins.api::%data job))
-                      (jenkins.api::make-job (jenkins.api:id job) (jenkins.api::%data job)))
-                  (setf (jenkins.api:description job)
-                        +description-automatically-generated+)
-                  ,@(when commit?
-                      '((jenkins.api:commit! job)
-                        (jenkins.api:enable! job)))
-                  job)))
-    (let+ ((buildflow-name      (as (value distribution :buildflow-name) 'string))
-           (buildflow-parallel? (as (value distribution :buildflow.parallel? t) 'boolean))
-
-           (prepare-name        (as (value distribution :prepare-hook-name nil) '(or null string)))
-           (prepare-command     (as (value distribution :prepare-hook/unix nil) '(or null string)))
-
-           (finish-name         (as (value distribution :finish-hook-name nil) '(or null string)))
-           (finish-command      (as (value distribution :finish-hook/unix nil) '(or null string)))
-           (finish-command      (when finish-command
-                                  (format nil "jobs='~{~A~^~%~}'~2%~A"
-                                          (mapcar (compose #'jenkins.api:id
-                                                           #'implementation)
-                                                  jobs)
-                                          finish-command)))
-           ((&flet include-job? (job)
-              (not (as (value job :buildflow.exclude? nil) 'boolean))))
-           ((&flet make-hook-job (name command)
-              (progress :orchestration nil "~A" name)
-              (ensure-job ("project" name)
-                (jenkins.api:properties
-                 (jenkins.dsl:parameters (:parameters '((:kind :text :name "tag")))))
-                (jenkins.api:builders
-                 (jenkins.dsl:shell (:command (or command
-                                                  "# <nothing to do>"))))))))
-      (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-        (append
-         ;; Maybe create hook jobs
-         (when prepare-name
-           (list (make-hook-job prepare-name prepare-command)))
-
-         (when finish-name
-           (list (make-hook-job finish-name  finish-command)))
-
-         ;; Create bluildflow job
-         (when buildflow-name
-           (progress :orchestration nil "~A" buildflow-name)
-           (let ((schedule (funcall (if buildflow-parallel?
-                                        #'schedule-jobs/parallel
-                                        #'schedule-jobs/serial)
-                                    (remove-if-not #'include-job? jobs)))
-                 (job      (ensure-job ('("com.cloudbees.plugins.flow.BuildFlow"
-                                          "build-flow-plugin@0.10")
-                                         buildflow-name
-                                         :commit? nil))))
-             (configure-buildflow-job
-              job schedule
-              :prepare-name     prepare-name
-              :finish-name      finish-name
-              :ignore-failures? build-flow-ignores-failures?)
-             (jenkins.api:commit! job)
-             (jenkins.api:enable! job)
-             (list job))))))))
+(defun configure-orchestration (distribution)
+  (with-trivial-progress (:orchestration "Configuring orchestration jobs")
+    (let* ((templates (list (find-template "orchestration")))
+           (spec      (make-instance 'jenkins.model.project::project-spec
+                                     :name      "orchestration"
+                                     :parent    distribution
+                                     :templates templates))
+           (version   (make-instance 'jenkins.model.project::version-spec
+                                     :name   "orchestration"
+                                     :parent spec)))
+      (reinitialize-instance spec :versions (list version))
+      (flatten (deploy (instantiate spec))))))
 
 (defun configure-view (name jobs)
   (with-trivial-progress (:view "~A" name)
@@ -483,19 +358,15 @@
       (jenkins.api:commit! view)
       view)))
 
-(defun configure-distribution (distribution
-                               &key
-                               (build-flow-ignores-failures? t))
+(defun configure-distribution (distribution)
   (let* ((jobs               (mappend (compose #'jobs #'implementation)
                                       (versions distribution)))
          (orchestration-jobs (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
                                (with-simple-restart
                                    (continue "~@<Continue without configuring orchestration jobs~@:>")
-                                 (configure-jobs
-                                  distribution jobs
-                                  :build-flow-ignores-failures? build-flow-ignores-failures?))))
-         (all-jobs           (append (mapcar #'implementation jobs)
-                                     orchestration-jobs)))
+                                 (configure-orchestration distribution))))
+         (all-jobs           (mapcar #'implementation
+                                     (append jobs orchestration-jobs))))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
     (when-let* ((create? (as (value distribution :view.create? nil) 'boolean))
                 (name    (value distribution :view.name)))
@@ -503,15 +374,11 @@
         (configure-view name all-jobs)))
     (values jobs orchestration-jobs all-jobs)))
 
-(defun configure-distributions (distributions
-                                &key
-                                (build-flow-ignores-failures? t))
+(defun configure-distributions (distributions)
   (values-list
    (reduce (lambda+ ((jobs orchestration-jobs all-jobs) distribution)
              (let+ (((&values jobs1 orchestration-jobs1 all-jobs1)
-                     (configure-distribution
-                      distribution
-                      :build-flow-ignores-failures? build-flow-ignores-failures?)))
+                     (configure-distribution distribution)))
                (list (append jobs1               jobs)
                      (append orchestration-jobs1 orchestration-jobs)
                      (append all-jobs1           all-jobs))))
@@ -658,7 +525,9 @@
 A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$.")
               (flag   :long-name     "build-flow-fail"
                       :description
-                      "Configure build-flow to fail when one of the jobs coordinated by it fails."))))
+                      "Deprecated, ignored.
+
+Configure build-flow to fail when one of the jobs coordinated by it fails."))))
 
 (defun collect-inputs (spec)
   (cond
@@ -993,7 +862,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                        (option-value "jenkins" "api-token")))
                      (delete-other?                (option-value "generation" "delete-other"))
                      (delete-other-pattern         (option-value "generation" "delete-other-pattern"))
-                     (build-flow-ignores-failures? (not (option-value "generation" "build-flow-fail")))
                      (template-directory           (option-value "generation" "template-directory"))
                      (template                     (option-value "generation" "template"))
                      ((&values mode mode?)         (option-value "generation" "mode"))
@@ -1089,9 +957,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
                           (unless dry-run?
                             (with-phase-error-check
                                 (:orchestration #'errors #'(setf errors) #'report)
-                              (configure-distributions
-                               distributions
-                               :build-flow-ignores-failures? build-flow-ignores-failures?)))))
+                              (configure-distributions distributions))))
+                         (all-jobs (append jobs (mappend #'implementations
+                                                         orchestration-jobs))))
                     (declare (ignore templates))
 
                     (unless dry-run?
@@ -1106,7 +974,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                             (:delete-other-jobs #'errors #'(setf errors) #'report)
                           (let ((other-jobs (set-difference
                                              (generated-jobs delete-other-pattern)
-                                             (append jobs orchestration-jobs)
+                                             all-jobs
                                              :key #'jenkins.api:id :test #'string=)))
                             (with-sequence-progress (:delete-other other-jobs)
                               (mapc (progressing #'jenkins.api::delete-job :delete-other)
@@ -1114,7 +982,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                       (with-phase-error-check
                           (:enable-jobs #'errors #'(setf errors) #'report)
-                        (enable-jobs jobs))
+                        (enable-jobs all-jobs))
 
                       (with-phase-error-check
                           (:list-credentials #'errors #'(setf errors) #'report)

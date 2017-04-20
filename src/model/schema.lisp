@@ -270,6 +270,23 @@
   "Directory in which artifacts copied from upstream jobs should be
    placed.")
 
+;;; Orchestration variables
+
+(define-variable :jobs.dependencies
+  "An association between up- and downstream build jobs.")
+
+(define-variable :jobs.dependencies/groovy
+  "jobs.dependencies, formatted as a Groovy script string.
+
+   The association is represented as a map of the form
+
+     [
+       \"UPSTREAM-NAME\": [ \"DOWNSTREAM-NAME\", ... ],
+       ...
+     ]
+
+   ." )
+
 ;; Buildflow variables
 
 (define-variable :disable-orchestration-jobs boolean

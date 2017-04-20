@@ -67,6 +67,41 @@
                                                 reasons))))
          t)))
 
+(flet ((return-value (name value)
+         (values (cons name (value-parse value)) '() t)))
+
+  (defmethod lookup ((thing distribution-spec) (name (eql :jobs.dependencies))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let+ ((versions (remove nil (mapcar #'implementation (versions thing))))
+           (jobs     (mappend #'jobs versions))
+           ((&flet dependencies (job)
+              (let* ((dependency-name (as (value thing :dependency-job-name
+                                                 (name job))
+                                          'string)))
+                (mapcar (lambda (dependency)
+                          (or (find dependency-name (jobs dependency)
+                                    :test #'string= :key #'name)))
+                        (direct-dependencies (parent job))))))
+           ((&flet name (job)
+              (when-let ((job (implementation job)))
+                (list (jenkins.api:id job)))))
+           (value
+            (loop :for job :in jobs
+               :collect (cons (first (name job))
+                              (mapcan #'name (dependencies job))))))
+      (return-value name value)))
+
+  (defmethod lookup ((thing distribution-spec) (name (eql :jobs.dependencies/groovy))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (return-value name (format nil "[~%~
+                                      ~:{~2@T~S: [~%~
+                                        ~@{~4@T~S,~%~}~
+                                      ~2T],~%~}
+                                    ]"
+                               (value thing :jobs.dependencies)))))
+
 ;;; `project-spec' class
 
 (defclass project-spec (named-mixin

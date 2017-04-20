@@ -132,7 +132,3 @@
               :dependency spec
               :candidates candidates)
              :allow-other-values? t)))))
-
-;;; Global instance registry
-
-(define-repository instance)

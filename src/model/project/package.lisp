@@ -73,10 +73,6 @@
   (:export
    #:find-project)
 
-  ;; Instance protocol
-  (:export
-   #:find-instance)
-
   ;; Provider registry
   (:export
    #:find-provider

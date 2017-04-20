@@ -76,11 +76,14 @@
 (defmethod lookup :around ((thing t) (name t)
                            &key
                            (if-undefined #'error))
-  (let+ (((&values value more-values found?) (call-next-method)))
-    (if found?
-        (values value more-values found?)
-        (error-behavior-restart-case
-            (if-undefined (undefined-variable-error :name name))))))
+  (let+ (((&values value more-values defined?) (call-next-method)))
+    (if defined?
+        (values value more-values defined?)
+        (if-let ((value
+                  (error-behavior-restart-case
+                      (if-undefined (undefined-variable-error :name name)))))
+          (values value '() t)
+          (values nil   '() nil)))))
 
 (defmethod as :around ((value t) (type t) &key (if-type-mismatch #'error))
   (let+ (((&values result match?) (call-next-method value type)))

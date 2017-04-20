@@ -68,15 +68,6 @@
 (defmacro with-expansion-stack ((name thing) &body body)
   `(call-with-expansion-stack (lambda () ,@body) ,name ,thing))
 
-(defmethod lookup ((thing t) (name t)
-                   &key
-                   if-undefined)
-  (declare (ignore if-undefined))
-  (when-let ((cells (remove name (variables thing)
-                            :test (complement #'eq)
-                            :key  #'car)))
-    (values (first cells) (rest cells) t)))
-
 (defun drill-down (path value)
   (reduce (lambda (key value)
             (cdr (assoc key value)))

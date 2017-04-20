@@ -34,6 +34,12 @@
                (when (next-method-p)
                  (call-next-method))))
 
+(defmethod lookup ((thing project) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  (multiple-value-call #'merge-lookup-values
+    (call-next-method)
+    (lookup (specification thing) name :if-undefined nil)))
+
 (defmethod add-dependencies! ((thing project) (spec project-spec)
                               &key
                               (providers nil providers-supplied?))
@@ -51,8 +57,8 @@
 
 (defclass version (named-mixin
                    implementation-mixin
-                   direct-variables-mixin
-                   parented-mixin)
+                   parented-mixin
+                   direct-variables-mixin)
   ((direct-dependencies :initarg  :direct-dependencies
                         :type     list
                         :reader   direct-dependencies
@@ -121,8 +127,8 @@
 (defclass job (named-mixin
                implementation-mixin
                specification-mixin ; TODO define another class for this
-               direct-variables-mixin
-               parented-mixin)
+               parented-mixin
+               direct-variables-mixin)
   ((direct-dependencies :initarg  :direct-dependencies ; TODO(jmoringe, 2013-03-06): dependencies-mixin?
                         :type     list ; of job
                         :reader   direct-dependencies

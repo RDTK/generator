@@ -41,6 +41,15 @@
 (defmethod variables append ((thing direct-variables-mixin))
   (copy-list (direct-variables thing)))
 
+(defmethod lookup ((thing direct-variables-mixin) (name t)
+                   &key if-undefined)
+  (declare (ignore if-undefined))
+  (if-let ((cell (find name (direct-variables thing)
+                       :test #'eq
+                       :key  #'car)))
+    (values cell '() t)
+    (values nil  '() nil)))
+
 (defmethod (setf lookup) ((new-value t)
                           (thing     direct-variables-mixin)
                           (name      t)

@@ -48,6 +48,11 @@
   (when-let ((parent (parent thing)))
     (variables parent)))
 
+(defmethod lookup ((thing parented-mixin) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  (multiple-value-call #'merge-lookup-values
+    (call-next-method) (lookup (parent thing) name :if-undefined nil)))
+
 ;;; `implementation-mixin'
 
 (defclass implementation-mixin ()

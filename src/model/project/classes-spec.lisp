@@ -115,6 +115,24 @@
                          (member (car cell) '(:access :platform-requires)))
                        (variables parent)))))
 
+(defmethod lookup ((thing project-spec) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  ;; The next method is (modulo `named-mixin') the one specialized on
+  ;; `direct-variables-mixin', meaning that variables defined in the
+  ;; parent are not included in the initial value.
+  (multiple-value-call #'merge-lookup-values
+    (values-list
+     (reduce #'merge-lookup-results
+             (mapcar (lambda (template)
+                       (multiple-value-list
+                        (lookup template name :if-undefined nil)))
+                     (templates thing))
+             :initial-value (multiple-value-list (call-next-method))))
+    (if (and (parent thing) (not (member name '(:access :platform-requires)
+                                         :test #'eq)))
+        (lookup (parent thing) name :if-undefined nil)
+        (values nil '() nil))))
+
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))
                      :test     #'string=
@@ -136,7 +154,7 @@
          (name (name spec))
          (project (make-instance 'project
                                  :name          name
-                                 :variables     (variables spec) ; TODO(jmoringe, 2013-03-06): or direct-variables?
+                                 :variables     '()
                                  :specification spec)))
     (reinitialize-instance
      project
@@ -147,8 +165,8 @@
 (defclass version-spec (named-mixin
                         specification-mixin
                         conditional-mixin
-                        direct-variables-mixin
-                        parented-mixin)
+                        parented-mixin
+                        direct-variables-mixin)
   ((requires :initarg  :requires
              :type     list
              :accessor %requires
@@ -280,8 +298,8 @@
 (defclass job-spec (named-mixin
                     specification-mixin
                     conditional-mixin
-                    direct-variables-mixin
-                    parented-mixin)
+                    parented-mixin
+                    direct-variables-mixin)
   ()
   (:documentation
    "Specification of a build job to be generated."))
@@ -329,6 +347,16 @@
 (defmethod variables :around ((thing template))
   (append (call-next-method) (mappend #'variables (inherit thing))))
 
+(defmethod lookup ((thing template) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  (values-list
+   (reduce #'merge-lookup-results
+           (mapcar (lambda (inherited)
+                     (multiple-value-list
+                      (lookup inherited name :if-undefined nil)))
+                   (inherit thing))
+           :initial-value (multiple-value-list (call-next-method)))))
+
 (defmethod direct-aspects ((thing template))
   (copy-list (%direct-aspects thing)))
 
@@ -354,8 +382,8 @@
 (defclass aspect-spec (named-mixin
                        specification-mixin
                        conditional-mixin
-                       direct-variables-mixin
-                       parented-mixin)
+                       parented-mixin
+                       direct-variables-mixin)
   ((aspect :initarg  :aspect
            :type     string
            :reader   aspect

@@ -55,8 +55,8 @@
 
 (defclass aspect (named-mixin
                   implementation-mixin
-                  direct-variables-mixin
-                  parented-mixin)
+                  parented-mixin
+                  direct-variables-mixin)
   ((constraints :initarg  :constraints
                 :type     list
                 :reader   constraints

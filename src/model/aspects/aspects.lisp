@@ -65,14 +65,18 @@
     ((keep/days  :type (or null positive-integer)
       :documentation
       "Number of days for which past builds of the generated job
-       should be kept.")
+       should be kept.
+
+       \"false\" to keep builds indefinitely.")
      (keep/count :type (or null positive-integer)
       :documentation
       "Number of past build that should be kept for the generated
-       job."))
+       job.
+
+       \"false\" to keep an unlimited number of builds."))
   "Configures the retention of old builds for the created job."
-  (setf (keep/days  job) keep/days
-        (keep/count job) keep/count))
+  (setf (keep/days  job) (or keep/days  -1)
+        (keep/count job) (or keep/count -1)))
 
 ;;; JDK aspect
 

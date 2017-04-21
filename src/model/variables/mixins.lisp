@@ -33,7 +33,10 @@
      (unless (gethash cell *variable-locations*)
        (setf (gethash cell *variable-locations*) instance))))
 
-(defmethod direct-variables ((thing direct-variables-mixin))
+(defmethod direct-variables ((thing direct-variables-mixin)) ; TODO remove
+  (assert (or (not (next-method-p))
+              (null (call-next-method))))
+
   (append (%direct-variables thing)
           (when (next-method-p)
             (call-next-method))))
@@ -53,8 +56,7 @@
 (defmethod (setf lookup) ((new-value t)
                           (thing     direct-variables-mixin)
                           (name      t)
-                          &key
-                            if-undefined)
+                          &key if-undefined)
   (declare (ignore if-undefined))
   (removef (%direct-variables thing) name :key #'car)
   (let ((cell (value-cons name new-value)))

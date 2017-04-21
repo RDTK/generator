@@ -283,7 +283,9 @@
   (declare (ignore specification-parent))
   (let+ (((&flet make-job (job-spec parent)
             (when (instantiate? job-spec parent)
-              (when-let ((job (instantiate job-spec :parent parent :specification-parent spec)))
+              (when-let ((job (instantiate job-spec
+                                           :parent               parent
+                                           :specification-parent spec)))
                 (list job)))))
          (version (make-instance 'version
                                  :name      (name spec)

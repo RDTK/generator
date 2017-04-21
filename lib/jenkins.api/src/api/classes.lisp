@@ -911,9 +911,9 @@
 
 (define-model-class job ()
     ((description                :type     string)
-     (keep/days                  :type     (or (eql -1) non-negative-integer)
+     (keep/days                  :type     (or (eql -1) positive-integer)
                                  :xpath    "logRotator/daysToKeep/text()")
-     (keep/count                 :type     (or (eql -1) non-negative-integer)
+     (keep/count                 :type     (or (eql -1) positive-integer)
                                  :xpath    "logRotator/numToKeep/text()")
      (block-on-downstream-build? :type     boolean
                                  :xpath    "blockBuildWhenDownstreamBuilding/text()")

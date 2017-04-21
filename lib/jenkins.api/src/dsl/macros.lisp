@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macro-based DSL for Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -17,9 +17,6 @@
 (define-template job
   "<matrix-project>
   <description/>
-  <executionStrategy class=\"hudson.matrix.DefaultMatrixExecutionStrategyImpl\">
-    <runSequentially>false</runSequentially>
-  </executionStrategy>
   <keepDependencies>false</keepDependencies>
   <canRoam>true</canRoam>
   <disabled>true</disabled>

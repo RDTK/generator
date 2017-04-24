@@ -763,12 +763,13 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
    When multiple instances of this aspect are applied to a single job,
    the union of the respective FILE-PATTERNs is configured as the
    pattern of files to archive."
-  (with-interface (publishers job) (archiver (publisher/archive-artifacts
-                                              :files        nil
-                                              :only-latest? nil))
-    (when file-pattern
-      (constraint! (publish) archiver) ; TODO slightly wrong
-      (pushnew file-pattern (files archiver) :test #'string=))))
+  (removef (publishers job) 'publisher/archive-artifacts :key #'type-of)
+  (when file-pattern
+    (push (constraint! (publish)
+            (make-instance 'publisher/archive-artifacts
+                           :files        (list file-pattern)
+                           :only-latest? nil))
+          (publishers job))))
 
 ;;; Maven aspect
 

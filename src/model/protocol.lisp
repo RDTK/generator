@@ -100,7 +100,7 @@
       (let ((implementation (call-next-method)))
         (unless (eq (specification implementation) spec)
           (setf (%specification implementation) spec))
-        (push implementation (%implementations spec))
+        (push implementation (implementations spec))
         (assert implementation)
         implementation))))
 
@@ -148,3 +148,25 @@
                                     ~A.~@:>"
                                    thing)
       (call-next-method))))
+
+;;; Implementation protocol
+
+(defgeneric specification (implementation)
+  (:documentation
+   "Return the specification according to which IMPLEMENTATION has
+    been created."))
+
+;;; Specification protocol
+
+(defgeneric implementation (specification)
+  (:documentation
+   "Return the implementation that has been created according to
+    SPECIFICATION.
+
+    Asserts that there is exactly one implementation of
+    SPECIFICATION."))
+
+(defgeneric implementations (specification)
+  (:documentation
+   "Return all implementations that have been created according to
+    SPECIFICATION."))

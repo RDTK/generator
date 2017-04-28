@@ -61,7 +61,8 @@
                   :accessor %specification
                   :initform nil
                   :documentation
-                  ""))
+                  "Stores the specification according to which the
+                   implementation object has been created."))
   (:documentation
    "Instances of this class may have associated specification objects
     of which they are implementations."))
@@ -71,11 +72,11 @@
 (defclass specification-mixin ()
   ((implementations :initarg  :implementation
                     :type     list
-                    :reader   implementations
-                    :accessor %implementations
-                    :initform nil
+                    :accessor implementations
+                    :initform '()
                     :documentation
-                    ""))
+                    "Stores all implementations that have been created
+                     according to the specification object."))
   (:documentation
    "Instances of this class have associated implementation objects for
     which they are the specifications."))

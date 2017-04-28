@@ -183,7 +183,7 @@
                      (list kind plugin)
                      (make-keyword (string-upcase kind)))))
          (job  (jenkins.dsl:job (kind id :description (format-description)))))
-    (push job (jenkins.model::%implementations thing)) ; TODO package
+    (push job (jenkins.model:implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated
     ;; builders according to declared ordering.

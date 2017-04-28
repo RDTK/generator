@@ -8,9 +8,6 @@
 
 ;;; General variables
 
-(define-variable :system-packages list
-  "Obsolete. Do not use.")
-
 (define-variable :platform-provides list
   "A list of things provided by the operating system or otherwise
    available \"a priori\".

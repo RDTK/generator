@@ -242,15 +242,7 @@
         (push-provider
          instance
          (list* mechanism name
-                (when (first version) (list (first version))))))
-
-  (setf (%requires instance)
-        (remove-if
-         (lambda+ ((&ign name &optional version))
-           (find (format nil "~(~A~@[-~A~]~)" (rs.f::normalize-name name) version)
-                 (as (value instance :system-packages '()) 'list)
-                 :test (lambda (a b) (ppcre:scan b a))))
-         (%requires instance))))
+                (when (first version) (list (first version)))))))
 
 (defmethod direct-variables ((thing version-spec))
   (value-acons :version-name (name thing)

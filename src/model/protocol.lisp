@@ -119,14 +119,17 @@
 
 (defgeneric deploy (thing)
   (:documentation
-   "Deploy THING .
+   "Deploy THING.
 
     Signal `deployment-condition's such as `deployment-error' when
     conditions such as errors are encountered."))
 
 (defgeneric deploy-dependencies (thing)
   (:documentation
-   "TODO(jmoringe): document"))
+   "Deploy dependencies of THING.
+
+    Signal `deployment-condition's such as `deployment-error' when
+    conditions such as errors are encountered."))
 
 ;; Default behavior
 

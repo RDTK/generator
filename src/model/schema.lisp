@@ -269,10 +269,10 @@
 
 ;;; Orchestration variables
 
-(define-variable :jobs.dependencies
+(define-variable :jobs.dependencies list
   "An association between up- and downstream build jobs.")
 
-(define-variable :jobs.dependencies/groovy
+(define-variable :jobs.dependencies/groovy string
   "jobs.dependencies, formatted as a Groovy script string.
 
    The association is represented as a map of the form
@@ -282,7 +282,7 @@
        ...
      ]
 
-   ." )
+   .")
 
 ;; Buildflow variables
 

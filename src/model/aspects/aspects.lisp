@@ -22,6 +22,17 @@
 
 #.(interpol:enable-interpol-syntax)
 
+;;; Description aspect
+
+(define-aspect (description :job-var job) ()
+    (((description (bail)) :type string
+      :documentation
+      "Textual description for the generated job.
+
+       Depending on the global Jenkins configuration, the description
+       is either interpreted as plain text or HTML."))
+  (setf (description job) description))
+
 ;;; Parameters aspect
 
 (define-aspect (parameters) ()

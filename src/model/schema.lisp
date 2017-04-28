@@ -104,9 +104,13 @@
    sole content of the repository.")
 
 (define-variable :description string
-  "Textual description of the project or distribution.")
-(define-variable :description.header string)
-(define-variable :description.footer string)
+  "Deprecated. Do not use.
+
+   Textual description of the project or distribution.")
+(define-variable :description.header string
+  "Deprecated. Do not use.")
+(define-variable :description.footer string
+  "Deprecated. Do not use.")
 
 (define-variable :natures list
   "A list of project natures the generator should consider when

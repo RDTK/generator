@@ -24,7 +24,6 @@
                                    :as-directory t)))
 
 (defun find-files (pattern &key (exclude "\.svn"))
-  "TODO(jmoringe): document"
   (let ((candidates (directory pattern)))
     (if exclude
         (remove-if (curry #'ppcre:scan exclude) candidates

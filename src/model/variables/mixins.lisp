@@ -12,6 +12,7 @@
   ((variables :initarg  :variables
               :type     list ; alist
               :accessor %direct-variables
+              :reader   direct-variables
               :initform '()
               :documentation
               "Stores direct variables definitions as an alist with
@@ -32,14 +33,6 @@
   (loop :for cell :in (%direct-variables instance) :do
      (unless (gethash cell *variable-locations*)
        (setf (gethash cell *variable-locations*) instance))))
-
-(defmethod direct-variables ((thing direct-variables-mixin)) ; TODO remove
-  (assert (or (not (next-method-p))
-              (null (call-next-method))))
-
-  (append (%direct-variables thing)
-          (when (next-method-p)
-            (call-next-method))))
 
 (defmethod variables append ((thing direct-variables-mixin))
   (copy-list (direct-variables thing)))

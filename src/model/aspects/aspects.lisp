@@ -381,7 +381,9 @@ ${(make-move-stuff-upwards/unix components)}")))
        should be use for authenticating against the remote repository
        server.")
      (local-dir                       :type string)
-     ((checkout-strategy :fresh-copy) :type string)) ; TODO better type
+     ((checkout-strategy :fresh-copy) :type (or (eql :fresh-copy)
+                                                (eql :update)
+                                                (eql :emulate-fresh-copy))))
   "Configures a Subversion repository in the generated job.
 
    If CREDENTIALS is supplied, a corresponding entry has to be created
@@ -399,9 +401,7 @@ ${(make-move-stuff-upwards/unix components)}")))
           (svn (:url               url/revision
                 :credentials       credentials
                 :local-directory   local-dir
-                :checkout-strategy (make-keyword
-                                    (string-upcase
-                                     checkout-strategy)))))))
+                :checkout-strategy checkout-strategy)))))
 
 (define-aspect (mercurial :job-var job :aspect-var aspect)
     (builder-defining-mixin)

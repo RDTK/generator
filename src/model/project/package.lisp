@@ -90,4 +90,4 @@
    #:load-distribution/json)
 
   (:documentation
-   "TODO"))
+   "Contains distribution, project and related concepts of the model."))

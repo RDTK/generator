@@ -7,19 +7,15 @@
 (cl:in-package #:jenkins.model.project)
 
 (defmacro define-repository (name)
-  "TODO(jmoringe): document"
   (let ((variable-name (format-symbol *package* "*~A~@(~P~)*" name 2))
         (lock-name     (format-symbol *package* "*~A~@(~P~)-LOCK*" name 2))
         (find-name     (format-symbol *package* "FIND-~A" name)))
    `(progn
-      (defvar ,variable-name (make-hash-table :test #'equal)
-        "TODO(jmoringe): document")
+      (defvar ,variable-name (make-hash-table :test #'equal))
 
-      (defvar ,lock-name (bt:make-lock)
-        "TODO")
+      (defvar ,lock-name (bt:make-lock))
 
       (defun ,find-name (name &key (if-does-not-exist #'error))
-        "TODO(jmoringe): document"
         (or (bt:with-lock-held (,lock-name)
               (gethash name ,variable-name))
             (etypecase if-does-not-exist
@@ -35,7 +31,6 @@
                  :format-arguments (list name)))))))
 
       (defun (setf ,find-name) (new-value name &key if-does-not-exist)
-        "TODO(jmoringe): document"
         (declare (ignore if-does-not-exist))
 
         (bt:with-lock-held (,lock-name)

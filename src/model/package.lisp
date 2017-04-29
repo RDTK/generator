@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for aspects module.
 ;;;;
-;;;; Copyright (C) 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -85,4 +85,4 @@
    #:specification-mixin)
 
   (:documentation
-   "TODO"))
+   "The data model of the jenkins.project system."))

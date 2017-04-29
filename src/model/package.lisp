@@ -39,6 +39,7 @@
   ;; Parent protocol and mixin class
   (:export
    #:parent
+   #:ancestors
 
    #:parented-mixin)
 

@@ -6,6 +6,25 @@
 
 (cl:in-package #:jenkins.model)
 
+;;; Ancestors protocol
+
+(defgeneric parent (thing)
+  (:documentation
+   "Return the parent of THING or NIL."))
+
+(defgeneric ancestors (thing)
+  (:documentation
+   "Return a list of ancestors of THING, including THING."))
+
+;;; Default behavior
+
+(defmethod ancestors ((thing t))
+  (list* thing
+         (when-let ((parent (and (compute-applicable-methods
+                                  #'parent (list thing))
+                                 (parent thing))))
+           (ancestors parent))))
+
 ;;; Dependencies protocol
 
 (defgeneric direct-dependencies (thing)

@@ -27,13 +27,8 @@
    (lambda (condition stream)
      (format stream "~@<Error during instantiation of ~
                      ~{~A~^ » ~}~/more-conditions:maybe-print-cause/~@:>"
-             (labels ((ancestors (thing) ; TODO make a method
-                        (cons thing
-                              (when (and (compute-applicable-methods #'parent (list thing))
-                                         (parent thing))
-                                (ancestors (parent thing))))))
-               (nreverse
-                (ancestors (instantiation-condition-specification condition))))
+             (nreverse
+              (ancestors (instantiation-condition-specification condition)))
              condition)))
   (:documentation
    "This error is signaled when an error is encountered during the
@@ -59,13 +54,8 @@
    (lambda (condition stream)
      (format stream "~@<Error during deployment of ~
                      ~{~A~^ » ~}~/more-conditions:maybe-print-cause/~@:>"
-             (labels ((ancestors (thing) ; TODO make/use method
-                        (cons thing
-                              (when (and (compute-applicable-methods #'parent (list thing))
-                                         (parent thing))
-                                (ancestors (parent thing))))))
-               (nreverse
-                (ancestors (deployment-condition-thing condition))))
+             (nreverse
+              (ancestors (deployment-condition-thing condition)))
              condition)))
   (:documentation
    "This error is signaled when an error is encountered during

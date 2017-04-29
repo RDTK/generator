@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,6 +26,6 @@
    #:main)
 
   (:documentation
-   "TODO"))
+   "The commandline interface of the jenkins.project system."))
 
 #-sbcl (net.didierverna.clon:nickname-package)

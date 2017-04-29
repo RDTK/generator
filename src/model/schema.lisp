@@ -246,7 +246,7 @@
 (define-variable :dependency-job-name string
   "Internal.")
 
-(define-variable :dependencies.mode string ; TODO (member :direct :minimal :none) would be nice
+(define-variable :dependencies.mode (or (eql :direct) (eql :minimal) (eql :none))
   "Controls up/downstream relations between generated jobs.
 
    \"direct\"

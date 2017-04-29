@@ -358,13 +358,13 @@
             "")
    (aspects :initarg  :aspects
             :type     list ; of aspect
-            :reader   %direct-aspects
+            :reader   direct-aspects
             :initform '()
             :documentation
             "")
    (jobs    :initarg  :jobs
             :type     list ; of job
-            :reader   %direct-jobs
+            :reader   direct-jobs
             :initform '()
             :documentation
             ""))
@@ -386,22 +386,16 @@
                    (inherit thing))
            :initial-value (multiple-value-list (call-next-method)))))
 
-(defmethod direct-aspects ((thing template))
-  (copy-list (%direct-aspects thing)))
-
 (defmethod aspects ((thing template))
   (remove-duplicates (append (direct-aspects thing)
-                             (mapcan (compose #'copy-list #'aspects) (inherit thing))) ; TODO(jmoringe, 2013-03-11): copy?
+                             (mappend #'aspects (inherit thing)))
                      :test     #'string=
                      :key      #'name
                      :from-end t))
 
-(defmethod direct-jobs ((thing template))
-  (copy-list (%direct-jobs thing)))
-
 (defmethod jobs ((thing template))
   (remove-duplicates (append (direct-jobs thing)
-                             (mapcan (compose #'copy-list #'jobs) (inherit thing))) ; TODO(jmoringe, 2013-03-11): copy?
+                             (mappend #'jobs (inherit thing)))
                      :test     #'string=
                      :key      #'name
                      :from-end t))

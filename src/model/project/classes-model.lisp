@@ -219,14 +219,11 @@
 
 (defmethod deploy-dependencies ((thing job))
   (let ((relevant-dependencies
-         (eswitch ((as (value thing :dependencies.mode "direct") 'string)
-                   :test #'equal)
-           ("direct"
-            (direct-dependencies thing))
-           ("minimal"
-            (minimal-dependencies thing))
-           ("none"
-            '()))))
+         (ecase (as (value thing :dependencies.mode "direct")
+                    '(or (eql :direct) (eql :minimal) (eql :none)))
+           (:direct  (direct-dependencies thing))
+           (:minimal (minimal-dependencies thing))
+           (:none    '()))))
     (iter (for upstream-job in relevant-dependencies)
           (with-simple-restart (continue "~@<Do not relate ~A -> ~A~@:>"
                                          upstream-job thing)

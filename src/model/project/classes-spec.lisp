@@ -127,8 +127,8 @@
     instances from which variables, version specifications and job
     specifications are inherited.
 
-    In addition, `project-spec' instances directly contain version and
-    job specifications."))
+    In addition, `project-spec' instances directly contain version
+    specifications."))
 
 (defmethod direct-variables ((thing project-spec))
   (value-acons :project-name (name thing)

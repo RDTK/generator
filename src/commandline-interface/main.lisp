@@ -346,10 +346,9 @@
 (defun configure-distribution (distribution)
   (let* ((jobs               (mappend (compose #'jobs #'implementation)
                                       (versions distribution)))
-         (orchestration-jobs (unless (as (value distribution :disable-orchestration-jobs nil) 'boolean)
-                               (with-simple-restart
-                                   (continue "~@<Continue without configuring orchestration jobs~@:>")
-                                 (configure-orchestration distribution))))
+         (orchestration-jobs (with-simple-restart
+                                 (continue "~@<Continue without configuring orchestration jobs~@:>")
+                               (configure-orchestration distribution)))
          (all-jobs           (mapcar #'implementation
                                      (append jobs orchestration-jobs))))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)

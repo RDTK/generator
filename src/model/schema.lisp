@@ -288,48 +288,6 @@
 
    .")
 
-;; Buildflow variables
-
-(define-variable :disable-orchestration-jobs boolean
-  "Deprecated. Do not use.
-
-   If true, do not generate a buildflow job and the associated prepare
-   and finish jobs for a distribution.")
-
-(define-variable :buildflow-name string
-  "Deprecated. Do not use.
-
-   Name of the buildflow job that should be generated for a
-   distribution.")
-
-(define-variable :buildflow.parallel? boolean
-  "Deprecated. Do not use.
-
-   If true, generate a buildflow in which jobs that are know to be
-   paralellizable are built in parallel to some extent.")
-
-(define-variable :buildflow.exclude? boolean
-  "Deprecated. Do not use.
-
-   If true in a project, do include any Jenkins jobs associated to the
-   project in generated buildflow jobs.")
-
-(define-variable :prepare-hook-name string
-  "The name of a Jenkins job that should run before a distribution is
-   built.")
-
-(define-variable :prepare-hook/unix string
-  "A fragment of shell code that should be run by the \"prepare-hook\"
-   job.")
-
-(define-variable :finish-hook-name string
-  "The name of a Jenkins job that should run after a distribution has
-   been built.")
-
-(define-variable :finish-hook/unix string
-  "A fragment of shell code that should be run by the \"finish-hook\"
-   job.")
-
 ;;; View variables
 
 (define-variable :view.create? boolean

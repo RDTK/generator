@@ -23,7 +23,7 @@
                                    nil *default-pathname-defaults*
                                    :as-directory t)))
 
-(defun find-files (pattern &key (exclude "\.svn"))
+(defun find-files (pattern &key (exclude "(\.svn|\.git)"))
   (let ((candidates (directory pattern)))
     (if exclude
         (remove-if (curry #'ppcre:scan exclude) candidates

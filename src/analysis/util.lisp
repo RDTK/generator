@@ -93,6 +93,14 @@
            (rotatef col prev-col))
          (aref prev-col m))))))
 
+(defun ensure-directory-uri (uri)
+  (let ((result (puri:copy-uri uri)))
+    (when-let ((path (puri:uri-path result)))
+      (unless (ends-with #\/ path)
+        (setf (puri:uri-path result)
+              (concatenate 'string path "/"))))
+    result))
+
 (defun format-git-url (url &optional username password)
   (format nil "~(~A~)://~:[~*~:;~:*~A~@[:~A~]@~]~@[~A~]~@[:~D~]~@[~A~]"
           (puri:uri-scheme url)

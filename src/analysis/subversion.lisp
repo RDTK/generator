@@ -24,12 +24,7 @@
   (when sub-directory
     (assert (eq :relative (first (pathname-directory sub-directory)))))
 
-  (let+ ((source (let ((source (puri:copy-uri source))) ; TODO make a function
-                   (when-let ((path (puri:uri-path source)))
-                     (unless (ends-with #\/ path)
-                       (setf (puri:uri-path source)
-                             (concatenate 'string path "/"))))
-                   source))
+  (let+ ((source (ensure-directory-uri source))
          ((&flet analyze-directory (directory)
             (apply #'analyze directory :auto
                    (remove-from-plist args :username :password :versions

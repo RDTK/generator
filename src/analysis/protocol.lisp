@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,7 +10,27 @@
 
 (defgeneric analyze (source kind &key &allow-other-keys)
   (:documentation
-   "TODO"))
+   "Analyze the project in SOURCE assuming project kind KIND.
+
+    * If SOURCE is a pathname, return analysis results in form of a
+      plist containing at least the keys `:provides' and `:requires'.
+
+      * If SOURCE is a pathname and KIND is `:guess', an attempt is
+        made to guess the project kind from SOURCE.
+
+    * If SOURCE is a `puri:uri', return a list containing such
+      analysis results, the elements corresponding to revisions in the
+      repository designated by the URI SOURCE. Elements are of the
+      form
+
+        ((:version \"VERSION\" :branch \"BRANCH\" :commit \"COMMIT\")
+         . RESULTS-PLIST)
+
+      .
+
+      * If SOURCE is a `puri:uri', an attempt is made to guess the
+        version control system from SOURCE and the project kind from
+        the content of SOURCE."))
 
 (defmethod analyze :around ((source t) (kind t) &key &allow-other-keys)
   (with-condition-translation (((error analysis-error)

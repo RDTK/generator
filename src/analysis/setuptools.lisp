@@ -67,8 +67,7 @@
      |~
       (?:[^,]|\\n)*~
     )")
-                        :multi-line-mode t)
-  "TODO(jmoringe): document")
+                        :multi-line-mode t))
 
 (defun extract-value (source)
   (labels

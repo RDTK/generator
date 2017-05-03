@@ -451,7 +451,6 @@ ${(make-move-stuff-upwards/unix components)}")))
                       :branch        (or branch tag)
                       :clean?        clean?))))
 
-  ;; TODO mercurial seems to support sub-directories
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.

@@ -44,7 +44,7 @@
 
    Common values are \"archive\", \"git\", \"svn\" and \"mercurial\".")
 
-(define-variable :scm.credentials string
+(define-variable :scm.credentials (or null string)
   "A reference to an entry in Jenkins' global credentials store that
    should be used for authentication by Jenkins when accessing the
    repository of this project.
@@ -67,7 +67,7 @@
 
    Used in the generator's analysis and generated Jenkins jobs.")
 
-(define-variable :scm.password string
+(define-variable :scm.password (or null string)
   "The password that should be used for accessing the source code
    management system of the project.
 
@@ -179,7 +179,7 @@
 
 ;;; Project and distribution variables
 
-(define-variable :access string
+(define-variable :access (or (eql :private) (eql :public))
   "Specifies access restrictions of the project or distribution. If present,
    has to have one of the values \"private\" and \"public\". Omitting the
    variable is equivalent to \"public\".

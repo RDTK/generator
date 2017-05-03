@@ -76,10 +76,7 @@
     reason as a second value."))
 
 (defmethod access ((object t))
-  (switch ((as (value object :access nil) '(or null string)) :test #'equal)
-    (nil       :public)
-    ("public"  :public)
-    ("private" :private)))
+  (as (value object :access :public) '(or (eql :private) (eql :public))))
 
 (defmethod check-access ((object t) (lower-bound t))
   t)

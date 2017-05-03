@@ -76,7 +76,7 @@
     reason as a second value."))
 
 (defmethod access ((object t))
-  (as (value object :access :public) '(or (eql :private) (eql :public))))
+  (value/cast object :access :public))
 
 (defmethod check-access ((object t) (lower-bound t))
   t)

@@ -16,7 +16,7 @@
       (NAME VERSION)"))
 
 (defmethod platform-requires ((object t) (platform cons))
-  (let+ ((spec (as (value object :platform-requires '()) 'list))
+  (let+ ((spec (value/cast object :platform-requires '()))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where :test #'eq))))
          ((&flet make-key (string)
@@ -41,4 +41,4 @@
                 ,@(when version `(,(parse-version version))))
               .
               :system-package))
-          (as (value object :platform-provides '()) 'list)))
+          (value/cast object :platform-provides '())))

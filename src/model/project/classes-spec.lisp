@@ -271,11 +271,11 @@
                    (string (list (parse-version version))))))))
 
   (defmethod requires ((spec version-spec))
-    (append (mapcar #'parse-spec (as (value spec :extra-requires '()) 'list))
+    (append (mapcar #'parse-spec (value/cast spec :extra-requires '()))
             (%requires spec)))
 
   (defmethod provides ((spec version-spec))
-    (append (mapcar #'parse-spec (as (value spec :extra-provides '()) 'list))
+    (append (mapcar #'parse-spec (value/cast spec :extra-provides '()))
             (%provides spec))))
 
 (defmethod requires-of-kind ((kind t) (spec version-spec))
@@ -289,9 +289,9 @@
           :key  #'first))
 
 (defmethod check-access ((object version-spec) (lower-bound t))
-  (let ((offender (or (when (as (value object :scm.credentials nil) '(or null string))
+  (let ((offender (or (when (value/cast object :scm.credentials nil)
                         :scm.credentials)
-                      (when (as (value object :scm.password nil) '(or null string))
+                      (when (value/cast object :scm.password nil)
                         :scm.password))))
     (cond
       ((not offender)

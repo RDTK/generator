@@ -154,7 +154,7 @@
 (defmethod add-dependencies! ((thing job) (spec job-spec)
                               &key providers)
   (declare (ignore providers))
-  (let ((dependency-name (as (value thing :dependency-job-name (name thing)) 'string)))
+  (let ((dependency-name (value/cast thing :dependency-job-name (name thing))))
     (iter (for dependency in (direct-dependencies (parent thing)))
           (log:trace "~@<Trying to add ~A to ~A~@:>" dependency thing)
           (with-simple-restart (continue "~@<Skip adding dependency ~A.~@:>"
@@ -176,8 +176,8 @@
                       (value thing :description.footer nil)))))
          (id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
-                     (as (value thing :build-job-name) 'string)))
-         (disabled? (as (value thing :build-job.disabled? nil) 'boolean))
+                     (value/cast thing :build-job-name)))
+         (disabled? (value/cast thing :build-job.disabled? nil))
          (kind      (let+ (((kind &optional plugin)
                             (ensure-list (value thing :kind))))
                       (if plugin
@@ -222,8 +222,7 @@
 
 (defmethod deploy-dependencies ((thing job))
   (let ((relevant-dependencies
-         (ecase (as (value thing :dependencies.mode "direct")
-                    '(or (eql :direct) (eql :minimal) (eql :none)))
+         (ecase (value/cast thing :dependencies.mode :direct)
            (:direct  (direct-dependencies thing))
            (:minimal (minimal-dependencies thing))
            (:none    '()))))

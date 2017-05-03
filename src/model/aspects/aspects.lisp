@@ -596,12 +596,11 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
        ;; Multiple copy-artifact builders which copy artifacts from
        ;; other jobs.
        (iter (for dependency in dependencies)
-             (let+ ((id      (as (value dependency :build-job-name) 'string))
+             (let+ ((id      (value/cast dependency :build-job-name))
                     (kind    (first (ensure-list (value dependency :kind nil))))
                     (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
                                                          (aspects dependency))))
-                               (as (value aspect :aspect.archive-artifacts.file-pattern nil)
-                                   '(or null string))))
+                               (value/cast aspect :aspect.archive-artifacts.file-pattern nil)))
                     ((&flet matrix? (kind)
                        (member kind '("matrix" "matrix-project") :test #'string-equal)))
                     (reference (format nil "~A~@[/label=$label~]"

@@ -243,6 +243,9 @@
 
    where KIND is \"project\" or \"matrix\".")
 
+(define-variable :build-job.disabled? boolean
+  "Should the generated build job initially be disabled?")
+
 (define-variable :dependency-job-name string
   "Internal.")
 

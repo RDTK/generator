@@ -174,15 +174,18 @@
                       (value thing :description.header nil) ; TODO header is a hack
                       (value thing :description nil)
                       (value thing :description.footer nil)))))
-         (id   (substitute-if-not
-                #\_ #'jenkins.api:job-name-character?
-                (as (value thing :build-job-name) 'string)))
-         (kind (let+ (((kind &optional plugin)
-                       (ensure-list (value thing :kind))))
-                 (if plugin
-                     (list kind plugin)
-                     (make-keyword (string-upcase kind)))))
-         (job  (jenkins.dsl:job (kind id :description (format-description)))))
+         (id        (substitute-if-not
+                     #\_ #'jenkins.api:job-name-character?
+                     (as (value thing :build-job-name) 'string)))
+         (disabled? (as (value thing :build-job.disabled? nil) 'boolean))
+         (kind      (let+ (((kind &optional plugin)
+                            (ensure-list (value thing :kind))))
+                      (if plugin
+                          (list kind plugin)
+                          (make-keyword (string-upcase kind)))))
+         (job       (jenkins.dsl:job (kind id
+                                           :description (format-description)
+                                           :disabled?   disabled?))))
     (push job (jenkins.model:implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated

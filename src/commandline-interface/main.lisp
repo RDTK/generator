@@ -966,7 +966,8 @@ Configure build-flow to fail when one of the jobs coordinated by it fails."))))
 
                       (with-phase-error-check
                           (:enable-jobs #'errors #'(setf errors) #'report)
-                        (enable-jobs all-jobs))
+                        (enable-jobs (remove-if-not #'jenkins.api:disabled?
+                                                    all-jobs)))
 
                       (with-phase-error-check
                           (:list-credentials #'errors #'(setf errors) #'report)

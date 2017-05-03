@@ -39,10 +39,16 @@
 (defun all-variables ()
   (hash-table-values *variables*))
 
-(defun find-variable (name)
-  (gethash name *variables*))
+(defun find-variable (name &key if-does-not-exist)
+  (or (gethash name *variables*)
+      (error-behavior-restart-case
+          (if-does-not-exist
+           (simple-error
+            :format-control   "~@<~S does not designate a variable.~@:>"
+            :format-arguments (list name))))))
 
-(defun (setf find-variable) (info name)
+(defun (setf find-variable) (info name &key if-does-not-exist)
+  (declare (ignore if-does-not-exist))
   (setf (gethash name *variables*) info))
 
 (defun note-variable (name type &optional documentation assume-used?)

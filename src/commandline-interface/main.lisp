@@ -310,6 +310,9 @@
               (continue "~@<Skip enabling job ~A.~@:>" job)
             (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))))))
 
+(defun generated? (job)
+   (search "automatically generated" (jenkins.api:description job)))
+
 (defun generated-jobs (&optional pattern)
   (remove "automatically generated" (apply #'jenkins.api:all-jobs
                                            (when pattern (list pattern)))
@@ -956,13 +959,14 @@ Configure build-flow to fail when one of the jobs coordinated by it fails."))))
                       (when delete-other?
                         (with-phase-error-check
                             (:delete-other-jobs #'errors #'(setf errors) #'report)
-                          (let ((other-jobs (set-difference
-                                             (generated-jobs delete-other-pattern)
-                                             all-jobs
-                                             :key #'jenkins.api:id :test #'string=)))
-                            (with-sequence-progress (:delete-other other-jobs)
-                              (mapc (progressing #'jenkins.api::delete-job :delete-other)
-                                    other-jobs)))))
+                          (let* ((other-jobs     (set-difference
+                                                  (jenkins.api:all-jobs delete-other-pattern)
+                                                  all-jobs
+                                                  :key #'jenkins.api:id :test #'string=))
+                                 (generated-jobs (remove-if-not #'generated? other-jobs)))
+                            (with-sequence-progress (:delete-other generated-jobs)
+                              (mapc (progressing #'jenkins.api:delete-job :delete-other)
+                                    generated-jobs)))))
 
                       (with-phase-error-check
                           (:enable-jobs #'errors #'(setf errors) #'report)

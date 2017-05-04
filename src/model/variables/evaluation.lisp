@@ -212,3 +212,9 @@
            (convert))))
     (t
      (call-next-method))))
+
+(defmethod value/cast ((thing t) (name symbol) &optional (default nil default-supplied?))
+  (let ((value (apply #'value thing name
+                      (when default-supplied? (list default)))))
+    (let ((variable (find-variable name :if-does-not-exist #'error)))
+      (as value (variable-info-type variable)))))

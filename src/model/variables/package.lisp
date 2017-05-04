@@ -46,7 +46,8 @@
    #:expand
    #:value
 
-   #:as)
+   #:as
+   #:value/cast)
 
   ;; Variable protocol and mixin class
   (:export

@@ -71,6 +71,12 @@
 
       Return two values: VALUE and NIL."))
 
+(defgeneric value/cast (thing name &optional default)
+  (:documentation
+   "Like `value' but cast returned value according to the type of NAME.
+
+    If NAME does not name a defined variable, signal an error."))
+
 ;; Default behavior
 
 (defmethod lookup :around ((thing t) (name t)

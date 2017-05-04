@@ -105,4 +105,11 @@
   (define-compiler-macro value (&whole form thing name &optional default)
     (declare (ignore thing default))
     (check-variable-name-form name)
-    form))
+    form)
+
+  (define-compiler-macro value/cast (&whole form thing name &optional default)
+    (declare (ignore thing default))
+    (if-let ((variable (check-variable-name-form name)))
+      `(locally (declare (notinline value/cast))
+         (the ,(variable-info-type variable) ,form))
+      form)))

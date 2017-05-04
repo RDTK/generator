@@ -25,8 +25,10 @@
                (process-version (read-file-* spec)))
               (string
                (parse-version spec)))))
-         ((&flet dependency->list (dependency)
+         ((&labels dependency->list (dependency)
             (etypecase dependency
+              ((cons (eql :feature))
+               (dependency->list (third dependency)))
               ((cons (eql :version))
                (list :asdf
                      (string-downcase (second dependency))

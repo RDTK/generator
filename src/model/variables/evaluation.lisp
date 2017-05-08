@@ -214,7 +214,8 @@
      (call-next-method))))
 
 (defmethod value/cast ((thing t) (name symbol) &optional (default nil default-supplied?))
-  (let ((value (apply #'value thing name
-                      (when default-supplied? (list default)))))
-    (let ((variable (find-variable name :if-does-not-exist #'error)))
-      (as value (variable-info-type variable)))))
+  (let+ (((&values value defaulted?)
+          (apply #'value thing name
+                 (when default-supplied? (list default))))
+         (variable (find-variable name :if-does-not-exist #'error)))
+    (values (as value (variable-info-type variable)) defaulted?)))

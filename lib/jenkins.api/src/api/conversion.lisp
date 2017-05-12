@@ -20,11 +20,17 @@
      (error "~@<Value ~S is invalid for type ~S.~@:>"
             value type))))
 
+(defmethod xloc:->xml ((value (eql nil))
+                       (dest  (eql 'string))
+                       (type  (eql 'boolean))
+                       &key &allow-other-keys)
+  "false")
+
 (defmethod xloc:->xml ((value t)
                        (dest  (eql 'string))
                        (type  (eql 'boolean))
                        &key &allow-other-keys)
-  (if value "true" "false"))
+  "true")
 
 ;;; Boolean encoded by presence of an Element
 

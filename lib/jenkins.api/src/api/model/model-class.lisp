@@ -144,7 +144,7 @@
                                          &allow-other-keys))
             (declare (ignore initform))
             (unless (or optional? initform-supplied?)
-              `(,initarg (missing-required-initarg ',name ,initarg)))))
+              `(,initarg (missing-required-initarg ',name ,initarg))))) ; TODO class-name instead of name
 
          ((&flet+ make-xml->slot ((name
                                    &key

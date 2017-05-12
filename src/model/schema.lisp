@@ -276,6 +276,11 @@
 
 ;;; Orchestration variables
 
+(define-variable :jobs.list list
+  "A list of names for all Jenkins jobs.
+
+   Does not include \"orchestration\" jobs.")
+
 (define-variable :jobs.dependencies list
   "An association between up- and downstream build jobs.")
 

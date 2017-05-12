@@ -431,6 +431,21 @@
           (format nil "~AType" (slot-value value 'kind)))
     result))
 
+(define-model-class html-report ()
+    ((name           :type     string
+                     :xpath    "reportName/text()")
+     (base-directory :type     string
+                     :xpath    "reportDir/text()")
+     (include        :type     (list/comma string)
+                     :xpath    "includes/text()")
+     (index-files    :type     (list/comma string)
+                     :xpath    "reportFiles/text()")
+     (keep-all?      :type     boolean
+                     :xpath    "keepAll/text()")
+     (allow-missing? :type     boolean
+                     :xpath    "allowMissing/text()"))
+  (:name-slot name))
+
 (define-interface-implementations (publisher)
   ((ssh "jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin"
         :plugin "publish-over-ssh@1.10")
@@ -526,8 +541,11 @@
    (:name-slot report-file))
 
   ((html "htmlpublisher.HtmlPublisher"
-         :plugin "htmlpublisher@1.2")
-   ()
+         :plugin "htmlpublisher@1.12")
+   ((reports :type     html-report
+             :xpath    ("reportTargets/htmlpublisher.HtmlPublisherTarget"
+                        :if-multiple-matches :all)
+             :initform '()))
    (:name-slot nil))
 
   ((ci-game "hudson.plugins.cigame.GamePublisher"

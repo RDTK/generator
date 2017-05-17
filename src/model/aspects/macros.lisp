@@ -122,6 +122,7 @@
                  aspect-var parameters
                  `((macrolet
                        ((constraint! ((phase &optional constraints tag) &body forms)
+                          (check-type phase (member build publish))
                           (with-gensyms (step)
                             `(let ((,step (progn ,@forms)))
                                (register-constraints

@@ -79,6 +79,7 @@
 
   (defmethod lookup ((thing distribution-spec) (name (eql :jobs.list))
                      &key if-undefined)
+    (declare (ignore if-undefined))
     (return-value name (mapcan #'job-name (distribution-jobs thing))))
 
   (defmethod lookup ((thing distribution-spec) (name (eql :jobs.dependencies))

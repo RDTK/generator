@@ -113,7 +113,14 @@
                           (ensure-list (value version :analysis.license nil))
                           (list nil))))
            (versions thing))
-      (return-value name (hash-table-alist counts)))))
+      (return-value name (hash-table-alist counts))))
+
+  (defmethod lookup ((thing distribution) (name (eql :effective-platform-requires))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (return-value name
+                  (lambda (platform)
+                    (value-parse (platform-requires thing platform))))))
 
 #+no (defmethod platform-requires ((object distribution) (platform t))
   (remove-duplicates

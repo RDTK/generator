@@ -738,8 +738,6 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
                       required (shellify required)))))
       (result name (map-cmake-requirements #'make-option thing)))))
 
-;;; Archive artifacts aspect
-
 (define-aspect (cmake/win32 :job-var job) (builder-defining-mixin)
     ((command :type string
       :documentation
@@ -754,7 +752,7 @@ find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (publish ((:after dependency-download)))
+  (push (constraint! (build ((:after dependency-download)))
           (batch (:command command)))
         (builders job)))
 

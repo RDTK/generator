@@ -509,12 +509,7 @@
                       :description
                       "When deleting previously automatically generated jobs, only consider jobs whose name matches the regular expression REGEX.
 
-A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$.")
-              (flag   :long-name     "build-flow-fail"
-                      :description
-                      "Deprecated, ignored.
-
-Configure build-flow to fail when one of the jobs coordinated by it fails."))))
+A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$."))))
 
 (defun collect-inputs (spec)
   (cond

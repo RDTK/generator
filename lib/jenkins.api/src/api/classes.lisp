@@ -504,11 +504,12 @@
                             (description   "description/text()"
                                            :if-no-match :do-nothing)
                             (default       "defaultValue/text()"
-                                           :if-no-match :do-nothing)) value
-    (list* :kind (cond
-                   ((string= class "hudson.model.TextParameterDefinition")   :text)
-                   ((string= class "hudson.model.StringParameterDefinition") :string)
-                   (t class))
+                                           :if-no-match :do-nothing))
+      value
+    (list* :kind (switch (class :test #'string=)
+                   ("hudson.model.TextParameterDefinition"   :text)
+                   ("hudson.model.StringParameterDefinition" :string)
+                   (t                                        class))
            :name name
            (append
             (when description (list :description description))
@@ -521,7 +522,8 @@
   (xloc:with-locations (((:name class) ".")
                         (name1          "name/text()")
                         (description1   "description/text()")
-                        (default1       "defaultValue/text()")) dest
+                        (default1       "defaultValue/text()"))
+      dest
     (let+ (((&key kind name description default) value))
       (setf class (case kind
                     (:text   "hudson.model.TextParameterDefinition")

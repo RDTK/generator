@@ -81,7 +81,7 @@
        \"false\" to keep builds indefinitely.")
      (keep/count :type (or null positive-integer)
       :documentation
-      "Number of past build that should be kept for the generated
+      "Number of past builds that should be kept for the generated
        job.
 
        \"false\" to keep an unlimited number of builds."))

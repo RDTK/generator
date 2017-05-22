@@ -234,10 +234,10 @@ rm -rf \"\${temp}\""))
 
 (define-aspect (archive) (builder-defining-mixin)
     ((url            :type string
-     :documentation
-     "URL from which the archive should be downloaded.
+      :documentation
+      "URL from which the archive should be downloaded.
 
-      HTTP and HTTPS are supported.")
+       HTTP and HTTPS are supported.")
      ((filename nil) :type string
       :documentation
       "Name of the file in which the downloaded archive should be

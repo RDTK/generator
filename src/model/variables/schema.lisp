@@ -116,6 +116,9 @@
   (define-compiler-macro value/cast (&whole form thing name &optional default)
     (declare (ignore thing default))
     (if-let ((variable (check-variable-name-form name)))
-      (load-time-note-use
-       name 'value/cast `(the ,(variable-info-type variable) ,form))
+      (let ((type (variable-info-type variable)))
+        (load-time-note-use
+         name 'value/cast
+         `(multiple-value-bind (value defaulted?) ,form
+            (values (the ,type value) defaulted?))))
       form)))

@@ -195,7 +195,11 @@
                               (:file     "mixins")
                               (:file     "macros")
 
-                              (:file     "aspects")))
+                              (:file     "aspects")
+                              (:file     "aspects-scm")
+                              (:file     "aspects-artifacts")
+                              (:file     "aspects-build")
+                              (:file     "aspects-publish")))
 
                 (:module     "report"
                  :pathname   "src/report"

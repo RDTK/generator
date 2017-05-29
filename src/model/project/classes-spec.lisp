@@ -106,7 +106,7 @@
     (return-value name (format nil "[~%~
                                       ~:{~2@T~S: [~%~
                                         ~@{~4@T~S,~%~}~
-                                      ~2T],~%~}
+                                      ~2T],~%~}~
                                     ]"
                                (value thing :jobs.dependencies)))))
 

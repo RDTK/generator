@@ -1,6 +1,6 @@
 ;;;; aspects-publish.lisp --- Definitions of publisher-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -198,3 +198,38 @@
                 :remote-directory remote-directory
                 :verbose?         verbose?)))
         (publishers job)))
+
+;;; HTML report aspect
+
+(define-aspect (html-report :job-var job) (publisher-defining-mixin)
+    ((name           :type string
+      :documentation
+      "Name of the report.")
+     (base-directory :type string
+      :documentation
+      "The directory relative to which the include patterns should be
+       processed.")
+     (include        :type (list-of string)
+      :documentation
+      "Patterns for files which should be included in the report.")
+     (index-files    :type (list-of string)
+      :documentation
+      "List of files which should be presented as entry points into
+       the report.")
+     (keep-all?      :type boolean
+      :documentation
+      "Controls whether reports assembled for previous builds should
+       be kept.")
+     (allow-missing? :type boolean
+      :documentation
+      "Controls whether a missing report should make the build
+       fail."))
+  "Adds a publisher for arbitrary HTML-based reports."
+  (let ((html (ensure-interface (publishers job) (publisher/html))))
+    (push (make-instance 'html-report :name           name
+                                      :base-directory base-directory
+                                      :include        include
+                                      :index-files    index-files
+                                      :keep-all?      keep-all?
+                                      :allow-missing? allow-missing?)
+          (reports html))))

@@ -535,6 +535,21 @@
   dest)
 
 (define-interface-implementations (property)
+  ((discard-builds "jenkins.model.BuildDiscarderProperty")
+   ((keep-builds/days     :type     (or (eql -1) positive-integer)
+                          :xpath    "strategy[@class=\"hudson.tasks.LogRotator\"]/daysToKeep/text()"
+                          :initform -1)
+    (keep-builds/count    :type     (or (eql -1) positive-integer)
+                          :xpath    "strategy[@class=\"hudson.tasks.LogRotator\"]/numToKeep/text()"
+                          :initform -1)
+    (keep-artifacts/days  :type     (or (eql -1) positive-integer)
+                          :xpath    "strategy[@class=\"hudson.tasks.LogRotator\"]/artifactDaysToKeep/text()"
+                          :initform -1)
+    (keep-artifacts/count :type     (or (eql -1) positive-integer)
+                          :xpath    "strategy[@class=\"hudson.tasks.LogRotator\"]/artifactNumToKeep/text()"
+                          :initform -1))
+   (:name-slot nil))
+
   ((envinject "EnvInjectJobProperty"
               :plugin "envinject@1.83")
    ((properties :type     (plist/equals list/newline keyword string)
@@ -926,10 +941,6 @@
     ((description                :type     string)
      (disabled?                  :type     boolean
                                  :xpath    "disabled/text()")
-     (keep/days                  :type     (or (eql -1) positive-integer)
-                                 :xpath    "logRotator/daysToKeep/text()")
-     (keep/count                 :type     (or (eql -1) positive-integer)
-                                 :xpath    "logRotator/numToKeep/text()")
      (block-on-downstream-build? :type     boolean
                                  :xpath    "blockBuildWhenDownstreamBuilding/text()")
      (block-on-upstream-build?   :type     boolean

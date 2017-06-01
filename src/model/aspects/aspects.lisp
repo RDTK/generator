@@ -86,8 +86,9 @@
 
        \"false\" to keep an unlimited number of builds."))
   "Configures the retention of old builds for the created job."
-  (setf (keep/days  job) (or keep/days  -1)
-        (keep/count job) (or keep/count -1)))
+  (with-interface (properties job) (discard-builds (property/discard-builds))
+    (setf (keep-builds/days  discard-builds) (or keep/days  -1)
+          (keep-builds/count discard-builds) (or keep/count -1))))
 
 ;;; JDK aspect
 

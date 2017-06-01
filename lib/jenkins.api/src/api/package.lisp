@@ -65,8 +65,6 @@
    #:description
    #:upstream
    #:children
-   #:keep/days
-   #:keep/count
    #:block-on-downstream-build?
    #:block-on-upstream-build?
    #:can-roam?
@@ -127,6 +125,12 @@
 
   ;; Properties interface
   (:export
+   #:property/discard-builds
+   #:keep-builds/days
+   #:keep-builds/count
+   #:keep-artifacts/days
+   #:keep-artifacts/count
+
    #:property/parameters
    #:parameters
 

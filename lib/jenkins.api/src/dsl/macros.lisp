@@ -21,12 +21,6 @@
   <canRoam>true</canRoam>
   <actions/>
   <properties/>
-  <logRotator>
-    <daysToKeep>30</daysToKeep>
-    <numToKeep>10</numToKeep>
-    <artifactDaysToKeep>-1</artifactDaysToKeep>
-    <artifactNumToKeep>5</artifactNumToKeep>
-  </logRotator>
   <triggers class=\"vector\"/>
   <concurrentBuild>false</concurrentBuild>
   <builders/>

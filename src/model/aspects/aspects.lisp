@@ -73,22 +73,37 @@
 ;;; Retention aspect
 
 (define-aspect (retention :job-var job) ()
-    ((keep/days  :type (or null positive-integer)
+    ((keep-builds/days     :type (or null positive-integer)
       :documentation
       "Number of days for which past builds of the generated job
        should be kept.
 
        \"false\" to keep builds indefinitely.")
-     (keep/count :type (or null positive-integer)
+     (keep-builds/count    :type (or null positive-integer)
       :documentation
-      "Number of past builds that should be kept for the generated
+      "Number of past build that should be kept for the generated
        job.
 
-       \"false\" to keep an unlimited number of builds."))
-  "Configures the retention of old builds for the created job."
+       \"false\" to keep an unlimited number of builds.")
+     (keep-artifacts/days  :type (or null positive-integer)
+      :documentation
+      "Number of days for which artifacts of past builds of the
+       generated job should be kept.
+
+       \"false\" to keep artifacts as long as the associated jobs.")
+     (keep-artifacts/count :type (or null positive-integer)
+      :documentation
+      "Number of past builds of the generated job for which artifacts
+       should be kept.
+
+       \"false\" to keep an unlimited number of builds with
+       artifacts."))
+  "Configures retention of builds and artifacts for the created job."
   (with-interface (properties job) (discard-builds (property/discard-builds))
-    (setf (keep-builds/days  discard-builds) (or keep/days  -1)
-          (keep-builds/count discard-builds) (or keep/count -1))))
+    (setf (keep-builds/days     discard-builds) (or keep-builds/days     -1)
+          (keep-builds/count    discard-builds) (or keep-builds/count    -1)
+          (keep-artifacts/days  discard-builds) (or keep-artifacts/days  -1)
+          (keep-artifacts/count discard-builds) (or keep-artifacts/count -1))))
 
 ;;; JDK aspect
 

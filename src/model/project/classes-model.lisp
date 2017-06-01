@@ -168,13 +168,7 @@
               (pushnew dependency (%direct-dependencies thing)))))))
 
 (defmethod deploy ((thing job))
-  (let+ (((&flet format-description ()
-            (with-output-to-string (stream)
-              (format stream "~@[~A~&~]~:[«no description»~:;~:*~A~]~@[~&~A~]"
-                      (value thing :description.header nil) ; TODO header is a hack
-                      (value thing :description nil)
-                      (value thing :description.footer nil)))))
-         (id        (substitute-if-not
+  (let+ ((id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
                      (value/cast thing :build-job-name)))
          (disabled? (value/cast thing :build-job.disabled? nil))
@@ -183,9 +177,7 @@
                       (if plugin
                           (list kind plugin)
                           (make-keyword (string-upcase kind)))))
-         (job       (jenkins.dsl:job (kind id
-                                           :description (format-description)
-                                           :disabled?   disabled?))))
+         (job       (jenkins.dsl:job (kind id :disabled? disabled?))))
     (push job (jenkins.model:implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated

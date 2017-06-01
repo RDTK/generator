@@ -316,13 +316,7 @@
             (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))))))
 
 (defun generated? (job)
-   (search "automatically generated" (jenkins.api:description job)))
-
-(defun generated-jobs (&optional pattern)
-  (remove "automatically generated" (apply #'jenkins.api:all-jobs
-                                           (when pattern (list pattern)))
-          :test-not #'search
-          :key      #'jenkins.api:description))
+  (search "automatically generated" (jenkins.api:description job)))
 
 ;;; Toolkit specific stuff
 

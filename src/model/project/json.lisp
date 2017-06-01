@@ -6,6 +6,15 @@
 
 (cl:in-package #:jenkins.model.project)
 
+(deftype json-version-include-spec ()
+  '(or string (cons string (cons list null))))
+
+(defun json-list-of-version-include-specs (thing)
+  (and (listp thing) (every (of-type 'json-version-include-spec) thing)))
+
+(deftype json-project-include-spec ()
+  '(cons string (satisfies json-list-of-version-include-specs)))
+
 (defun check-generator-version (spec)
   (when-let ((required-version (cdr (assoc :minimum-generator-version spec))))
     (let ((provided-version (jenkins.project-system:version/string)))
@@ -173,16 +182,15 @@
          (projects-seen (make-hash-table :test #'equal))
          ((&flet check-version (version)
             (cond
-              ((not (and (typep version '(cons string (cons string list)))
-                         (every #'stringp (nthcdr 2 version))))
-                (cerror "~@<Continue without the project entry~@:>"
-                        "~@<Project entry~
-                         ~@:_~@:_~
-                         ~2@T~A~
-                         ~@:_~@:_~
-                         is not a project name followed by one or more ~
-                         project versions.~:@>"
-                        (json:encode-json-to-string version)))
+              ((not (typep version 'json-project-include-spec))
+               (cerror "~@<Continue without the project entry~@:>"
+                       "~@<Project entry~
+                        ~@:_~@:_~
+                        ~2@T~A~
+                        ~@:_~@:_~
+                        is not a project name followed by one or more ~
+                        project (parametrized) versions.~:@>"
+                       (json:encode-json-to-string version)))
               ((when-let ((previous (gethash (first version) projects-seen)))
                  (cerror "~@<Ignore the additional project entry~@:>"
                          "~@<Project entry~
@@ -198,8 +206,9 @@
                          (json:encode-json-to-string previous)
                          (json:encode-json-to-string version))))
               (t
-               (setf (gethash (first version) projects-seen) version)
-               (list version))))))
+               (let+ (((name &rest versions) version))
+                 (setf (gethash name projects-seen) version)
+                 (list (list* name (mapcar #'ensure-list versions)))))))))
     (check-generator-version spec)
     (check-keys spec '(:minimum-generator-version
                        (:name . t) :variables (:versions . t)

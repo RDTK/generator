@@ -127,18 +127,19 @@
        (progress "~A" file)
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
-         (let+ ((project       (reinitialize-instance
+         (let+ ((version-names (mapcar #'first versions))
+                (project       (reinitialize-instance
                                 (load-project-spec/json
                                  file :version-test (lambda (version)
-                                                      (member version versions
-                                                              :test #'string=)))
+                                                      (find version version-names
+                                                            :test #'string=)))
                                 :parent distribution))
                 (branches      (as (value project :branches '()) 'list))
-                (branches      (intersection versions branches :test #'string=))
+                (branches      (intersection version-names branches :test #'string=))
                 (tags          (as (value project :tags '()) 'list))
-                (tags          (intersection versions tags :test #'string=))
+                (tags          (intersection version-names tags :test #'string=))
                 (tags+branches (union branches tags))
-                (versions1     (set-difference versions tags+branches
+                (versions1     (set-difference version-names tags+branches
                                                :test #'string=))
                 ((&flet process-version (name &key version-required? branch? tag? directory?)
                    (let+ ((version (or (find name (versions project)
@@ -152,11 +153,15 @@
                              (if version
                                  (value version name default)
                                  default)))
-                          (branch    (when branch?    (version-var :branch (when (eq branch? t) name))))
-                          (tag       (when tag?       (version-var :tag (when (eq tag? t) name))))
-                          (directory (when directory? (version-var :directory)))
-                          (commit    (version-var :commit)))
+                          (parameters (alist-plist (second (find name versions
+                                                                 :test #'string=
+                                                                 :key  #'first))))
+                          (branch     (when branch?    (version-var :branch (when (eq branch? t) name))))
+                          (tag        (when tag?       (version-var :tag (when (eq tag? t) name))))
+                          (directory  (when directory? (version-var :directory)))
+                          (commit     (version-var :commit)))
                      `(:name   ,name
+                       ,@parameters
                        ,@(when branch    `(:branch    ,branch))
                        ,@(when tag       `(:tag       ,tag))
                        ,@(when directory `(:directory ,directory))
@@ -203,7 +208,7 @@
 
 (defun resolve-project-versions (versions)
   (mapcan (lambda+ ((project &rest versions))
-            (mapcan (lambda (version)
+            (mapcan (lambda+ ((version &optional &ign))
                       (with-simple-restart
                           (continue "~@<Skip version ~A of project ~A.~@:>"
                                     version project)

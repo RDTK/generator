@@ -172,6 +172,7 @@
                  :depends-on ("version" "analysis" "model" "model-variables" "model-aspects") ; TODO
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "util")
                               (:file     "variables")
                               (:file     "protocol")
                               (:file     "classes-spec")

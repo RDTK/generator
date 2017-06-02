@@ -81,10 +81,6 @@
     (remove-duplicates requirements :test #'string=)))
 
 (defun platform-provides (object)
-  (mapcar (lambda+ ((nature name &optional version))
-            `((,(make-keyword (string-upcase nature))
-                ,name
-                ,@(when version `(,(parse-version version))))
-              .
-              :system-package))
+  (mapcar (lambda (spec)
+            `(,(parse-dependency-spec spec) . :system-package))
           (value/cast object :platform-provides '())))

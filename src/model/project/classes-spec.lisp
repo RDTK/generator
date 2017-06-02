@@ -267,20 +267,15 @@
   (remove-duplicates
    (call-next-method) :test #'equal :key (rcurry #'subseq 0 2)))
 
-(let+ (((&flet+ parse-spec ((mechanism name &optional version))
-          (list* (make-keyword (string-upcase mechanism))
-                 name
-                 (etypecase version
-                   (list   version)
-                   (string (list (parse-version version))))))))
+(defmethod requires ((spec version-spec))
+  (append (mapcar #'parse-dependency-spec
+                  (value/cast spec :extra-requires '()))
+          (%requires spec)))
 
-  (defmethod requires ((spec version-spec))
-    (append (mapcar #'parse-spec (value/cast spec :extra-requires '()))
-            (%requires spec)))
-
-  (defmethod provides ((spec version-spec))
-    (append (mapcar #'parse-spec (value/cast spec :extra-provides '()))
-            (%provides spec))))
+(defmethod provides ((spec version-spec))
+  (append (mapcar #'parse-dependency-spec
+                  (value/cast spec :extra-provides '()))
+          (%provides spec)))
 
 (defmethod requires-of-kind ((nature t) (spec version-spec))
   (remove nature (requires spec)

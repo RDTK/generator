@@ -233,13 +233,27 @@ rm -rf \"\${temp}\""))
 (defmacro wrapped-shell-command ((aspect-name
                                   &optional (builder-name '#:command))
                                  &body body)
-  (let ((prefix-var-name (let ((*package* (find-package '#:keyword)))
-                           (symbolicate aspect-name '#:. builder-name '#:.prefix)))
-        (suffix-var-name (let ((*package* (find-package '#:keyword)))
-                           (symbolicate aspect-name '#:. builder-name '#:.suffix))))
-    `(let ((prefix (as (value aspect ,prefix-var-name nil) '(or null string)))
-           (suffix (as (value aspect ,suffix-var-name nil) '(or null string))))
-       (wrap-shell-command (progn ,@body) prefix suffix))))
+  (let+ (((&flet make-variable (suffix when)
+            (let ((name (let ((*package* (find-package '#:keyword)))
+                          (symbolicate aspect-name '#:. builder-name suffix)))
+                  (type '(or null string))
+                  (documentation
+                   (format nil "Shell fragment to execute ~A the shell ~
+                                fragment of the ~A aspect."
+                           when aspect-name)))
+              (note-variable name type documentation)
+              (values name `(load-time-value
+                             (note-variable ,name ',type ,documentation))))))
+         ((&values prefix-var-name prefix-var-form)
+          (make-variable '#:.prefix "before"))
+         ((&values suffix-var-name suffix-var-form)
+          (make-variable '#:.suffix "after")))
+    `(wrap-shell-command (progn
+                           ,prefix-var-form
+                           ,suffix-var-form
+                           ,@body)
+                         (value/cast aspect ,prefix-var-name nil)
+                         (value/cast aspect ,suffix-var-name nil))))
 
 (defun split-option (spec)
   (let ((position (position #\= spec)))

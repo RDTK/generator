@@ -6,6 +6,52 @@
 
 (cl:in-package #:jenkins.model.project)
 
+;;; Requires/provides protocol
+
+(defgeneric requires (thing)
+  (:documentation
+   "Return a list of requirements for THING.
+
+    Elements of the returned list are of the form
+
+      (NATURE NAME [VERSION])
+
+    ."))
+
+(defgeneric requires-of-kind (nature thing)
+  (:documentation
+   "Return a list of requirements for THING restricted to NATURE.
+
+    Natures designates a project nature such as `:asdf' or `:cmake'.
+
+    Elements of the returned list are of the form
+
+      (NATURE NAME [VERSION])
+
+    i.e. the first element is NATURE."))
+
+(defgeneric provides (thing)
+  (:documentation
+   "Return a list of things provided by THING.
+
+    Elements of the returned list are of the form
+
+      (NATURE NAME [VERSION])
+
+    ."))
+
+(defgeneric provides-of-kind (nature thing)
+  (:documentation
+   "Return a list of things provided by THING, restricted to NATURE.
+
+    Natures designates a project nature such as `:asdf' or `:cmake'.
+
+    Elements of the returned list are of the form
+
+      (NATURE NAME [VERSION])
+
+    i.e. the first element is NATURE."))
+
 ;;; Platform requirements protocol
 
 (defgeneric platform-requires (object platform)

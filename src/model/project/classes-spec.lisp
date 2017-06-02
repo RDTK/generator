@@ -215,12 +215,10 @@
              :accessor %requires
              :initform '()
              :documentation
-             "
-
-              either a string naming the dependency or a list of the
+             "A list of requirement descriptions. Elements are of the
               form
 
-                (MECHANISM NAME VERSION)
+                (NATURE NAME [VERSION])
 
              .")
    (provides :initarg  :provides
@@ -228,12 +226,10 @@
              :reader   %provides
              :initform '()
              :documentation
-             "
+             "A list of descriptions of provided things. Elements are
+              of the form
 
-              either a string naming the dependency or a list of the
-              form
-
-                (MECHANISM NAME VERSION)
+                (NATURE NAME [VERSION])
 
               ."))
   (:documentation
@@ -286,13 +282,13 @@
     (append (mapcar #'parse-spec (value/cast spec :extra-provides '()))
             (%provides spec))))
 
-(defmethod requires-of-kind ((kind t) (spec version-spec))
-  (remove kind (requires spec)
+(defmethod requires-of-kind ((nature t) (spec version-spec))
+  (remove nature (requires spec)
           :test (complement #'eq)
           :key  #'first))
 
-(defmethod provides-of-kind ((kind t) (spec version-spec))
-  (remove kind (provides spec)
+(defmethod provides-of-kind ((nature t) (spec version-spec))
+  (remove nature (provides spec)
           :test (complement #'eq)
           :key  #'first))
 

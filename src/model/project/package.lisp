@@ -79,6 +79,14 @@
    #:find-provider/version
    #:providers/alist)
 
+
+  ;; Requires/provides protocol
+  (:export
+   #:requires
+   #:requires-of-kind
+   #:provides
+   #:provides-of-kind)
+
   ;; Platform requirements protocol
   (:export
    #:platform-requires)

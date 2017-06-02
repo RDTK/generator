@@ -89,7 +89,8 @@
 
   ;; Platform requirements protocol
   (:export
-   #:platform-requires)
+   #:platform-requires
+   #:platform-provides)
 
   ;; JSON stuff
   (:export

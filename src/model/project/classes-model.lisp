@@ -60,19 +60,14 @@
                    parented-mixin
                    direct-variables-mixin)
   ((direct-dependencies :initarg  :direct-dependencies
-                        :type     list
+                        :type     list #| of version|#
                         :reader   direct-dependencies
                         :accessor %direct-dependencies
                         :initform '()
                         :documentation
-                        "
-
-                         either a string naming the dependency or a
-                         list of the form
-
-                           (NAME VERSION)
-
-                         .")
+                        "List of `version' instance representing
+                         project versions on which the project version
+                         depends.")
    (jobs                :initarg  :jobs
                         :type     list
                         :reader   jobs

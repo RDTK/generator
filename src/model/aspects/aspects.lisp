@@ -20,8 +20,6 @@
   `(let ((,var (ensure-interface (,accessor ,object) (,class ,@initargs))))
      ,@body))
 
-#.(interpol:enable-interpol-syntax)
-
 ;;; Description aspect
 
 (define-aspect (description :job-var job) ()
@@ -199,19 +197,17 @@
                         -exec rm -rf {} \\;"
             (length exclude) exclude)))
 
-(defun make-move-stuff-upwards/unix (stuff)
+(defun+ make-move-stuff-upwards/unix ((first &rest rest))
   "Move contents of STUFF, which is a list of one or more directory
    name components, to the current directory."
-  (declare (type list stuff))
-  (let+ (((first &rest rest) stuff)
-         (rest/string (namestring (make-pathname :directory `(:relative ,@rest)))))
-    #?"# Uniquely rename directory.
-temp=\$(mktemp -d ./XXXXXXXX)
-mv -T \"${first}\" \"\${temp}/\"
-
-# Move contents to toplevel workspace directory.
-find \"\${temp}/${rest/string}\" -mindepth 1 -maxdepth 1 -exec mv {} . \\;
-rm -rf \"\${temp}\""))
+  (format nil "# Uniquely rename directory.~@
+               temp=$(mktemp -d ./XXXXXXXX)~@
+               mv -T \"~A\" \"${temp}/\"~@
+               ~@
+               # Move contents to toplevel workspace directory.~@
+               find \"${temp}/~{~A~^/~}\" -mindepth 1 -maxdepth 1 -exec mv {} . \\;~@
+               rm -rf \"${temp}\""
+          first rest))
 
 (defun make-variable/sh (string)
   (substitute-if #\_ (lambda (character)
@@ -318,5 +314,3 @@ rm -rf \"\${temp}\""))
                                   action)))))
     (unless (eq permissions :keep)
       (setf (permissions job) (mapcar #'normalize-permission permissions)))))
-
-#.(interpol:disable-interpol-syntax)

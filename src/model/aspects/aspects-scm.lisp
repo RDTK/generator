@@ -6,7 +6,16 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
-#.(interpol:enable-interpol-syntax)
+(defun make-focus-sub-directory-command (sub-directory &key exclude)
+  (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
+         ((&whole components first &rest &ign)
+          (rest (pathname-directory sub-directory))))
+    (format nil "~A~@
+                 ~@
+                 ~A"
+            (make-remove-directory-contents/unix
+             :exclude (list* first exclude))
+            (make-move-stuff-upwards/unix components))))
 
 (define-aspect (archive) (builder-defining-mixin)
     ((url            :type string
@@ -28,18 +37,21 @@
 
   ;; Generate archive download and extraction as a shell builder.
   (let* ((url/parsed (puri:uri url))
-         (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed)))))
-    (push (constraint! (build ((:before t)))
-            (shell (:command #?"# Clean workspace.
-${(make-remove-directory-contents/unix)}
-
-# Unpack archive.
-wget --no-verbose \"${url}\" --output-document=\"${archive}\"
-unp -U \"${archive}\"
-rm \"${archive}\"
-directory=\$(find . -mindepth 1 -maxdepth 1)
-
-${(make-move-stuff-upwards/unix '("${directory}"))}")))
+         (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed))))
+         (command    (format nil "# Clean workspace.~@
+                                  ~A~@
+                                  ~@
+                                  # Unpack archive.~@
+                                  wget --no-verbose \"~A\" --output-document=\"~A\"~@
+                                  unp -U \"~:*~A\"~@
+                                  rm \"~:*~A\"~@
+                                  directory=$(find . -mindepth 1 -maxdepth 1)~@
+                                  ~@
+                                  ~A"
+                             (make-remove-directory-contents/unix)
+                             url archive
+                             (make-move-stuff-upwards/unix "${directory}"))))
+    (push (constraint! (build ((:before t))) (shell (:command command)))
           (builders job))))
 
 (define-aspect (git :job-var job :aspect-var aspect) (builder-defining-mixin)
@@ -119,15 +131,10 @@ ${(make-move-stuff-upwards/unix '("${directory}"))}")))
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
-           ((&whole components first &rest &ign)
-            (rest (pathname-directory sub-directory))))
-      (push (constraint! (build ((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents/unix
-                                     :exclude (list ".git" first))}
-
-${(make-move-stuff-upwards/unix components)}")))
-            (builders job)))))
+    (push (constraint! (build ((:before t)))
+            (shell (:command (make-focus-sub-directory-command
+                              sub-directory :exclude '(".git")))))
+          (builders job))))
 
 (define-aspect (git-repository-browser
                 :job-var     job
@@ -231,15 +238,10 @@ ${(make-move-stuff-upwards/unix components)}")))
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
-           ((&whole components first &rest &ign)
-            (rest (pathname-directory sub-directory))))
-      (push (constraint! (build ((:before t)))
-              (shell (:command #?"${(make-remove-directory-contents/unix
-                                     :exclude (list ".hg" first))}
-
-${(make-move-stuff-upwards/unix components)}")))
-            (builders job)))))
+    (push (constraint! (build ((:before t)))
+            (shell (:command (make-focus-sub-directory-command
+                              sub-directory :exclude '(".hg")))))
+          (builders job))))
 
 (define-aspect (trigger/scm) ()
     ((spec :type (or null string)
@@ -252,5 +254,3 @@ ${(make-move-stuff-upwards/unix components)}")))
   (removef (triggers job) 'trigger/scm :key #'type-of)
   (when spec
     (push (scm (:spec spec)) (triggers job))))
-
-#.(interpol:disable-interpol-syntax)

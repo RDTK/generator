@@ -6,8 +6,6 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
-#.(interpol:enable-interpol-syntax)
-
 ;;; Tasks aspect
 
 (define-aspect (tasks) (publisher-defining-mixin)
@@ -43,16 +41,18 @@
                             publisher-defining-mixin)
     ((directories :type list))
   "Adds a sloccount publisher to the generated job."
-  (let ((arguments (mapcar #'prin1-to-string directories)))
+  (let ((command (format nil "DATA_DIR=$(mktemp -d /tmp/build-generator.sloccount.data.XXXXXXXXXX)~@
+                              REPORT_DIR=$(mktemp -d /tmp/build-generator.sloccount.report.XXXXXXXXXX)~@
+                              mkdir -p \"${REPORT_DIR}\"~@
+                              sloccount --datadir \"${DATA_DIR}\" --wide --details ~{\"~A\"~^ ~} ~
+                                > \"${REPORT_DIR}/sloccount.sc\"~@
+                              mv \"${REPORT_DIR}/sloccount.sc\" \"${WORKSPACE}/sloccount.sc\"~@
+                              rm -rf \"${DATA_DIR}\" \"${REPORT_DIR}\""
+                         directories)))
     (push (constraint! (build ((:before cmake/unix)
                                (:before maven)
                                (:before setuptools)))
-            (shell (:command #?"DATA_DIR=\$(mktemp -d /tmp/build-generator.sloccount.data.XXXXXXXXXX)
-REPORT_DIR=\$(mktemp -d /tmp/build-generator.sloccount.report.XXXXXXXXXX)
-mkdir -p \"\${REPORT_DIR}\"
-sloccount --datadir \"\${DATA_DIR}\" --wide --details @{arguments} > \"\${REPORT_DIR}/sloccount.sc\"
-mv \"\${REPORT_DIR}/sloccount.sc\" \"\${WORKSPACE}/sloccount.sc\"
-rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
+            (shell (:command command)))
           (builders job)))
 
   (push (constraint! (publish) (sloccount (:pattern "sloccount.sc")))
@@ -198,5 +198,3 @@ rm -rf \"\${DATA_DIR}\" \"\${REPORT_DIR}\"")))
                 :remote-directory remote-directory
                 :verbose?         verbose?)))
         (publishers job)))
-
-#.(interpol:disable-interpol-syntax)

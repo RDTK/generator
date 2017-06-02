@@ -6,8 +6,6 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
-#.(interpol:enable-interpol-syntax)
-
 ;;; Shell aspect
 
 (define-aspect (shell :job-var job) (builder-defining-mixin)
@@ -223,37 +221,42 @@
    ordering constraints."
   (let+ (;; Options
          ((&flet+ make-option ((section name value))
-            #?"\${PYTHON} ${script} setopt -c ${section} -o ${name} -s \"${value}\""))
+            (format nil "${PYTHON} ~A setopt -c ~A -o ~A -s \"~A\""
+                    script section name value)))
          (options (mapcar #'make-option options))
          ;; Targets
          ((&flet+ make-target ((name &optional no-fail?))
-            #?"\${PYTHON} ${script} ${name} @{(when no-fail? '("|| true"))}"))
+            (format nil "${PYTHON} ~A ~A~@[ || true~]"
+                    script name no-fail?)))
          (targets (mapcar (compose #'make-target #'ensure-list) targets))
-         ;; Shell fragment that ensures existence of
-         ;; {dist,site}-packages directory within install prefix.
-         (ensure-install-directory
-          (when install-prefix
-            (format nil "INSTALL_DIRECTORY=\"$(~
+         ;; The shell fragment conditioned on `install-prefix' ensures
+         ;; existence of {dist,site}-packages directory within install
+         ;; prefix.
+         (command
+          (format nil "PYTHON=~A~@
+                       ~@
+                       ~:[~
+                         # Not creating install directory
+                       ~;~:*~
+                         INSTALL_DIRECTORY=\"$(~
                            ${PYTHON} -c ~
                            'from distutils.sysconfig import get_python_lib;~
-                            print(get_python_lib(prefix=\"'~S'\"))'~
+                            print(get_python_lib(prefix=\"'\"~A\"'\"))'~
                          )\"~@
                          mkdir -p \"${INSTALL_DIRECTORY}\"~@
-                         export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\""
-             install-prefix))))
+                         export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\"~
+                       ~]~@
+                       ~@
+                       # Configure options~@
+                       ~:[# No options configured~;~:*~{~A~^~%~}~]~@
+                       ~@
+                       # Process targets~@
+                       ~:[# No targets configured~;~:*~{~A~^~%~}~]"
+                  python-binary install-prefix options targets)))
     ;; Put everything into a shell fragment.
     (push (constraint! (build ((:after dependency-download)))
             (shell (:command (wrapped-shell-command (:aspect.setuptools)
-                               (let ((interpol:*list-delimiter* #\newline))
-                                 #?"PYTHON=${python-binary}
-
-${(or ensure-install-directory "# Not creating install directory")}
-
-# Configure options
-@{(or options '("# No options configured"))}
-
-# Process targets
-@{(or targets '("# No targets configured"))}")))))
+                               command))))
           (builders job))))
 
 ;;; groovy script aspects
@@ -287,5 +290,3 @@ ${(or ensure-install-directory "# Not creating install directory")}
                        (:system (system-groovy (:code code :sandbox? sandbox?)))
                        (:normal (groovy        (:code code)))))
         (builders job)))
-
-#.(interpol:disable-interpol-syntax)

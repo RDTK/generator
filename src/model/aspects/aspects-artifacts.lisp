@@ -6,8 +6,6 @@
 
 (cl:in-package #:jenkins.model.aspects)
 
-#.(interpol:enable-interpol-syntax)
-
 ;;; Archive artifact
 
 (define-aspect (archive-artifacts :job-var job) (publisher-defining-mixin)
@@ -96,10 +94,10 @@
       ;; Shell builder which unpacks dependencies. Has to run after
       ;; artifact download, obviously.
       (when copy-artifacts?
-        (push (constraint! (build ((:before cmake/unix)
-                                   (:after copy-artifact)))
-                (shell (:command #?"cd ${upstream-dir}
-find . -name '*.tar.gz' -exec tar -xzf '{}' \\;")))
-              (builders job))))))
-
-#.(interpol:disable-interpol-syntax)
+        (let ((command (format nil "cd ~A~@
+                                    find . -name '*.tar.gz' -exec tar -xzf '{}' \\;"
+                               upstream-dir)))
+          (push (constraint! (build ((:before cmake/unix)
+                                    (:after copy-artifact)))
+                  (shell (:command command)))
+                (builders job)))))))

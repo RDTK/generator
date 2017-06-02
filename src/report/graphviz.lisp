@@ -55,11 +55,11 @@
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                           (object jenkins.model.project::distribution-spec))
-  (mapcar #'jenkins.model:implementation (jenkins.model.project::versions object)))
+  (mapcar #'jenkins.model:implementation (jenkins.model.project:versions object)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                           (object jenkins.model.project::project))
-  (jenkins.model.project::versions object))
+  (jenkins.model.project:versions object))
 
 (flet ((dependency (spec target)
          (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"
@@ -87,7 +87,7 @@
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                             (object jenkins.model.project::version))
     (let+ ((specification (jenkins.model:specification object))
-           (requires      (jenkins.model.project::requires specification))
+           (requires      (jenkins.model.project:requires specification))
            (relations     '())
            ((&flet add-relation (dependency provide)
               (push provide (cdr (or (assoc dependency relations :test #'eq)
@@ -100,7 +100,7 @@
       (iter (for dependency in (remove-duplicates (jenkins.model:direct-dependencies object))) ; TODO how would there be duplicates?
             (let ((provides (remove (jenkins.model:specification dependency) requires
                                     :test-not #'eq
-                                    :key      (rcurry #'jenkins.model.project::find-provider/version
+                                    :key      (rcurry #'jenkins.model.project:find-provider/version
                                                       :if-does-not-exist nil))))
 
               (iter (for provide in (or provides '(nil)))
@@ -108,11 +108,11 @@
       ;; Resolve requirements using things provided by the platform.
       (mapc (lambda (requirement)
               (cond
-                ((jenkins.model.project::find-provider/version
+                ((jenkins.model.project:find-provider/version
                   requirement :if-does-not-exist nil))
-                ((jenkins.model.project::find-provider/version
+                ((jenkins.model.project:find-provider/version
                   requirement
-                  :providers         (jenkins.model.project::platform-provides object)
+                  :providers         (jenkins.model.project:platform-provides object)
                   :if-does-not-exist nil)
                  (when (eq object (jenkins-dependencies-root graph))
                    (add-relation system requirement)))
@@ -127,7 +127,7 @@
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
                                                 (object jenkins.model.project::version))
     (let* ((specification (jenkins.model:specification object))
-           (provides      (jenkins.model.project::provides specification)))
+           (provides      (jenkins.model.project:provides specification)))
       (when (eq object (jenkins-dependencies-root graph))
         (list (dependency provides (make-provided)))))))
 
@@ -146,7 +146,7 @@
                    (style  (eql :graph))
                    (target pathname))
   (call-next-method)
-  (report (jenkins.model.project::versions object) style target))
+  (report (jenkins.model.project:versions object) style target))
 
 (defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :graph))

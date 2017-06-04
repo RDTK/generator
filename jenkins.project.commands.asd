@@ -37,4 +37,7 @@
                               (:file       "functions-deploy")
 
                               (:file       "command-version")
-                              (:file       "command-help")))))
+                              (:file       "command-help")
+
+                              (:file       "command-info-variables")
+                              (:file       "command-info-aspects")))))

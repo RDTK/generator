@@ -9,6 +9,7 @@
    #:cl
    #:alexandria
    #:let-plus
+   #:iterate
    #:more-conditions
 
    #:jenkins.model
@@ -18,7 +19,11 @@
   (:shadow
    #:phase
 
-   #:value)
+   #:value
+   #:generate)
+
+  (:shadowing-import-from #:jenkins.model.variables
+   #:as)
 
   ;; Conditions
   (:export

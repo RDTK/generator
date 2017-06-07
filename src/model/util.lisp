@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities used in the model module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -47,11 +47,11 @@
                    :path (mapcar #'node-object cycle))))
     result))
 
-(defun sort-with-partial-order (sequence predicate) ; TODO &key key
-  (declare (type sequence sequence)
-           (type function predicate))
-  (let* ((nodes  (map '(simple-array t 1) #'make-node sequence))
-         (length (length nodes)))
+(defun sort-with-partial-order (sequence predicate)
+  (declare (type sequence sequence))
+  (let* ((predicate (ensure-function predicate))
+         (nodes     (map '(simple-array t 1) #'make-node sequence))
+         (length    (length nodes)))
     ;; Build graph by checking PREDICATE for all pairs of distinct
     ;; elements of SEQUENCE.
     (loop :for i :below length
@@ -61,8 +61,8 @@
                 :for node2   = (aref nodes j)
                 :for object2 = (node-object node2) :do
                 (when (funcall predicate object1 object2)
-                  (pushnew node2 (node-edges node1) :test #'eq)) ; TODO for redundant cases
+                  (push node2 (node-edges node1)))
                 (when (funcall predicate object2 object1)
-                  (pushnew node1 (node-edges node2) :test #'eq))))
+                  (push node1 (node-edges node2)))))
     ;; Topologically sort nodes and extract objects.
     (mapcar #'node-object (topological-sort nodes))))

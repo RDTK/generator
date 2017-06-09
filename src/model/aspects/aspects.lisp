@@ -31,6 +31,7 @@
 
        Depending on the global Jenkins configuration, the description
        is either interpreted as plain text or HTML."))
+  "Adds a description to the generated job."
   (setf (description job) description))
 
 ;;; Parameters aspect

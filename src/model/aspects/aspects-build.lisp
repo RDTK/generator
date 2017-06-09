@@ -64,6 +64,26 @@
           (shell (:command (wrapped-shell-command (:aspect.cmake/unix) command))))
         (builders job)))
 
+(define-variable :aspect.cmake/unix.find-commands list ; :write
+  "Shell commands for finding upstream CMake packages.
+
+   A list of strings of the form
+
+     UPSTREAM_DIR=$(find ... -name UPSTREAMConfig.cmake ...)
+
+   where UPSTREAM is the name of the respective upstream CMake
+   module.")
+
+(define-variable :aspect.cmake/unix.dir-options list ; :write
+  "CMake commandline options for configuring upstream packages.
+
+   A list of strings of the form
+
+     UPSTREAM_DIR=${UPSTREAM_DIR}
+
+   where UPSTREAM is the name of the respective upstream CMake
+   module.")
+
 (let+ (((&flet shellify (name)
           (make-variable/sh (string-upcase name))))
        ((&flet map-cmake-requirements (function aspect)

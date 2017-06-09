@@ -60,10 +60,12 @@
                     ,@(when default-value?
                         `(:default-value ,default-value)))))
 
-(defun make-aspect-extend!-body (aspect-var parameters body)
+(defun make-aspect-extend!-body (aspect-var parameters body
+                                 &key declarations)
   `(catch '%bail
      (apply
       (lambda ,(mapcar #'aspect-parameter-binding-name parameters)
+        ,@declarations
         ,@body)
       (aspect-process-parameters ,aspect-var))))
 
@@ -76,6 +78,7 @@
                          (aspect-var (when body
                                        (required-argument :aspect-var)))
                          constraints
+                         declarations
                          documentation)
   (let+ (((&flet name->class-name (name)
             (symbolicate '#:aspect- (string-upcase name))))
@@ -129,7 +132,8 @@
                                 ,',aspect-var ',phase ,step ',(or tag ',name)
                                 ',constraints)
                                ,step))))
-                     ,@body)))
+                     ,@body))
+                 :declarations declarations)
                ,job-var)))
 
        ',class-name)))
@@ -142,11 +146,12 @@
                           parameters
                          &body body)
   "Define an aspect class named NAME with SUPER-ASPECTS."
-  (let+ (((&values body &ign documentation)
+  (let+ (((&values body declarations documentation)
           (parse-body body :documentation t)))
     (make-aspect-form name super-aspects parameters body
                       :job-var       job-var
                       :aspect-var    aspect-var
                       :spec-var      spec-var
                       :constraints   constraints
+                      :declarations  declarations
                       :documentation documentation)))

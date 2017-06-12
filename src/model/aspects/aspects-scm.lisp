@@ -50,7 +50,7 @@
                                   ~A"
                              (make-remove-directory-contents/unix)
                              url archive
-                             (make-move-stuff-upwards/unix "${directory}"))))
+                             (make-move-stuff-upwards/unix '("${directory}")))))
     (push (constraint! (build ((:before t))) (shell (:command command)))
           (builders job))))
 

@@ -200,27 +200,7 @@
 ;;; Setuptools aspect
 
 (define-aspect (setuptools :job-var job) (builder-defining-mixin)
-    ((python-binary        :type string
-      :documentation
-      "Filename of the Python interpreter binary that should be
-       invoked to perform the build.")
-     (script               :type string
-      :documentation
-      "Name of the script (usually \"setup.py\") which should be
-       executed to perform the setuptools-based configuration and
-       build.")
-     ((install-prefix nil) :type string
-      :documentation
-      "Prefix into which packages should be installed.
-
-       Setting this variable to DIRECTORY will ensure the existence of
-       DIRECTORY/lib/python2.7/site-packages or similar and place that
-       directory on the PYTHONPATH.
-
-       This variable does NOT affect the setuptools invocation. In
-       particular, it does NOT imply python setup.py install
-       --prefix=INSTALL-PREFIX or similar.")
-     ((options        '()) :type list #|of string|#
+    (((options '()) :type list #|of string|#
       :documentation
       "A list of names of Setuptools option and corresponding values
        that should be set during the build. Entries are of the form
@@ -231,53 +211,29 @@
        \"install\", NAME is an option within the section such as
        \"prefix\" within the \"install\" section and VALUE is the
        desired value of the option.")
-     (targets              :type list #|of string|#
+     (command       :type string
       :documentation
-      "A list of names of setuptools targets like \"install\" that
-       should be built."))
+      "The shell command that should be executed to perform the
+       setuptools configuration and build."))
   "Configures a Python setuptools build step for the generated job.
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (let+ (;; Options
-         ((&flet+ make-option ((section name value))
-            (format nil "${PYTHON} ~A setopt -c ~A -o ~A -s \"~A\""
-                    script section name value)))
-         (options (mapcar #'make-option options))
-         ;; Targets
-         ((&flet+ make-target ((name &optional no-fail?))
-            (format nil "${PYTHON} ~A ~A~@[ || true~]"
-                    script name no-fail?)))
-         (targets (mapcar (compose #'make-target #'ensure-list) targets))
-         ;; The shell fragment conditioned on `install-prefix' ensures
-         ;; existence of {dist,site}-packages directory within install
-         ;; prefix.
-         (command
-          (format nil "PYTHON=~A~@
-                       ~@
-                       ~:[~
-                         # Not creating install directory
-                       ~;~:*~
-                         INSTALL_DIRECTORY=\"$(~
-                           ${PYTHON} -c ~
-                           'from distutils.sysconfig import get_python_lib;~
-                            print(get_python_lib(prefix=\"'\"~A\"'\"))'~
-                         )\"~@
-                         mkdir -p \"${INSTALL_DIRECTORY}\"~@
-                         export PYTHONPATH=\"${PYTHONPATH}:${INSTALL_DIRECTORY}\"~
-                       ~]~@
-                       ~@
-                       # Configure options~@
-                       ~:[# No options configured~;~:*~{~A~^~%~}~]~@
-                       ~@
-                       # Process targets~@
-                       ~:[# No targets configured~;~:*~{~A~^~%~}~]"
-                  python-binary install-prefix options targets)))
-    ;; Put everything into a shell fragment.
-    (push (constraint! (build ((:after dependency-download)))
-            (shell (:command (wrapped-shell-command (:aspect.setuptools)
-                               command))))
-          (builders job))))
+  (declare (ignore options))
+  (push (constraint! (build ((:after dependency-download)))
+          (shell (:command (wrapped-shell-command (:aspect.setuptools)
+                             command))))
+        (builders job)))
+
+(defmethod lookup ((thing aspect-setuptools)
+                   (name  (eql :aspect.setuptools.option-lines))
+                   &key if-undefined)
+  (declare (ignore if-undefined))
+  (when-let ((options (value/cast thing :aspect.setuptools.options '())))
+    (let+ (((&flet+ make-option ((section name value))
+              (format nil "setopt -c \"~A\" -o \"~A\" -s \"~A\""
+                      section name value))))
+      (values (cons name `(:list ,@(map 'list #'make-option options))) '() t))))
 
 ;;; groovy script aspects
 

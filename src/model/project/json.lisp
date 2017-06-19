@@ -24,28 +24,6 @@
                 this generator is version ~S.~@:>"
                required-version provided-version)))))
 
-(defun check-keys (object &optional expected (exhaustive? t))
-  (let+ ((seen     '())
-         (expected (mapcar #'ensure-list expected))
-         (extra    '())
-         ((&flet invalid-keys (reason keys)
-            (error "~@<~A key~P: ~{~A~^, ~}.~@:>"
-                   reason (length keys) keys))))
-    (loop :for (key . value) :in object :do
-       (cond
-         ((member key seen :test #'eq)
-          (error "~@<Duplicate key: ~A.~@:>" key))
-         ((member key expected :test #'eq :key #'car)
-          (alexandria:removef expected key :test #'eq :key #'car))
-         (t
-          (push key extra)))
-       (push key seen))
-    (when-let ((missing (remove nil expected :key #'cdr)))
-      (invalid-keys "Missing required" (mapcar #'car missing)))
-    (when (and exhaustive? extra)
-      (invalid-keys "Unexpected" extra)))
-  object)
-
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
     (loop :for (key . value) :in alist :do

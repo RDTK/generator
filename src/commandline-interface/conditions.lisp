@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -45,10 +45,10 @@
 (defun print-unfulfilled-project-dependency (stream dependency &optional colon? at?)
   (declare (ignore colon? at?))
   (let+ (((object . conditions) dependency))
-    (format stream "~@<~A (~D missing dependenc~@:P):~
+    (format stream "~@<~/print-items:format-print-items/ (~D missing dependenc~@:P):~
                     ~@:_~2@T~@<~{~A~^~@:_~}~:>~
                     ~:>"
-            object (length conditions) conditions)))
+            (print-items:print-items object) (length conditions) conditions)))
 
 (defun print-unfulfilled-project-dependencies (stream conditions &optional colon? at?)
   (declare (ignore colon? at?))

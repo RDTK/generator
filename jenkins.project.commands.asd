@@ -14,8 +14,9 @@
                 (:version :let-plus                                   "0.2")
                 (:version :more-conditions                            "0.2")
 
-                (:version :configuration.options                      "0.4")
-                (:version :configuration.options-and-service-provider "0.4")
+                (:version :configuration.options                      "0.6")
+                (:version :configuration.options-and-service-provider "0.6")
+                (:version :configuration.options-and-puri             "0.6")
 
                 (:version :jenkins.project                            (:read-file-form "version-string.sexp"))
                 (:version :jenkins.project.commandline-options        (:read-file-form "version-string.sexp")))
@@ -43,6 +44,7 @@
                               (:file       "command-info-aspects")
                               (:file       "command-generate")
 
+                              (:file       "command-analyze")
                               (:file       "command-validate")
 
                               (:file       "command-platform-requirements")

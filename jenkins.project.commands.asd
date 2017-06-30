@@ -46,6 +46,7 @@
 
                               (:file       "command-analyze")
                               (:file       "command-validate")
+                              (:file       "command-hack")
 
                               (:file       "command-platform-requirements")
                               (:file       "command-report")))))

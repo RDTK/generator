@@ -1,6 +1,6 @@
 ;;;; build-generator.commands.asd --- System definition for generator commands.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018, 2019, 2020 Jan Moringen
+;;;; Copyright (C) 2016-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -82,6 +82,7 @@
                               (:file       "commands-generate")
 
                               (:file       "command-analyze")
+                              (:file       "command-hack-distribution")
 
                               (:file       "command-validate")
                               (:file       "command-platform-requirements")

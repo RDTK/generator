@@ -45,4 +45,5 @@
 
                               (:file       "command-validate")
 
+                              (:file       "command-platform-requirements")
                               (:file       "command-report")))))

@@ -35,3 +35,39 @@
    (service-provider:find-service 'command)))
 
 ;;; High-level interface: find, instantiate and execute a command
+
+(defun configure-command (synchronizer name arguments)
+  "Configure the command designate by NAME with ARGUMENTS.
+
+   SYNCHRONIZER is responsible for putting the indicated option values
+   into a configuration container."
+  (let+ ((prefix (configuration.options:make-name "commands"))
+         ((&flet notify (name event value &key (raw? t))
+            (configuration.options:notify
+             synchronizer name event value :source :commandline :raw? raw?)))
+         ((&flet set-value (name value error-handler)
+            (let ((name (configuration.options:merge-names
+                         prefix name)))
+              (handler-bind ((error error-handler))
+                (notify :added     name nil)
+                (notify :new-value name value
+                        :raw? (not (typep value 'boolean))))))))
+
+    ;; Select provider according to NAME.
+    (set-value '("provider") name
+               (lambda (condition)
+                 (declare (ignore condition))
+                 (error 'command-not-found-error :command name)))
+
+    ;; Configure provider according to ARGUMENTS.
+    (jenkins.project.commandline-options:map-commandline-options
+     (lambda (option-path value)
+       (set-value option-path value
+                  (lambda (condition)
+                    (error 'option-value-error
+                           :context name
+                           :option  (second option-path)
+                           :command name
+                           :value   value
+                           :cause   condition))))
+     name arguments)))

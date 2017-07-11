@@ -61,7 +61,7 @@
                     (kind      (eql :asdf))
                     &key)
   (let+ ((systems
-          (iter (for file in (find-files (merge-pathnames "*.asd" directory)))
+          (iter (for file in (find-files (merge-pathnames "**/*.asd" directory)))
                 (log:info "~@<Analyzing ~S.~@:>" file)
                 (with-simple-restart (continue "~@<Skip file ~S.~@:>" file)
                   (appending (analyze file :asdf/one-file)))))

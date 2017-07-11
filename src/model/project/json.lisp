@@ -37,8 +37,8 @@
           :using (:hash-value value)
           :do (unless (length= 1 value)
                 (error "~@<Multiple definitions of variable ~A: ~
-                        ~{~S~^, ~}.~@:>"
-                       key value))
+                        ~{~A~^, ~}.~@:>"
+                       key (mapcar #'json:encode-json-to-string value)))
        :collect (value-cons key (first value)))))
 
 (defvar *template-load-stack* '())

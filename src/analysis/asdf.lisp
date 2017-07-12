@@ -27,6 +27,8 @@
                (parse-version spec)))))
          ((&labels dependency->list (dependency)
             (etypecase dependency
+              ((cons (eql :require))
+               (dependency->list (second dependency)))
               ((cons (eql :feature))
                (dependency->list (third dependency)))
               ((cons (eql :version))

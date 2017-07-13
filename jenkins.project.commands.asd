@@ -24,4 +24,6 @@
                  :serial     t
                  :components ((:file       "package")
                               (:file       "conditions")
-                              (:file       "protocol")))))
+                              (:file       "protocol")
+
+                              (:file       "value-types")))))

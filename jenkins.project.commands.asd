@@ -26,4 +26,5 @@
                               (:file       "conditions")
                               (:file       "protocol")
 
-                              (:file       "value-types")))))
+                              (:file       "value-types")
+                              (:file       "mixins")))))

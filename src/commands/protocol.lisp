@@ -71,3 +71,49 @@
                            :value   value
                            :cause   condition))))
      name arguments)))
+
+(defun execute-command (command
+                        &key
+                        (num-processes  1)
+                        (error-policy   #'error)
+                        (progress-style :cmake))
+  (let ((main-thread (bt:current-thread))
+        (lock        (bt:make-lock)))
+    (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+    (unwind-protect
+         (handler-bind ((error error-policy)
+                        (more-conditions:progress-condition
+                         (make-progress-handler progress-style)))
+           (lparallel:task-handler-bind
+               ((error error-policy)
+                (more-conditions:progress-condition
+                 (lambda (condition)
+                   (bt:interrupt-thread
+                    main-thread (lambda ()
+                                  (sb-sys:without-interrupts
+                                    (bt:with-lock-held (lock)
+                                      (signal condition))))))))
+             (command-execute command)))
+      (lparallel:end-kernel :wait t))))
+
+(defun make-progress-handler (style)
+  (lambda (condition)
+    (case style
+      (:none)
+      (:cmake
+       (princ condition)
+       (fresh-line))
+      (:one-line
+       (let* ((progress      (progress-condition-progress condition))
+              (progress/real (progress->real progress))
+              (width    20))
+         (format t "~C[2K[~VA] ~A~C[G"
+                 #\Escape
+                 width
+                 (make-string (floor progress/real (/ width))
+                              :initial-element #\#)
+                 condition
+                 #\Escape)
+         (if (eq progress t)
+             (terpri)
+             (force-output)))))))

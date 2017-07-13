@@ -67,7 +67,10 @@
        (format stream "~@<The following option~*~P ~
                        ~:*~[~;is~:;are~]~2:* mandatory for the \"~A\" ~
                        context but ~[~;has~:;have~] not been supplied: ~
-                       ~{~A~^, ~}.~@:>"
+                       ~{~
+                         ~:/jenkins.project.commandline-options:print-option/~
+                         ~^, ~
+                       ~}.~@:>"
                context (length missing) missing))))
   (:documentation
    "Signaled when at least one mandatory option is not supplied."))

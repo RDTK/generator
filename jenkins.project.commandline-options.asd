@@ -11,6 +11,7 @@
   :license     "GPLv3" ; see COPYING file for details.
   :description "Commandline options of the generator program."
   :depends-on  (:alexandria
+                :split-sequence
                 (:version :let-plus              "0.2")
                 (:version :more-conditions       "0.2")
 
@@ -23,4 +24,5 @@
                               (:file       "conditions")
                               (:file       "protocol")
                               (:file       "options")
-                              (:file       "macros")))))
+                              (:file       "macros")
+                              (:file       "help")))))

@@ -34,4 +34,6 @@
                               (:file       "functions-version")
                               (:file       "functions-input")
                               (:file       "functions-check")
-                              (:file       "functions-deploy")))))
+                              (:file       "functions-deploy")
+
+                              (:file       "command-version")))))

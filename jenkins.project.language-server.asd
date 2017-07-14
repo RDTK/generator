@@ -12,11 +12,12 @@
   :description "Language server for the generator recipe language."
   :depends-on  (:alexandria
                 :split-sequence
-                (:version :let-plus        "0.2")
+                (:version :let-plus                 "0.2")
 
                 :swank
 
-                (:version :jenkins.project (:read-file-form "version-string.sexp")))
+                (:version :jenkins.project          (:read-file-form "version-string.sexp"))
+                (:version :jenkins.project.commands (:read-file-form "version-string.sexp")))
   :components  ((:module     "language-server"
                  :pathname   "src/language-server"
                  :serial     t
@@ -33,4 +34,8 @@
                               (:file       "document")
                               (:file       "document-methods")
 
-                              (:file       "language-server")))))
+                              (:file       "language-server")))
+
+                (:file       "command-language-server"
+                 :depends-on ("language-server")
+                 :pathname   "src/commands/command-language-server")))

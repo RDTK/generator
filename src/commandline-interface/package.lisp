@@ -16,9 +16,6 @@
    #:jenkins.model.variables
    #:jenkins.model.project)
 
-  #+sbcl (:local-nicknames
-          (#:clon #:net.didierverna.clon))
-
   (:shadowing-import-from #:jenkins.model.variables
    #:as)
 
@@ -27,5 +24,3 @@
 
   (:documentation
    "The commandline interface of the jenkins.project system."))
-
-#-sbcl (net.didierverna.clon:nickname-package)

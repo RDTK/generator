@@ -15,7 +15,6 @@
                 :iterate
                 (:version :more-conditions                       "0.2")
 
-                :net.didierverna.clon
                 (:version :configuration.options                 "0.7")
                 (:version :configuration.options-syntax-ini      "0.7")
                 (:version :configuration.options-and-puri        "0.7")

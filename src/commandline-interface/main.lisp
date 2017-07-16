@@ -6,128 +6,6 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
-;;; Commandline options
-
-(defun update-synopsis ()
-  "Create and return a commandline option tree."
-  (clon:make-synopsis
-   ;; Basic usage and specific options.
-   :item    (clon:defgroup (:header "General Options")
-              (flag    :long-name     "version"
-                       :description
-                       "Print version information and exit.")
-              (flag    :long-name     "help"
-                       :short-name    "h"
-                       :description
-                       "Print this help and exit.")
-              (flag    :long-name     "swank"
-                       :description
-                       "Start a swank server.")
-              (flag    :long-name     "debug"
-                       :description
-                       "Enable debug mode.")
-              (enum    :long-name     "progress-style"
-                       :enum          '(:none :cmake :one-line)
-                       :description
-                       "Progress display style.")
-              (flag    :long-name    "non-interactive"
-                       :description
-                       "Avoid any user interaction.")
-              (lispobj :long-name    "num-processes"
-                       :short-name   "j"
-                       :typespec     'positive-integer
-                       :argument-name "NUMBER-OF-PROCESSES"
-                       :description
-                       "Number of processes to execute in parallel when checking out from repositories and analyzing working copies.")
-              (enum    :long-name     "on-error"
-                       :enum          '(:abort :continue)
-                       :argument-name "POLICY"
-                       :description
-                       "Abort when encountering errors? Either \"abort\" or \"continue\".")
-              (path    :long-name    "cache-directory"
-                       :type         :directory
-                       :argument-name "DIRECTORY"
-                       :description
-                       "Directory into which repository mirrors should be written.")
-              (path    :long-name    "temp-directory"
-                       :type         :directory
-                       :argument-name "DIRECTORY"
-                       :description
-                       "Directory into which temporary files should be written during analysis step.")
-              (path    :long-name    "report-directory"
-                       :type         :directory
-                       :argument-name "DIRECTORY"
-                       :description
-                       "Write information about distributions and projects into one or more report files. The written information includes most of the content of the respective underlying recipe but also expanded variable values, inferred variable values and analysis results.")
-              (flag    :long-name    "dry-run"
-                       :description
-                       "Read recipes and perform the usual analysis but do not create or delete Jenkins jobs.")
-              (stropt  :long-name    "trace-variable"
-                       :argument-name "VARIABLE-NAME"
-                       :description
-                       "Trace all accesses to the specified variable.")
-              (flag    :long-name     "info-variables"
-                       :description
-                       "Show information about variables.")
-              (flag    :long-name     "info-aspects"
-                       :description
-                       "Show information about available aspects."))
-
-   :item    (clon:defgroup (:header "Processing Options")
-              (path   :long-name     "template-directory"
-                      :type          :directory
-                      :argument-name "DIRECTORY"
-                      :description
-                      "Directory containing sub-directories in turn containing template files. Must be used in combination with the mode option to select one of the sub-directories.")
-              (stropt :long-name     "template"
-                      :short-name    "t"
-                      :argument-name "TEMPLATE"
-                      :description
-                      "Load one or more templates. This option can be supplied multiple times. Mutually exclusive with the mode option.")
-              (stropt :long-name     "distribution"
-                      :short-name    "d"
-                      :argument-name "DISTRIBUTION"
-                      :description
-                      "Load one or more distributions. This option can be supplied multiple times.")
-              (stropt :long-name     "mode"
-                      :short-name    "m"
-                      :argument-name "MODE"
-                      :description
-                      "The mode according to which jobs should be generated. Selects a sub-directory of the directory specified using the template-directory option and thus a set of templates. Mutually exclusive with the template option.")
-              (stropt :long-name     "set"
-                      :short-name    "D"
-                      :argument-name "VARIABLE-NAME=VALUE"
-                      :description
-                      "Overwrite a variable after loading the distribution. Arguments to this option have to be of the form VARIABLE-NAME=VALUE. This option can be supplied multiple times."))
-
-   :item    (clon:defgroup (:header "Jenkins Options")
-              (stropt :long-name     "base-uri"
-                      :short-name    "b"
-                      :argument-name "URI"
-                      :description
-                      "Jenkins base URI.")
-              (stropt :long-name     "username"
-                      :short-name    "u"
-                      :description
-                      "Username for Jenkins authentication.")
-              (stropt :long-name     "password"
-                      :short-name    "p"
-                      :description
-                      "Password for Jenkins authentication.")
-              (stropt :long-name     "api-token"
-                      :short-name    "a"
-                      :description
-                      "API token for Jenkins authentication.")
-              (flag   :long-name     "delete-other"
-                      :description
-                      "Delete previously automatically generated jobs when they are not re-created in this generation run.")
-              (stropt :long-name     "delete-other-pattern"
-                      :argument-name "REGEX"
-                      :description
-                      "When deleting previously automatically generated jobs, only consider jobs whose name matches the regular expression REGEX.
-
-A common case, deleting only jobs belonging to the distribution being generated, can be achieved using the regular expression DISTRIBUTION-NAME$."))))
-
 (defun configure ()
   (let+ ((*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS"))) ; TODO
                                    (parse-integer value)
@@ -142,19 +20,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                        :target configuration))
          ((&flet option-value (section name)
             (let+ ((option (configuration.options:find-option
-                            (list section name) configuration))
-                   ((&values value source)
-                    (if (typep (configuration.options:option-type option)
-                               '(cons (eql list)))
-                        (iter (for spec next (clon:getopt :long-name name))
-                              (while spec)
-                              (collect spec :into values)
-                              (finally (when values (return (values values t)))))
-                        (clon:getopt :long-name name))))
-              (if source
-                  (values value :commandline)
-                  (configuration.options:option-value
-                   option :if-does-not-exist nil))))))
+                            (list section name) configuration)))
+              (configuration.options:option-value
+               option :if-does-not-exist nil)))))
     ;; Process configuration options.
     (handler-case
         (progn
@@ -164,10 +32,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
         (format t "Configuration error:~%~A~%" condition)
         (uiop:quit 3)))
 
-    ;; Process commandline options.
-    (update-synopsis)
-    (clon:make-context)
-
     (let ((debug? (option-value "general" "debug")))
 
       (when debug?
@@ -176,7 +40,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
       (when (or (emptyp (uiop:command-line-arguments))
                 (option-value "general" "help"))
-        (clon:help)
         (uiop:quit))
 
       (when (option-value "general" "version")

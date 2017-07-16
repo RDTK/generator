@@ -45,6 +45,11 @@
                       :documentation
                       "Directory into which temporary files should be written."))
 
+#+later ("trace-variable"   :type '(list string :inherit? t)
+                                        ; :argument-name "VARIABLE-NAME"
+                    :documentation
+                    "Trace all accesses to the specified variable.")
+
 (configuration.options:define-schema *schema*
   "Configuration options of the build generator."
   ("global"   *global-schema*)

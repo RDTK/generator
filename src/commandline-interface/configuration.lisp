@@ -132,5 +132,5 @@
               (notify :new-value name value
                       :raw? (not (typep value 'boolean)))))))
     (jenkins.project.commandline-options:map-commandline-options
-     (rcurry #'set-value #'error) "global" arguments
+     (rcurry #'set-value #'error) "global" arguments ; TODO we need a specialized error handler here
      :stop-at-positional? t)))

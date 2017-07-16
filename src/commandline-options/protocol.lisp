@@ -112,7 +112,10 @@
                         (list context) option-name))
          (multiplicity (option-multiplicity info))
          ((&values value consumed-count)
-          (option-value info index designator included-value maybe-value)))
+          (progn #+later with-condition-translation #+later (((error option-error)
+                                        :context context
+                                        :option  key))
+            (option-value info index designator included-value maybe-value))))
     (values info option-path multiplicity value consumed-count)))
 
 ;;; High-level interface

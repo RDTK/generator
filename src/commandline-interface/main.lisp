@@ -767,6 +767,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
                     providers))))
 
 (defun main ()
+  (log:config :thread :warn)
   (let+ (((&values option-value &ign debug?) (configure))
          ((&flet option-value (&rest args)
             (apply option-value args)))
@@ -802,7 +803,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
          (main (bt:current-thread))
          (lock (bt:make-lock)))
-    (log:config :thread (if debug? :trace :warn))
+    (when debug? (log:config :trace))
 
     (restart-case
 

@@ -12,7 +12,17 @@
 (defclass generate (distribution-input-mixin
                     mode-mixin
                     jenkins-access-mixin)
-  ((delete-other?        :initarg  :delete-other?
+  (;; Generic
+   (dry-run?             :initarg  :dry-run?
+                         :type     boolean
+                         :reader   dry-run?
+                         :initform nil
+                         :documentation
+                         #.(format nil "Read recipes and perform the ~
+                            usual analysis but do not create or ~
+                            delete Jenkins jobs."))
+   ;; Deployment
+   (delete-other?        :initarg  :delete-other?
                          :type     boolean
                          :reader   delete-other?
                          :initform nil
@@ -46,6 +56,8 @@
     (*command-schema* "generate")
   (&rest                    "distributions"        "DISTRIBUTION-NAME"   t)
 
+  ("--dry-run"              "dry-run?")
+
   (("--mode" "-m")          "mode"                 "MODE")
   (("--set" "-D")           "overwrites"           "VARIABLE-NAME=VALUE")
 
@@ -57,7 +69,7 @@
   (("--password" "-p")      "password"             "PASSWORD"))
 
 (defmethod command-execute ((command generate))
-  (let+ (((&accessors-r/o distributions mode overwrites
+  (let+ (((&accessors-r/o distributions mode overwrites dry-run?
                           delete-other? delete-other-pattern)
           command)
          ((&values distributions projects)
@@ -71,9 +83,10 @@
     (generate-check distributions)
     (let ((projects (as-phase (:instantiate/project)
                       (instantiate-projects analyzed-projects distributions))))
-      (generate-deploy distributions projects
-                       :delete-other?        delete-other?
-                       :delete-other-pattern delete-other-pattern))))
+      (unless dry-run?
+        (generate-deploy distributions projects
+                         :delete-other?        delete-other?
+                         :delete-other-pattern delete-other-pattern)))))
 
 ;;; Functions
 

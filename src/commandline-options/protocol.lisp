@@ -34,6 +34,13 @@
     Return two values: 1) the option value 2) the number of consumed
     commandline arguments."))
 
+(defgeneric option-synopsis (info stream &key short?)
+  (:documentation
+   "Write a representation of INFO's syntax to STREAM.
+
+    The generalized Boolean SHORT? controls whether the representation
+    should be kept as short as possible."))
+
 ;;; Default behavior
 
 (defmethod option-multiplicity ((info t))

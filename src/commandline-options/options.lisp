@@ -37,6 +37,13 @@
              designator)
       (values t 1)))
 
+(defmethod option-synopsis ((info   named-without-argument-option-info)
+                            (stream t)
+                            &key short?)
+  (let+ (((&accessors-r/o designators) info))
+    (format stream "~{~A~^,~}"
+            (if short? (list (first designators)) designators))))
+
 ;;; `named-with-argument-option-info'
 
 (defclass named-with-argument-option-info (option-info)
@@ -57,6 +64,20 @@
       (t
        (values maybe-value 2)))))
 
+(defmethod option-synopsis ((info   named-with-argument-option-info)
+                            (stream t)
+                            &key short?)
+  (let+ (((&accessors-r/o option designators argument-name) info)
+         ((&values default default?)
+          (configuration.options:option-default
+           option :if-does-not-exist nil))
+         (default (when default?
+                    (configuration.options:value->string
+                     option default))))
+    (format stream "~{~A~^,~}=~A~@[ (default: ~A)~]"
+            (if short? (list (first designators)) designators)
+            argument-name default)))
+
 ;;; `positional-option-info'
 
 (defclass positional-option-info (option-info)
@@ -68,3 +89,13 @@
                          (included-value t)
                          (maybe-value    t))
   (values designator 1))
+
+(defmethod option-synopsis ((info   positional-option-info)
+                            (stream t)
+                            &key short?)
+  (declare (ignore short?))
+  (let+ (((&accessors-r/o
+           argument-name mandatory? (multiplicity option-multiplicity))
+          info))
+    (format stream "~:[[~A~@[*~]]~;~A~@[*~]~]"
+            mandatory? argument-name (eq multiplicity '*))))

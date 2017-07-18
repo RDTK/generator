@@ -27,4 +27,6 @@
                               (:file       "protocol")
 
                               (:file       "value-types")
-                              (:file       "mixins")))))
+                              (:file       "mixins")
+
+                              (:file       "phases")))))

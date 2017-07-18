@@ -16,6 +16,8 @@
    #:jenkins.model.project)
 
   (:shadow
+   #:phase
+
    #:value)
 
   ;; Conditions

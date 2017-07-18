@@ -33,4 +33,5 @@
 
                               (:file       "functions-version")
                               (:file       "functions-input")
+                              (:file       "functions-check")
                               (:file       "functions-deploy")))))

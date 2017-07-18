@@ -184,7 +184,7 @@
 
     ;; Create the actual Jenkins job.
     (let* ((existing-job  (when (jenkins.api:job? (id job))
-                           (jenkins.api:job (id job))))
+                            (jenkins.api:job (id job))))
            (existing-kind (when existing-job
                             (jenkins.api:kind existing-job))))
       (cond

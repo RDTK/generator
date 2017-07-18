@@ -122,8 +122,10 @@
         (some (rcurry #'satisfied? left t)    constraints-right))))
 
 (defmethod step< ((left t) (right t) (constraints hash-table))
-  (let+ (((&optional tag-left  name-left  constraints-left)  (gethash left constraints))
-         ((&optional tag-right name-right constraints-right) (gethash right constraints))
+  (let+ (((&optional tag-left  name-left  constraints-left)
+          (gethash left constraints))
+         ((&optional tag-right name-right constraints-right)
+          (gethash right constraints))
          ((&flet tag-matches? (query tag &optional (allow-wild? t))
             (or (and allow-wild? (eq query t)) (eq query tag))))
          ((&flet name-matches? (query name &optional (allow-wild? t))

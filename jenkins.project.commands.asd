@@ -32,4 +32,5 @@
                               (:file       "phases")
 
                               (:file       "functions-version")
-                              (:file       "functions-input")))))
+                              (:file       "functions-input")
+                              (:file       "functions-deploy")))))

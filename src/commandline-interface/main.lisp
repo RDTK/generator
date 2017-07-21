@@ -6,6 +6,9 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
+(defvar *generator-version*
+  (asdf:component-version (asdf:find-system :jenkins.project)))
+
 ;;; Input
 
 (defun load-templates (files)
@@ -14,7 +17,8 @@
               (progress "~S" file)
               (with-simple-restart
                   (continue "~@<Skip template specification ~S.~@:>" file)
-                (list (load-template/json file))))
+                (list (load-template/json
+                       file :generator-version *generator-version*))))
             files)))
 
 (defun locate-projects (distribution-pathnames distributions)
@@ -130,9 +134,11 @@
          (let+ ((version-names (mapcar #'first versions))
                 (project       (reinitialize-instance
                                 (load-project-spec/json
-                                 file :version-test (lambda (version)
+                                 file
+                                 :version-test      (lambda (version)
                                                       (find version version-names
-                                                            :test #'string=)))
+                                                            :test #'string=))
+                                 :generator-version *generator-version*)
                                 :parent distribution))
                 (branches      (as (value project :branches '()) 'list))
                 (branches      (intersection version-names branches :test #'string=))
@@ -222,7 +228,8 @@
               (progress "~S" file)
               (with-simple-restart
                   (continue "~@<Skip distribution specification ~S.~@:>" file)
-                (let ((distribution (load-distribution/json file)))
+                (let ((distribution (load-distribution/json
+                                     file :generator-version *generator-version*)))
                   (iter (for (name . value) in overwrites)
                         (log:info "~@<In ~A, setting ~S to ~S.~@:>"
                                   distribution name value)

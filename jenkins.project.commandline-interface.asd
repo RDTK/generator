@@ -1,6 +1,6 @@
 ;;;; jenkins.project.commandline-interface.asd --- System definition for generator binary.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -22,19 +22,17 @@
   :license     "GPLv3" ; see COPYING file for details.
   :description "Commandline interface of the generator program."
   :depends-on  (:alexandria
-                (:version :let-plus                         "0.2")
+                (:version :let-plus                              "0.2")
                 :iterate
-                (:version :more-conditions                  "0.2")
+                (:version :more-conditions                       "0.2")
 
                 :net.didierverna.clon
-                (:version :configuration.options            "0.1")
-                (:version :configuration.options-syntax-ini "0.1")
+                (:version :configuration.options                 "0.1")
+                (:version :configuration.options-syntax-ini      "0.1")
 
-                (:version :jenkins.project                  #.(jenkins.project-system:version/string)))
-  :components  ((:file       "more-conditions-patch"
-                 :pathname   "src/commandline-interface/more-conditions-patch")
-
-                (:module     "commandline-interface"
+                (:version :jenkins.project                       #.(jenkins.project-system:version/string))
+                (:version :jenkins.project.more-conditions-patch #.(jenkins.project-system:version/string)))
+  :components  ((:module     "commandline-interface"
                  :pathname   "src/commandline-interface"
                  :serial     t
                  :components ((:file       "package")

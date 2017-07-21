@@ -131,22 +131,34 @@
       (when (eq object (jenkins-dependencies-root graph))
         (list (dependency provides (make-provided)))))))
 
+;;; Entry points
+
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
-  (with-sequence-progress (:report/graph object)
-    (lparallel:pmap
-     nil (lambda (element)
-           (progress "~/print-items:format-print-items/"
-                     (print-items:print-items element))
-           (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
-                                          style element)
-             (report element style target)))
-     object)))
+  (if (length= 1 object) ; TODO hack for progress reporting
+      (let ((element (first-elt object)))
+        (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
+                                       style element)
+          (list (report element style target))))
+      (with-sequence-progress (:report/graph object)
+        (lparallel:pmap
+         nil (lambda (element)
+               (progress "~/print-items:format-print-items/"
+                         (print-items:print-items element))
+               (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
+                                              style element)
+                 (more-conditions::without-progress
+                   (report element style target))))
+         object))))
 
 (defmethod report ((object jenkins.model.project::distribution-spec)
                    (style  (eql :graph))
                    (target pathname))
+  ;; One graph for the distribution OBJECT as a whole.
   (call-next-method)
-  (report (jenkins.model.project:versions object) style target))
+  ;; One graph for each project-version in OBJECT.
+  (let ((directory (uiop:subpathname target (jenkins.model:name object)
+                                     :type :directory)))
+    (report (jenkins.model.project:versions object) style directory)))
 
 (defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :graph))

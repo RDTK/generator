@@ -73,29 +73,31 @@
   :license     "LLGPLv3" ; see COPYING file for details.
   :description "Generates Jenkins jobs from different kinds of recipes."
   :depends-on  (:alexandria
-                (:version :split-sequence        "1.1")
+                (:version :split-sequence                        "1.1")
                 :iterate
-                (:version :let-plus              "0.1")
-                (:version :more-conditions       "0.1.0")
-                (:version :utilities.print-items "0.1.0")
-                (:version :utilities.print-tree  "0.1.0")
+                (:version :let-plus                              "0.1")
+                (:version :more-conditions                       "0.1.0")
+                (:version :utilities.print-items                 "0.1.0")
+                (:version :utilities.print-tree                  "0.1.0")
                 :lparallel
                 :log4cl
 
                 :puri
                 :xml.location
-                (:version :esrap                 "0.9")
-                (:version :cl-ppcre              "2.0.3")
-                (:version :cl-json               "0.4.1")
+                (:version :esrap                                 "0.9")
+                (:version :cl-ppcre                              "2.0.3")
+                (:version :cl-json                               "0.4.1")
                 :cl-store
                 :inferior-shell
                 :ironclad
 
-                (:version :rosetta               "0.2")
+                (:version :rosetta                               "0.2")
 
-                (:version :jenkins.api           "0.1")
+                (:version :jenkins.api                           "0.1")
 
-                :cl-dot)
+                :cl-dot
+
+                (:version :jenkins.project.more-conditions-patch #.(version/string)))
   :components  ((:file       "cxml-hack"
                  :pathname   "src/cxml-patch")
 

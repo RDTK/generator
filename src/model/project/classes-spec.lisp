@@ -91,8 +91,8 @@
                                                  (name job))
                                           'string)))
                 (mapcar (lambda (dependency)
-                          (or (find dependency-name (jobs dependency)
-                                    :test #'string= :key #'name)))
+                          (find dependency-name (jobs dependency)
+                                :test #'string= :key #'name))
                         (direct-dependencies (parent job))))))
            (value
             (loop :for job :in jobs

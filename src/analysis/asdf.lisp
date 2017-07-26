@@ -15,10 +15,6 @@
                        (:read-file-line 'uiop:safe-read-file-line))
                      (uiop:subpathname file filename)
                      :at at :package :asdf-user)))
-         ((&labels dependency-name (dependency)
-            (etypecase dependency
-              (cons (dependency-name (second dependency)))
-              (t    (string-downcase dependency)))))
          ((&labels process-version (spec)
             (typecase spec
               ((cons (member :read-file-form :read-file-file))

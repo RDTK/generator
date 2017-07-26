@@ -76,7 +76,7 @@
 
 (define-condition phase-condition (condition)
   ((phase :initarg :phase
-          :type    :keyword
+          :type    keyword
           :reader  phase-condition-phase
           :documentation
           "Stores the execution phase during which the condition was

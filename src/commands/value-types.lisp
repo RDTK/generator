@@ -6,6 +6,33 @@
 
 (cl:in-package #:jenkins.project.commands)
 
+;;; `recipe-and-version'
+
+(deftype recipe-and-version ()
+  `(cons pathname string))
+(setf (get 'recipe-and-version 'configuration.options::dont-expand) t)
+
+(defmethod configuration.options:raw->value-using-type
+    ((schema-item t)
+     (raw         string)
+     (type        (eql 'recipe-and-version))
+     &key inner-type)
+  (declare (ignore inner-type))
+  (if-let ((position (position #\@ raw)))
+    (cons (pathname (subseq raw 0 position)) (subseq raw (1+ position)))
+    (error "~@<Could not parse \"~A\" as a pair of the form ~
+            RECIPE@VERSION.~@:>"
+           raw)))
+
+(defmethod configuration.options:value->string-using-type
+    ((schema-item t)
+     (value       cons)
+     (type        (eql 'recipe-and-version))
+     &key inner-type)
+  (declare (ignore inner-type))
+  (let+ (((recipe . version) value))
+    (format nil "~A@~A" recipe version)))
+
 ;;; `variable-assignment'
 
 (deftype variable-assignment ()

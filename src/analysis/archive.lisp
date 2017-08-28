@@ -29,6 +29,7 @@
                       (apply #'drakma:http-request source
                              :want-stream  t
                              :force-binary t
+                             :verify       nil
                              (when (and username password)
                                (list :basic-authorization (list username password))))))
                 (unless (<= 200 code 299)

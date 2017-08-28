@@ -31,7 +31,7 @@
                                                                          (setf (readtable-case *readtable*) :invert)
                                                                          (format nil "~A" key))
                                                                        (princ-to-string value)))
-
+                              :verify nil
                               (append
                                (when (and *username* *password*)
                                  (list :basic-authorization (list *username* *password*)))

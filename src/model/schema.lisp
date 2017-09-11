@@ -6,6 +6,19 @@
 
 (cl:in-package #:jenkins.model)
 
+;;; Utilities
+
+(deftype list-of (thing)
+  (let+ ((name/string (concatenate 'string "EVERY-" (symbol-name thing)))
+         ((&flet name (package)
+            (find-symbol name/string package)))
+         (name (or (name (symbol-package thing))
+                   (name (symbol-package 'list-of)))))
+    `(and list (satisfies ,name))))
+
+(defun every-string (thing)
+  (and (listp thing) (every #'stringp thing)))
+
 ;;; General variables
 
 (define-variable :platform-provides list
@@ -87,10 +100,10 @@
    If the given URL contains the words \"git\", \"svn\", etc. the SCM
    kind is guessed automatically.")
 
-(define-variable :branches list
+(define-variable :branches (list-of string)
   "A list of names of branch available in the project repository.")
 
-(define-variable :tags list
+(define-variable :tags (list-of string)
   "A list of names of tags available in the project repository.")
 
 (define-variable :sub-directory string
@@ -103,14 +116,20 @@
    will only act on the sub-directory and treat it as if it were the
    sole content of the repository.")
 
-(define-variable :natures list
+(define-variable :natures (list-of string)
   "A list of project natures the generator should consider when
    analyzing the source of the project.
 
    Common values are (combinations of) \"cmake\", \"setuptools\",
    \"maven\", \"ros-package\" and \"asdf\".")
 
-(define-variable :extra-requires list
+(deftype dependency ()
+  '(cons string (cons string (or null (cons string null)))))
+
+(defun every-dependency (thing)
+  (and (listp thing) (every (of-type 'dependency) thing) ))
+
+(define-variable :extra-requires (list-of dependency)
   "A list of additional (i.e. not covered by automatic analysis)
    requirements.
 
@@ -139,7 +158,7 @@
        \"sbin/spread\" in the current installation prefix is
        required.")
 
-(define-variable :extra-provides list
+(define-variable :extra-provides (list-of dependency)
   "A list of additional (i.e. not covered by automatic analysis)
    provides.
 

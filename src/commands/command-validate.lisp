@@ -7,7 +7,7 @@
 (cl:in-package #:jenkins.project.commands)
 
 (define-constant +validation-levels+
-    #(:syntax :instantiate :analyze :check-access)
+    #(:syntax :check-variables :analyze :instantiate :check-access)
   :test #'equalp)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -50,6 +50,7 @@
                         ~@
                         syntax~@
                         instantiate~@
+                        check-variables~@
                         analyze~@
                         check-access.")))
   (:documentation
@@ -80,11 +81,44 @@
          ((&values distributions projects)
           (generate-load distribution-files "toolkit" '()
                          :generator-version (generator-version)))
+         (projects
+          (when (validation-level>= level :check-variables)
+            (check-variables/early projects)))
          ((&values distributions &ign)
           (when (validation-level>= level :analyze)
             (generate-analyze distributions projects
                               :generator-version (generator-version)
                               :cache-directory   *cache-directory*
-                              :temp-directory    *temp-directory*))))
+                              :temp-directory    *temp-directory*)))
+         #+no (projects
+          (when (validation-level>= level :instantiate)
+            (as-phase (:instantiate/project)
+              (instantiate-projects analyzed-projects distributions)))))
     (when (validation-level>= level :check-access)
       (check-distribution-access distributions))))
+
+(defun check-project-variables (project)
+  (loop :for (name) :in (variables project)
+     :for variable = (find-variable name :if-does-not-exist nil)
+     :when variable
+     :do (with-simple-restart (continue "~@<Skip the variable ~A.~@:>" name)
+           (handler-case
+               (as (jenkins.model.variables:value project name)
+                   (variable-info-type variable))
+             (undefined-variable-error ())
+             (error (condition)
+               (error "~@<Error in variable ~A in ~A: ~A~@:>"
+                      name project condition))))))
+
+(defun check-variables/early (projects)
+  (as-phase (:check-variables)
+    (with-sequence-progress (:check-variables projects)
+      (lparallel:pmapc
+       (lambda (project)
+         (progress "~A" (project-spec-and-versions-spec project))
+         (with-simple-restart
+             (continue "~@<Skip project ~A.~@:>" project)
+           (check-project-variables
+            (project-spec-and-versions-spec project))))
+       :parts 100 projects))
+    projects))

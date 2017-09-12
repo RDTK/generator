@@ -77,7 +77,7 @@
    Jenkins jobs and build logs, even for Jenkins users with few
    permissions.")
 
-(define-variable :scm.history-limit string
+(define-variable :scm.history-limit positive-integer
   "Do not use.")
 
 (define-variable :repository string

@@ -4,21 +4,10 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.more-conditions-patch-system
-  (:use
-   #:cl
-   #:asdf))
-
-(cl:in-package #:jenkins.project.more-conditions-patch-system)
-
-#.(progn
-    (load (merge-pathnames "jenkins.project.asd" *load-truename*))
-    (values))
-
 (defsystem :jenkins.project.more-conditions-patch
   :author      "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :maintainer  "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
-  :version     #.(jenkins.project-system:version/string)
+  :version     (:read-file-form "version-string.sexp")
   :license     "GPLv3" ; see COPYING file for details.
   :description "Patch more-conditions system."
   :depends-on  ((:version :more-conditions "0.2"))

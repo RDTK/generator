@@ -121,7 +121,7 @@
 (defgeneric variables (thing)
   (:method-combination append)
   (:documentation
-   "Return a plist of all the variables provided by THING.
+   "Return an alist of all the variables provided by THING.
 
     The returned alist may include variables THING inherited from
     other objects.

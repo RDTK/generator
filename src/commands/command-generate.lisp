@@ -6,6 +6,9 @@
 
 (cl:in-package #:jenkins.project.commands)
 
+(defvar *cache-directory*)
+(defvar *temp-directory*)
+
 (defclass generate (distribution-input-mixin
                     mode-mixin
                     jenkins-access-mixin)

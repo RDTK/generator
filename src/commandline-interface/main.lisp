@@ -71,7 +71,11 @@
       (let* ((configuration (configuration.options:sub-configuration
                              "commands.**" configuration))
              (command       (jenkins.project.commands:make-command
-                             configuration)))
+                             configuration))
+             (jenkins.project.commands::*cache-directory*
+              (option-value "global" "cache-directory"))
+             (jenkins.project.commands::*temp-directory*
+              (option-value "global" "temp-directory")))
         (jenkins.project.commands:execute-command
          command
          :num-processes  (option-value "global" "num-processes")

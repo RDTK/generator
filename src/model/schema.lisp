@@ -8,12 +8,15 @@
 
 ;;; Utilities
 
-(deftype list-of (thing)
+(deftype list-of (&whole whole thing)
   (let+ ((name/string (concatenate 'string "EVERY-" (symbol-name thing)))
          ((&flet name (package)
             (find-symbol name/string package)))
          (name (or (name (symbol-package thing))
-                   (name (symbol-package 'list-of)))))
+                   (name (symbol-package 'list-of))
+                   (error "~@<Could not derive predicate from ~S ~
+                           in ~S.~@:>"
+                          thing whole))))
     `(and list (satisfies ,name))))
 
 (defun every-string (thing)

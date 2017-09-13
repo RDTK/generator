@@ -85,5 +85,9 @@
 
    #:specification-mixin)
 
+  ;; Schema utilities
+  (:export
+   #:list-of)
+
   (:documentation
    "The data model of the jenkins.project system."))

@@ -277,7 +277,7 @@
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (build)
-                     (ecase kind
-                       (:system (system-groovy (:code code :sandbox? sandbox?)))
-                       (:normal (groovy        (:code code)))))
+          (ecase kind
+            (:system (system-groovy (:code code :sandbox? sandbox?)))
+            (:normal (groovy        (:code code)))))
         (builders job)))

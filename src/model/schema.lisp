@@ -22,9 +22,15 @@
 (defun every-string (thing)
   (and (listp thing) (every #'stringp thing)))
 
+(deftype dependency ()
+  '(cons string (cons string (or null (cons string null)))))
+
+(defun every-dependency (thing)
+  (and (listp thing) (every (of-type 'dependency) thing) ))
+
 ;;; General variables
 
-(define-variable :platform-provides list
+(define-variable :platform-provides (list-of dependency)
   "A list of things provided by the operating system or otherwise
    available \"a priori\".
 
@@ -125,12 +131,6 @@
 
    Common values are (combinations of) \"cmake\", \"setuptools\",
    \"maven\", \"ros-package\" and \"asdf\".")
-
-(deftype dependency ()
-  '(cons string (cons string (or null (cons string null)))))
-
-(defun every-dependency (thing)
-  (and (listp thing) (every (of-type 'dependency) thing) ))
 
 (define-variable :extra-requires (list-of dependency)
   "A list of additional (i.e. not covered by automatic analysis)

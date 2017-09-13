@@ -122,8 +122,16 @@
      :when variable
      :do (with-simple-restart (continue "~@<Skip the variable ~A.~@:>" name)
            (handler-case
-               (as (jenkins.model.variables:value project name)
-                   (variable-info-type variable))
+               (let ((value (as (jenkins.model.variables:value project name)
+                                (variable-info-type variable))))
+                 (when (member name '(:extra-requires :extra-provides))
+                   (loop :for (nature) :in value
+                      :unless (member nature '("meta" "freestyle"
+                                               "asdf" "maven" "cmake" "pkg-config" "setuptools" "autotools"
+                                               "program" "library" "c-include")
+                                      :test #'string=)
+                      :do (error "~@<Suspicious ~S value ~S.~@:>"
+                                 name value))))
              (undefined-variable-error ())
              (error (condition)
                (error "~@<Error in variable ~A in ~A: ~A~@:>"

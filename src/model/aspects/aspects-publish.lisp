@@ -9,21 +9,21 @@
 ;;; Tasks aspect
 
 (define-aspect (tasks) (publisher-defining-mixin)
-    ((pattern               :type list #|of string|#
+    ((pattern               :type (list-of string)
       :documentation
       "Filename patterns specifying which workspace files to scan for
        open tasks.")
-     ((exclude         '()) :type list #|of string|#
+     ((exclude         '()) :type (list-of string)
       :documentation
       "Filename patterns specifying which workspace files to exclude
        from the scan for open tasks.")
-     ((keywords.low    '()) :type list #|of string|#
+     ((keywords.low    '()) :type (list-of string)
       :documentation
       "Keywords indicating low-priority open tasks.")
-     ((keywords.normal '()) :type list #|of string|#
+     ((keywords.normal '()) :type (list-of string)
       :documentation
       "Keywords indicating normal-priority open tasks.")
-     ((keywords.high   '()) :type list #|of string|#
+     ((keywords.high   '()) :type (list-of string)
       :documentation
       "Keywords indicating high-priority open tasks."))
   "Adds an open tasks publisher to the generated job."
@@ -61,7 +61,7 @@
 ;;; Warnings aspect
 
 (define-aspect (warnings :job-var job) (publisher-defining-mixin)
-    ((parsers :type list #|of string|#
+    ((parsers :type (list-of string)
       :documentation
       "Names of parsers to apply to the output of the generated job.
 
@@ -149,7 +149,7 @@
 ;;; Email notification
 
 (define-aspect (email-notification :job-var job) (publisher-defining-mixin)
-    ((recipients           :type list #|of string|#
+    ((recipients           :type (list-of string)
       :documentation
       "A list of email addresses to which notifications in case of a
        build failure should be sent.")
@@ -172,10 +172,10 @@
     ((target             :type string
       :documentation
       "The name of the machine to which artifacts should be uploaded.")
-     (source-files       :type list #|of string|#
+     (source-files       :type (list-of string)
       :documentation
       "List of files to upload.")
-     ((excludes     '()) :type list #|of string|#
+     ((excludes     '()) :type (list-of string)
       :documentation
       "Patterns for files which should be excluded from the upload.")
      (remove-prefix      :type string

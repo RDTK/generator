@@ -75,7 +75,7 @@
       "Name of an entry in Jenkins' global credentials store that
        should be use for authenticating against the remote repository
        server.")
-     (branches                              :type list #|of string|#
+     (branches                              :type (list-of string)
       :documentation
       "List of names of branches in the git repository that should be
        checked out.")

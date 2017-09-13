@@ -34,8 +34,14 @@
 
 ;;; Parameters aspect
 
+(deftype parameter-entry ()
+  '(cons string (cons string (or null (cons string null)))))
+
+(defun every-parameter-entry (thing)
+  (and (listp thing) (every (of-type 'parameter-entry) thing)))
+
 (define-aspect (parameters) ()
-    ((parameters :type list
+    ((parameters :type (list-of parameter-entry)
       :documentation
       "A list of parameters that should be configured for the
        generated job.
@@ -267,7 +273,7 @@
 
 ;; TODO separate slaves aspect for matrix-project jobs?
 (define-aspect (slaves :job-var job) ()
-    (((slaves             '()) :type list
+    (((slaves             '()) :type (list-of string)
       :documentation
       "A list of names of Jenkins slaves on which the job should be
        built.")
@@ -289,8 +295,14 @@
 
 ;;; Permissions aspect
 
+(deftype permission-entry ()
+  '(cons string (cons (list-of string) null)))
+
+(defun every-permission-entry (thing)
+  (and (listp thing) (every (of-type 'permission-entry) thing)))
+
 (define-aspect (permissions :job-var job) ()
-    (((permissions :keep) :type (or (eql :keep) list)
+    (((permissions :keep) :type (or (eql :keep) (list-of permission-entry))
       :documentation
       "The permissions to install.
 

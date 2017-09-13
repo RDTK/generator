@@ -152,6 +152,15 @@
 
 ;;; Maven aspect
 
+(defun string/name=value? (thing)
+  (and (stringp thing) (position #\= thing)))
+
+(deftype string/name=value ()
+  '(and string (satisfies string/name=value?)))
+
+(defun every-string/name=value (thing)
+  (and (listp thing) (every (of-type 'string/name=value) thing)))
+
 (defun split-option (spec)
   (let ((position (position #\= spec)))
     (unless position
@@ -160,11 +169,11 @@
     (list (subseq spec 0 position) (subseq spec (1+ position)))))
 
 (define-aspect (maven :job-var job) (builder-defining-mixin)
-    (((properties           '()) :type list #|of string|#
+    (((properties           '()) :type (list-of string/name=value)
       :documentation
       "A list of Maven properties that should be set for the build.
        Entries are of the form NAME=VALUE.")
-     (targets                    :type list #|of string|#
+     (targets                    :type (list-of string)
       :documentation
       "A list of names of Maven targets that should be built.")
      (private-repository?        :type boolean
@@ -199,8 +208,14 @@
 
 ;;; Setuptools aspect
 
+(deftype setuptools-option ()
+  '(cons string (cons string (cons string null))))
+
+(defun every-setuptools-option (thing)
+  (and (listp thing) (every (of-type 'setuptools-option) thing)))
+
 (define-aspect (setuptools :job-var job) (builder-defining-mixin)
-    (((options '()) :type list #|of string|#
+    (((options '()) :type (list-of setuptools-option)
       :documentation
       "A list of names of Setuptools option and corresponding values
        that should be set during the build. Entries are of the form

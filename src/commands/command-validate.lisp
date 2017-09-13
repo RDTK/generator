@@ -32,6 +32,12 @@
   `(>= (validation-level-name->index ,left)
        (validation-level-name->index ,right)))
 
+(defparameter *known-natures*
+  '("meta" "freestyle"
+    "asdf" "maven" "cmake" "pkg-config" "setuptools" "autotools"
+    "ros-package"
+    "program" "library" "c-include"))
+
 (defclass validate ()
   ((recipes          :initarg  :recipes
                      :type     pathname
@@ -97,7 +103,8 @@
     (when (validation-level>= level :check-access)
       (check-distribution-access distributions))))
 
-(defun check-project-variables (project variables)
+(defun check-project-variables (project variables
+                                &key (known-natures *known-natures*))
   (map nil (lambda+ ((&structure-r/o variable-info- name type))
              (with-simple-restart
                  (continue "~@<Skip the variable ~A.~@:>" name)
@@ -114,10 +121,7 @@
                    (when (and (not default?)
                               (member name '(:extra-requires :extra-provides)))
                      (loop :for (nature) :in value
-                        :unless (member nature '("meta" "freestyle"
-                                                 "asdf" "maven" "cmake" "pkg-config" "setuptools" "autotools"
-                                                 "program" "library" "c-include")
-                                        :test #'string=)
+                        :unless (member nature known-natures :test #'string=)
                         :do (error "~@<Suspicious ~S value ~S.~@:>"
                                    name value))))
                  )))
@@ -129,8 +133,16 @@
      :when variable
      :do (with-simple-restart (continue "~@<Skip the variable ~A.~@:>" name)
            (handler-case
-               (as (jenkins.model.variables:value project name)
-                   (variable-info-type variable))
+               (let ((value (as (jenkins.model.variables:value project name)
+                                (variable-info-type variable))))
+                 (when (member name '(:extra-requires :extra-provides))
+                   (loop :for (nature) :in value
+                      :unless (member nature '("meta" "freestyle"
+                                               "asdf" "maven" "cmake" "pkg-config" "setuptools" "autotools"
+                                               "program" "library" "c-include")
+                                      :test #'string=)
+                      :do (error "~@<Suspicious ~S value ~S.~@:>"
+                                 name value))))
              (undefined-variable-error ())
              (error (condition)
                (error "~@<Error in variable ~A in ~A: ~A~@:>"

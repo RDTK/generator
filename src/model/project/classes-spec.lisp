@@ -194,9 +194,8 @@
             (when (instantiate? spec parent)
               (when-let ((version (instantiate spec :parent parent)))
                 (list version)))))
-         (name (name spec))
          (project (make-instance 'project
-                                 :name          name
+                                 :name          (name spec)
                                  :variables     '()
                                  :specification spec)))
     (reinitialize-instance

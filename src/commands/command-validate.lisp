@@ -90,7 +90,33 @@
     (when (validation-level>= level :check-access)
       (check-distribution-access distributions))))
 
-(defun check-project-variables (project)
+(defun check-project-variables (project variables)
+  (map nil (lambda+ ((&structure-r/o variable-info- name type))
+             (with-simple-restart
+                 (continue "~@<Skip the variable ~A.~@:>" name)
+               (handler-bind
+                   ((undefined-variable-error
+                     #'continue)
+                    (error
+                     (lambda (condition)
+                       (error "~@<Error in variable ~A in ~A: ~A~@:>"
+                              name project condition))))
+                 (let+ (((&values value default?)
+                         (jenkins.model.variables:value project name nil))
+                        (value (unless default? (as value type))))
+                   (when (and (not default?)
+                              (member name '(:extra-requires :extra-provides)))
+                     (loop :for (nature) :in value
+                        :unless (member nature '("meta" "freestyle"
+                                                 "asdf" "maven" "cmake" "pkg-config" "setuptools" "autotools"
+                                                 "program" "library" "c-include")
+                                        :test #'string=)
+                        :do (error "~@<Suspicious ~S value ~S.~@:>"
+                                   name value))))
+                 )))
+       variables))
+
+#+alternative (defun check-project-variables (project)
   (loop :for (name) :in (variables project)
      :for variable = (find-variable name :if-does-not-exist nil)
      :when variable
@@ -105,13 +131,20 @@
 
 (defun check-variables/early (projects)
   (as-phase (:check-variables)
-    (with-sequence-progress (:check-variables projects)
-      (lparallel:pmapc
-       (lambda (project)
-         (progress "~A" (project-spec-and-versions-spec project))
-         (with-simple-restart
-             (continue "~@<Skip project ~A.~@:>" project)
-           (check-project-variables
-            (project-spec-and-versions-spec project))))
-       :parts 100 projects))
+    (let ((variables (remove-if (lambda (variable)
+                                  (member (variable-info-name variable)
+                                          '(:jobs.list
+                                            :jobs.dependencies
+                                            :jobs.dependencies/groovy)))
+                                (jenkins.model.variables:all-variables))))
+      (with-sequence-progress (:check-variables projects)
+        (lparallel:pmapc
+         (lambda (project)
+           (progress "~A" (project-spec-and-versions-spec project))
+           (with-simple-restart
+               (continue "~@<Skip project ~A.~@:>" project)
+             (check-project-variables
+              (project-spec-and-versions-spec project)
+              variables)))
+         :parts 100 projects)))
     projects))

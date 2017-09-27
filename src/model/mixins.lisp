@@ -101,9 +101,11 @@
   (log:debug "~@<Checking whether to instantiate ~A with parent ~A~@:>"
              spec parent)
   (let+ (((&flet value (name)
-            (let ((key (make-keyword (string-upcase name))))
-              (or (value parent key nil)
-                  (value spec key nil)))))
+            (let+ ((key (make-keyword (string-upcase name)))
+                   ((&values value defaulted?) (value parent key nil)))
+              (if defaulted?
+                  (value spec key nil)
+                  value))))
          ((&labels matches? (regex value)
             (etypecase value
               (null   nil)

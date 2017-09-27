@@ -10,7 +10,7 @@
 
 (defgeneric lookup (thing name &key if-undefined)
   (:documentation
-   "Return two values:
+   "Return three values:
 
     1. the \"raw\" cell (a cons with the variable name in the `car'
        and the value in the `cdr') of the variable named NAME in THING

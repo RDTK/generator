@@ -70,7 +70,9 @@
 (flet ((distribution-jobs (distribution)
          (let ((versions (remove nil (mapcar #'implementation
                                              (versions distribution)))))
-           (mappend #'jobs versions)))
+           (remove-if-not (lambda (job)
+                            (value/cast job :build-job.orchestrate? t))
+                          (mappend #'jobs versions))))
        (job-name (job)
          (when-let ((job (implementation job)))
            (list (jenkins.api:id job))))

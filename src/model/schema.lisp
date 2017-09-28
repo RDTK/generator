@@ -259,6 +259,9 @@
 (define-variable :build-job.disabled? boolean
   "Should the generated build job initially be disabled?")
 
+(define-variable :build-job.orchestrate? boolean
+  "Should the generated build job be managed by orchestration jobs?")
+
 (define-variable :dependency-job-name string
   "Internal.")
 

@@ -1,6 +1,6 @@
 # CMakeLists.txt --- CMake build description file.
 #
-# Copyright (C) 2011-2016 Jan Moringen
+# Copyright (C) 2011-2017 Jan Moringen
 #
 # Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -36,7 +36,8 @@ if(GIT_EXECUTABLE)
                         ERROR_QUIET)
         if(RESULT EQUAL 0)
             git_version_components(${GIT_DESCRIBE_OUTPUT} IGN1 IGN2 REVISION COMMIT)
-            file(WRITE "${CMAKE_SOURCE_DIR}/version.sexp" "${REVISION} \"${COMMIT}\"")
+            file(WRITE "${CMAKE_SOURCE_DIR}/version-string.sexp" "\"${MAJOR}.${MINOR}.${REVISION}\"")
+            file(WRITE "${CMAKE_SOURCE_DIR}/version.sexp"        "${REVISION} \"${COMMIT}\"")
         else()
             message(STATUS "git describe failed (not a git repository?) in ${CMAKE_SOURCE_DIR}")
         endif()
@@ -118,8 +119,7 @@ set(SYSTEM_NAME "jenkins.project")
 # Determine at least major and minor version components.
 set(REDIRECTIONS "ERROR_FILE \"${CMAKE_CURRENT_BINARY_DIR}/version.1.err\"")
 execute_lisp("version"
-             "--eval \"(asdf:find-system :${SYSTEM_NAME})\"
-              --eval \"(princ (${SYSTEM_NAME}-system:version/string :commit? t))\""
+             "--eval \"(princ (asdf:component-version (asdf:find-system :${SYSTEM_NAME})))\""
              VERSION_FROM_LISP)
 git_version_components(${VERSION_FROM_LISP} ${PROJECT_NAME_UPPERCASE}_VERSION_MAJOR
                                             ${PROJECT_NAME_UPPERCASE}_VERSION_MINOR
@@ -132,8 +132,7 @@ if(NOT ${PROJECT_NAME_UPPERCASE}_VERSION_PATCH)
     git_based_version(${${PROJECT_NAME_UPPERCASE}_VERSION_MAJOR} ${${PROJECT_NAME_UPPERCASE}_VERSION_MINOR})
     set(REDIRECTIONS "ERROR_FILE \"${CMAKE_CURRENT_BINARY_DIR}/version.2.err\"")
     execute_lisp("version"
-                 "--eval \"(asdf:find-system :${SYSTEM_NAME})\"
-                  --eval \"(princ (${SYSTEM_NAME}-system:version/string :commit? t))\""
+                 "--eval \"(princ (asdf:component-version (asdf:find-system :${SYSTEM_NAME})))\""
                  VERSION_FROM_LISP)
     git_version_components(${VERSION_FROM_LISP} ${PROJECT_NAME_UPPERCASE}_VERSION_MAJOR
                                                 ${PROJECT_NAME_UPPERCASE}_VERSION_MINOR

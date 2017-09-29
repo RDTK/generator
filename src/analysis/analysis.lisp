@@ -8,20 +8,23 @@
 
 (defun guess-project-natures (directory)
   (or (append
-       (when (directory (merge-pathnames "*.asd" directory) )
+       (when (directory (merge-pathnames "*.asd" directory))
          '(:asdf))
 
-       (when (probe-file (merge-pathnames "setup.py" directory) )
+       (when (probe-file (merge-pathnames "setup.py" directory))
          '(:setuptools))
 
-       (when (probe-file (merge-pathnames "pom.xml" directory) )
+       (when (probe-file (merge-pathnames "pom.xml" directory))
          '(:maven))
 
-       (when (probe-file (merge-pathnames "build.xml" directory) )
+       (when (probe-file (merge-pathnames "build.xml" directory))
          '(:ant))
 
-       (when (probe-file (merge-pathnames "package.xml" directory) )
-         '(:ros-package))
+       (cond
+         ((probe-file (merge-pathnames "package.xml" directory))
+          '(:ros-package))
+         ((directory (merge-pathnames "*/package.xml" directory))
+          '(:ros-packages)))
 
        (when (probe-file (merge-pathnames "CMakeLists.txt" directory))
          '(:cmake)))

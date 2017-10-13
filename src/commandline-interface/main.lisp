@@ -314,14 +314,6 @@
                     (print-items:print-items job))
           (deploy-dependencies job))))
 
-(defun enable-jobs (jobs)
-  (with-sequence-progress (:enable jobs)
-    (iter (for job in jobs)
-          (progress "~S" (jenkins.api:id job))
-          (with-simple-restart
-              (continue "~@<Skip enabling job ~A.~@:>" job)
-            (jenkins.api:enable! (jenkins.api:job (jenkins.api:id job)))))))
-
 (defun generated? (job)
   (search "automatically generated" (jenkins.api:description job)))
 
@@ -965,11 +957,6 @@ A common case, deleting only jobs belonging to the distribution being generated,
                             (with-sequence-progress (:delete-other generated-jobs)
                               (mapc (progressing #'jenkins.api:delete-job :delete-other)
                                     generated-jobs)))))
-
-                      (with-phase-error-check
-                          (:enable-jobs #'errors #'(setf errors) #'report)
-                        (enable-jobs (remove-if-not #'jenkins.api:disabled?
-                                                    all-jobs)))
 
                       (with-phase-error-check
                           (:list-credentials #'errors #'(setf errors) #'report)

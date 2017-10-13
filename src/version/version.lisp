@@ -1,6 +1,6 @@
 ;;;; version.lisp --- Simple version model.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -54,8 +54,18 @@
   (let+ (((&labels+ rec ((&optional left &rest rest-left)
                          (&optional right &rest rest-right))
             (cond
-              ((null left)                      (not (null right)))
-              ((null right)                     nil)
+              ((null left)
+               (typecase right
+                 (string
+                  (rec (list* "" rest-left) (list* right rest-right)))
+                 (real
+                  (rec (list* 0 rest-left) (list* right rest-right)))))
+              ((null right)
+               (typecase left
+                 (string
+                  (rec (list* left rest-left) (list* "" rest-right)))
+                 (real
+                  (rec (list* left rest-left) (list* 0 rest-right)))))
               ((version-component-< left right) t)
               ((equal left right)               (rec rest-left rest-right))))))
     (rec left right)))

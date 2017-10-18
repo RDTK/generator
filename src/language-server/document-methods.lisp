@@ -79,7 +79,7 @@
       (let* ((name          (jenkins.model.variables:variable-info-name info))
              (type          (jenkins.model.variables:variable-info-type info))
              (documentation (jenkins.model.variables:variable-info-documentation info))
-             (description   (format nil "~(~A~): ~(~A~)~2%~A" name type documentation)))
+             (description   (format nil "~(~A~): ~(~A~)~2%~A" name type documentation))) ; TODO the commandline-options system has a function for breaking a documentation string into paragraphs and rendering them
         `((:contents . ,description)
           #+optinal (:range    . ))))))
 

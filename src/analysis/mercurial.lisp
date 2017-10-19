@@ -54,20 +54,20 @@
 
                          (%run-mercurial `("checkout" ,commit) clone-directory)
 
-                         (let ((result (list* :scm              :mercurial
-                                              :branch-directory nil
-                                              (analyze-directory analyze-directory))))
-                           (unless (getf result :authors)
-                             (setf (getf result :authors)
-                                   (analyze clone-directory :mercurial/authors)))
-                           (collect (cons version result))))))))
+                         (let ((result     (analyze-directory analyze-directory))
+                               (committers (analyze clone-directory :mercurial/committers)))
+                           (collect (cons version
+                                          (list* :scm              :mercurial
+                                                 :branch-directory nil
+                                                 :committers       committers
+                                                 result)))))))))
 
       (when (probe-file clone-directory)
         (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))
 
-(defmethod analyze ((directory pathname) (kind (eql :mercurial/authors))
+(defmethod analyze ((directory pathname) (kind (eql :mercurial/committers))
                     &key
-                    (max-authors 5))
+                    (max-committers 5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (apply #'inferior-shell:run/nil
@@ -79,4 +79,4 @@
       (dolist (line lines)
         (incf (gethash line frequencies 0)))
       (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
-      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-authors))))))
+      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-committers))))))

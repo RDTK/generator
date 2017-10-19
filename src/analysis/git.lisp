@@ -179,13 +179,12 @@
                                 clone-directory))
          (result            (apply #'analyze analyze-directory :auto
                                    (remove-from-plist args :sub-directory)))
-         (authors           (or (getf result :authors)
-                                (analyze clone-directory :git/authors)))
+         (committers        (analyze clone-directory :git/committers))
          ((&values commit date)
           (analyze clone-directory :git/most-recent-commit)))
     (list* :scm              :git
            :branch-directory nil
-           :authors          authors
+           :committers       committers
            (append
             (when commit
               (list :most-recent-commit.id   commit))
@@ -332,9 +331,9 @@
                                  ))))
         (values id (local-time:unix-to-timestamp (parse-integer raw-date)))))))
 
-(defmethod analyze ((directory pathname) (kind (eql :git/authors))
+(defmethod analyze ((directory pathname) (kind (eql :git/committers))
                     &key
-                    (max-authors 5))
+                    (max-committers 5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (apply #'inferior-shell:run/nil
@@ -347,7 +346,7 @@
       (dolist (line lines)
         (incf (gethash line frequencies 0)))
       (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
-      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-authors))))))
+      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-committers))))))
 
 ;;; Utilities
 

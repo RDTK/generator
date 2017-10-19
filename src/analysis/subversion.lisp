@@ -71,17 +71,16 @@
                                         ,clone-directory)
                                  temp-directory username password))
 
-                     (let* ((result (list* :scm              :svn
-                                           :branch-directory directory
-                                           (append
-                                            (list :commit commit)
-                                            (analyze-directory clone-directory)))))
-                       (unless (getf result :authors)
-                         (setf (getf result :authors)
-                               (analyze clone-directory :svn/authors
-                                        :username username
-                                        :password password)))
-                       (cons name result)))
+                     (let ((committers (analyze clone-directory :svn/committers
+                                                :username username
+                                                :password password))
+                           (result     (analyze-directory clone-directory)))
+                       (cons name
+                             (list* :scm              :svn
+                                    :branch-directory directory
+                                    :commit           commit
+                                    :committers       committers
+                                    result))))
 
                 (when (probe-file clone-directory)
                   (run `("rm" "-rf" ,clone-directory) temp-directory)))))))
@@ -95,12 +94,12 @@
                           version)
               (collect (analyze-location version directory commit)))))))
 
-(defmethod analyze ((directory pathname) (kind (eql :svn/authors))
+(defmethod analyze ((directory pathname) (kind (eql :svn/committers))
                     &key
                     username
                     password
-                    (max-revisions 20)
-                    (max-authors   5))
+                    (max-revisions  20)
+                    (max-committers 5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (apply #'inferior-shell:run/nil
@@ -114,4 +113,4 @@
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)
           (incf (gethash author frequencies 0))))
       (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
-      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-authors))))))
+      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-committers))))))

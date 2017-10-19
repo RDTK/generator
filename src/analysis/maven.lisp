@@ -100,7 +100,8 @@
           ;; Since sub-modules can depend on each other, remove
           ;; requirements that are provided by the project (including
           ;; sub-modules).
-          `(:provides              ,provides
+          `(:natures               (,kind)
+            :provides              ,provides
             :requires              ,(effective-requires requires provides)
             :programming-languages ("Java")
             ,@(when description `(:description ,description))

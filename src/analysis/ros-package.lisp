@@ -84,7 +84,8 @@
          ((:val dependencies :type 'list/depend) +ros-package-dependencies+
                                                  :if-multiple-matches :all))
         document
-      `(:provides ((:cmake ,name ,(parse-version version)))
+      `(:natures  (,:ros-package)
+        :provides ((:cmake ,name ,(parse-version version)))
         :requires ,(mapcan (lambda+ ((kind name &optional version))
                              (when (member kind '("build" "test")
                                            :test #'string=)

@@ -256,7 +256,8 @@
                                         pkg-config-provides)))
          (requires             (merge-dependencies
                                 (append requires sub-requires))))
-    `(:provides              ,provides
+    `(:natures               (:cmake)
+      :provides              ,provides
       :requires              ,(effective-requires requires provides)
       :programming-languages ("C++") ; TODO actual analysis
       :secondary-files       ,(append config-mode-files pkg-config-files))))

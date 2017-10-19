@@ -170,7 +170,8 @@
                               (append
                                (argument "setup_requires" t)
                                (argument "install_requires" t)))))
-    `(:provides              ((:setuptools ,name ,version))
+    `(:natures               (,kind)
+      :provides              ((:setuptools ,name ,version))
       :requires              ,requires
       :programming-languages ("Python")
       ,@(when description `(:description ,description))

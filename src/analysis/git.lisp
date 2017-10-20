@@ -174,17 +174,24 @@
 (defun analyze-git-branch (clone-directory
                            &rest args
                            &key sub-directory &allow-other-keys)
-  (let* ((analyze-directory (if sub-directory
+  (let+ ((analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
          (result            (apply #'analyze analyze-directory :auto
                                    (remove-from-plist args :sub-directory)))
          (authors           (or (getf result :authors)
-                                (analyze clone-directory :git/authors))))
+                                (analyze clone-directory :git/authors)))
+         ((&values commit date)
+          (analyze clone-directory :git/most-recent-commit)))
     (list* :scm              :git
            :branch-directory nil
            :authors          authors
-           result)))
+           (append
+            (when commit
+              (list :most-recent-commit.id   commit))
+            (when date
+              (list :most-recent-commit.date date))
+            result))))
 
 (defun analyze-git-branch/cached (cache-directory key)
   (with-simple-restart (continue "~@<Do not use cache results.~@:>")
@@ -312,6 +319,18 @@
                        version)
            (list (analyze-version version))))
        versions))))
+
+(defmethod analyze ((directory pathname) (kind (eql :git/most-recent-commit)) &key)
+  (with-simple-restart (continue "Continue without determining the ~
+                                  most recent commit in ~A"
+                                 directory)
+    (with-trivial-progress (:analyze/most-recent-commit "~A" directory)
+      (let+ (((id raw-date)
+              (split-sequence
+               #\Space (%run-git `("log" "--max-count=1" "--pretty=format:%H %ct")
+                                 directory :non-interactive t ; TODO non-interactive
+                                 ))))
+        (values id (local-time:unix-to-timestamp (parse-integer raw-date)))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/authors))
                     &key

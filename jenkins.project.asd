@@ -17,6 +17,7 @@
                 (:version :more-conditions                       "0.1.0")
                 (:version :utilities.print-items                 "0.1.0")
                 (:version :utilities.print-tree                  "0.1.0")
+                :local-time
                 :lparallel
                 :log4cl
 

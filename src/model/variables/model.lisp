@@ -1,6 +1,6 @@
 ;;;; model.lisp --- Model for value expressions.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -180,3 +180,16 @@
                :do (check-type name keyword)
                :collect (cons name (value-parse value)))
             rest)))
+
+(defun to-value (thing)
+  (typecase thing
+    ((or real boolean string)
+     thing)
+    ((cons (cons keyword))
+     (list* (cons (car (first thing))
+                  (cdr (to-value (first thing))))
+            (to-value (rest thing))))
+    (cons
+     (map 'list #'to-value thing))
+    (t
+     (princ-to-string thing))))

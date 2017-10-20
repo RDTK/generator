@@ -35,7 +35,9 @@
    #:value-list*
    #:value-cons
    #:value-acons
-   #:value-parse)
+   #:value-parse
+
+   #:to-value)
 
   ;; Lookup protocol
   (:export

@@ -88,7 +88,7 @@
                              (list (value-cons :branch-directory branch-directory)))
                            (iter (for (key value) :on other-results :by #'cddr)
                                  (let ((key (format-symbol '#:keyword "ANALYSIS.~A" key)))
-                                   (collect (value-cons key value)))))))))
+                                   (collect (value-cons key (to-value value))))))))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)

@@ -65,7 +65,6 @@
                                 (provides         :provides))
                     info)
                    (other-results (remove-from-plist info
-                                                     :scm :branch-directory
                                                      :requires :provides
                                                      :properties))
                    (version (or (find version-name (versions project)

@@ -34,33 +34,77 @@
 
 ;;; Parameters aspect
 
-(deftype parameter-entry ()
+(deftype parameter-entry/legacy ()
   '(cons string (cons string (or null (cons string null)))))
+
+(defun every-parameter-entry/legacy (thing)
+  (and (listp thing) (every (of-type 'parameter-entry/legacy) thing)))
+
+(defun parameter-entry? (thing)
+  (and (consp thing)
+       (every #'consp thing)
+       (loop :with name? = nil
+          :with kind? = nil
+          :for (key . value) :in thing
+          :always (member key '(:name :kind :default :description))
+          :when (eq key :name) :do (setf name? t)
+          :when (eq key :kind) :do (setf kind? t)
+          :finally (return (and name? kind?)))
+       (member (assoc-value thing :kind) '("text" "string")
+               :test #'string=)))
+
+(deftype parameter-entry ()
+  '(and cons (satisfies parameter-entry?)))
 
 (defun every-parameter-entry (thing)
   (and (listp thing) (every (of-type 'parameter-entry) thing)))
 
+(assert (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry/legacy)))
+(assert (not (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry))))
+
+(assert (not (typep '(((:kind . "string") (:name . "ageLimit") (:default . "none")))
+                    '(list-of parameter-entry/legacy))))
+(assert (typep '(((:kind . "string") (:name . "ageLimit") (:default . "none")))
+               '(list-of parameter-entry)))
+
 (define-aspect (parameters) ()
-    ((parameters :type (list-of parameter-entry)
-      :documentation
-      "A list of parameters that should be configured for the
+    ((parameters :type (or (list-of parameter-entry)
+                           (list-of parameter-entry/legacy))
+                 :documentation
+                 "A list of parameters that should be configured for the
        generated job.
 
        Each entry has to be of one of the forms
 
-         [ \"text\",   \"NAME\" ]
-         [ \"text\",   \"NAME\", \"DEFAULT\" ]
-         [ \"string\", \"NAME\" ]
-         [ \"string\", \"NAME\", \"DEFAULT\" ]
+         {
+           \"name\":        \"NAME\"
+           \"kind\":        \"KIND\",
+           \"default\":     DEFAULT,
+           \"description\": \"DESCRIPTION\"
+         }
 
-       where \"text\" vs. \"string\" controls which values are
+       where
+
+       NAME is the name of the parameter.
+
+       KIND is either text or string and controls which values are
        acceptable for the parameter and NAME is the name of the
-       parameter. Default values are optional.
+       parameter.
+
+       DEFAULT is optional and, if present, specifies the default
+       value of the parameter.
+
+       DESCRIPTION is optional and, if present, specifies a
+       description Jenkins should present alongside the parameter.
 
        For more details, see Jenkins documentation."))
   "Adds parameters to the created job."
   (with-interface (properties job) (parameters* (property/parameters))
-    (mapc (lambda+ ((kind name &optional default))
+    (mapc (lambda+ ((&key
+                     kind
+                     name
+                     (default     nil default?)
+                     (description nil description?)))
             (setf (parameters parameters*)
                   (remove name (parameters parameters*)
                           :key (rcurry #'getf :name)))
@@ -71,9 +115,25 @@
                            (error "~@<Unsupported parameter kind: ~S.~@:>"
                                   kind)))))
               (push (list* :kind kind :name name
-                           (when default (list :default default)))
+                           (append (when default?
+                                     (list :default default))
+                                   (when description?
+                                     (list :description description))))
                     (parameters parameters*))))
-          parameters)))
+          (map 'list (lambda (spec)
+                       (etypecase spec
+                         ((cons (cons keyword t))
+                          (alist-plist spec))
+                         ((cons string)
+                          (log:info "~@<Parameter specific uses legacy format: ~S.~@:>"
+                                    (json:encode-json-to-string spec))
+                          (destructuring-bind
+                                (kind name &optional (default nil default?))
+                              spec
+                            (list* :kind kind :name name
+                                   (when default?
+                                     (list :default default)))))))
+               parameters))))
 
 ;;; Retention aspect
 

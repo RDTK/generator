@@ -149,7 +149,13 @@
                (next function form env)))))
          (*macroexpand-hook* #'on-macro-expansion))
     (unwind-protect
-         (progn
+         (let ((asdf::*source-registry*    nil)
+               (asdf::*registered-systems* (copy-hash-table
+                                            asdf::*registered-systems*))
+               (asdf::*asdf-session*       nil))
+           (asdf/system-registry:clear-registered-systems)
+           (asdf:initialize-source-registry
+            '(:source-registry :ignore-inherited-configuration))
            (handler-bind ((warning #'muffle-warning)) ; TODO silence everything?
              (asdf::load-asd pathname))
            (nreverse result))

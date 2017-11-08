@@ -116,12 +116,15 @@
             (cdr (assoc name where))))
          ((&flet make-version-spec (spec parent)
             (check-keys spec '((:name . t) :variables :catalog))
-            (make-instance 'version-spec
-                           :name      (lookup :name spec)
-                           :parent    parent
-                           :variables (value-acons
-                                       :__catalog (lookup :catalog spec)
-                                       (process-variables (lookup :variables spec))))))
+            (let ((catalog   (lookup :catalog spec))
+                  (variables (process-variables (lookup :variables spec))))
+              (make-instance 'version-spec
+                             :name      (lookup :name spec)
+                             :parent    parent
+                             :variables (if catalog
+                                            (value-acons :__catalog catalog
+                                                         variables)
+                                            variables)))))
          (name (lookup :name)))
     (check-generator-version spec generator-version)
     (check-keys spec '(:minimum-generator-version

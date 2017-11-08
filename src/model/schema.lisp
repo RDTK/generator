@@ -30,6 +30,12 @@
 
 ;;; General variables
 
+(define-variable :description string
+  "A short description of the project, distribution, etc.")
+
+(define-variable :keywords (list-of string)
+  "A list of keywords characterizing the project, distribution, etc.")
+
 (define-variable :platform-provides (list-of dependency)
   "A list of things provided by the operating system or otherwise
    available \"a priori\".

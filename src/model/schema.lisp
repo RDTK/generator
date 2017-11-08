@@ -30,6 +30,18 @@
 
 ;;; General variables
 
+(define-variable :recipe.maintainer (or string (list-of string))
+  "Names and Email address of the maintainer(s) of the recipe.
+
+   Either a string or a list of strings. In both cases, each
+   individual person should be written in one of the following forms:
+
+     NAME <EMAIL>
+     NAME
+     <EMAIL>
+
+   .")
+
 (define-variable :description string
   "A short description of the project, distribution, etc.")
 

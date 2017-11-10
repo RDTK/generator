@@ -149,17 +149,22 @@
                (next function form env)))))
          (*macroexpand-hook* #'on-macro-expansion))
     (unwind-protect
-         (let ((asdf::*source-registry*    nil)
-               (asdf::*registered-systems* (copy-hash-table
-                                            asdf::*registered-systems*))
-               (asdf::*asdf-session*       nil))
-           (asdf/system-registry:clear-registered-systems)
-           (asdf:initialize-source-registry
-            '(:source-registry :ignore-inherited-configuration))
-           (handler-bind ((warning #'muffle-warning)) ; TODO silence everything?
-             (asdf::load-asd pathname))
-           (nreverse result))
+         #.(if (uiop:version<= (asdf:asdf-version) "3.3.0")
+               (read-from-string
+                "(handler-bind ((warning #'muffle-warning)) ; TODO silence everything?
+                   (asdf::load-asd pathname))")
+               (read-from-string
+                "(let ((asdf::*source-registry*    nil)
+                       (asdf::*registered-systems* (copy-hash-table
+                                                    asdf::*registered-systems*))
+                       (asdf::*asdf-session*       nil))
+                   (asdf/system-registry:clear-registered-systems)
+                   (asdf:initialize-source-registry
+                    '(:source-registry :ignore-inherited-configuration))
+                   (handler-bind ((warning #'muffle-warning)) ; TODO silence everything?
+                     (asdf::load-asd pathname)))"))
       (mapc (lambda (package)
               (log:debug "~@<Deleting package ~S~@:>" package)
               (ignore-errors (delete-package package)))
-            packages))))
+            packages))
+    (nreverse result)))

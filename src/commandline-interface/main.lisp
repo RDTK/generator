@@ -58,7 +58,9 @@
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
          ((&labels+ do-version ((version-info . info))
             (let+ ((version-name      (getf version-info :name))
-                   (version-variables (remove-from-plist version-info :name))
+                   (version-variables (apply #'value-acons
+                                             (append (remove-from-plist version-info :name)
+                                                     '(()))))
                    ((&plist-r/o (scm              :scm)
                                 (branch-directory :branch-directory)
                                 (requires         :requires)
@@ -69,9 +71,11 @@
                                                      :properties))
                    (version (or (find version-name (versions project)
                                       :key #'name :test #'string=)
-                                (let ((version (make-instance 'version-spec
-                                                              :name   version-name
-                                                              :parent project)))
+                                (let ((version (make-instance
+                                                'version-spec
+                                                :name      version-name
+                                                :parent    project
+                                                :variables version-variables)))
                                   (push version (versions project))
                                   version))))
               (reinitialize-instance
@@ -79,8 +83,8 @@
                :requires  requires
                :provides  provides
                :variables (append
-                           (jenkins.model.variables:direct-variables version) ; TODO
-                           (apply #'value-acons (append version-variables '(())))
+                           (jenkins.model.variables:direct-variables version)
+                           version-variables
                            (when scm
                              (list (value-cons :scm (string-downcase scm))))
                            (when branch-directory

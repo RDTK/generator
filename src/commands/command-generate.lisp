@@ -79,31 +79,49 @@
 
 (defun generate-load (distributions mode overwrites
                       &key generator-version)
-  (let+ ((template-patterns (list (derive-template-pattern
-                                   (first distributions) mode)))
-         ((&flet locate-and-load (kind pattern loader)
+  (let+ (((&flet locate-and-load (kind pattern loader
+                                  &key (if-no-match nil if-no-match-supplied?))
             (let* ((files   (as-phase ((symbolicate :locate/ kind))
-                              (locate-specifications kind pattern)))
+                              (apply #'locate-specifications kind pattern
+                                     (when if-no-match-supplied?
+                                       (list :if-no-match if-no-match)))))
                    (objects (as-phase ((symbolicate :load/ kind))
                               (load-specifications kind files loader))))
               (values objects files))))
+         ;; Templates
+         (template-patterns       (list (derive-template-pattern
+                                         (first distributions) mode)))
          (templates
           (locate-and-load :template template-patterns
                            (rcurry #'load-template/json
                                    :generator-version generator-version)))
+         ;; Persons
+         (person-patterns         (list (merge-pathnames
+                                         (make-pathname
+                                          :name      :wild
+                                          :type      "person"
+                                          :directory `(:relative :back "persons"))
+                                         (first distributions))))
+         (persons
+          (locate-and-load :person person-patterns
+                           (rcurry #'load-person/json
+                                   :generator-version generator-version)
+                           :if-no-match '()))
+         ;; Distributions
          ((&values distributions distribution-files)
           (locate-and-load :distribution distributions
                            (rcurry #'load-distribution/json
                                    :generator-version generator-version)))
          (distributions           (as-phase (:overwrites)
                                     (set-overwrites distributions overwrites)))
+         ;; Projects
          (projects-files+versions (as-phase (:locate/project)
                                     (locate-projects distribution-files distributions)))
          (projects                (as-phase (:load/project)
                                     (load-projects/versioned
                                      projects-files+versions
                                      :generator-version generator-version))))
-    (values distributions projects)))
+    (values distributions projects persons)))
 
 (defun generate-analyze (distributions projects
                          &key

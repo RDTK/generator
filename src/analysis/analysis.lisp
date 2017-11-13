@@ -8,6 +8,11 @@
 
 (defun guess-project-natures (directory)
   (or (append
+       (when (or (directory (merge-pathnames "configure" directory))
+                 (directory (merge-pathnames "configure.in" directory))
+                 (directory (merge-pathnames "configure.ac" directory)))
+         '(:autotools))
+
        (when (directory (merge-pathnames "*.asd" directory))
          '(:asdf))
 

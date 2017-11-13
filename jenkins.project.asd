@@ -66,6 +66,7 @@
 
                               ;; Build systems
                               (:file     "license")
+                              (:file     "autotools")
                               (:file     "pkg-config")
                               (:file     "cmake")
                               (:file     "asdf")

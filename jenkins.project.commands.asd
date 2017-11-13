@@ -48,5 +48,6 @@
                               (:file       "command-validate")
                               (:file       "command-hack")
 
+                              (:file       "command-query")
                               (:file       "command-platform-requirements")
                               (:file       "command-report")))))

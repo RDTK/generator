@@ -1,6 +1,6 @@
 ;;;; license.lisp --- Analysis of license files.
 ;;;;
-;;;; Copyright (C) 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2017 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -33,4 +33,4 @@
                     (find content licenses
                           :test (lambda (x y) (< (edit-distance x y :upper-bound threshold) threshold))
                           :key #'read-file-into-string*)))))
-      (pathname-name system-file))))
+      `(:license ,(pathname-name system-file)))))

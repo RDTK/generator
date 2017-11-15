@@ -95,14 +95,21 @@
          (hash-table-plist merged))))))
 
 (defmethod analyze :around ((source pathname) (kind (eql :auto)) &key)
-  (let ((result (call-next-method)))
-    (cond
-      ((getf result :license)
-       result)
-      ((when-let ((license (analyze source :license)))
-         (list* :license license result)))
-      (t
-       result))))
+  (let+ ((cache (make-hash-table :test #'eq))
+         ((&flet+ maybe-augment (result (key function))
+            (cond
+              ((getf result key)
+               result)
+              ((when-let ((value (getf (ensure-gethash
+                                        function cache
+                                        (funcall function source))
+                                       key)))
+                 (list* key value result)))
+              (t
+               result)))))
+    (reduce #'maybe-augment
+            `((:license ,(rcurry #'analyze :license)))
+            :initial-value (call-next-method))))
 
 (defmethod analyze ((source pathname) (kind cons) &rest args &key)
   (mapcan (lambda (kind)

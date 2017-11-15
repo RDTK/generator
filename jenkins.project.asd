@@ -65,10 +65,12 @@
                               (:file     "subversion")
                               (:file     "mercurial")
 
-                              ;; Build systems
+                              ;; Generic analyses
                               (:file     "license")
-                              (:file     "autotools")
+
+                              ;; Build systems
                               (:file     "pkg-config")
+                              (:file     "autotools")
                               (:file     "cmake")
                               (:file     "asdf")
                               (:file     "maven")

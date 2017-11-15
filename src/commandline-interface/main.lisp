@@ -11,6 +11,16 @@
 
 ;;; Input
 
+(defun load-people (files)
+  (with-sequence-progress (:people files)
+    (mapcan (lambda (file)
+              (progress "~S" file)
+              (with-simple-restart
+                  (continue "~@<Skip person specification ~S.~@:>" file)
+                (list (load-person/json
+                       file :generator-version *generator-version*))))
+            files)))
+
 (defun load-templates (files)
   (with-sequence-progress (:templates files)
     (mapcan (lambda (file)
@@ -869,6 +879,13 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                      (t
                                                       (error "~@<At least one of the options template and mode must be supplied.~@:>"))))
 
+                     (people        (with-phase-error-check
+                                        (:locate/person #'errors #'(setf errors) #'report)
+                                      (sort (locate-specifications :person (list (merge-pathnames
+                                                                                  "../people/*.person"
+                                                                                  (first distribution)))
+                                                                   :if-no-match '())
+                                            #'string< :key #'pathname-name)))
                      (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
                                       (sort (locate-specifications :template template-pattern)
@@ -883,7 +900,11 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                 (with-trivial-progress (:jobs)
 
-                  (let+ ((templates          (with-phase-error-check
+                  (let+ ((people             (with-phase-error-check
+                                                 (:load/person #'errors #'(setf errors) #'report
+                                                  :continuable? nil)
+                                               (load-people people)))
+                         (templates          (with-phase-error-check
                                                  (:load/template #'errors #'(setf errors) #'report
                                                   :continuable? nil)
                                                (load-templates templates)))

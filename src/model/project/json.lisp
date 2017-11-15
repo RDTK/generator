@@ -40,6 +40,25 @@
                        key (mapcar #'json:encode-json-to-string value)))
        :collect (value-cons key (first value)))))
 
+;;; Person loading
+
+(defun load-person/json (pathname &key generator-version)
+  (let+ ((spec (%decode-json-from-source pathname))
+         ((&flet lookup (name &optional (where spec))
+            (cdr (assoc name where)))))
+    (check-generator-version spec generator-version)
+    (check-keys spec '(:minimum-generator-version
+                       (:name t) :aliases :identities)
+                t)
+    (let* ((name       (lookup :name))
+           (aliases    (lookup :aliases))
+           (identities (map 'list #'puri:uri (lookup :identities)))
+           (person     (apply #'rosetta-project.model.resource:make-person
+                              name (append aliases identities))))
+      (push person *persons*))))
+
+;;; Template loading
+
 (defvar *template-load-stack* '())
 
 (defun call-with-loading-template (thunk name)

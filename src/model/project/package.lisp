@@ -105,6 +105,7 @@
 
   ;; JSON stuff
   (:export
+   #:load-person/json
    #:load-template/json
    #:load-project-spec/json
    #:load-distribution/json)

@@ -583,16 +583,18 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
 ;;; Main
 
-(defun locate-specifications (kind namestrings)
+(defun locate-specifications (kind patterns &key (if-no-match #'error))
   (with-simple-restart (continue "~@<Do not load ~A specifications.~@:>" kind)
-    (or (iter (for namestring in namestrings)
-              (if-let ((matches (collect-inputs (parse-namestring namestring))))
-                (appending matches)
-                (warn "~@<~A pattern ~S did not match anything.~@:>"
-                      kind namestring)))
-        (error "~@<None of the ~A patterns ~{~S~^, ~} matched ~
-                anything.~@:>"
-               kind namestrings))))
+    (or (iter (for pattern in patterns)
+              (when-let ((matches (collect-inputs (pathname pattern))))
+                (appending matches)))
+        (error-behavior-restart-case
+            (if-no-match (simple-error
+                          :format-control   "~@<None of the ~A patterns ~
+                                             ~{~S~^, ~} matched ~
+                                             anything.~@:>"
+                          :format-arguments (list kind patterns))
+                         :warning-condition simple-warning)))))
 
 (defun parse-overwrite (spec)
   (let+ ((position  (or (position #\= spec)

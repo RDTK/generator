@@ -64,6 +64,31 @@
     (append (print-items:print-items spec)
             `((:versions ,versions ":~{~A~^,~}" ((:after :name)))))))
 
+(defun make-analysis-variables (results)
+  (let+ (((&flet make-variable (key value)
+            (let ((name (format-symbol '#:keyword "ANALYSIS.~A" key)))
+              (value-cons name (to-value value)))))
+         ((&flet person->string (person)
+            (format nil "~A~@[ <~A>~]"
+                    (rs.m:name person)
+                    (first (rosetta-project.model.resource:identities person))))))
+    (iter (for (key value) :on results :by #'cddr)
+          (case key
+            ((:authors :maintainers :committers :recipe.maintainers)
+             (let ((persons (ensure-persons! value)))
+               (collect (ecase key
+                          (:authors            :author)
+                          (:maintainers        :maintainer)
+                          (:committers         :committer)
+                          (:recipe.maintainers :recipe.maintainer))
+                 :into people)
+               (collect persons :into people)
+               (collect (make-variable key (map 'list #'person->string persons))
+                 :into variables)))
+            (t
+             (collect (make-variable key value) :into variables)))
+          (finally (return (values variables people))))))
+
 (defun analyze-project (project &key cache-directory temp-directory non-interactive)
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
          ((&labels+ do-version ((version-info . info))
@@ -87,7 +112,13 @@
                                                 :parent    project
                                                 :variables version-variables)))
                                   (push version (versions project))
-                                  version))))
+                                  version)))
+                   (recipe-maintainers (jenkins.analysis::parse-people-list
+                                        (value project :recipe.maintainer '())))
+                   ((&values analysis-variables persons)
+                    (make-analysis-variables
+                     (list* :recipe.maintainers recipe-maintainers
+                            other-results))))
               (reinitialize-instance
                version
                :requires  requires
@@ -99,9 +130,8 @@
                              (list (value-cons :scm (string-downcase scm))))
                            (when branch-directory
                              (list (value-cons :branch-directory branch-directory)))
-                           (iter (for (key value) :on other-results :by #'cddr)
-                                 (let ((key (format-symbol '#:keyword "ANALYSIS.~A" key)))
-                                   (collect (value-cons key (to-value value))))))))))
+                           analysis-variables)
+               :persons   persons))))
          ((&labels+ do-version1 ((&whole arg version-info . &ign))
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)

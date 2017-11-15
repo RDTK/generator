@@ -117,6 +117,7 @@
                               (:file     "util")
                               (:file     "variables")
                               (:file     "protocol")
+                              (:file     "mixins")
                               (:file     "classes-spec")
                               (:file     "classes-model")
 

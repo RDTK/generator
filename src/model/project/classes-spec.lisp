@@ -23,7 +23,8 @@
 ;;; `distribution-spec' class
 
 (defclass distribution-spec (named-mixin
-                             direct-variables-mixin)
+                             direct-variables-mixin
+                             person-container-mixin)
   ((versions :initarg  :versions
              :type     list ; of version-spec
              :reader   versions
@@ -210,7 +211,8 @@
                         specification-mixin
                         conditional-mixin
                         parented-mixin
-                        direct-variables-mixin)
+                        direct-variables-mixin
+                        person-container-mixin)
   ((requires :initarg  :requires
              :type     list
              :accessor %requires

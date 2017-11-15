@@ -92,6 +92,12 @@
    #:provides
    #:provides-of-kind)
 
+  ;; Person container protocol
+  (:export
+   #:persons
+   #:persons-in-roles/plist
+   #:persons-in-role)
+
   ;; Platform requirements protocol
   (:export
    #:platform-requires

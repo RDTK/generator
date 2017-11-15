@@ -52,6 +52,20 @@
 
     i.e. the first element is NATURE."))
 
+;;; Person container protocol
+
+(defgeneric persons (container)
+  (:documentation
+   "Return all person objects in CONTAINER."))
+
+(defgeneric persons-in-roles/plist (container)
+  (:documentation
+   "Return a plist of roles and person object lists in CONTAINER."))
+
+(defgeneric persons-in-role (role container)
+  (:documentation
+   "Return a list of person objects for ROLE in CONTAINER."))
+
 ;;; Platform requirements protocol
 
 (defgeneric platform-requires (object platform)

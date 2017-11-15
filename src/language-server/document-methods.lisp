@@ -75,7 +75,7 @@
   (let+ (((&values line column) (parse-position position))
          (word (word-at object (cons line column)))) ; TODO return range
     (log:info word line column)
-    (if-let ((info (jenkins.model.variables:find-variable (make-keyword (string-upcase word)))))
+    (if-let ((info (jenkins.model.variables:find-variable (make-keyword (string-upcase word))))) ; TODO must sent hover reply
       (let* ((name          (jenkins.model.variables:variable-info-name info))
              (type          (jenkins.model.variables:variable-info-type info))
              (documentation (jenkins.model.variables:variable-info-documentation info))

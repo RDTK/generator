@@ -71,8 +71,9 @@
                    (and (string= required-name provided-name)
                         (version-matches required-version provided-version)))))
     ;; Final result.
-    (append `(:provides ,provides
-              :requires ,requires)
-            (maybe-property/description :description)
-            (maybe-property/append      :authors)
-            (maybe-property/first       :license))))
+    `(:natures  (,kind)
+      :provides ,provides
+      :requires ,requires
+      ,@(maybe-property/description :description)
+      ,@(maybe-property/append      :authors)
+      ,@(maybe-property/first       :license))))

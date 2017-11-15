@@ -75,7 +75,7 @@
                                                  :if-no-match :do-nothing)
          (description/long                       +ros-package-description/long+
                                                  :if-no-match :do-nothing)
-         ((:val persons :type 'plist/person)     +ros-package-persons+
+         ((:val persons :type 'cons/person+role) +ros-package-persons+
                                                  :if-multiple-matches :all)
          (license                                +ros-package-license+
                                                  :if-no-match :do-nothing)
@@ -84,31 +84,39 @@
          ((:val dependencies :type 'list/depend) +ros-package-dependencies+
                                                  :if-multiple-matches :all))
         document
-      `(:natures  (,:ros-package)
-        :provides ((:cmake ,name ,(parse-version version)))
-        :requires ,(mapcan (lambda+ ((kind name &optional version))
-                             (when (member kind '("build" "test")
-                                           :test #'string=)
-                               `((:cmake ,name
-                                         ,@(when version `(,(parse-version version)))))))
-                           dependencies)
-        ,@(cond
-            (description/long  `(:description ,description/long))
-            (description/brief `(:description ,description/brief)))
-        ,@(when url `(:url ,(cdr (first url))))
-        ,@(when license `(:license ,license))
-        ,@(when persons
-            `(:authors ,(mapcar (lambda+ ((name &key role email))
-                                  (declare (ignore role))
-                                  (format nil "~A~@[ <~A>~]" name email))
-                                persons)))))))
+      (let+ (((&values authors maintainers) (partition-persons persons)))
+        `(:natures  (,:ros-package)
+          :provides ((:cmake ,name ,(parse-version version)))
+          :requires ,(mapcan (lambda+ ((kind name &optional version))
+                               (when (member kind '("build" "test")
+                                             :test #'string=)
+                                 `((:cmake ,name
+                                           ,@(when version `(,(parse-version version)))))))
+                             dependencies)
+          ,@(cond
+              (description/long  `(:description ,description/long))
+              (description/brief `(:description ,description/brief)))
+          ,@(when url         `(:url         ,(cdr (first url))))
+          ,@(when license     `(:license     ,license))
+          ,@(when authors     `(:authors     ,authors))
+          ,@(when maintainers `(:maintainers ,maintainers)))))))
+
+;;; Utilities
+
+(defun partition-persons (persons)
+  (loop :for (person . role) :in persons
+     :when (string= role "author")
+     :collect person :into authors
+     :when (string= role "maintainer")
+     :collect person :into maintainers
+     :finally (return (values authors maintainers))))
 
 ;;; Conversion helpers
 
-(deftype plist/person ()
-  '(cons string))
+(deftype cons/person+role ()
+  '(cons rosetta-project.model.resource:person string))
 
-(defmethod xloc:xml-> ((value stp:element) (type (eql 'plist/person))
+(defmethod xloc:xml-> ((value stp:element) (type (eql 'cons/person+role))
                        &key
                        inner-types)
   (declare (ignore inner-types))
@@ -116,7 +124,13 @@
                             (email        "@email" :if-no-match :do-nothing)
                             (name         "text()"))
       value
-    (list* name :role role (when email (list :email email)))))
+    (let+ (((&flet make-email-uri (address)
+              (make-instance 'puri:uri
+                             :scheme :mailto
+                             :path   (string-downcase address)))))
+      (cons (apply #'rosetta-project.model.resource:make-person
+                   name (when email (list :email (make-email-uri email))))
+            role))))
 
 (deftype list/depend ()
   "(PHASE DEPENDENCY &optional MINIMUM-VERSION)

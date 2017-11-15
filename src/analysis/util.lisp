@@ -163,3 +163,25 @@
                         dependency
                         current)))))
     (hash-table-values seen)))
+
+;;; Utilities for persons
+
+(defun parse-people-list (thing)
+  (values
+   (rosetta-project.model.resource:merge-persons!
+    (let ((repository (make-instance 'rs.m.d::base-repository)))
+      (rs.f:process :person-list thing `(:model :repository ,repository))))))
+
+(defun make-names->person-list (&key count)
+  (let ((names+counts (make-hash-table :test #'equal)))
+    (lambda (&optional name)
+      (if name
+          (incf (gethash name names+counts 0))
+          (names+counts->person-list names+counts :count count)))))
+
+(defun names+counts->person-list (names+counts &key count)
+  (let* ((sorted    (sort (hash-table-alist names+counts) #'> :key #'cdr))
+         (truncated (if count
+                        (subseq sorted 0 (min (length sorted) count))
+                        sorted)))
+    (parse-people-list (map 'list #'car truncated))))

@@ -155,16 +155,8 @@
                                    keywords))
                           (t      keywords ))))
          (url         (argument "url"))
-         ((&flet format-person (name email)
-            (format nil "~A ~@[<~A>~]" name email)))
-         ((&flet split-persons (string)
-            (ppcre:split "[ \\t]*(?:,|and)[ \\t]*" string)))
-         (authors     (when-let ((author (argument "author")))
-                        (split-persons author)))
-         (emails      (when-let ((email (argument "author_email")))
-                        (split-persons email)))
-         (authors     (mapcar #'format-person
-                              authors (or emails (circular-list nil))))
+         (authors     (parse-name-and-email
+                       (argument "author") (argument "author_email")))
          (license     (argument "license"))
          (requires    (mapcar (rcurry #'process-dependency globals)
                               (append
@@ -179,3 +171,21 @@
       ,@(when url         `(:url         ,url))
       ,@(when authors     `(:authors     ,authors))
       ,@(when license     `(:license     ,license)))))
+
+;;; Utilities
+
+(defun parse-name-and-email (name-or-names email-or-emails)
+  (let* ((names         (when name-or-names
+                          (parse-people-list name-or-names)))
+         (names-length  (length names))
+         (emails        (when email-or-emails
+                          (parse-people-list email-or-emails)))
+         (emails-length (length emails))
+         (max-length    (max names-length emails-length)))
+    (map 'list (lambda (person email)
+                 (if (and person email)
+                     (apply #'rosetta-project.model.resource:augment-person!
+                            person (rosetta-project.model.resource:identities email))
+                     (or person email)))
+         (append names  (make-list (- names-length  max-length)))
+         (append emails (make-list (- emails-length max-length))))))

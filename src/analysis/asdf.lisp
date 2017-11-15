@@ -50,8 +50,10 @@
                                  (append defsystem-depends-on
                                          depends-on))
               ,@(when description `(:description ,description))
-              ,@(when author      `(:authors     ,(ensure-list author)))
-              ,@(when maintainer  `(:maintainers ,(ensure-list maintainer)))
+              ,@(when author      `(:authors     ,(parse-people-list
+                                                   author)))
+              ,@(when maintainer  `(:maintainers ,(parse-people-list
+                                                   maintainer)))
               ,@(when license     `(:license     ,license))))))
     (mapcar #'process-system-form (%extract-system-definition-forms file))))
 
@@ -86,17 +88,16 @@
          ((&flet maybe-property/first (name)
             (when-let ((value (property-value/first name)))
               `(,name ,value))))
-         ;; Append the values in the analyzed systems.
-         ((&flet property-value/append (name)
-            (remove-duplicates (reduce #'append (property-values name)
-                                       :key #'second)
-                               :test #'equal)))
+         ;; Combine the values in the analyzed systems.
+         ((&flet property-value/merge-persons (name)
+            (rosetta-project.model.resource:merge-persons!
+             (reduce #'append (property-values name) :key #'second))))
+         ((&flet maybe-property/merge-persons (name)
+            (when-let ((value (property-value/merge-persons name)))
+              `(,name ,value))))
          ((&flet property-value/dependencies (name)
             (merge-dependencies
              (reduce #'append (property-values name) :key #'second))))
-         ((&flet maybe-property/append (name)
-            (when-let ((value (property-value/append name)))
-              `(,name ,value))))
          ;; Combine descriptions of analyzed systems.
          ((&flet maybe-property/description (name)
             (let ((values (remove-if #'test-system? (property-values name)
@@ -117,10 +118,10 @@
       :programming-languages ("Common Lisp")
       :systems               ,(system-names-if (complement #'test-system?))
       :test-systems          ,(system-names-if #'test-system?)
-      ,@(maybe-property/description :description)
-      ,@(maybe-property/append      :authors)
-      ,@(maybe-property/append      :maintainers)
-      ,@(maybe-property/first       :license))))
+      ,@(maybe-property/description   :description)
+      ,@(maybe-property/merge-persons :authors)
+      ,@(maybe-property/merge-persons :maintainers)
+      ,@(maybe-property/first         :license))))
 
 ;;; Utility functions
 

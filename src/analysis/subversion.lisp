@@ -108,9 +108,8 @@
                     :directory directory
                     :output    :lines
                     (safe-external-format-argument)))
-           (frequencies (make-hash-table :test #'equal)))
+           (person-collector (make-names->person-list :count max-committers)))
       (dolist (line lines)
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)
-          (incf (gethash author frequencies 0))))
-      (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
-      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-committers))))))
+          (funcall person-collector author)))
+      (funcall person-collector))))

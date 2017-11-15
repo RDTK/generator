@@ -342,11 +342,9 @@
                     :directory directory ; TODO is directory even needed?
                     :output    :lines
                     (safe-external-format-argument)))
-           (frequencies (make-hash-table :test #'equal)))
-      (dolist (line lines)
-        (incf (gethash line frequencies 0)))
-      (setf frequencies (sort (hash-table-alist frequencies) #'> :key #'cdr))
-      (mapcar #'car (subseq frequencies 0 (min (length frequencies) max-committers))))))
+           (person-collector (make-names->person-list :count max-committers)))
+      (map nil person-collector lines)
+      (funcall person-collector))))
 
 ;;; Utilities
 

@@ -80,9 +80,9 @@
 
 (defun find-provider/version (spec
                               &key
-                              (if-does-not-exist #'error)
-                              (providers         (providers/alist))
-                              order)
+                                (if-does-not-exist #'error)
+                                (providers         (providers/alist))
+                                order)
   (log:trace "~@<Trying to find provider of ~S~@:>" spec)
   (let+ (((mechanism name &optional version) spec)
          ((&flet version-better (left right)
@@ -127,3 +127,20 @@
               :dependency spec
               :candidates candidates)
              :allow-other-values? t)))))
+
+;;; People
+
+(defvar *persons* '())
+
+(defvar *persons-lock* (bt:make-lock "global person list"))
+
+(defun all-persons ()
+  (bt:with-lock-held (*persons-lock*)
+    (copy-list *persons*)))
+
+(defun ensure-persons! (people)
+  (bt:with-lock-held (*persons-lock*)
+    (let+ (((&values all-people &ign new-people)
+            (rosetta-project.model.resource:merge-persons! people *persons*)))
+      (setf *persons* all-people)
+      new-people)))

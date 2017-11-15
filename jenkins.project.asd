@@ -30,7 +30,8 @@
                 :inferior-shell
                 :ironclad
 
-                (:version :rosetta                               "0.2")
+                (:version :rosetta                               "0.4")
+                (:version :rosetta-project                       "0.3")
 
                 (:version :jenkins.api                           "0.1")
 

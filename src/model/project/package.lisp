@@ -44,6 +44,11 @@
    #:version>=
    #:version-matches)
 
+  ;; People
+  (:export
+   #:all-persons
+   #:ensure-persons!)
+
   ;; Template protocol
   (:export
    #:find-template

@@ -78,6 +78,7 @@
                               (:file     "setuptools")
                               (:file     "ros-package")
                               (:file     "ros-packages")
+                              (:file     "mps")
 
                               ;; Platform analysis
                               (:file     "platform")))

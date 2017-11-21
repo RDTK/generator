@@ -1,3 +1,9 @@
+;;;; language-server.lisp --- TODO.
+;;;;
+;;;; Copyright (C) 2016, 2017 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 ;;;; https://github.com/Microsoft/language-server-protocol/
 
 (cl:in-package #:jenkins.language-server)
@@ -6,45 +12,27 @@
   (catch 'exit
     (with-output-to-file (*trace-output* "/tmp/trace" :if-exists :supersede)
       (loop :with context = (make-instance 'context)
-         :do (process-request input output context)))))
+         :with connection = (make-instance 'connection :input input :output output)
+         :do (process-request connection context)))))
 
-(defun process-request (input output context)
-  (let+ ((request/raw (read-request input))
-         (request     (json:decode-json-from-string request/raw))
-
-         (id          (assoc-value request :id))
-         (method      (make-keyword (string-upcase (assoc-value request :method))))
-         (arguments   (alist-plist (assoc-value request :params)))
-
+(defun process-request (connection context)
+  (let+ (((&values id method arguments) (read-request connection))
          ((&values result condition)
-          (ignore-errors (apply #'process-method context method arguments)))
-         (response
-          (when id
-            (json:encode-json-to-string
-             `((:jsonrpc . "2.0")
-               (:id      . ,id)
-               ,(if condition
-                    `(:error  . ((:code    . 0)
-                                 (:message . ,(princ-to-string condition))))
-                    `(:result . ,result)))))))
-
+          (ignore-errors (apply #'process-method context method arguments))))
     (when condition
       (format *trace-output* "Error: ~A~%" condition)
       (force-output *trace-output*))
 
-    (print request *trace-output*)
-    (print response *trace-output*)
-    (force-output *trace-output*)
+    ; (print request *trace-output*)
+    ; (print response *trace-output*)
+    ; (force-output *trace-output*)
 
-    (case response
-      ((nil))
-      (:exit
+    (cond
+      ((eq result :exit)
        (throw 'exit nil))
+      ((not id))
       (t
-       (write-response output response)))))
-
-
-
+       (write-response connection id result)))))
 
 ;;; TOOO move somewhere
 

@@ -1,3 +1,9 @@
+;;;; transport.lisp --- TODO.
+;;;;
+;;;; Copyright (C) 2016, 2017 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:jenkins.language-server)
 
 (defun parse-header-fields (fields)
@@ -6,7 +12,8 @@
                      ((name value) (split-sequence #\: string)))
                 (cons name (string-left-trim '(#\Space) value)))))
 
-(defun read-request (stream)
+;; TODO separate package?
+(defun transport/read-request (stream)
   (prog ((header-fields '())
          (header-field  (make-array 0
                                     :element-type '(unsigned-byte 8)
@@ -46,7 +53,7 @@
      (read-sequence buffer stream)
      (return (values (sb-ext:octets-to-string buffer) fields)))))
 
-(defun write-response (stream content)
+(defun transport/write-response (stream content)
   (write-string "Content-Length: " stream)
   (write (length content) :stream stream)
   (write-string #.(coerce '(#\Return #\Newline #\Return #\Newline) 'string) stream)

@@ -1,8 +1,14 @@
+;;;; document-methods.lisp --- TODO.
+;;;;
+;;;; Copyright (C) 2016, 2017 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:jenkins.language-server)
 
 ;;;
 
-(defmethod process-interface-method ((context   context)
+(defmethod process-interface-method ((context   context) ; TODO move to context-methods.lisp?
                                      (interface (eql :textdocument))
                                      (method    (eql :didopen))
                                      &key

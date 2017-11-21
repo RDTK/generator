@@ -1,4 +1,34 @@
+;;;; protocol.lisp --- Protocol provided by the language-server module.
+;;;;
+;;;; Copyright (C) 2016, 2017 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:jenkins.language-server)
+
+;;; Document protocol
+
+(defgeneric version (document)
+  (:documentation
+   "TODO"))
+
+(defgeneric text (document)
+  (:documentation
+   "TODO"))
+
+(defgeneric update (document start-index end-index new-text)
+  (:documentation
+   "TODO"))
+
+(defgeneric position->index (document line character)
+  (:documentation
+   "TODO"))
+
+(defgeneric word-at (document position)
+  (:documentation
+   "TODO"))
+
+;;;
 
 (defgeneric process-method (object method &key &allow-other-keys))
 

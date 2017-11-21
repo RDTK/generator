@@ -26,6 +26,7 @@
                               (:file       "protocol")
 
                               (:file       "transport")
+                              (:file       "connection")
                               (:file       "messages")
 
                               (:file       "context")

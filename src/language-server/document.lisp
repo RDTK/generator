@@ -1,14 +1,26 @@
+;;;; document.lisp --- TODO.
+;;;;
+;;;; Copyright (C) 2016, 2017 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:jenkins.language-server)
 
 (defclass document ()
-  ((version  :initarg    :version
-             :type       non-negative-integer)
-   (text     :type       string
-             :reader     text
-             :writer     (setf %text))
-   (newlines :type       vector
-             :reader     newlines
-             :initform   (make-array 100 :fill-pointer 0 :adjustable t))))
+  ((version  :initarg  :version
+             :type     non-negative-integer
+             :reader   version)
+   (text     :type     string
+             :reader   text
+             :writer   (setf %text)
+             :documentation
+             "Stores the current text of the document.")
+   (newlines :type     vector
+             :reader   newlines
+             :initform (make-array 100 :fill-pointer 0 :adjustable t)
+             :documentation
+             "Stores positions of newlines as indices into the string
+              stored in the `text' slot.")))
 
 (defmethod shared-initialize :after ((instance   document)
                                      (slot-names t)
@@ -28,14 +40,6 @@
          :while next
          :do (vector-push-extend next newlines)))))
 
-(defmethod position->index ((document  document)
-                            (line      integer)
-                            (character integer))
-  (+ (if (plusp line)
-         (1+ (aref (newlines document) (1- line)))
-         0)
-     character))
-
 (defmethod update ((document    document)
                    (start-index integer)
                    (end-index   integer)
@@ -47,6 +51,14 @@
                        (subseq text 0 start-index)
                        new-text
                        (subseq text end-index)))))
+
+(defmethod position->index ((document  document)
+                            (line      integer)
+                            (character integer))
+  (+ (if (plusp line)
+         (1+ (aref (newlines document) (1- line)))
+         0)
+     character))
 
 ;;; Utilities
 
@@ -65,4 +77,5 @@
 
 (defmethod word-at ((document document)
                     (position cons))
-  (word-at document (position->index document (car position) (cdr position))))
+  (let+ (((line . character) position))
+    (word-at document (position->index document line character))))

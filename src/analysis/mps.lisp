@@ -6,6 +6,9 @@
 
 (cl:in-package #:jenkins.analysis)
 
+(define-constant +mps-plugin-build-files+
+    :mps-plugin-build-files)
+
 (define-constant +mps-plugin-build-file-nature+
     :mps-plugin-build-file)
 
@@ -29,10 +32,47 @@
                        (type  (eql 'list/property))
                        &key inner-types)
   (declare (ignore inner-types))
-  (xloc:with-locations-r/o ((name "@name")
+  (xloc:with-locations-r/o ((name     "@name")
                             (location "@location"))
       value
     (list name location)))
+
+(defmethod analyze :around ((source pathname)
+                            (kind   (eql +mps-plugin-build-file-nature+))
+                            &key)
+  (if (uiop:directory-pathname-p source)
+      (analyze source +mps-plugin-build-files+)
+      (call-next-method)))
+
+(defmethod analyze ((source pathname)
+                    (kind   (eql +mps-plugin-build-files+))
+                    &key
+                    (build-file-pattern "*build*.xml"))
+  (let+ ((files   (directory (merge-pathnames build-file-pattern source)))
+         (results (mapcan
+                   (lambda (file)
+                     (with-simple-restart
+                         (continue "~@<Skip file \"~A\".~@:>" file)
+                       (list (list (enough-namestring file source)
+                                   (analyze file +mps-plugin-build-file-nature+)))))
+                   files))
+         ((&flet property-values (name)
+            (map 'list (compose (rcurry #'getf name) #'second) results)))
+         ;;
+         ((&flet property-value/union (name &key (test #'equal))
+            (reduce (rcurry #'union :test test) (property-values name)
+                    :initial-value '())))
+         ;; Combine the values in the analyzed packages.
+         ((&flet property-value/dependencies (name)
+            (merge-dependencies
+             (reduce #'append (property-values name))))))
+    `(:natures               ,(property-value/union :natures :test #'eq)
+      :provides              ,(property-value/dependencies :provides)
+      :requires              ,(property-value/dependencies :requires)
+      :programming-languages ,(property-value/union :programming-languages
+                                                    :test #'eq)
+      :home-variables        ,(property-value/union :home-variables)
+      :plugin-build-files    ,(map 'list #'first results))))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql +mps-plugin-build-file-nature+))

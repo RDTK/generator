@@ -11,8 +11,8 @@
 (defun language-server (input output)
   (catch 'exit
     (with-output-to-file (*trace-output* "/tmp/trace" :if-exists :supersede)
-      (loop :with context = (make-instance 'context)
-         :with connection = (make-instance 'connection :input input :output output)
+      (loop :with connection = (make-instance 'connection :input input :output output)
+         :with context = (make-instance 'context :connection connection)
          :do (process-request connection context)))))
 
 (defun process-request (connection context)
@@ -55,10 +55,13 @@
                 (:detail        . ,(format nil "Type: ~A " type))
                 (:documentation . ,documentation))))))
     `((:is-complete . t)
-      (:items       . ,(loop :for variable :in (jenkins.model.variables:all-variables)
-                          :when (starts-with-subseq
-                                 prefix (string-downcase (jenkins.model.variables:variable-info-name variable)))
-                          :collect (make-item variable))))))
+      (:items       . ,(or
+                        (loop :for variable :in (jenkins.model.variables:all-variables)
+                           :when (starts-with-subseq
+                                  prefix (string-downcase (jenkins.model.variables:variable-info-name variable)))
+                           :collect (make-item variable))
+                        #() ; HACK
+                        )))))
 
 (defmethod complete ((context (eql :variable-value))
                      (prefix  string))

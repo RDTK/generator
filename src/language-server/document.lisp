@@ -6,8 +6,11 @@
 
 (cl:in-package #:jenkins.language-server)
 
-(defclass document ()
-  ((version  :initarg  :version
+(defclass document (print-items:print-items-mixin)
+  ((language :initarg  :language
+             :type     keyword
+             :reader   language)
+   (version  :initarg  :version
              :type     non-negative-integer
              :reader   version)
    (text     :type     string
@@ -20,7 +23,10 @@
              :initform (make-array 100 :fill-pointer 0 :adjustable t)
              :documentation
              "Stores positions of newlines as indices into the string
-              stored in the `text' slot.")))
+              stored in the `text' slot."))
+  (:default-initargs
+   :language (error "missing required initarg :language")
+   :version  (error "missing required initarg :version")))
 
 (defmethod shared-initialize :after ((instance   document)
                                      (slot-names t)
@@ -29,6 +35,11 @@
 
   (when text-supplied?
     (setf (%text instance) text)))
+
+(defmethod print-items:print-items append ((object document))
+  `((:language   ,(language object)          "~A")
+    (:line-count ,(length (newlines object)) " ~D line~:P" ((:after :language)))
+    (:version    ,(version object)           " @~D"        ((:after :line-count)))))
 
 (defmethod (setf %text) :after ((new-value string)
                                 (document  document))
@@ -51,6 +62,13 @@
                        (subseq text 0 start-index)
                        new-text
                        (subseq text end-index)))))
+
+(defmethod update ((document    document)
+                   (start-index null)
+                   (end-index   null)
+                   (new-text    string))
+  (log:info "replacing document text" new-text)
+  (setf (%text document) new-text))
 
 (defmethod position->index ((document  document)
                             (line      integer)

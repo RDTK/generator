@@ -32,6 +32,9 @@
                               (:file       "context")
                               (:file       "context-methods")
 
+                              (:file       "workspace")
+                              (:file       "workspace-methods")
+
                               (:file       "document")
                               (:file       "document-methods")
 

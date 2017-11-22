@@ -8,43 +8,15 @@
 
 ;;;
 
-(defmethod process-interface-method ((context   context) ; TODO move to context-methods.lisp?
-                                     (interface (eql :textdocument))
-                                     (method    (eql :didopen))
-                                     &key
-                                     text-document)
-  (let+ (((&values uri version) (parse-text-document text-document))
-         ;; (language-id :language-id)
-         (text (assoc-value text-document :text)))
-    (log:info "new document" uri version text)
-    (setf (find-document uri context) (make-instance 'document
-                                                     :version version
-                                                     :text    text))
-    (log:info "registered" #+no (newlines (find-document uri context)))))
-
-(defmethod process-interface-method ((context   context)
-                                     (interface (eql :textdocument))
-                                     (method    (eql :didclose))
-                                     &key
-                                     text-document)
-  (let ((uri (parse-text-document text-document)))
-    (setf (find-document uri context) nil)))
-
-(defmethod process-interface-method ((context   context)
-                                     (interface (eql :textdocument))
-                                     (method    t)
-                                     &rest args &key text-document)
-  (let+ (((&values uri version) (parse-text-document text-document))
-         (document (find-document uri context)))
-    (apply #'process-method document method
-           :version version (remove-from-plist args :text-document))))
-
-;;;
+(defmethod process-method ((object document)
+                           (method (eql :willsave))
+                           &key
+                             ))
 
 (defmethod process-method ((object document)
                            (method (eql :didsave))
                            &key
-                           ))
+                             ))
 
 (defmethod process-method ((object document)
                            (method (eql :didchange))
@@ -57,6 +29,13 @@
               (log:info "~D:~D - ~D:~D -> ~S~%"
                         start-line start-column end-line end-column text)
 
+              (update object
+                      (when (and start-line start-column)
+                        (position->index object start-line start-column))
+                      (when (and end-line end-column)
+                        (position->index object end-line end-column))
+                      text)
+
               (when-let ((thread (find "repl-thread" (bt:all-threads)
                                        :key #'bt:thread-name :test #'string=)))
                 (bt:interrupt-thread
@@ -68,10 +47,7 @@
                        (insert ,(text object)))
                     t))))
 
-              (update object
-                      (position->index object start-line start-column)
-                      (position->index object end-line end-column)
-                      text)))))
+              ))))
     (map nil #'apply-change content-changes)))
 
 (defmethod process-method ((object document)
@@ -87,7 +63,9 @@
              (documentation (jenkins.model.variables:variable-info-documentation info))
              (description   (format nil "~(~A~): ~(~A~)~2%~A" name type documentation))) ; TODO the commandline-options system has a function for breaking a documentation string into paragraphs and rendering them
         `((:contents . ,description)
-          #+optinal (:range    . ))))))
+          #+optinal (:range    . )))
+      (make-hash-table) ; HACK
+      )))
 
 (defmethod process-method ((object document)
                            (method (eql :completion))
@@ -105,6 +83,18 @@
   )
 
 (defmethod process-method ((object document)
-                           (method (eql :symbol-highlight))
+                           (method (eql :symbol-highlight)) ; TODO does this exist?
                            &key)
   )
+
+(defmethod process-method ((object document)
+                           (method (eql :documenthighlight))
+                           &key
+                           version
+                           position)
+  (let+ (((&values line column) (parse-position position)))
+    (vector `((:range . ((:start . ((:line      . ,(1- line))
+                                    (:character . 1)))
+                         (:end   . ((:line      . ,(1- line))
+                                    (:character . 10)))))
+              (:kind  . 1)))))

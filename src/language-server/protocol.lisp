@@ -28,6 +28,16 @@
   (:documentation
    "TODO"))
 
+;;;  Document container protocol
+
+(defgeneric find-document (uri container)
+  (:documentation
+   "TODO"))
+
+(defgeneric (setf find-document) (new-value uri container)
+  (:documentation
+   "TODO"))
+
 ;;;
 
 (defgeneric process-method (object method &key &allow-other-keys))

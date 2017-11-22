@@ -41,9 +41,10 @@
 
 (defmethod write-notification ((connection connection) (method string) (payload t))
   (let ((raw (json:encode-json-to-string
-              `((:method . ,method)
-                (:params . ,payload)))))
-    (transport/write-response (output connection) raw)))
+              `((:jsonrpc . "2.0")
+                (:method  . ,method)
+                (:params  . ,payload)))))
+    (transport/write-response (make-broadcast-stream (output connection) *trace-output*) raw)))
 
 ;;; Utilities
 

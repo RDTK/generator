@@ -332,7 +332,7 @@
               (mapcar #'%cmake-list-unless-equal
                       arguments arguments/resolved))
     (mapcan (lambda (sub-directory)
-              (when sub-directory
+              (when (and sub-directory (not (emptyp sub-directory)))
                 (list (merge-pathnames
                        (make-pathname :directory `(:relative ,sub-directory))
                        directory))))

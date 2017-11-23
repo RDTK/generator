@@ -92,9 +92,18 @@
                            &key
                            version
                            position)
-  (let+ (((&values line column) (parse-position position)))
-    (vector `((:range . ((:start . ((:line      . ,(1- line))
-                                    (:character . 1)))
-                         (:end   . ((:line      . ,(1- line))
-                                    (:character . 10)))))
-              (:kind  . 1)))))
+  (let+ (((&values line column) (parse-position position))
+         (word (word-at object (cons line column)))
+         ((&flet index-position (index)
+            (let+ (((&values line column) (index->position object index)))
+              `((:line      . ,line)
+                (:character . ,column))))))
+    (if word
+        (loop :with text = (text object)
+           :for previous = 0 :then (+ index (length word))
+           :for index = (search word text :start2 previous)
+           :while index
+           :collect `((:range . ((:start . ,(index-position index))
+                                 (:end   . ,(index-position (+ index (length word))))))
+                      (:kind  . ,(1+ (random 3)))))
+        (vector))))

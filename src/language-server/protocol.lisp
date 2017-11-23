@@ -24,6 +24,10 @@
   (:documentation
    "TODO"))
 
+(defgeneric index->position (document index)
+  (:documentation
+   "TODO"))
+
 (defgeneric word-at (document position)
   (:documentation
    "TODO"))

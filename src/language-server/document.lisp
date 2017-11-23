@@ -78,6 +78,15 @@
          0)
      character))
 
+(defmethod index->position ((document  document)
+                            (index     integer))
+  (let+ (((&accessors-r/o newlines) document)
+         (line          (position index newlines :test #'<))
+         (newline-index (if line
+                            (aref newlines line)
+                            0)))
+    (values (1+ line) (- index newline-index 1))))
+
 ;;; Utilities
 
 (defmethod word-at ((document document)
@@ -91,7 +100,8 @@
                         -1)))
          (end   (or (position-if #'not-word? text :start position)
                     (length text))))
-    (subseq text start end)))
+    (unless (= start end) ; TODO
+      (subseq text start end))))
 
 (defmethod word-at ((document document)
                     (position cons))

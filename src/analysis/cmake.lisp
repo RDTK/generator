@@ -34,9 +34,18 @@
    :case-insensitive-mode t)
   "Finds project(<name> …) calls.")
 
-(defparameter *subdirectory-scanner*
+(defparameter *subdirs-scanner*
   (ppcre:create-scanner
-   (format nil "^[ \\t]*(?:subdirs|add_subdirectory)[ \\t\\n]*\\(~
+   (format nil "^[ \\t]*subdirs[ \\t\\n]*\\(~
+                  ([^)]*)~
+                \\)")
+   :multi-line-mode       t
+   :case-insensitive-mode t)
+  "Finds subdirs(<name> …) calls.")
+
+(defparameter *add-subdirectory-scanner*
+  (ppcre:create-scanner
+   (format nil "^[ \\t]*add_subdirectory[ \\t\\n]*\\(~
                   ([^)]*)~
                 \\)")
    :multi-line-mode       t
@@ -316,21 +325,26 @@
         content variables
         (uiop:pathname-directory-pathname source))))))
 
-(defun %cmake-analyze-sub-directory (arguments variables directory)
-  (let+ (((&flet resolve (expression &optional continue-report)
+(defun %cmake-analyze-sub-directory (kind arguments variables directory)
+  (let+ ((description (ecase kind
+                        (:subdirs          "subdirs(…) expression")
+                        (:add-subdirectory "add_subdirectory(…) expression")))
+         ((&flet resolve (expression &optional continue-report)
             (%cmake-resolve-variables
              expression variables
              :if-unresolved (%cmake-continuable-resolution-error
-                             "subdirs(…) or add_subdirectory(…) expression"
-                             continue-report))))
+                             description continue-report))))
          (arguments          (%cmake-split-arguments arguments))
+         (arguments/relevant (ecase kind
+                               (:subdirs          arguments)
+                               (:add-subdirectory (subseq arguments 0 1))))
          (arguments/resolved (mapcar (rcurry #'resolve "Ignore the module")
-                                     arguments)))
-    (log:debug "~@<Found subdirs(…) or add_subdirectory(…) call with ~
-                director~@P ~{~{~S~^ → ~S~}~^, ~}~@:>"
-              (length arguments)
-              (mapcar #'%cmake-list-unless-equal
-                      arguments arguments/resolved))
+                                     arguments/relevant)))
+    (log:debug "~@<Found ~A with director~@P ~{~{~S~^ → ~S~}~^, ~
+                ~}~@:>"
+               description (length arguments)
+               (mapcar #'%cmake-list-unless-equal
+                       arguments arguments/resolved))
     (mapcan (lambda (sub-directory)
               (when (and sub-directory (not (emptyp sub-directory)))
                 (list (merge-pathnames
@@ -341,10 +355,15 @@
 (defun %cmake-analyze-sub-directories (content variables directory)
   (let ((result '()))
     (ppcre:do-register-groups (arguments)
-        (*subdirectory-scanner* content)
+        (*subdirs-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
         (appendf result (%cmake-analyze-sub-directory
-                         arguments variables directory))))
+                         :subdirs arguments variables directory))))
+    (ppcre:do-register-groups (arguments)
+        (*add-subdirectory-scanner* content)
+      (with-simple-restart (continue "Skip the dependency")
+        (appendf result (%cmake-analyze-sub-directory
+                         :add-subdirectory arguments variables directory))))
     result))
 
 (defun %cmake-analyze-find-package (name version components variables)

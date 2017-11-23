@@ -6,6 +6,10 @@
 
 (cl:in-package #:jenkins.project.commands)
 
+#.(progn
+    #1=(asdf:load-system :swank)
+    '#1#)
+
 (defclass language-server ()
   ()
   (:documentation
@@ -18,7 +22,11 @@
     (*command-schema* "language-server"))
 
 (defmethod command-execute ((command language-server))
-  (asdf:load-system :swank)
+  (log4cl:remove-all-appenders log4cl:*root-logger*)
+  (log:config :info :daily "/tmp/build-generator-language-server.log")
+
+
+  ;; Swank. TODO move this somewhere else
   (ignore-errors (delete-file "/tmp/port.txt"))
   (uiop:symbol-call '#:swank '#:start-server "/tmp/port.txt" :dont-close t)
 

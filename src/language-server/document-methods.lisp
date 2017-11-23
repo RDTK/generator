@@ -56,7 +56,6 @@
                            position)
   (let+ (((&values line column) (parse-position position))
          (word (word-at object (cons line column)))) ; TODO return range
-    (log:info word line column)
     (if-let ((info (jenkins.model.variables:find-variable (make-keyword (string-upcase word))))) ; TODO must sent hover reply
       (let* ((name          (jenkins.model.variables:variable-info-name info))
              (type          (jenkins.model.variables:variable-info-type info))
@@ -71,16 +70,17 @@
                            (method (eql :completion))
                            &key
                            position)
-  (let* ((text (word-at object (multiple-value-call #'cons (parse-position position)))))
-    (format *trace-output* "~S" text)
-    (complete :variable-name text)
+  (let ((word (word-at object (multiple-value-call #'cons (parse-position position)))))
+    (complete :variable-name word)
     #+no (complete :variable-value)))
 
 (defmethod process-method ((object document)
                            (method (eql :definition))
                            &key
                            position)
-  )
+  (let+ (((&values line column) (parse-position position))
+         (word (word-at object (cons line column))))
+    ))
 
 (defmethod process-method ((object document)
                            (method (eql :symbol-highlight)) ; TODO does this exist?

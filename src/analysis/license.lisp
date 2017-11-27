@@ -51,17 +51,18 @@
     (append system-licenses extra-licenses)))
 
 (defun identify-license (text &key (known-licenses *licenses*) (threshold .2))
-  (let* ((normalized (normalize-text text))
-         (threshold  (min (truncate threshold (/ (length normalized))) 2000)))
-    (or ;; Fast path: exact match.
-        (car (find normalized known-licenses :test #'string= :key #'cdr))
-        ;; Slow path: edit distance.
-        (car (find normalized known-licenses
-                   :test (lambda (text license)
-                           (< (edit-distance text license
-                                             :upper-bound threshold)
-                              threshold))
-                   :key  #'cdr)))))
+  (let ((normalized (normalize-text text)))
+    (unless (emptyp normalized) ; Could even warn here
+      (let ((threshold  (min (truncate threshold (/ (length normalized))) 2000)))
+        (or ;; Fast path: exact match.
+            (car (find normalized known-licenses :test #'string= :key #'cdr))
+            ;; Slow path: edit distance.
+            (car (find normalized known-licenses
+                       :test (lambda (text license)
+                               (< (edit-distance text license
+                                                 :upper-bound threshold)
+                                  threshold))
+                       :key  #'cdr)))))))
 
 (defvar *license-file-patterns*
   '("COPYING.*" "LICENSE.*" "*/**/COPYING.*" "*/**/LICENSE.*"))

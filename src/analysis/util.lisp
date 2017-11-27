@@ -30,6 +30,19 @@
                    :key #'namestring)
         candidates)))
 
+(defun make-file-generator (directory patterns)
+  (let+ ((patterns patterns)
+         (files    nil)
+         ((&labels next ()
+            (cond
+              (files
+               (pop files))
+              (patterns
+               (let ((pattern (merge-pathnames (pop patterns) directory)))
+                 (setf files (directory pattern))
+                 (next)))))))
+    #'next))
+
 (defun safe-external-format-argument ()
   #+sbcl '(:external-format (:utf-8 :replacement #\?)))
 

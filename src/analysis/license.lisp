@@ -61,24 +61,20 @@
                            (< (edit-distance text license
                                              :upper-bound threshold)
                               threshold))
-                   :key #'cdr)))))
+                   :key  #'cdr)))))
+
+(defvar *license-file-patterns*
+  '("COPYING.*" "LICENSE.*" "*/**/COPYING.*" "*/**/LICENSE.*"))
 
 (defmethod analyze ((directory pathname)
                     (kind      (eql :license))
                     &key
                     (threshold .2))
   (with-trivial-progress (:analyze/license "~A" directory)
-    (when-let* ((project-file (first
-                               (append
-                                (find-files
-                                 (merge-pathnames "COPYING.*" directory))
-                                (find-files
-                                 (merge-pathnames "LICENSE.*" directory))
-                                (find-files
-                                 (merge-pathnames "**/COPYING.*" directory))
-                                (find-files
-                                 (merge-pathnames "**/LICENSE.*" directory)))))
-                (license
-                 (identify-license (read-file-into-string* project-file)
-                                   :threshold threshold)))
-      `(:license ,license))))
+    (loop :with files = (make-file-generator
+                         directory *license-file-patterns*)
+       :for file = (funcall files)
+       :while file
+       :do (when-let* ((text    (read-file-into-string* file))
+                       (license (identify-license text :threshold threshold)))
+             (return-from analyze `(:license ,license))))))

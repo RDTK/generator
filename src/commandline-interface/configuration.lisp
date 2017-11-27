@@ -64,8 +64,8 @@
 (configuration.options:define-schema *jenkins-schema*
   "Options controlling communication with a Jenkins including
    authentication."
-  ("base-uri"  :type    'string ; TODO puri:uri
-               :default "https://localhost:8080"
+  ("base-uri"  :type    'puri:uri
+               :default (puri:uri "https://localhost:8080")
                :documentation
                "Jenkins base URI.")
   ("username"  :type    'string

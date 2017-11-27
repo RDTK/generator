@@ -12,16 +12,26 @@
      :collect (cons name (read-file-into-string* file))))
 
 (defvar *licenses*
-  (let ((system-licenses (directory-licenses "/usr/share/common-licenses/")))
+  (let ((system-licenses (directory-licenses "/usr/share/common-licenses/"))
+        (extra-licenses  (directory-licenses (asdf:system-relative-pathname
+                                              :jenkins.project "data/licenses/"))))
     (log:info "~@<~:[~
                  Not including any system licenses~
                ~;~:*~
                  Including system licenses~@:_~
                  ~<~{• ~A~^~@:_~}~:>~@:_~
+               ~]~
+               ~:[~
+                 Not including any extra licenses~
+               ~;~:*~
+                 Including extra licenses~@:_~
+                 ~<~{• ~A~^~@:_~}~:>~@:_~
                ~]~:>"
               (when system-licenses
-                (list (map 'list #'first system-licenses))))
-    system-licenses))
+                (list (map 'list #'first system-licenses)))
+              (when extra-licenses
+                (list (map 'list #'first extra-licenses))))
+    (append system-licenses extra-licenses)))
 
 (defun identify-license (text
                          &key

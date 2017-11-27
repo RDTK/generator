@@ -6,16 +6,34 @@
 
 (cl:in-package #:jenkins.analysis)
 
+(defun directory-licenses (directory)
+  (loop :for file :in (directory (merge-pathnames "**/*.*" directory))
+     :for name = (namestring (make-pathname :directory nil :defaults file))
+     :collect (cons name (read-file-into-string* file))))
+
+(defvar *licenses*
+  (let ((system-licenses (directory-licenses "/usr/share/common-licenses/")))
+    (log:info "~@<~:[~
+                 Not including any system licenses~
+               ~;~:*~
+                 Including system licenses~@:_~
+                 ~<~{• ~A~^~@:_~}~:>~@:_~
+               ~]~:>"
+              (when system-licenses
+                (list (map 'list #'first system-licenses))))
+    system-licenses))
+
 (defun identify-license (text
                          &key
-                         (known-licenses (directory "/usr/share/common-licenses/**/*.*"))
+                         (known-licenses *licenses*)
                          (threshold 200))
   (or ;; Fast path: exact match.
-      (find text known-licenses :test #'string= :key #'read-file-into-string*)
+      (car (find text known-licenses :test #'string= :key #'cdr))
       ;; Slow path: edit distance.
-      (find text known-licenses
-            :test (lambda (x y) (< (edit-distance x y :upper-bound threshold) threshold))
-            :key #'read-file-into-string*)))
+      (car (find text known-licenses
+                 :test (lambda (x y)
+                         (< (edit-distance x y :upper-bound threshold) threshold))
+                 :key #'cdr))))
 
 (defmethod analyze ((directory pathname)
                     (kind      (eql :license))
@@ -32,7 +50,7 @@
                                  (merge-pathnames "**/COPYING.*" directory))
                                 (find-files
                                  (merge-pathnames "**/LICENSE.*" directory)))))
-                (system-file
+                (license
                  (identify-license (read-file-into-string* project-file)
                                    :threshold threshold)))
-      `(:license ,(pathname-name system-file)))))
+      `(:license ,license))))

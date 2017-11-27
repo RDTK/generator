@@ -6,6 +6,17 @@
 
 (cl:in-package #:jenkins.analysis)
 
+(defun identify-license (text
+                         &key
+                         (known-licenses (directory "/usr/share/common-licenses/**/*.*"))
+                         (threshold 200))
+  (or ;; Fast path: exact match.
+      (find text known-licenses :test #'string= :key #'read-file-into-string*)
+      ;; Slow path: edit distance.
+      (find text known-licenses
+            :test (lambda (x y) (< (edit-distance x y :upper-bound threshold) threshold))
+            :key #'read-file-into-string*)))
+
 (defmethod analyze ((directory pathname)
                     (kind      (eql :license))
                     &key
@@ -22,15 +33,6 @@
                                 (find-files
                                  (merge-pathnames "**/LICENSE.*" directory)))))
                 (system-file
-                 (let ((content  (read-file-into-string* project-file))
-                       (licenses (directory "/usr/share/common-licenses/**/*.*")))
-                   (or
-                    ;; Fast path: exact match.
-                    (find content licenses
-                          :test #'string=
-                          :key  #'read-file-into-string*)
-                    ;; Slow path: edit distance.
-                    (find content licenses
-                          :test (lambda (x y) (< (edit-distance x y :upper-bound threshold) threshold))
-                          :key #'read-file-into-string*)))))
+                 (identify-license (read-file-into-string* project-file)
+                                   :threshold threshold)))
       `(:license ,(pathname-name system-file)))))

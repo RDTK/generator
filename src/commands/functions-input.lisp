@@ -331,15 +331,21 @@
 
 (defun set-overwrites (distributions overwrites)
   (with-sequence-progress (:overwrites distributions)
-   (map (class-of distributions)
-        (lambda (distribution)
-          (progress "~S" distribution)
-          (with-simple-restart
-              (continue "~@<Do not overwrite variables in ~S.~@:>"
-                        distribution)
-            (iter (for (name . value) in overwrites)
-                  (log:info "~@<In ~A, setting ~S to ~S.~@:>"
-                            distribution name value)
-                  (setf (lookup distribution name) value)))
-          distribution)
-        distributions)))
+    (map (class-of distributions)
+         (lambda (distribution)
+           (progress "~S" distribution)
+           (with-simple-restart
+               (continue "~@<Do not overwrite variables in ~S.~@:>"
+                         distribution)
+             (iter (for (name . value) in overwrites)
+                   (log:info "~@<In ~A, setting ~S to ~S.~@:>"
+                             distribution name value)
+                   (setf (lookup distribution name) value))
+             (let ((recipe-maintainers
+                    (ensure-persons!
+                     (jenkins.analysis::parse-people-list
+                      (value/cast distribution :recipe.maintainer '())))))
+               (reinitialize-instance
+                distribution :persons `(:recipe.maintainer ,recipe-maintainers))
+               distribution)))
+         distributions)))

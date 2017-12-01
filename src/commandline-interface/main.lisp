@@ -89,7 +89,8 @@
              (collect (make-variable key value) :into variables)))
           (finally (return (values variables people))))))
 
-(defun analyze-project (project &key cache-directory temp-directory non-interactive)
+(defun analyze-project (project &rest args &key cache-directory temp-directory non-interactive)
+  (declare (ignore cache-directory temp-directory non-interactive))
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
          ((&labels do-version (version-info results)
             (let+ ((version-name      (getf version-info :name))
@@ -157,15 +158,11 @@
                      :sub-directory    (when-let ((value (var :sub-directory)))
                                          (parse-namestring (concatenate 'string value "/")))
                      :history-limit    (var :scm.history-limit)
-                     :non-interactive  non-interactive
                      (append
                       (let ((natures (var :natures :none)))
                         (unless (eq natures :none)
                           (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
-                      (when cache-directory
-                        (list :cache-directory cache-directory))
-                      (when temp-directory
-                        (list :temp-directory temp-directory)))))))
+                      args)))))
     project))
 
 (defun load-projects/versioned (files-and-versions)
@@ -228,7 +225,8 @@
                                             versions1)))))))
      :parts most-positive-fixnum files-and-versions)))
 
-(defun analyze-projects (projects &key cache-directory temp-directory non-interactive)
+(defun analyze-projects (projects &rest args &key cache-directory temp-directory non-interactive)
+  (declare (ignore cache-directory temp-directory non-interactive))
   (jenkins.analysis::with-git-cache ()
     (let ((cache jenkins.analysis::*git-cache*))
       (with-sequence-progress (:analyze/project projects)
@@ -240,13 +238,7 @@
              (let ((jenkins.analysis::*git-cache* cache))
                (with-simple-restart
                    (continue "~@<Skip analyzing project ~A.~@:>" project)
-                 (when-let ((project (apply #'analyze-project project
-                                            :non-interactive non-interactive
-                                            (append
-                                             (when cache-directory
-                                               (list :cache-directory cache-directory))
-                                             (when temp-directory
-                                               (list :temp-directory temp-directory))))))
+                 (when-let ((project (apply #'analyze-project project args)))
                    (list (setf (find-project (name project)) project)))))))
          :parts most-positive-fixnum projects)))))
 

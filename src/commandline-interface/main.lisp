@@ -60,7 +60,7 @@
 
 (defmethod print-items:print-items append ((object project-spec-and-versions))
   (let+ (((&structure-r/o project-spec-and-versions- spec versions) object)
-         (versions (mapcar (rcurry #'getf :name) versions)))
+         (versions (map 'list #'name versions)))
     (append (print-items:print-items spec)
             `((:versions ,versions ":~{~A~^,~}" ((:after :name)))))))
 
@@ -74,56 +74,52 @@
                                                      :test #'string=))
                           :generator-version *generator-version*)
                          :parent distribution))
-         (branches      (as (value project :branches '()) 'list))
+         (branches      (value/cast project :branches '()))
          (branches      (intersection version-names branches :test #'string=))
-         (tags          (as (value project :tags '()) 'list))
+         (tags          (value/cast project :tags '()))
          (tags          (intersection version-names tags :test #'string=))
          (tags+branches (union branches tags))
          (versions1     (set-difference version-names tags+branches
                                         :test #'string=))
-         ((&flet process-version (name &key version-required? branch? tag? directory?)
-            (let+ ((version (or (find name (versions project)
-                                      :test #'string= :key #'name)
-                                (when version-required?
-                                  (error "~@<No version section for ~
-                                          version ~S in project ~A.~@:>"
-                                         name project))))
-                   ((&flet version-var (name &optional default)
-                      (if version
-                          (value version name default)
-                          default)))
-                   (parameters (second (find name versions
-                                             :test #'string=
-                                             :key  #'first)))
-                   (parameters (loop :for (name . value) :in parameters
-                                  :collect name :collect (jenkins.model.variables:expand
-                                                          value (lambda (&rest args)
-                                                                  (declare (ignore args))
-                                                                  (error "~@<Cannot ~
-                                                                          expand expression ~
-                                                                          ~S for version ~
-                                                                          variable ~A.~@:>"
-                                                                         value name)) )))
-                   (branch     (when branch?    (version-var :branch (when (eq branch? t) name))))
-                   (tag        (when tag?       (version-var :tag (when (eq tag? t) name))))
-                   (directory  (when directory? (version-var :directory)))
-                   (commit     (version-var :commit)))
-              `(:name   ,name
-                        ,@parameters
-                        ,@(when branch    `(:branch    ,branch))
-                        ,@(when tag       `(:tag       ,tag))
-                        ,@(when directory `(:directory ,directory))
-                        ,@(when commit    `(:commit    ,commit)))))))
+         ((&flet process-version (name &key version-required? branch? tag?)
+            (with-simple-restart (continue "~@<Skip version ~S.~@:>" name)
+              (let* ((parameters    (second (find name versions
+                                                  :test #'string=
+                                                  :key  #'first)))
+                     (version       (cond
+                                      ((find name (versions project)
+                                             :test #'string= :key #'name))
+                                      (version-required?
+                                       (error "~@<No version section for ~
+                                               version ~S in project ~
+                                               ~A.~@:>"
+                                              name project))
+                                      (t
+                                       (make-instance 'version-spec
+                                                      :name      name
+                                                      :parent    project
+                                                      :variables '()))))
+                     (name-variable (cond
+                                      (branch? :branch)
+                                      (tag?    :tag)))
+                     (variables     (append
+                                     parameters
+                                     (when (and name-variable
+                                                (not (jenkins.model.variables:value
+                                                      version name-variable nil)))
+                                       (list (value-cons name-variable name)))
+                                     (jenkins.model.variables::%direct-variables
+                                      version))))
+                (list (reinitialize-instance version :variables variables))))))
+         (versions (append (mapcan (rcurry #'process-version :branch? t)
+                                   branches)
+                           (mapcan (rcurry #'process-version :tag? t)
+                                   tags)
+                           (mapcan (rcurry #'process-version :version-required? t)
+                                   versions1))))
     (make-project-spec-and-versions
-     :spec     project
-     :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
-                       (mapcar (rcurry #'process-version :tag?    t) tags)
-                       (mapcar (rcurry #'process-version
-                                       :version-required? t
-                                       :branch?           :maybe
-                                       :tag?              :maybe
-                                       :directory?        :mabye)
-                               versions1)))))
+     :spec     (reinitialize-instance project :versions versions)
+     :versions versions)))
 
 (defun load-projects/versioned (files-and-versions)
   (with-sequence-progress (:load/project files-and-versions)
@@ -134,6 +130,32 @@
            (continue "~@<Skip project specification ~S.~@:>" file)
          (list (load-project/versioned file versions distribution))))
      :parts most-positive-fixnum files-and-versions)))
+
+;;; The values of these variables uniquely identify a "repository
+;;; access".
+;;;
+;;; Project versions can be grouped according to the values of these
+;;; variables and analyzed together.
+(defvar *repository-variables*
+  '(:repository :scm :scm.username :scm.password :sub-directory))
+
+(defun group-project-versions-for-analysis (project)
+  (let+ (((&structure-r/o project-spec-and-versions- versions) project)
+         ((&flet maybe-key-fragment (version variable)
+            (when-let ((value (jenkins.model.variables:value
+                               version variable nil)))
+              (list variable value))))
+         ((&flet version-analysis-data (version)
+            (values version
+                    (mapcan (curry #'maybe-key-fragment version)
+                            *repository-variables*))))
+         (groups (make-hash-table :test #'equalp)))
+    (map nil (lambda (version)
+               (let+ (((&values proto-version key)
+                       (version-analysis-data version)))
+                 (push proto-version (gethash key groups '()))))
+         versions)
+    (hash-table-alist groups)))
 
 (defun make-analysis-variables (results)
   (let+ (((&flet make-variable (key value)
@@ -160,30 +182,18 @@
              (collect (make-variable key value) :into variables)))
           (finally (return (values variables people))))))
 
-(defun analyze-version (project version-info results)
-  (let+ ((version-name      (getf version-info :name))
-         (version-variables (apply #'value-acons
-                                   (append (remove-from-plist version-info :name)
-                                           '(()))))
-         ((&plist-r/o (scm              :scm)
+(defun analyze-version (version results)
+  (let+ (((&plist-r/o (scm              :scm)
                       (branch-directory :branch-directory)
                       (requires         :requires)
                       (provides         :provides))
           results)
-         (other-results (remove-from-plist results
-                                           :requires :provides
-                                           :properties))
-         (version (or (find version-name (versions project)
-                            :key #'name :test #'string=)
-                      (let ((version (make-instance
-                                      'version-spec
-                                      :name      version-name
-                                      :parent    project
-                                      :variables version-variables)))
-                        (push version (versions project))
-                        version)))
+         (other-results      (remove-from-plist results
+                                                :requires :provides
+                                                :properties))
          (recipe-maintainers (jenkins.analysis::parse-people-list
-                              (value project :recipe.maintainer '())))
+                              (jenkins.model.variables:value
+                               version :recipe.maintainer '())))
          ((&values analysis-variables persons)
           (make-analysis-variables
            (list* :recipe.maintainers recipe-maintainers
@@ -194,7 +204,6 @@
      :provides  provides
      :variables (append
                  (jenkins.model.variables:direct-variables version)
-                 version-variables
                  (when scm
                    (list (value-cons :scm (string-downcase scm))))
                  (when branch-directory
@@ -202,39 +211,41 @@
                  analysis-variables)
      :persons   persons)))
 
+;;; In combination with values of the variables in
+;;; `*repository-variables*', the named variables uniquely identify a
+;;; the input data of a project analyses process.
+(defvar *analysis-variables*
+  '(:branch :tag :commit :directory :natures))
+
 (defun analyze-project (project &rest args &key cache-directory temp-directory non-interactive)
   (declare (ignore cache-directory temp-directory non-interactive))
-  (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
-         ((&labels do-version (version-info results)
-            (with-simple-restart
-                (continue "~@<Skip version ~A.~@:>" version-info)
-              (analyze-version project version-info results)))))
-    (handler-bind
-        ((error (lambda (condition)
-                  (error 'jenkins.analysis:analysis-error
-                         :specification project
-                         :cause         condition))))
-      (mapc #'do-version
-            versions
-            (macrolet ((var (name &optional default)
-                         `(value project ,name ,default)))
-              (apply #'jenkins.analysis:analyze
-                     (when-let ((value (var :repository)))
-                       (puri:uri value))
-                     :auto
-                     :scm              (var :scm)
-                     :username         (var :scm.username)
-                     :password         (var :scm.password)
-                     :versions         versions
-                     :sub-directory    (when-let ((value (var :sub-directory)))
-                                         (parse-namestring (concatenate 'string value "/")))
-                     :history-limit    (var :scm.history-limit)
-                     (append
-                      (let ((natures (var :natures :none)))
-                        (unless (eq natures :none)
-                          (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
-                      args)))))
-    project))
+  (let+ ((groups (group-project-versions-for-analysis project))
+         ((&flet version-info (version)
+            (let+ (((&flet maybe-key-fragment (version variable)
+                      (when-let ((value (jenkins.model.variables:value
+                                         version variable nil)))
+                        (list variable value))))
+                   (info    (mapcan (curry #'maybe-key-fragment version)
+                                    *analysis-variables*))
+                   (natures (when-let ((natures (getf info :natures)))
+                              (list :natures (map 'list (compose #'make-keyword
+                                                                 #'string-upcase)
+                                                  natures)))))
+              (append natures (remove-from-plist info :natures)))))
+         ((&flet+ analyze-group ((info . versions))
+            (let+ (((&plist-r/o (repository :repository)) info)
+                   (uri        (when repository (puri:uri repository)))
+                   (other-info (remove-from-plist info :repository)))
+              (mapcan
+               (lambda (version results)
+                 (when results
+                   (list (analyze-version version results))))
+               versions
+               (apply #'jenkins.analysis:analyze uri :auto
+                      :versions (map 'list #'version-info versions)
+                      (append other-info args)))))))
+    (mapc #'analyze-group groups)
+    (project-spec-and-versions-spec project)))
 
 (defun analyze-projects (projects &rest args &key cache-directory temp-directory non-interactive)
   (declare (ignore cache-directory temp-directory non-interactive))

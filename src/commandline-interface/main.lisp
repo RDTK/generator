@@ -200,9 +200,18 @@
                              (if version
                                  (value version name default)
                                  default)))
-                          (parameters (alist-plist (second (find name versions
-                                                                 :test #'string=
-                                                                 :key  #'first))))
+                          (parameters (second (find name versions
+                                                    :test #'string=
+                                                    :key  #'first)))
+                          (parameters (loop :for (name . value) :in parameters
+                                         :collect name :collect (jenkins.model.variables:expand
+                                                                 value (lambda (&rest args)
+                                                                         (declare (ignore args))
+                                                                         (error "~@<Cannot ~
+                                                                                 expand expression ~
+                                                                                  ~S for version ~
+                                                                                  variable ~A.~@:>"
+                                                                                value name)) )))
                           (branch     (when branch?    (version-var :branch (when (eq branch? t) name))))
                           (tag        (when tag?       (version-var :tag (when (eq tag? t) name))))
                           (directory  (when directory? (version-var :directory)))

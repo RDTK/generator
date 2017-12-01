@@ -183,9 +183,15 @@
             (cdr (assoc name where))))
          (name (lookup :name))
          (projects-seen (make-hash-table :test #'equal))
-         ((&flet check-version (version)
+         ((&flet process-version (version)
+            (typecase version
+              (string
+               (list version))
+              (cons
+               (list (first version) (process-variables (second version)))))))
+         ((&flet process-project (included-project)
             (cond
-              ((not (typep version 'json-project-include-spec))
+              ((not (typep included-project 'json-project-include-spec))
                (cerror "~@<Continue without the project entry~@:>"
                        "~@<Project entry~
                         ~@:_~@:_~
@@ -193,8 +199,9 @@
                         ~@:_~@:_~
                         is not a project name followed by one or more ~
                         project (parametrized) versions.~:@>"
-                       (json:encode-json-to-string version)))
-              ((when-let ((previous (gethash (first version) projects-seen)))
+                       (json:encode-json-to-string included-project)))
+              ((when-let ((previous (gethash (first included-project)
+                                             projects-seen)))
                  (cerror "~@<Ignore the additional project entry~@:>"
                          "~@<Project entry~
                           ~@:_~@:_~
@@ -207,11 +214,11 @@
                           for same project. Multiple project versions ~
                           have to be described in a single entry.~@:>"
                          (json:encode-json-to-string previous)
-                         (json:encode-json-to-string version))))
+                         (json:encode-json-to-string included-project))))
               (t
-               (let+ (((name &rest versions) version))
-                 (setf (gethash name projects-seen) version)
-                 (list (list* name (mapcar #'ensure-list versions)))))))))
+               (let+ (((name &rest versions) included-project))
+                 (setf (gethash name projects-seen) included-project)
+                 (list (list* name (map 'list #'process-version versions)))))))))
     (check-generator-version spec generator-version)
     (check-keys spec '(:minimum-generator-version
                        (:name . t) :variables (:versions . t)
@@ -224,7 +231,7 @@
                    :name      name
                    :variables (value-acons :__catalog (lookup :catalog)
                                            (process-variables (lookup :variables)))
-                   :versions  (mapcan #'check-version (lookup :versions)))))
+                   :versions  (mapcan #'process-project (lookup :versions)))))
 
 (defun load-distribution/json (pathname &key generator-version)
   (handler-bind ((error (lambda (condition)

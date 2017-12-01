@@ -133,6 +133,15 @@
 (define-variable :tags (list-of string)
   "A list of names of tags available in the project repository.")
 
+(define-variable :branch string
+  "The name of a specific branch to process.")
+
+(define-variable :tag string
+  "The name of a specific tag to process.")
+
+(define-variable :commit string
+  "A specific commit to process.")
+
 (define-variable :sub-directory string
   "The name of a sub-directory within the project repository in which
    the project should be considered to reside.

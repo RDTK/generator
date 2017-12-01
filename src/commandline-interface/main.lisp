@@ -64,6 +64,77 @@
     (append (print-items:print-items spec)
             `((:versions ,versions ":~{~A~^,~}" ((:after :name)))))))
 
+(defun load-project/versioned (file versions distribution)
+  (let+ ((version-names (mapcar #'first versions))
+         (project       (reinitialize-instance
+                         (load-project-spec/json
+                          file
+                          :version-test      (lambda (version)
+                                               (find version version-names
+                                                     :test #'string=))
+                          :generator-version *generator-version*)
+                         :parent distribution))
+         (branches      (as (value project :branches '()) 'list))
+         (branches      (intersection version-names branches :test #'string=))
+         (tags          (as (value project :tags '()) 'list))
+         (tags          (intersection version-names tags :test #'string=))
+         (tags+branches (union branches tags))
+         (versions1     (set-difference version-names tags+branches
+                                        :test #'string=))
+         ((&flet process-version (name &key version-required? branch? tag? directory?)
+            (let+ ((version (or (find name (versions project)
+                                      :test #'string= :key #'name)
+                                (when version-required?
+                                  (error "~@<No version section for ~
+                                          version ~S in project ~A.~@:>"
+                                         name project))))
+                   ((&flet version-var (name &optional default)
+                      (if version
+                          (value version name default)
+                          default)))
+                   (parameters (second (find name versions
+                                             :test #'string=
+                                             :key  #'first)))
+                   (parameters (loop :for (name . value) :in parameters
+                                  :collect name :collect (jenkins.model.variables:expand
+                                                          value (lambda (&rest args)
+                                                                  (declare (ignore args))
+                                                                  (error "~@<Cannot ~
+                                                                          expand expression ~
+                                                                          ~S for version ~
+                                                                          variable ~A.~@:>"
+                                                                         value name)) )))
+                   (branch     (when branch?    (version-var :branch (when (eq branch? t) name))))
+                   (tag        (when tag?       (version-var :tag (when (eq tag? t) name))))
+                   (directory  (when directory? (version-var :directory)))
+                   (commit     (version-var :commit)))
+              `(:name   ,name
+                        ,@parameters
+                        ,@(when branch    `(:branch    ,branch))
+                        ,@(when tag       `(:tag       ,tag))
+                        ,@(when directory `(:directory ,directory))
+                        ,@(when commit    `(:commit    ,commit)))))))
+    (make-project-spec-and-versions
+     :spec     project
+     :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
+                       (mapcar (rcurry #'process-version :tag?    t) tags)
+                       (mapcar (rcurry #'process-version
+                                       :version-required? t
+                                       :branch?           :maybe
+                                       :tag?              :maybe
+                                       :directory?        :mabye)
+                               versions1)))))
+
+(defun load-projects/versioned (files-and-versions)
+  (with-sequence-progress (:load/project files-and-versions)
+    (lparallel:pmapcan
+     (lambda+ ((file versions distribution))
+       (progress "~A" file)
+       (with-simple-restart
+           (continue "~@<Skip project specification ~S.~@:>" file)
+         (list (load-project/versioned file versions distribution))))
+     :parts most-positive-fixnum files-and-versions)))
+
 (defun make-analysis-variables (results)
   (let+ (((&flet make-variable (key value)
             (let ((name (format-symbol '#:keyword "ANALYSIS.~A" key)))
@@ -164,75 +235,6 @@
                           (list :natures (mapcar (compose #'make-keyword #'string-upcase) natures))))
                       args)))))
     project))
-
-(defun load-projects/versioned (files-and-versions)
-  (with-sequence-progress (:load/project files-and-versions)
-    (lparallel:pmapcan
-     (lambda+ ((file versions distribution))
-       (progress "~A" file)
-       (with-simple-restart
-           (continue "~@<Skip project specification ~S.~@:>" file)
-         (let+ ((version-names (mapcar #'first versions))
-                (project       (reinitialize-instance
-                                (load-project-spec/json
-                                 file
-                                 :version-test      (lambda (version)
-                                                      (find version version-names
-                                                            :test #'string=))
-                                 :generator-version *generator-version*)
-                                :parent distribution))
-                (branches      (as (value project :branches '()) 'list))
-                (branches      (intersection version-names branches :test #'string=))
-                (tags          (as (value project :tags '()) 'list))
-                (tags          (intersection version-names tags :test #'string=))
-                (tags+branches (union branches tags))
-                (versions1     (set-difference version-names tags+branches
-                                               :test #'string=))
-                ((&flet process-version (name &key version-required? branch? tag? directory?)
-                   (let+ ((version (or (find name (versions project)
-                                             :test #'string= :key #'name)
-                                       (when version-required?
-                                         (error "~@<No version section ~
-                                                 for version ~S in ~
-                                                 project ~A.~@:>"
-                                                name project))))
-                          ((&flet version-var (name &optional default)
-                             (if version
-                                 (value version name default)
-                                 default)))
-                          (parameters (second (find name versions
-                                                    :test #'string=
-                                                    :key  #'first)))
-                          (parameters (loop :for (name . value) :in parameters
-                                         :collect name :collect (jenkins.model.variables:expand
-                                                                 value (lambda (&rest args)
-                                                                         (declare (ignore args))
-                                                                         (error "~@<Cannot ~
-                                                                                 expand expression ~
-                                                                                  ~S for version ~
-                                                                                  variable ~A.~@:>"
-                                                                                value name)) )))
-                          (branch     (when branch?    (version-var :branch (when (eq branch? t) name))))
-                          (tag        (when tag?       (version-var :tag (when (eq tag? t) name))))
-                          (directory  (when directory? (version-var :directory)))
-                          (commit     (version-var :commit)))
-                     `(:name   ,name
-                       ,@parameters
-                       ,@(when branch    `(:branch    ,branch))
-                       ,@(when tag       `(:tag       ,tag))
-                       ,@(when directory `(:directory ,directory))
-                       ,@(when commit    `(:commit    ,commit)))))))
-           (list (make-project-spec-and-versions
-                  :spec     project
-                  :versions (append (mapcar (rcurry #'process-version :branch? t) branches)
-                                    (mapcar (rcurry #'process-version :tag?    t) tags)
-                                    (mapcar (rcurry #'process-version
-                                                    :version-required? t
-                                                    :branch?           :maybe
-                                                    :tag?              :maybe
-                                                    :directory?        :mabye)
-                                            versions1)))))))
-     :parts most-positive-fixnum files-and-versions)))
 
 (defun analyze-projects (projects &rest args &key cache-directory temp-directory non-interactive)
   (declare (ignore cache-directory temp-directory non-interactive))

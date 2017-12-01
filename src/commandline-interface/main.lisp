@@ -89,61 +89,61 @@
              (collect (make-variable key value) :into variables)))
           (finally (return (values variables people))))))
 
+(defun analyze-version (project version-info results)
+  (let+ ((version-name      (getf version-info :name))
+         (version-variables (apply #'value-acons
+                                   (append (remove-from-plist version-info :name)
+                                           '(()))))
+         ((&plist-r/o (scm              :scm)
+                      (branch-directory :branch-directory)
+                      (requires         :requires)
+                      (provides         :provides))
+          results)
+         (other-results (remove-from-plist results
+                                           :requires :provides
+                                           :properties))
+         (version (or (find version-name (versions project)
+                            :key #'name :test #'string=)
+                      (let ((version (make-instance
+                                      'version-spec
+                                      :name      version-name
+                                      :parent    project
+                                      :variables version-variables)))
+                        (push version (versions project))
+                        version)))
+         (recipe-maintainers (jenkins.analysis::parse-people-list
+                              (value project :recipe.maintainer '())))
+         ((&values analysis-variables persons)
+          (make-analysis-variables
+           (list* :recipe.maintainers recipe-maintainers
+                  other-results))))
+    (reinitialize-instance
+     version
+     :requires  requires
+     :provides  provides
+     :variables (append
+                 (jenkins.model.variables:direct-variables version)
+                 version-variables
+                 (when scm
+                   (list (value-cons :scm (string-downcase scm))))
+                 (when branch-directory
+                   (list (value-cons :branch-directory branch-directory)))
+                 analysis-variables)
+     :persons   persons)))
+
 (defun analyze-project (project &rest args &key cache-directory temp-directory non-interactive)
   (declare (ignore cache-directory temp-directory non-interactive))
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
          ((&labels do-version (version-info results)
-            (let+ ((version-name      (getf version-info :name))
-                   (version-variables (apply #'value-acons
-                                             (append (remove-from-plist version-info :name)
-                                                     '(()))))
-                   ((&plist-r/o (scm              :scm)
-                                (branch-directory :branch-directory)
-                                (requires         :requires)
-                                (provides         :provides))
-                    results)
-                   (other-results (remove-from-plist results
-                                                     :requires :provides
-                                                     :properties))
-                   (version (or (find version-name (versions project)
-                                      :key #'name :test #'string=)
-                                (let ((version (make-instance
-                                                'version-spec
-                                                :name      version-name
-                                                :parent    project
-                                                :variables version-variables)))
-                                  (push version (versions project))
-                                  version)))
-                   (recipe-maintainers (jenkins.analysis::parse-people-list
-                                        (value project :recipe.maintainer '())))
-                   ((&values analysis-variables persons)
-                    (make-analysis-variables
-                     (list* :recipe.maintainers recipe-maintainers
-                            other-results))))
-              (reinitialize-instance
-               version
-               :requires  requires
-               :provides  provides
-               :variables (append
-                           (jenkins.model.variables:direct-variables version)
-                           version-variables
-                           (when scm
-                             (list (value-cons :scm (string-downcase scm))))
-                           (when branch-directory
-                             (list (value-cons :branch-directory branch-directory)))
-                           analysis-variables)
-               :persons   persons))))
-         ((&labels do-version1 (version-info results)
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)
-              (do-version version-info results)))))
-
+              (analyze-version project version-info results)))))
     (handler-bind
         ((error (lambda (condition)
                   (error 'jenkins.analysis:analysis-error
                          :specification project
                          :cause         condition))))
-      (mapc #'do-version1
+      (mapc #'do-version
             versions
             (macrolet ((var (name &optional default)
                          `(value project ,name ,default)))

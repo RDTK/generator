@@ -56,11 +56,10 @@
 
                          (let ((result     (analyze-directory analyze-directory))
                                (committers (analyze clone-directory :mercurial/committers)))
-                           (collect (cons version
-                                          (list* :scm              :mercurial
-                                                 :branch-directory nil
-                                                 :committers       committers
-                                                 result)))))))))
+                           (collect (list* :scm              :mercurial
+                                           :branch-directory nil
+                                           :committers       committers
+                                           result))))))))
 
       (when (probe-file clone-directory)
         (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))

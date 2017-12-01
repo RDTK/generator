@@ -299,13 +299,11 @@
          ((&flet analyze-version (version)
             (unwind-protect
                  (let ((commitish (find-commitish version)))
-                   (cons version
-                         (apply #'clone-and-analyze-git-branch
-                                source (make-clone-directory commitish)
-                                (append commitish
-                                        (remove-from-plist
-                                         args :versions :temp-directory)))))
-
+                   (apply #'clone-and-analyze-git-branch
+                          source (make-clone-directory commitish)
+                          (append commitish
+                                  (remove-from-plist
+                                   args :versions :temp-directory))))
               (when (probe-file temp-directory)
                 (run `("rm" "-rf" ,temp-directory) "/"))))))
     (with-sequence-progress (:analyze/version versions)

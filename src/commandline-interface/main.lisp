@@ -91,7 +91,7 @@
 
 (defun analyze-project (project &key cache-directory temp-directory non-interactive)
   (let+ (((&structure-r/o project-spec-and-versions- (project spec) versions) project)
-         ((&labels+ do-version ((version-info . info))
+         ((&labels do-version (version-info results)
             (let+ ((version-name      (getf version-info :name))
                    (version-variables (apply #'value-acons
                                              (append (remove-from-plist version-info :name)
@@ -100,8 +100,8 @@
                                 (branch-directory :branch-directory)
                                 (requires         :requires)
                                 (provides         :provides))
-                    info)
-                   (other-results (remove-from-plist info
+                    results)
+                   (other-results (remove-from-plist results
                                                      :requires :provides
                                                      :properties))
                    (version (or (find version-name (versions project)
@@ -132,10 +132,10 @@
                              (list (value-cons :branch-directory branch-directory)))
                            analysis-variables)
                :persons   persons))))
-         ((&labels+ do-version1 ((&whole arg version-info . &ign))
+         ((&labels do-version1 (version-info results)
             (with-simple-restart
                 (continue "~@<Skip version ~A.~@:>" version-info)
-              (do-version arg)))))
+              (do-version version-info results)))))
 
     (handler-bind
         ((error (lambda (condition)
@@ -143,6 +143,7 @@
                          :specification project
                          :cause         condition))))
       (mapc #'do-version1
+            versions
             (macrolet ((var (name &optional default)
                          `(value project ,name ,default)))
               (apply #'jenkins.analysis:analyze

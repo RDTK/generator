@@ -54,4 +54,4 @@
                                              (apply #'analyze analyze-directory :auto
                                                     (remove-from-plist args :username :password :versions
                                                                        :sub-directory :temp-directory)))))
-              (collect (cons version result)))))))
+              (collect result))))))

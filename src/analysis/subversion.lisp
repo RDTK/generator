@@ -75,12 +75,11 @@
                                                 :username username
                                                 :password password))
                            (result     (analyze-directory clone-directory)))
-                       (cons name
-                             (list* :scm              :svn
-                                    :branch-directory directory
-                                    :commit           commit
-                                    :committers       committers
-                                    result))))
+                       (list* :scm              :svn
+                              :branch-directory directory
+                              :commit           commit
+                              :committers       committers
+                              result)))
 
                 (when (probe-file clone-directory)
                   (run `("rm" "-rf" ,clone-directory) temp-directory)))))))

@@ -137,14 +137,22 @@
 ;;; Project versions can be grouped according to the values of these
 ;;; variables and analyzed together.
 (defvar *repository-variables*
-  '(:repository :scm :scm.username :scm.password :sub-directory))
+  '(:repository
+    :scm
+    :scm.username
+    :scm.password
+    (:sub-directory . uiop:ensure-directory-pathname)))
 
 (defun group-project-versions-for-analysis (project)
   (let+ (((&structure-r/o project-spec-and-versions- versions) project)
-         ((&flet maybe-key-fragment (version variable)
-            (when-let ((value (jenkins.model.variables:value
-                               version variable nil)))
-              (list variable value))))
+         ((&flet maybe-key-fragment (version variable-and-transform)
+            (let+ (((variable . transform)
+                    (ensure-list variable-and-transform)))
+             (when-let ((value (jenkins.model.variables:value
+                                version variable nil)))
+               (list variable (if transform
+                                  (funcall transform value)
+                                  value))))))
          ((&flet version-analysis-data (version)
             (values version
                     (mapcan (curry #'maybe-key-fragment version)
@@ -215,23 +223,29 @@
 ;;; `*repository-variables*', the named variables uniquely identify a
 ;;; the input data of a project analyses process.
 (defvar *analysis-variables*
-  '(:branch :tag :commit :directory :natures))
+  `(:branch
+    :tag
+    :commit
+    :directory
+    (:natures . ,(lambda (natures)
+                   (map 'list (compose #'make-keyword
+                                       #'string-upcase)
+                        natures)))))
 
 (defun analyze-project (project &rest args &key cache-directory temp-directory non-interactive)
   (declare (ignore cache-directory temp-directory non-interactive))
   (let+ ((groups (group-project-versions-for-analysis project))
          ((&flet version-info (version)
-            (let+ (((&flet maybe-key-fragment (version variable)
-                      (when-let ((value (jenkins.model.variables:value
-                                         version variable nil)))
-                        (list variable value))))
-                   (info    (mapcan (curry #'maybe-key-fragment version)
-                                    *analysis-variables*))
-                   (natures (when-let ((natures (getf info :natures)))
-                              (list :natures (map 'list (compose #'make-keyword
-                                                                 #'string-upcase)
-                                                  natures)))))
-              (append natures (remove-from-plist info :natures)))))
+            (let+ (((&flet maybe-key-fragment (version variable-and-transform)
+                      (let+ (((variable . transform)
+                              (ensure-list variable-and-transform)))
+                        (when-let ((value (jenkins.model.variables:value
+                                           version variable nil)))
+                          (list variable (if transform
+                                             (funcall transform value)
+                                             value)))))))
+              (mapcan (curry #'maybe-key-fragment version)
+                      *analysis-variables*))))
          ((&flet+ analyze-group ((info . versions))
             (let+ (((&plist-r/o (repository :repository)) info)
                    (uri        (when repository (puri:uri repository)))

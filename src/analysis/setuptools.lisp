@@ -175,17 +175,21 @@
 ;;; Utilities
 
 (defun parse-name-and-email (name-or-names email-or-emails)
-  (let* ((names         (when name-or-names
+  (let+ ((names         (when name-or-names
                           (parse-people-list name-or-names)))
          (names-length  (length names))
          (emails        (when email-or-emails
                           (parse-people-list email-or-emails)))
          (emails-length (length emails))
-         (max-length    (max names-length emails-length)))
-    (map 'list (lambda (person email)
-                 (if (and person email)
-                     (apply #'rosetta-project.model.resource:augment-person!
-                            person (rosetta-project.model.resource:identities email))
-                     (or person email)))
-         (append names  (make-list (- names-length  max-length)))
-         (append emails (make-list (- emails-length max-length))))))
+         (max-length    (max names-length emails-length))
+         ((&flet pad (list length)
+            (if (< length max-length)
+                (append list (make-list (- max-length length)))
+                list))))
+    (merge-people-list
+     (map 'list (lambda (person email)
+                  (if (and person email)
+                      (apply #'rosetta-project.model.resource:augment-person!
+                             person (rosetta-project.model.resource:identities email))
+                      (or person email)))
+          (pad names names-length) (pad emails emails-length)))))

@@ -191,7 +191,7 @@
          (other-results      (remove-from-plist results
                                                 :requires :provides
                                                 :properties))
-         (recipe-maintainers (jenkins.analysis::parse-people-list
+         (recipe-maintainers (jenkins.analysis::parse-and-merge-people-list
                               (jenkins.model.variables:value
                                version :recipe.maintainer '())))
          ((&values analysis-variables persons)

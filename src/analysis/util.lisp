@@ -182,10 +182,14 @@
 ;;; Utilities for persons
 
 (defun parse-people-list (thing)
-  (values
-   (rosetta-project.model.resource:merge-persons!
-    (let ((repository (make-instance 'rs.m.d::base-repository)))
-      (rs.f:process :person-list thing `(:model :repository ,repository))))))
+  (let ((repository (make-instance 'rs.m.d::base-repository)))
+    (rs.f:process :person-list thing `(:model :repository ,repository))))
+
+(defun merge-people-list (list)
+  (values (rosetta-project.model.resource:merge-persons! list)))
+
+(defun parse-and-merge-people-list (thing)
+  (merge-people-list (parse-people-list thing)))
 
 (defun make-names->person-list (&key count)
   (let ((names+counts (make-hash-table :test #'equal)))
@@ -199,4 +203,4 @@
          (truncated (if count
                         (subseq sorted 0 (min (length sorted) count))
                         sorted)))
-    (parse-people-list (map 'list #'car truncated))))
+    (parse-and-merge-people-list (map 'list #'car truncated))))

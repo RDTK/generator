@@ -20,6 +20,7 @@
          ((&values result condition)
           (ignore-errors (apply #'process-method context method arguments))))
     (when condition
+      (log:error "~A: ~A" (type-of condition) condition)
       (format *trace-output* "Error: ~A~%" condition)
       (force-output *trace-output*))
 

@@ -52,7 +52,7 @@
                                            (subseq method (1+ index))
                                            method))))
     (cond
-      ((eq interface/symbol :$) ; TODO
+      ((eq interface/symbol :$) ; TODO used for cancel?
        )
       ((and interface/symbol method/symbol)
        (apply #'process-interface-method
@@ -75,59 +75,21 @@
                                             (infterface (eql :textdocument))
                                             (method     (eql :didchange))
                                             &key
-                                              text-document)
+                                            text-document)
   (let+ (((&values uri version) (parse-text-document text-document))
          (document (find-document uri (workspace object)))
-         (diagnostics '())
+         ((&values ast diagnostics tracer) (parse-document document :uri uri))
          ((&flet position* (location which)
             `((:line      . ,(or (rs.f:line location :of which) 1))
               (:character . ,(or (rs.f:column location :of which) 1)))))
          ((&flet range (location)
             `((:start . ,(position* location :start))
               (:end   . ,(position* location :start)))))
-         ((&flet diagnostic (location message severity)
+         ((&flet+ diagnostic ((location message severity))
             `((:range    . ,(range location))
               (:severity . ,severity)
-              (:message  . ,(princ-to-string message)))))
-         ((&flet notify ()
-            (write-notification
-             (connection object) "textDocument/publishDiagnostics"
-             `((:uri         . ,uri)
-               (:diagnostics . ,(or diagnostics #() ; HACK
-                                    )))))))
-    (princ document *trace-output*)
-    (princ (text document) *trace-output*)
-    (with-simple-restart (abort "~@<Abort processing~@:>")
-      (handler-bind
-          ((rosetta.frontend:parse-warning
-            (lambda (condition)
-              (let+ ((location (rosetta.frontend:location condition))
-                     (message  (more-conditions:cause condition)))
-                (describe location *trace-output*)
-                (format *trace-output* "~A~%" location)
-                (push (diagnostic location message 2) diagnostics))
-              (muffle-warning condition)))
-           (rosetta.frontend:parse-error1
-            (lambda (condition)
-              (let+ ((location (rosetta.frontend:location condition))
-                     (message  (more-conditions:cause condition)))
-                (describe location *trace-output*)
-                (format *trace-output* "~A~%" location)
-                (push (diagnostic location message 1) diagnostics))
-              (continue condition)
-              (abort))))
-        (model.transform.trace:with-tracer ((model.transform.trace:make-tracer))
-          (let ((resolver  (make-instance 'rs.f:search-path-resolver
-                                           :search-path `(,#P"~/code/citec/citk/recipes-next/templates/toolkit/"
-                                                          ,#P"~/code/citec/citk/recipes-next/projects/"
-                                                          ,#P"~/code/citec/citk/recipes-next/distributions/"))
-                            #+no (make-instance 'language-server-resolver))
-
-                (repository (make-instance 'rs.m.d::base-repository)))
-            (rs.f:process (language document)
-                          (make-string-input-stream (text document))
-                          `(:model :resolver   ,resolver
-                                   :repository ,repository)
-                          :location-name uri)))))
-
-    (notify)))
+              (:message  . ,(princ-to-string message))))))
+    (write-notification
+     (connection object) "textDocument/publishDiagnostics"
+     `((:uri         . ,uri)
+       (:diagnostics . ,(or (map 'vector #'diagnostic diagnostics)))))))

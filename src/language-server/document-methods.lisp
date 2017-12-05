@@ -36,7 +36,7 @@
                         (position->index object end-line end-column))
                       text)
 
-              (when-let ((thread (find "repl-thread" (bt:all-threads)
+              #+no (when-let ((thread (find "repl-thread" (bt:all-threads)
                                        :key #'bt:thread-name :test #'string=)))
                 (bt:interrupt-thread
                  thread
@@ -50,11 +50,30 @@
               ))))
     (map nil #'apply-change content-changes)))
 
+;;; Deleting first line
+(let ((d (make-instance 'document
+                        :language :foo
+                        :version 1
+                        :text "variables:
+foo")))
+  (process-method d :didchange :content-changes '(((:RANGE (:START (:LINE . 0) (:CHARACTER . 0))
+                                                           (:END (:LINE . 0) (:CHARACTER . 10)))
+                                                   (:RANGE-LENGTH . 10) (:TEXT . ""))))
+  (process-method d :didchange :content-changes '(((:RANGE (:START (:LINE . 1) (:CHARACTER . 0))
+                                                    (:END  (:LINE . 1) (:CHARACTER . 0)))
+                                                   (:RANGE-LENGTH . 0)
+                                                   (:TEXT . "a"))))
+  (text d))
+
 (defmethod process-method ((object document)
                            (method (eql :hover))
                            &key
                            position)
-  (let+ (((&values line column) (parse-position position))
+  (let ((position (multiple-value-call #'cons (parse-position position))))
+    (compute-scopes object position)
+    (make-hash-table))
+
+  #+old (let+ (((&values line column) (parse-position position))
          (word (word-at object (cons line column)))) ; TODO return range
     (if-let ((info (jenkins.model.variables:find-variable (make-keyword (string-upcase word))))) ; TODO must sent hover reply
       (let* ((name          (jenkins.model.variables:variable-info-name info))
@@ -63,7 +82,7 @@
              (description   (format nil "~(~A~): ~(~A~)~2%~A" name type documentation))) ; TODO the commandline-options system has a function for breaking a documentation string into paragraphs and rendering them
         `((:contents . ,description)
           #+optinal (:range    . )))
-      (make-hash-table) ; HACK
+      (make-hash-table)                 ; HACK
       )))
 
 (defmethod process-method ((object document)

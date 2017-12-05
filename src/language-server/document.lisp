@@ -46,7 +46,7 @@
   (let+ (((&accessors-r/o text newlines) document))
     (setf (fill-pointer newlines) 0)
     (unless (emptyp text)
-      (loop :for previous = 0 :then next
+      (loop :for previous = -1 :then next
          :for next = (position #\Newline text :start (1+ previous))
          :while next
          :do (vector-push-extend next newlines)))))

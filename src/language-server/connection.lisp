@@ -57,7 +57,7 @@
     (log:info "~@<<=     Notification ~A~@:_~
                ~2@T~@<~/jenkins.language-server::print-maybe-alist/~:>~:>"
               method payload)
-    (transport/write-response (make-broadcast-stream (output connection) *trace-output*) raw)))
+    (transport/write-response (output connection) #+no (make-broadcast-stream (output connection) *trace-output*) raw)))
 
 ;;; Utilities
 

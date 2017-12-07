@@ -34,6 +34,9 @@
                (when (next-method-p)
                  (call-next-method))))
 
+(defmethod variables append ((thing project))
+  (variables (specification thing)))
+
 (defmethod lookup ((thing project) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   (multiple-value-call #'merge-lookup-values
@@ -80,6 +83,9 @@
   (value-acons :version-name (name thing)
                (when (next-method-p)
                  (call-next-method))))
+
+(defmethod variables append ((thing version))
+  (variables (specification thing)))
 
 (defmethod add-dependencies! ((thing version) (spec version-spec)
                               &key

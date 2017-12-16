@@ -46,7 +46,7 @@
                      ""))
                   commit)))
          (locations (mapcar #'list-directories versions))
-         ((&flet analyze-location (name directory commit)
+         ((&flet analyze-location (directory commit)
             (let ((repository-url  (reduce #'puri:merge-uris
                                            (append
                                             (when sub-directory
@@ -91,7 +91,7 @@
                 (continue "~<Ignore ~A and continue with the next ~
                            branch.~@:>"
                           version)
-              (collect (analyze-location version directory commit)))))))
+              (collect (analyze-location directory commit)))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/committers))
                     &key

@@ -1094,11 +1094,11 @@
 ;;; Permissions
 
 (defmethod grant ((job job) (subject string) (action cons))
-  (pushnew (list subject action) (permissions job) :test #'string=)
+  (pushnew (list subject action) (permissions job) :test #'equal)
   (permissions job))
 
 (defmethod revoke ((job job) (subject string) (action cons))
-  (removef (permissions job) (list  subject action) :test #'string=)
+  (removef (permissions job) (list subject action) :test #'equal)
   (permissions job))
 
 (macrolet

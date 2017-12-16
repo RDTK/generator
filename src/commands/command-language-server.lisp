@@ -6,10 +6,6 @@
 
 (cl:in-package #:jenkins.project.commands)
 
-#.(progn
-    #1=(asdf:load-system :swank)
-    '#1#)
-
 (defclass language-server ()
   ()
   (:documentation

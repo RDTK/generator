@@ -16,7 +16,8 @@
                            process-id
                            root-uri
                            root-path
-                           capabilities)
+                           capabilities
+                           initialization-options)
   (setf (%workspace object) (make-instance 'workspace
                                            :root-uri  root-uri
                                            :root-path root-path))
@@ -28,7 +29,8 @@
 
 (defmethod process-method ((object context)
                            (method (eql :initialized))
-                           &key))
+                           &key)
+  )
 
 (defmethod process-method ((object context)
                            (method (eql :shutdown))

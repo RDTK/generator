@@ -38,7 +38,11 @@
                               (:file       "document")
                               (:file       "document-methods")
 
-                              (:file       "language-server")))
+                              (:file       "language-server")
+
+                              ;; buildgen-specific
+                              (:file       "parser")
+                              ))
 
                 (:file       "command-language-server"
                  :depends-on ("language-server")

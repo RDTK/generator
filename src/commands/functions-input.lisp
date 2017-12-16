@@ -100,8 +100,9 @@
          (branches      (value/cast project :branches '()))
          (branches      (intersection version-names branches :test #'string=))
          (tags          (value/cast project :tags '()))
+         (tags          (set-difference tags branches :test #'string=))
          (tags          (intersection version-names tags :test #'string=))
-         (tags+branches (union branches tags))
+         (tags+branches (union branches tags :test #'string=))
          (versions1     (set-difference version-names tags+branches
                                         :test #'string=))
          ((&flet process-version (name &key version-required? branch? tag?)

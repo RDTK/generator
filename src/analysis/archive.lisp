@@ -52,6 +52,8 @@
                    (result            (list* :scm              :archive
                                              :branch-directory nil
                                              (apply #'analyze analyze-directory :auto
-                                                    (remove-from-plist args :username :password :versions
-                                                                       :sub-directory :temp-directory)))))
+                                                    (append
+                                                     version
+                                                     (remove-from-plist args :username :password :versions
+                                                                             :sub-directory :temp-directory))))))
               (collect result))))))

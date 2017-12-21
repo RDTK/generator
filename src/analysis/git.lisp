@@ -303,6 +303,8 @@
                           source (make-clone-directory commitish)
                           (append commitish
                                   (remove-from-plist
+                                   version :branch :tag :commit)
+                                  (remove-from-plist
                                    args :versions :temp-directory))))
               (when (probe-file temp-directory)
                 (run `("rm" "-rf" ,temp-directory) "/"))))))

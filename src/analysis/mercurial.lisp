@@ -24,11 +24,13 @@
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
-         ((&flet analyze-directory (directory)
+         ((&flet analyze-directory (version directory)
             (apply #'analyze directory :auto
-                   (remove-from-plist args :username :password :versions
-                                           :sub-directory :history-limit
-                                           :temp-directory)))))
+                   (append
+                    (remove-from-plist version :branch :tag :commit)
+                    (remove-from-plist args :username :password :versions
+                                            :sub-directory :history-limit
+                                            :temp-directory))))))
 
     (unwind-protect
          (progn
@@ -54,7 +56,7 @@
 
                          (%run-mercurial `("checkout" ,commit) clone-directory)
 
-                         (let ((result     (analyze-directory analyze-directory))
+                         (let ((result     (analyze-directory version analyze-directory))
                                (committers (analyze clone-directory :mercurial/committers)))
                            (collect (list* :scm              :mercurial
                                            :branch-directory nil

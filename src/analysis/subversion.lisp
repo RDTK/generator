@@ -25,10 +25,14 @@
     (assert (eq :relative (first (pathname-directory sub-directory)))))
 
   (let+ ((source (ensure-directory-uri source))
-         ((&flet analyze-directory (directory)
+         ((&flet analyze-directory (version directory)
             (apply #'analyze directory :auto
-                   (remove-from-plist args :username :password :versions
-                                           :sub-directory :temp-directory))))
+                   (append
+                    (remove-from-plist
+                     version :branch :tag :commit :directory)
+                    (remove-from-plist
+                     args :username :password :versions
+                          :sub-directory :temp-directory)))))
          ((&flet+ list-directories ((&whole version
                                      &key branch tag directory commit
                                      &allow-other-keys))
@@ -46,7 +50,7 @@
                      ""))
                   commit)))
          (locations (mapcar #'list-directories versions))
-         ((&flet analyze-location (directory commit)
+         ((&flet analyze-location (version directory commit)
             (let ((repository-url  (reduce #'puri:merge-uris
                                            (append
                                             (when sub-directory
@@ -74,7 +78,7 @@
                      (let ((committers (analyze clone-directory :svn/committers
                                                 :username username
                                                 :password password))
-                           (result     (analyze-directory clone-directory)))
+                           (result     (analyze-directory version clone-directory)))
                        (list* :scm              :svn
                               :branch-directory directory
                               :commit           commit
@@ -91,7 +95,7 @@
                 (continue "~<Ignore ~A and continue with the next ~
                            branch.~@:>"
                           version)
-              (collect (analyze-location directory commit)))))))
+              (collect (analyze-location version directory commit)))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/committers))
                     &key

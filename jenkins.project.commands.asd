@@ -50,4 +50,6 @@
 
                               (:file       "command-query")
                               (:file       "command-platform-requirements")
-                              (:file       "command-report")))))
+                              (:file       "command-report")
+
+                              (:file       "command-install")))))

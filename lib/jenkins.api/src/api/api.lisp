@@ -33,6 +33,8 @@
                                                                        (princ-to-string value)))
                               :verify nil
                               (append
+                               (when-let ((header (ensure-csrf-protection-token)))
+                                 (list :additional-headers (list header)))
                                (when (and *username* *password*)
                                  (list :basic-authorization (list *username* *password*)))
                                (when method

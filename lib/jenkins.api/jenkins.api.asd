@@ -70,6 +70,7 @@
                               (:file     "protocol")
                               (:file     "conversion")
                               (:file     "classes")
+                              (:file     "csrf")
                               (:file     "api")))
 
                 (:module     "dsl"

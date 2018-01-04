@@ -56,4 +56,5 @@
                               (:file       "command-platform-requirements")
                               (:file       "command-report")
 
-                              (:file       "command-install")))))
+                              (:file       "command-install")
+                              (:file       "command-discover")))))

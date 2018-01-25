@@ -151,6 +151,7 @@
                           (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
 
+;; https://mica.techfak.uni-bielefeld.de:8080/view/rsb-nightly-ci/api/xml?tree=jobs[name,description]&xpath=*/job[contains(description, "cookie=12344231342431")]
 (defun generated? (job)
   (search "automatically generated" (jenkins.api:description job)))
 

@@ -1,6 +1,6 @@
 ;;;; aspects-scm.lisp --- Definitions of SCM-related aspects
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,15 +18,16 @@
             (make-move-stuff-upwards/unix components))))
 
 (define-aspect (archive) (builder-defining-mixin)
-    ((url            :type string
+    ((url                                  :type string
       :documentation
       "URL from which the archive should be downloaded.
 
        HTTP and HTTPS are supported.")
-     ((filename nil) :type string
+     ((filename nil)                       :type string
       :documentation
       "Name of the file in which the downloaded archive should be
-       stored."))
+       stored.")
+     (((:sub-directory sub-directory) nil) :type string))
   "Adds a build step that downloads a source archive.
 
    This may be useful when a SCM repository is not available but
@@ -50,7 +51,12 @@
                                   ~A"
                              (make-remove-directory-contents/unix)
                              url archive
-                             (make-move-stuff-upwards/unix '("${directory}")))))
+                             (make-move-stuff-upwards/unix
+                              (list* "${directory}"
+                                     (when sub-directory
+                                       (rest (pathname-directory
+                                              (uiop:ensure-directory-pathname
+                                               sub-directory)))))))))
     (push (constraint! (build ((:before t))) (shell (:command command)))
           (builders job))))
 

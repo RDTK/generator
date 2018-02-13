@@ -1,6 +1,6 @@
 ;;;; aspects.lisp --- Aspect definitions
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -264,8 +264,8 @@
             (length exclude) exclude)))
 
 (defun+ make-move-stuff-upwards/unix ((first &rest rest))
-  "Move contents of STUFF, which is a list of one or more directory
-   name components, to the current directory."
+  "Move contents of FIRST and REST, which form a list of one or more
+   directory name components, to the current directory."
   (format nil "# Uniquely rename directory.~@
                temp=$(mktemp -d ./XXXXXXXX)~@
                mv -T \"~A\" \"${temp}/\"~@

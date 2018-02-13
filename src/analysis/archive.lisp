@@ -25,31 +25,35 @@
 
 (defun call-with-extracted-archive (thunk source temp-directory
                                     &key username password sub-directory)
-  (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
-         (temp-file    (merge-pathnames archive-name temp-directory)))
-    ;; Download into temporary archive file inside temporary
-    ;; directory.
-    (with-trivial-progress (:download "~A" source)
-      (download-file source temp-file
-                     :username username
-                     :password password))
-    ;; Extract temporary file, producing a single directory if
-    ;; all goes well. Delete temporary archive file afterwards.
-    (with-trivial-progress (:extract "~A" temp-file)
-      (inferior-shell:run/nil `("unp" "-U" ,temp-file)
-                              :directory temp-directory)
-      (delete-file temp-file))
-    ;; Locate the expected singleton directory and run analysis
-    ;; on it.
-    (let* ((directory (or (first (directory (merge-pathnames
-                                             "*.*" temp-directory)))
-                          (error "~@<Cannot locate directory
+  (unwind-protect
+       (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
+              (temp-file    (merge-pathnames archive-name temp-directory)))
+         ;; Download into temporary archive file inside temporary
+         ;; directory.
+         (with-trivial-progress (:download "~A" source)
+           (download-file source temp-file
+                          :username username
+                          :password password))
+         ;; Extract temporary file, producing a single directory if
+         ;; all goes well. Delete temporary archive file afterwards.
+         (with-trivial-progress (:extract "~A" temp-file)
+           (inferior-shell:run/nil `("unp" "-U" ,temp-file)
+                                   :directory temp-directory)
+           (delete-file temp-file))
+         ;; Locate the expected singleton directory and run analysis
+         ;; on it.
+         (let* ((directory (or (first (directory (merge-pathnames
+                                                  "*.*" temp-directory)))
+                               (error "~@<Cannot locate directory
                                        extracted from ~A in ~A.~@:>"
-                                 archive-name temp-directory)))
-           (directory     (if sub-directory
-                              (merge-pathnames sub-directory directory)
-                              directory)))
-      (funcall thunk directory))))
+                                       archive-name temp-directory)))
+                (directory     (if sub-directory
+                                   (merge-pathnames sub-directory directory)
+                                   directory)))
+           (funcall thunk directory)))
+    ;; Delete everything when done or if something goes wrong.
+    (uiop:delete-directory-tree
+     temp-directory :if-does-not-exist :ignore :validate (constantly t))))
 
 (defmacro with-extracted-archive ((directory (source temp-directory
                                               &key

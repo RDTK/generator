@@ -23,6 +23,46 @@
       (when close-stream?
         (close input)))))
 
+(defun call-with-extracted-archive (thunk source temp-directory
+                                    &key username password sub-directory)
+  (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
+         (temp-file    (merge-pathnames archive-name temp-directory)))
+    ;; Download into temporary archive file inside temporary
+    ;; directory.
+    (with-trivial-progress (:download "~A" source)
+      (download-file source temp-file
+                     :username username
+                     :password password))
+    ;; Extract temporary file, producing a single directory if
+    ;; all goes well. Delete temporary archive file afterwards.
+    (with-trivial-progress (:extract "~A" temp-file)
+      (inferior-shell:run/nil `("unp" "-U" ,temp-file)
+                              :directory temp-directory)
+      (delete-file temp-file))
+    ;; Locate the expected singleton directory and run analysis
+    ;; on it.
+    (let* ((directory (or (first (directory (merge-pathnames
+                                             "*.*" temp-directory)))
+                          (error "~@<Cannot locate directory
+                                       extracted from ~A in ~A.~@:>"
+                                 archive-name temp-directory)))
+           (directory     (if sub-directory
+                              (merge-pathnames sub-directory directory)
+                              directory)))
+      (funcall thunk directory))))
+
+(defmacro with-extracted-archive ((directory (source temp-directory
+                                              &key
+                                              username
+                                              password
+                                              sub-directory))
+                                  &body body)
+  `(call-with-extracted-archive
+    (lambda (,directory)
+      ,@body)
+    ,source ,temp-directory
+    :username ,username :password ,password :sub-directory ,sub-directory))
+
 (defmethod analyze ((source puri:uri) (kind (eql :archive))
                     &rest args &key
                     username
@@ -30,35 +70,25 @@
                     (versions       (missing-required-argument :versions))
                     sub-directory
                     (temp-directory (default-temporary-directory)))
-  (with-sequence-progress (:analyze/version versions)
-    (iter (for version      in   versions)
-          (for archive-name next (lastcar (puri:uri-parsed-path source)))
-          (for temp-file    next (merge-pathnames
-                                  archive-name temp-directory))
-          (progress "~A" version)
-
-          (with-simple-restart
-              (continue "~<Ignore ~A and continue with the next ~
-                         version.~@:>"
-                        version)
-            (with-trivial-progress (:download "~A" source)
-              (download-file source temp-file
-                             :username username
-                             :password password))
-
-            (with-trivial-progress (:extract "~A" temp-file)
-              (inferior-shell:run/nil `("unp" "-U" ,temp-file) :directory temp-directory)
-              (delete-file temp-file))
-
-            (let* ((analyze-directory (merge-pathnames
-                                       (or sub-directory
-                                           (first (directory (merge-pathnames "*.*" temp-directory)))) ; TODO
-                                       temp-directory))
-                   (result            (list* :scm              :archive
-                                             :branch-directory nil
-                                             (apply #'analyze analyze-directory :auto
-                                                    (append
-                                                     version
-                                                     (remove-from-plist args :username :password :versions
-                                                                             :sub-directory :temp-directory))))))
-              (collect result))))))
+  (with-extracted-archive (directory (source temp-directory
+                                      :username      username
+                                      :password      password
+                                      :sub-directory sub-directory))
+    (with-sequence-progress (:analyze/version versions)
+      (mapcan
+       (progressing
+        (lambda (version)
+          (with-simple-restart (continue "~<Ignore ~A and continue ~
+                                          with the next version.~@:>"
+                                         version)
+            (let* ((other-args    (remove-from-plist
+                                   args :username :password :versions
+                                   :sub-directory :temp-directory))
+                   (version-args  version)
+                   (results       (apply #'analyze directory :auto
+                                         (append version-args other-args))))
+              (list (list* :scm              :archive
+                           :branch-directory nil
+                           results)))))
+        :analyze/version)
+       versions))))

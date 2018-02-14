@@ -23,6 +23,13 @@
               this generator is version ~S.~@:>"
              required-version generator-version))))
 
+(defun check-name-pathname-congruence (name pathname)
+  (unless (string= name (pathname-name pathname))
+    (error "~@<Value of \"name\" attribute, ~S, does not match ~
+           filename ~S.~@:>"
+           name (pathname-name pathname)))
+  name)
+
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
     (loop :for (key . value) :in alist :do
@@ -149,10 +156,7 @@
     (check-keys spec '(:minimum-generator-version
                        (:name . t) (:templates . t) (:variables . t)
                        :versions :catalog))
-    (unless (string= name (pathname-name pathname))
-      (error "~@<Value of \"name\" attribute, ~S, does not match ~
-              filename ~S.~@:>"
-             name (pathname-name pathname)))
+    (check-name-pathname-congruence name pathname)
     (let ((instance (make-instance 'project-spec :name name)))
       (reinitialize-instance
        instance
@@ -223,10 +227,7 @@
     (check-keys spec '(:minimum-generator-version
                        (:name . t) :variables (:versions . t)
                        :catalog))
-    (unless (string= name (pathname-name pathname))
-      (error "~@<Value of \"name\" attribute, ~S, does not match ~
-              filename ~S.~@:>"
-             name (pathname-name pathname)))
+    (check-name-pathname-congruence name pathname)
     (make-instance 'distribution-spec
                    :name      name
                    :variables (value-acons :__catalog (lookup :catalog)

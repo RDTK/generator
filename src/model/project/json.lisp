@@ -15,13 +15,13 @@
 (deftype json-project-include-spec ()
   '(cons string (satisfies json-list-of-version-include-specs)))
 
-(defun check-generator-version (spec generator-version)
-  (when-let ((required-version (cdr (assoc :minimum-generator-version spec))))
+(defun check-generator-version (spec generator-version context)
+  (when-let ((required-version (assoc-value spec :minimum-generator-version)))
     (unless (version-matches (parse-version required-version)
                              (parse-version generator-version))
-      (error "~@<The template requires generator version ~S, but ~
+      (error "~@<The ~A requires generator version ~S, but ~
               this generator is version ~S.~@:>"
-             required-version generator-version))))
+             context required-version generator-version))))
 
 (defun check-name-pathname-congruence (name pathname)
   (unless (string= name (pathname-name pathname))
@@ -53,7 +53,7 @@
   (let+ ((spec (%decode-json-from-source pathname))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where)))))
-    (check-generator-version spec generator-version)
+    (check-generator-version spec generator-version "person recipe")
     (check-keys spec '(:minimum-generator-version
                        (:name t) :aliases :identities)
                 t)
@@ -111,7 +111,7 @@
 
 
          (template (make-instance 'template)))
-    (check-generator-version spec generator-version)
+    (check-generator-version spec generator-version "template")
     (check-keys spec '(:minimum-generator-version
                        :inherit :variables :aspects :jobs))
     ;; Load required templates and finalize the object.
@@ -152,7 +152,7 @@
                                                          variables)
                                             variables)))))
          (name (lookup :name)))
-    (check-generator-version spec generator-version)
+    (check-generator-version spec generator-version "project recipe")
     (check-keys spec '(:minimum-generator-version
                        (:name . t) (:templates . t) (:variables . t)
                        :versions :catalog))
@@ -223,7 +223,7 @@
                (let+ (((name &rest versions) included-project))
                  (setf (gethash name projects-seen) included-project)
                  (list (list* name (map 'list #'process-version versions)))))))))
-    (check-generator-version spec generator-version)
+    (check-generator-version spec generator-version "distribution recipe")
     (check-keys spec '(:minimum-generator-version
                        (:name . t) :variables (:versions . t)
                        :catalog))

@@ -6,6 +6,14 @@
 
 (cl:in-package #:jenkins.model.project)
 
+;;; JSON syntax
+
+(defun %decode-json-from-source (source)
+  (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
+    (json:decode-json-from-source source)))
+
+;;; Structure utilities
+
 (deftype json-version-include-spec ()
   '(or string (cons string (cons list null))))
 
@@ -47,22 +55,64 @@
                        key (mapcar #'json:encode-json-to-string value)))
        :collect (value-cons key (first value)))))
 
+;;; Loader definition macro
+
+(defmacro define-json-loader ((concept keys) (spec-var name &rest args)
+                              &body body)
+  (check-type spec-var symbol)
+  (check-type name (cons symbol (cons (member :data :pathname :congruent) null)))
+  (let+ (((&optional name-var name-kind) name)
+         (other-args (set-difference args '(pathname generator-version)
+                                     :test #'eq))
+         (all-args   (list* 'pathname 'generator-version other-args))
+         (read-name  (symbolicate '#:read-  concept '#:/json))
+         (parse-name (symbolicate '#:parse- concept '#:/json))
+         (load-name  (symbolicate '#:load-  concept '#:/json))
+         (context    (format nil "~(~A~) recipe" concept)))
+    `(progn
+       (defun ,read-name (pathname &key generator-version ,@other-args)
+         (declare (ignore ,@other-args))
+         (let ((spec (%decode-json-from-source pathname)))
+           (check-generator-version spec generator-version ,context)
+           (check-keys spec '(:minimum-generator-version
+                              ,@(when (member name-kind '(:data :congruent))
+                                  '((:name . t)))
+                              ,@keys))
+           (let ((name ,@(ecase name-kind
+                           (:data
+                            `((assoc-value spec :name)))
+                           (:pathname
+                            `((pathname-name pathname)))
+                           (:congruent
+                            `((let ((name (assoc-value spec :name)))
+                                (check-name-pathname-congruence name pathname)))))))
+             (values spec name pathname))))
+
+       (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
+         (declare (ignore ,@(set-difference all-args args)))
+         (let+ (((&flet lookup (name &optional (where ,spec-var))
+                   (cdr (assoc name where)))))
+           ,@body))
+
+       (defun ,load-name (pathname &rest args &key generator-version ,@other-args)
+         (declare (ignore generator-version ,@other-args))
+         (handler-bind ((error (lambda (condition)
+                                 (error "~@<Error when loading ~(~A~) ~
+                                         description from ~S: ~A~@:>"
+                                        ',concept pathname condition))))
+           (let+ (((&values spec name pathname)
+                   (apply #',read-name pathname args)))
+             (apply #',parse-name spec name :pathname pathname args)))))))
+
 ;;; Person loading
 
-(defun load-person/json (pathname &key generator-version)
-  (let+ ((spec (%decode-json-from-source pathname))
-         ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where)))))
-    (check-generator-version spec generator-version "person recipe")
-    (check-keys spec '(:minimum-generator-version
-                       (:name t) :aliases :identities)
-                t)
-    (let* ((name       (lookup :name))
-           (aliases    (lookup :aliases))
-           (identities (map 'list #'puri:uri (lookup :identities)))
-           (person     (apply #'rosetta-project.model.resource:make-person
-                              name (append aliases identities))))
-      (push person *persons*))))
+(define-json-loader (person (:aliases :identities))
+    (spec (name :data))
+  (let* ((aliases    (lookup :aliases))
+         (identities (map 'list #'puri:uri (lookup :identities)))
+         (person     (apply #'rosetta-project.model.resource:make-person
+                            name (append aliases identities))))
+    (push person *persons*)))
 
 ;;; Template loading
 
@@ -84,15 +134,13 @@
 
 (defun resolve-template-dependency (name context &key generator-version)
   (or (find-template name :if-does-not-exist nil)
-      (load-template/json (make-pathname :name name :defaults context)
-                          :generator-version generator-version)))
+      (loading-template (name)
+        (load-one-template/json (make-pathname :name name :defaults context)
+                                :generator-version generator-version))))
 
-(defun load-template/json-1 (pathname &key generator-version)
-  (let+ ((name (pathname-name pathname))
-         (spec (%decode-json-from-source pathname))
-         ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where))))
-         ((&flet make-aspect-spec (spec parent)
+(define-json-loader (one-template (:inherit :variables :aspects :jobs))
+    (spec (name :pathname) pathname generator-version)
+  (let+ (((&flet make-aspect-spec (spec parent)
             (check-keys spec '((:name . t) (:aspect . t) :variables
                                :conditions))
             (make-instance 'aspect-spec
@@ -108,12 +156,7 @@
                            :parent     parent
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
-
-
          (template (make-instance 'template)))
-    (check-generator-version spec generator-version "template")
-    (check-keys spec '(:minimum-generator-version
-                       :inherit :variables :aspects :jobs))
     ;; Load required templates and finalize the object.
     (setf (find-template name)
           (reinitialize-instance
@@ -127,20 +170,18 @@
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
 
 (defun load-template/json (pathname &key generator-version)
-  (handler-bind ((error (lambda (condition)
-                          (error "~@<Error when loading template from ~
-                                  ~S: ~A~@:>"
-                                 pathname condition))))
-    (let ((name (pathname-name pathname)))
-      (or (find-template name :if-does-not-exist nil)
-          (loading-template (name)
-            (load-template/json-1 pathname :generator-version generator-version))))))
+  (let ((name (pathname-name pathname)))
+    (or (find-template name :if-does-not-exist nil)
+        (loading-template (name)
+          (load-one-template/json
+           pathname :generator-version generator-version)))))
 
-(defun load-project-spec/json-1 (pathname &key version-test generator-version)
-  (let+ ((spec (%decode-json-from-source pathname))
-         ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where))))
-         ((&flet make-version-spec (spec parent)
+;;; Project loading
+
+(define-json-loader
+    (project-spec ((:templates . t) (:variables . t) :versions :catalog))
+    (spec (name :congruent) version-test)
+  (let+ (((&flet make-version-spec (spec parent)
             (check-keys spec '((:name . t) :variables :catalog))
             (let ((catalog   (lookup :catalog spec))
                   (variables (process-variables (lookup :variables spec))))
@@ -150,13 +191,7 @@
                              :variables (if catalog
                                             (value-acons :__catalog catalog
                                                          variables)
-                                            variables)))))
-         (name (lookup :name)))
-    (check-generator-version spec generator-version "project recipe")
-    (check-keys spec '(:minimum-generator-version
-                       (:name . t) (:templates . t) (:variables . t)
-                       :versions :catalog))
-    (check-name-pathname-congruence name pathname)
+                                            variables))))))
     (let ((instance (make-instance 'project-spec :name name)))
       (reinitialize-instance
        instance
@@ -172,21 +207,11 @@
                                          (lookup :versions))
                               (lookup :versions)))))))
 
-(defun load-project-spec/json (pathname &key version-test generator-version)
-  (handler-bind ((error (lambda (condition)
-                          (error "~@<Error when loading project ~
-                                  description from ~S: ~A~@:>"
-                                  pathname condition))))
-    (load-project-spec/json-1 pathname
-                              :version-test      version-test
-                              :generator-version generator-version)))
+;;; Distribution loading
 
-(defun load-distribution-spec/json-1 (pathname &key generator-version)
-  (let+ ((spec (%decode-json-from-source pathname))
-         ((&flet lookup (name &optional (where spec))
-            (cdr (assoc name where))))
-         (name (lookup :name))
-         (projects-seen (make-hash-table :test #'equal))
+(define-json-loader (distribution (:variables (:versions . t) :catalog))
+    (spec (name :congruent))
+  (let+ ((projects-seen (make-hash-table :test #'equal))
          ((&flet process-version (version)
             (typecase version
               (string
@@ -223,25 +248,8 @@
                (let+ (((name &rest versions) included-project))
                  (setf (gethash name projects-seen) included-project)
                  (list (list* name (map 'list #'process-version versions)))))))))
-    (check-generator-version spec generator-version "distribution recipe")
-    (check-keys spec '(:minimum-generator-version
-                       (:name . t) :variables (:versions . t)
-                       :catalog))
-    (check-name-pathname-congruence name pathname)
     (make-instance 'distribution-spec
                    :name      name
                    :variables (value-acons :__catalog (lookup :catalog)
                                            (process-variables (lookup :variables)))
                    :versions  (mapcan #'process-project (lookup :versions)))))
-
-(defun load-distribution/json (pathname &key generator-version)
-  (handler-bind ((error (lambda (condition)
-                          (error "~@<Error when loading distribution ~
-                                  description from ~S: ~A~@:>"
-                                 pathname condition))))
-    (load-distribution-spec/json-1 pathname
-                                   :generator-version generator-version)))
-
-(defun %decode-json-from-source (source)
-  (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
-    (json:decode-json-from-source source)))

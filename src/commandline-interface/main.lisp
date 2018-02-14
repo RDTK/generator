@@ -960,6 +960,12 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                                  (option-value "general" "trace-variable")))
                 (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
 
+                (unless dry-run?
+                  (with-phase-error-check
+                      (:verify-jenkins #'errors #'(setf errors) #'report
+                       :continuable? nil)
+                    (jenkins.api::verify-jenkins)))
+
                 (with-trivial-progress (:jobs)
 
                   (let+ ((people             (with-phase-error-check

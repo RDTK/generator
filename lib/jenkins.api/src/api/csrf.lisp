@@ -38,3 +38,39 @@
   (if (boundp '*csrf-protection-token*)
       *csrf-protection-token*
       (setf *csrf-protection-token* (obtain-csrf-protection-token))))
+
+(define-condition jenkins-connect-error (error
+                                         more-conditions:chainable-condition)
+  ((url :initarg :url
+        :reader  url))
+  (:default-initargs :url (missing-required-initarg 'jenkins-connect-error :url))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Could not connect to Jenkins instance at ~A.~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (url condition) condition))))
+
+(defun jenkins-version (&aux (url *base-url*) (username *username*) (password *password*))
+  (log:info "~@<Trying to contact Jenkins instance at ~A~@:>" url)
+  (more-conditions:with-condition-translation
+      (((error jenkins-connect-error) :url url))
+    (let+ (((&values body code headers)
+            (apply #'drakma:http-request
+                   url (when (and username password)
+                         (list :basic-authorization
+                               (list username password))))))
+      (unless (<= 200 code 399)
+        (error "~@<Request failed (code ~D):~_~A~@:>"
+               code body))
+
+      (let ((version (assoc-value headers :x-jenkins)))
+        (unless version
+          (error "~@<Reply from Jenkins did not include X-Jenkins ~
+                  header.~@:>"))
+        (log:info "~@<Jenkins version is ~A~@:>" version)
+        version))))
+
+(defun verify-jenkins ()
+  (prog1
+      (jenkins-version)
+    (ensure-csrf-protection-token)))

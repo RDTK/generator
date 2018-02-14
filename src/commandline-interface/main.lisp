@@ -37,7 +37,7 @@
     (lambda (distribution-pathname distribution)
       (let ((projects-directory
               (merge-pathnames
-               "../projects/"
+               (make-pathname :directory '(:relative :back "projects"))
                (make-pathname :name     nil
                               :type     "project"
                               :defaults distribution-pathname))))

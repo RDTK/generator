@@ -1,6 +1,6 @@
 ;;;; main.lisp --- Entry-point of commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -626,7 +626,9 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                     (continue)
                                     (abort))
                              :test-function (lambda (condition)
-                                              (find-restart 'continue condition))))
+                                              (and (not (typep condition
+                                                               'undefined-function))
+                                                   (find-restart 'continue condition)))))
               (funcall thunk)))))
     (unwind-protect ; TODO probably not a good idea
          ;; Execute THUNK collecting errors.

@@ -1,6 +1,6 @@
 ;;;; csrf.lisp --- Support Jenkins' CSRF protection.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -27,8 +27,8 @@
                      (t
                       (error "~@<Failed to obtain CSRF protection token (code ~D): ~A~@:>"
                              code result)))))
-      (log:info "~:[CSRF protection not enabled~;Got CSRF protection ~
-                 token header~:*~S~]"
+      (log:info "~@<~:[CSRF protection not enabled~;Got CSRF protection ~
+                 token header ~:*~S~]~@:>"
                 header)
       header)))
 

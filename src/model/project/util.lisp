@@ -22,10 +22,10 @@
          (t
           (push key extra)))
        (push key seen))
-    (when-let ((missing (remove nil expected :key #'cdr)))
-      (invalid-keys "Missing required" (mapcar #'car missing)))
     (when (and exhaustive? extra)
-      (invalid-keys "Unexpected" extra)))
+      (invalid-keys "Unexpected" extra))
+    (when-let ((missing (remove nil expected :key #'cdr)))
+      (invalid-keys "Missing required" (mapcar #'car missing))))
   object)
 
 (defun+ parse-dependency-spec ((nature name &optional version))

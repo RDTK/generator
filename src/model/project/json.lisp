@@ -6,6 +6,20 @@
 
 (cl:in-package #:jenkins.model.project)
 
+;;; Source location utilities
+
+(defvar *locations* (make-hash-table :test #'eq))
+
+(defvar *locations-lock* (bt:make-lock "locations"))
+
+(defun location-of (object)
+  (bt:with-lock-held (*locations-lock*)
+    (gethash object *locations*)))
+
+(defun (setf location-of) (new-value object)
+  (bt:with-lock-held (*locations-lock*)
+    (setf (gethash object *locations*) new-value)))
+
 ;;; Source location conditions
 
 (define-condition annotation-condition ()
@@ -32,15 +46,52 @@
        (apply #'format stream (simple-condition-format-control cause)
               (simple-condition-format-arguments cause))))))
 
+(defvar *source*)
+
+(defun source (stream)
+  (flet ((make-source ()
+           (apply #'text.source-location:make-source stream
+                  (when-let ((file (ignore-errors (pathname stream))))
+                    (list :content (read-file-into-string file))))))
+    (or *source* (setf *source* (make-source)))))
+
+(defun record-object-location (object stream start end)
+  (setf (location-of object) (text.source-location:make-location
+                              (source stream) start end)))
+
+(defvar *object-members*)
+
+(defvar *cell-start*)
+
+(defun record-object-member-locations (object)
+  (let ((bounds (nreverse (cdr (first *object-members*)))))
+    (map nil (lambda+ (cell (stream start end))
+               (record-object-location cell stream start end))
+         object bounds))
+  object)
+
+(defvar *start*)
+
+(defun call-with-object-result (thunk stream)
+  (let* ((*start*  (file-position stream))
+         (object   (funcall thunk stream))
+         (end      (file-position stream))
+         (location (text.source-location:make-location
+                    (source stream) *start* end)))
+    (setf (location-of object) location)
+    object))
+
+(defmacro with-object-result ((stream) &body body)
+  (check-type stream symbol)
+  `(call-with-object-result (lambda (,stream) ,@body) ,stream))
+
 (defun %decode-json-from-source (source)
   ;; Look away, carry on. Look, this is only a temporary
   ;; solution. Right? I'm sorry.
   (handler-bind
       ((json:json-syntax-error
         (lambda (condition)
-          (let+ ((source    (text.source-location:make-source
-                             source :content (read-file-into-string source)))
-                 (control   (simple-condition-format-control condition))
+          (let+ ((control   (simple-condition-format-control condition))
                  (arguments (simple-condition-format-arguments condition))
                  (position  (json::stream-error-stream-file-position condition))
                  ((&values start end)
@@ -58,10 +109,51 @@
                    :cause       condition
                    :annotations (list (text.source-location:make-annotation
                                        (text.source-location:make-location
-                                        source start end)
+                                        (source source) start end)
                                        "here" :kind :error)))))))
-    (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
-      (json:decode-json-from-source source))))
+    (with-input-from-file (stream source)
+      (let* ((json::*json-identifier-name-to-lisp* #'string-upcase)
+             (json:*internal-decoder*              (lambda (stream)
+                                                     (with-object-result (stream)
+                                                       (json:decode-json stream))))
+
+             (beginning-of-string-handler          json::*beginning-of-string-handler*)
+             (json::*beginning-of-string-handler*  (lambda ()
+                                                     (setf *start* (1- (file-position stream)))
+                                                     (funcall beginning-of-string-handler)))
+
+             (beginning-of-array-handler           json::*beginning-of-array-handler*)
+             (json::*beginning-of-array-handler*   (lambda ()
+                                                     (setf *start* (1- (file-position stream)))
+                                                     (funcall beginning-of-array-handler)))
+
+             (beginning-of-object-handler          json::*beginning-of-object-handler*)
+             (json::*beginning-of-object-handler*  (lambda ()
+                                                     (setf *start* (1- (file-position stream)))
+                                                     (push (list nil) *object-members*)
+                                                     (funcall beginning-of-object-handler)))
+
+             (object-key-handler                   json::*object-key-handler*)
+             (json::*object-key-handler*           (lambda (object)
+                                                     (setf *cell-start* *start*)
+                                                     (funcall object-key-handler object)))
+
+             (object-value-handler                 json::*object-value-handler*)
+             (json::*object-value-handler*         (lambda (object)
+                                                     (push (list stream *cell-start* (file-position stream))
+                                                           (cdr (first *object-members*)))
+                                                     (funcall object-value-handler object)))
+
+             (end-of-object-handler                json::*end-of-object-handler*)
+             (json::*end-of-object-handler*        (lambda ()
+                                                     (prog1
+                                                         (record-object-member-locations
+                                                          (funcall end-of-object-handler))
+                                                       (pop *object-members*))))
+
+             (*source*                             nil)
+             (*object-members*                     '()))
+        (json:decode-json-from-source stream json:*internal-decoder*)))))
 
 ;;; Structure utilities
 

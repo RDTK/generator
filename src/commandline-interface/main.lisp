@@ -943,11 +943,10 @@ A common case, deleting only jobs belonging to the distribution being generated,
 
                      (people        (with-phase-error-check
                                         (:locate/person #'errors #'(setf errors) #'report)
-                                      (sort (locate-specifications :person (list (merge-pathnames
-                                                                                  "../people/*.person"
-                                                                                  (first distribution)))
-                                                                   :if-no-match '())
-                                            #'string< :key #'pathname-name)))
+                                      (locate-specifications :person (list (merge-pathnames
+                                                                            "../people/*.person"
+                                                                            (first distribution)))
+                                                             :if-no-match '())))
                      (templates     (with-phase-error-check
                                         (:locate/template #'errors #'(setf errors) #'report)
                                       (sort (locate-specifications :template template-pattern)

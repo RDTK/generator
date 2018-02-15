@@ -1,6 +1,6 @@
 ;;;; jenkins.project.asd ---
 ;;;;
-;;;; Copyright (C) 2011-2017 Jan Moringen
+;;;; Copyright (C) 2011-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,6 +26,7 @@
                 (:version :esrap                                 "0.9")
                 (:version :cl-ppcre                              "2.0.3")
                 (:version :cl-json                               "0.4.1")
+                (:version :text.source-location                  "0.1")
                 :cl-store
                 :inferior-shell
                 :ironclad

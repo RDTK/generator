@@ -1,16 +1,67 @@
 ;;;; json.lisp --- Minimal JSON import for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.model.project)
 
+;;; Source location conditions
+
+(define-condition annotation-condition ()
+  ((annotations :initarg  :annotations
+                :accessor annotations)))
+
+(defmethod print-object :around ((object annotation-condition) stream)
+  (let ((annotations (annotations object)))
+    (let ((*print-circle* nil))
+      (pprint-logical-block (stream annotations)
+        (call-next-method)
+        (loop :repeat 2 :do (pprint-newline :mandatory stream))
+        (text.source-location.print::print-annotations stream annotations)))))
+
 ;;; JSON syntax
 
+(define-condition json-syntax-error (error
+                                     annotation-condition
+                                     more-conditions:chainable-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (let ((cause (more-conditions:cause condition)))
+       (apply #'format stream (simple-condition-format-control cause)
+              (simple-condition-format-arguments cause))))))
+
 (defun %decode-json-from-source (source)
-  (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
-    (json:decode-json-from-source source)))
+  ;; Look away, carry on. Look, this is only a temporary
+  ;; solution. Right? I'm sorry.
+  (handler-bind
+      ((json:json-syntax-error
+        (lambda (condition)
+          (let+ ((source    (text.source-location:make-source
+                             source :content (read-file-into-string source)))
+                 (control   (simple-condition-format-control condition))
+                 (arguments (simple-condition-format-arguments condition))
+                 (position  (json::stream-error-stream-file-position condition))
+                 ((&values start end)
+                  (cond
+                    ((and (stringp control)
+                          (eql 0 (search "Invalid JSON literal" control))
+                          (typep arguments '(cons string)))
+                     (values (- position (length (first arguments))) position))
+                    ((and (stringp control)
+                          (eql 0 (search "Invalid char on JSON input" control)))
+                     (values position (1+ position)))
+                    (t
+                     (values (max 0 (1- position)) (max 1 position))))))
+            (error 'json-syntax-error
+                   :cause       condition
+                   :annotations (list (text.source-location:make-annotation
+                                       (text.source-location:make-location
+                                        source start end)
+                                       "here" :kind :error)))))))
+    (let ((json::*json-identifier-name-to-lisp* #'string-upcase))
+      (json:decode-json-from-source source))))
 
 ;;; Structure utilities
 
@@ -96,10 +147,11 @@
 
        (defun ,load-name (pathname &rest args &key generator-version ,@other-args)
          (declare (ignore generator-version ,@other-args))
-         (handler-bind ((error (lambda (condition)
-                                 (error "~@<Error when loading ~(~A~) ~
-                                         description from ~S: ~A~@:>"
-                                        ',concept pathname condition))))
+         (handler-bind (((and error (not annotation-condition))
+                         (lambda (condition)
+                           (error "~@<Error when loading ~(~A~) ~
+                                   description from ~S: ~A~@:>"
+                                  ',concept pathname condition))))
            (let+ (((&values spec name pathname)
                    (apply #',read-name pathname args)))
              (apply #',parse-name spec name :pathname pathname args)))))))

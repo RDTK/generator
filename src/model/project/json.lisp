@@ -34,6 +34,29 @@
         (loop :repeat 2 :do (pprint-newline :mandatory stream))
         (text.source-location.print::print-annotations stream annotations)))))
 
+(define-condition simple-object-error (error
+                                       annotation-condition
+                                       simple-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (apply #'format stream (simple-condition-format-control condition)
+            (simple-condition-format-arguments condition)))))
+
+(defun object-error (annotated-objects
+                     &optional format-control &rest format-arguments)
+  (if-let ((annotations
+            (loop :for (object text kind) :in annotated-objects
+                  :for location = (location-of object)
+                  :when location
+                  :collect (apply #'text.source-location:make-annotation
+                                  location text (when kind (list :kind kind))))))
+    (error 'simple-object-error
+           :annotations      annotations
+           :format-control   format-control
+           :format-arguments format-arguments)
+    (apply #'error format-control format-arguments)))
+
 ;;; JSON syntax
 
 (define-condition json-syntax-error (error
@@ -157,6 +180,40 @@
 
 ;;; Structure utilities
 
+(defun check-keys (object &optional expected (exhaustive? t))
+  (let+ ((seen     '())
+         (expected (mapcar #'ensure-list expected))
+         (extra    '())
+         ((&flet invalid-keys (reason keys &optional cells)
+            (object-error
+             (if (length= 1 cells)
+                 (list (list (first cells) "defined here" :error))
+                 (loop :for cell :in cells
+                       :for i :downfrom (length cells)
+                       :collect (list cell (format nil "~:R definition" i) :error)))
+             "~@<~A key~P: ~{~A~^, ~}.~@:>"
+             reason (length keys) keys))))
+    (map nil (lambda+ ((&whole cell key . &ign))
+               (cond
+                 ((member key seen :test #'eq :key #'car)
+                  (invalid-keys "duplicate" (list key)
+                                (list* cell (remove key seen
+                                                    :test-not #'eq
+                                                    :key      #'car))))
+                 ((member key expected :test #'eq :key #'car)
+                  (removef expected key :test #'eq :key #'car))
+                 (t
+                  (push cell extra)))
+               (push cell seen))
+         object)
+    (when (and exhaustive? extra)
+      (invalid-keys "Unexpected" (map 'list #'car extra)
+                    extra))
+    (when-let ((missing (remove nil expected :key #'cdr)))
+      (invalid-keys "Missing required" (map 'list #'car missing)
+                    (list object))))
+  object)
+
 (deftype json-version-include-spec ()
   '(or string (cons string (cons list null))))
 
@@ -170,33 +227,43 @@
   (when-let ((required-version (assoc-value spec :minimum-generator-version)))
     (unless (version-matches (parse-version required-version)
                              (parse-version generator-version))
-      (error "~@<The ~A requires generator version ~S, but ~
-              this generator is version ~S.~@:>"
-             context required-version generator-version))))
+      (object-error
+       (list (list required-version "minimum version declaration" :info))
+       "~@<The ~A requires generator version ~S, but this ~
+        generator is version ~S.~@:>"
+       context required-version generator-version))))
 
 (defun check-name-pathname-congruence (name pathname)
   (unless (string= name (pathname-name pathname))
-    (error "~@<Value of \"name\" attribute, ~S, does not match ~
-           filename ~S.~@:>"
-           name (pathname-name pathname)))
+    (object-error
+     (list (list name "name attribute" :error))
+     "~@<Value of \"name\" attribute, ~S, does not match filename ~
+      ~S.~@:>"
+     name (pathname-name pathname)))
   name)
 
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
-    (loop :for (key . value) :in alist :do
-             (when (starts-with-subseq "__" (string key))
-               (error "~@<Variable name ~A starts with \"__\". These ~
-                       variable names are reserved for internal ~
-                       use.~@:>"
-                      key))
-             (push value (gethash key entries)))
+    (map nil (lambda+ ((&whole cell key . &ign))
+               (when (starts-with-subseq "__" (string key))
+                 (object-error
+                  (list (list cell "variable definition" :error))
+                  "~@<Variable name ~A starts with \"__\". These ~
+                   variable names are reserved for internal use.~@:>"
+                  key))
+               (push cell (gethash key entries)))
+         alist)
     (loop :for key :being :the :hash-key :of entries
-          :using (:hash-value value)
-          :do (unless (length= 1 value)
-                (error "~@<Multiple definitions of variable ~A: ~
-                        ~{~A~^, ~}.~@:>"
-                       key (mapcar #'json:encode-json-to-string value)))
-       :collect (value-cons key (first value)))))
+       :using (:hash-value cells)
+       :do (unless (length= 1 cells)
+             (object-error
+              (loop :for cell :in cells
+                    :for i :downfrom (length cells)
+                    :collect (list cell (format nil "~:R definition" i)
+                                   (if (= i 1) :note :error)))
+              "~@<Multiple definitions of variable ~A.~@:>"
+              key))
+       :collect (value-cons key (cdr (first cells))))))
 
 ;;; Loader definition macro
 
@@ -264,14 +331,29 @@
 
 (defun call-with-loading-template (thunk name)
   (when (member name *template-load-stack* :test #'string=)
-    (error "~@<Cyclic template inheritance~
-            ~@:_~@:_~
-            ~4@T~{~
-              ~A~^~@:_~@T->~@T~
-            ~}~@:>"
-           (reverse (list* name *template-load-stack*))))
+    (object-error
+     (map 'list (lambda (name)
+                  (list name "included here" :info))
+          (list* name *template-load-stack*))
+     "~@<Cyclic template inheritance~
+      ~@:_~@:_~
+      ~4@T~{~
+        ~A~^~@:_~@T->~@T~
+      ~}~@:>"
+     (reverse (list* name *template-load-stack*))))
   (let ((*template-load-stack* (list* name *template-load-stack*)))
-    (funcall thunk)))
+    (handler-bind
+        ((annotation-condition
+          (lambda (condition)
+            (when (eq name (first *template-load-stack*))
+              (let ((annotations
+                     (mappend (lambda (name)
+                                (when-let ((location (location-of name)))
+                                  (list (text.source-location:make-annotation
+                                         location "included here" :kind :info))))
+                              *template-load-stack*)))
+                (appendf (annotations condition) annotations))))))
+      (funcall thunk))))
 
 (defmacro loading-template ((name) &body body)
   `(call-with-loading-template (lambda () ,@body) ,name))
@@ -339,7 +421,14 @@
          (instance (make-instance 'project-spec :name name)))
     (reinitialize-instance
      instance
-     :templates (mapcar #'find-template (lookup :templates))
+     :templates (mapcar (lambda (name)
+                          (handler-bind
+                              ((error (lambda (error)
+                                        (object-error
+                                         (list (list name "included here" :info))
+                                         "~A" error))))
+                            (find-template name)))
+                        (lookup :templates))
      :variables (value-acons
                  :__catalog (lookup :catalog)
                  (process-variables (lookup :variables)))
@@ -365,29 +454,22 @@
          ((&flet process-project (included-project)
             (cond
               ((not (typep included-project 'json-project-include-spec))
-               (cerror "~@<Continue without the project entry~@:>"
-                       "~@<Project entry~
-                        ~@:_~@:_~
-                        ~2@T~A~
-                        ~@:_~@:_~
-                        is not a project name followed by one or more ~
-                        project (parametrized) versions.~:@>"
-                       (json:encode-json-to-string included-project)))
+               (with-simple-restart
+                   (continue "~@<Continue without the project entry~@:>")
+                 (object-error
+                  (list (list included-project "included here" :error))
+                  "~@<Project entry is not a project name followed by ~
+                   one or more (parametrized) project versions.~:@>")))
               ((when-let ((previous (gethash (first included-project)
                                              projects-seen)))
-                 (cerror "~@<Ignore the additional project entry~@:>"
-                         "~@<Project entry~
-                          ~@:_~@:_~
-                          ~2@T~A~
-                          ~@:_~@:_~
-                          followed by another entry~
-                          ~@:_~@:_~
-                          ~2@T~A~
-                          ~@:_~@:_~
-                          for same project. Multiple project versions ~
-                          have to be described in a single entry.~@:>"
-                         (json:encode-json-to-string previous)
-                         (json:encode-json-to-string included-project))))
+                 (with-simple-restart
+                     (continue "~@<Ignore the additional project entry~@:>")
+                   (object-error
+                    (list (list previous         "initial definition"   :note)
+                          (list included-project "offending definition" :error))
+                    "~@<Project entry followed by another entry for ~
+                     same project. Multiple project versions have to ~
+                     be described in a single entry.~@:>"))))
               (t
                (let+ (((name &rest versions) included-project))
                  (setf (gethash name projects-seen) included-project)

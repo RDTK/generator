@@ -191,21 +191,21 @@
                              :variables (if catalog
                                             (value-acons :__catalog catalog
                                                          variables)
-                                            variables))))))
-    (let ((instance (make-instance 'project-spec :name name)))
-      (reinitialize-instance
-       instance
-       :templates (mapcar #'find-template (lookup :templates))
-       :variables (value-acons
-                   :__catalog (lookup :catalog)
-                   (process-variables (lookup :variables)))
-       :versions  (mapcar (rcurry #'make-version-spec instance)
-                          (if version-test
-                              (remove-if (lambda (version)
-                                           (let ((name (lookup :name version)))
-                                             (not (funcall version-test name))))
-                                         (lookup :versions))
-                              (lookup :versions)))))))
+                                            variables)))))
+         (instance (make-instance 'project-spec :name name)))
+    (reinitialize-instance
+     instance
+     :templates (mapcar #'find-template (lookup :templates))
+     :variables (value-acons
+                 :__catalog (lookup :catalog)
+                 (process-variables (lookup :variables)))
+     :versions  (mapcar (rcurry #'make-version-spec instance)
+                        (if version-test
+                            (remove-if (lambda (version)
+                                         (let ((name (lookup :name version)))
+                                           (not (funcall version-test name))))
+                                       (lookup :versions))
+                            (lookup :versions))))))
 
 ;;; Distribution loading
 

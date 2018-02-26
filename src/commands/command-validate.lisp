@@ -104,7 +104,10 @@
       (check-distribution-access distributions))))
 
 (defun check-project-variables (project variables
-                                &key (known-natures *known-natures*))
+                                &key
+                                (known-natures *known-natures*)
+                                description-checker
+                                title-checker)
   (map nil (lambda+ ((&structure-r/o variable-info- name type))
              (with-simple-restart
                  (continue "~@<Skip the variable ~A.~@:>" name)
@@ -118,13 +121,21 @@
                  (let+ (((&values value default?)
                          (jenkins.model.variables:value project name nil))
                         (value (unless default? (as value type))))
-                   (when (and (not default?)
-                              (member name '(:extra-requires :extra-provides)))
-                     (loop :for (nature) :in value
-                        :unless (member nature known-natures :test #'string=)
-                        :do (error "~@<Suspicious ~S value ~S.~@:>"
-                                   name value))))
-                 )))
+                   (when (not default?)
+                     (case name
+                       ((:extra-requires :extra-provides)
+                        (loop :for (nature) :in value
+                              :unless (member nature known-natures :test #'string=)
+                              :do (error "~@<Suspicious ~S value ~S.~@:>"
+                                         name value)))
+                       (:description
+                        (when description-checker
+                          (unless (equal value "-none-") ; TODO hack
+                            (funcall description-checker project value))))
+                       (:__catalog
+                        (when title-checker
+                          (when-let ((title (assoc-value value :title)))
+                            (funcall title-checker project title))))))))))
        variables))
 
 #+alternative (defun check-project-variables (project)
@@ -148,14 +159,39 @@
                (error "~@<Error in variable ~A in ~A: ~A~@:>"
                       name project condition))))))
 
+(defun make-uniqueness-checker (variable &key (test #'equal))
+  (let ((values (make-hash-table :test test))
+        (lock   (bt:make-lock "uniqueness checker")))
+    (lambda (&optional project (value nil value-supplied?))
+      (bt:with-lock-held (lock)
+        (if value-supplied?
+            (push (cons project value) (gethash value values '()))
+            (maphash (lambda (value projects+values)
+                       (with-simple-restart
+                           (continue "~@<Ignore the repeated value.~@:>")
+                         (unless (length= 1 projects+values)
+                           (jenkins.model.project::object-error
+                            (loop :for i                 :from 0
+                                  :for (project . value) :in   projects+values
+                                  :collect (list value ; TODO will not work for computed values
+                                                 (format nil "~:R occurrence" (1+ i))
+                                                 (if (zerop i) :info :error)))
+                            "~@<The value \"~A\" of the ~S variable ~
+                             occurs in multiple projects.~@:>" value
+                             variable)))) values))))))
+
+(jenkins.model.variables:define-variable :__catalog list)
+
 (defun check-variables/early (projects)
   (as-phase (:check-variables)
-    (let ((variables (remove-if (lambda (variable)
-                                  (member (variable-info-name variable)
-                                          '(:jobs.list
-                                            :jobs.dependencies
-                                            :jobs.dependencies/groovy)))
-                                (jenkins.model.variables:all-variables))))
+    (let ((variables           (remove-if (lambda (variable)
+                                            (member (variable-info-name variable)
+                                                    '(:jobs.list
+                                                      :jobs.dependencies
+                                                      :jobs.dependencies/groovy)))
+                                          (jenkins.model.variables:all-variables)))
+          (description-checker (make-uniqueness-checker :description))
+          (title-checker       (make-uniqueness-checker '(:catalog :title))))
       (with-sequence-progress (:check-variables projects)
         (lparallel:pmapc
          (lambda (project)
@@ -164,6 +200,11 @@
                (continue "~@<Skip project ~A.~@:>" project)
              (check-project-variables
               (project-spec-and-versions-spec project)
-              variables)))
-         :parts 100 projects)))
+              variables
+              :description-checker description-checker
+              :title-checker       title-checker)))
+         :parts 100 projects))
+      ;; Report
+      (funcall description-checker)
+      (funcall title-checker))
     projects))

@@ -1,6 +1,6 @@
 ;;;; mps.lisp --- Analysis of MPS projects.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -48,7 +48,8 @@
                     (kind   (eql +mps-plugin-build-files+))
                     &key
                     (build-file-pattern "*build*.xml"))
-  (let+ ((files   (directory (merge-pathnames build-file-pattern source)))
+  (let+ ((source  (truename source))
+         (files   (directory (merge-pathnames build-file-pattern source)))
          (results (mapcan
                    (lambda (file)
                      (with-simple-restart

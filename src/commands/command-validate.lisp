@@ -114,7 +114,7 @@
                (handler-bind
                    ((undefined-variable-error
                      #'continue)
-                    (error
+                    ((and error (not jenkins.model.project::annotation-condition))
                      (lambda (condition)
                        (error "~@<Error in variable ~A in ~A: ~A~@:>"
                               name project condition))))
@@ -126,8 +126,10 @@
                        ((:extra-requires :extra-provides)
                         (loop :for (nature) :in value
                               :unless (member nature known-natures :test #'string=)
-                              :do (error "~@<Suspicious ~S value ~S.~@:>"
-                                         name value)))
+                              :do (jenkins.model.project::object-error
+                                   (list (list nature "used here" :error))
+                                   "~@<Suspicious nature ~S in ~S value.~@:>"
+                                   nature name)))
                        (:description
                         (when description-checker
                           (unless (equal value "-none-") ; TODO hack

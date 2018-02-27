@@ -37,11 +37,7 @@
 (define-condition simple-object-error (error
                                        annotation-condition
                                        simple-condition)
-  ()
-  (:report
-   (lambda (condition stream)
-     (apply #'format stream (simple-condition-format-control condition)
-            (simple-condition-format-arguments condition)))))
+  ())
 
 (defun object-error (annotated-objects
                      &optional format-control &rest format-arguments)

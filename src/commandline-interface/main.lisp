@@ -731,6 +731,12 @@ A common case, deleting only jobs belonging to the distribution being generated,
     ',phase ,errors ,set-errors ,report ,continuable? (lambda () ,@body)))
 
 (defun configure ()
+  (when (and (interactive-stream-p *standard-output*)
+             (interactive-stream-p *error-output*))
+    (reinitialize-instance (configuration.options:find-option
+                            '("general" "progress-style") *schema*)
+                           :default :one-line))
+
   (let+ ((*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS"))) ; TODO
                                    (parse-integer value)
                                    100))

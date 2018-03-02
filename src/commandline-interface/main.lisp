@@ -627,7 +627,8 @@ A common case, deleting only jobs belonging to the distribution being generated,
                                     (abort))
                              :test-function (lambda (condition)
                                               (and (not (typep condition
-                                                               'undefined-function))
+                                                               '(or unbound-variable
+                                                                    undefined-function)))
                                                    (find-restart 'continue condition)))))
               (funcall thunk)))))
     (unwind-protect ; TODO probably not a good idea

@@ -281,8 +281,11 @@
          (let ((spec (%decode-json-from-source pathname)))
            (check-generator-version spec generator-version ,context)
            (check-keys spec '(:minimum-generator-version
-                              ,@(when (member name-kind '(:data :congruent))
-                                  '((:name . t)))
+                              ,@(case name-kind
+                                  (:data
+                                   '((:name . t)))
+                                  (:congruent
+                                   `(:name)))
                               ,@keys))
            (let ((name ,@(ecase name-kind
                            (:data
@@ -290,8 +293,9 @@
                            (:pathname
                             `((pathname-name pathname)))
                            (:congruent
-                            `((let ((name (assoc-value spec :name)))
-                                (check-name-pathname-congruence name pathname)))))))
+                            `((if-let ((name (assoc-value spec :name)))
+                                (check-name-pathname-congruence name pathname)
+                                (pathname-name pathname)))))))
              (values spec name pathname))))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)

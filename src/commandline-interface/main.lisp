@@ -91,10 +91,12 @@
                                       ((find name (versions project)
                                              :test #'string= :key #'name))
                                       (version-required?
-                                       (error "~@<No version section for ~
-                                               version ~S in project ~
-                                               ~A.~@:>"
-                                              name project))
+                                       (jenkins.model.project::object-error
+                                        (list (list name "included here" :error))
+                                        "~@<No version section for ~
+                                         version ~S in project ~
+                                         ~A.~@:>"
+                                        name project))
                                       (t
                                        (make-instance 'version-spec
                                                       :name      name

@@ -1,6 +1,6 @@
 ;;;; Protocol.lisp --- Protocol provided by the model.variables module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -52,6 +52,19 @@
 
     The second return value indicates whether the first return value
     is DEFAULT."))
+
+(defgeneric evaluate (thing expression)
+  (:documentation
+   "Return the result of evaluating EXPRESSION in context THING.
+
+    To produce the return value, substitutions of them forms
+
+      ${ NAME [ |DEFAULT ] }
+      @{ NAME [ |[] ] }
+
+    are recursively processed until none remain. See `lookup'.
+
+    An error is signaled when processing a substitution fails."))
 
 (defgeneric as (value type &key if-type-mismatch)
   (:documentation

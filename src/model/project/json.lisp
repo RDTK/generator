@@ -440,13 +440,37 @@
 
 (define-json-loader (distribution (:variables (:versions . t) :catalog))
     (spec (name :congruent))
-  (let+ ((projects-seen (make-hash-table :test #'equal))
-         ((&flet process-version (version)
-            (typecase version
-              (string
-               (list version))
-              (cons
-               (list (first version) (process-variables (second version)))))))
+  (let+ ((variables     (value-acons :__catalog (lookup :catalog)
+                                     (process-variables (lookup :variables))))
+         ;; We allow using variables defined directly in the
+         ;; distribution recipe to be used in project version
+         ;; expressions. Since
+         (context       (make-instance 'direct-variables-mixin
+                                       :variables variables))
+         (projects-seen (make-hash-table :test #'equal))
+         ((&flet expand-version (expression note-success)
+            (handler-case
+                (prog1
+                    (evaluate context (value-parse expression))
+                  (funcall note-success))
+              (error (condition)
+                (object-error
+                 (list (list expression "specified here" :error))
+                 "~@<Failed to evaluate version of included project: ~A~@:>"
+                 condition)))))
+         ((&flet process-version (version note-success)
+            (with-simple-restart
+                (continue "~@<Continue without the project version~@:>")
+              (typecase version
+                (string
+                 (when-let ((expansion (expand-version version note-success)))
+                   (list (ensure-list expansion))))
+                (cons
+                 (list (list (expand-version (first version) note-success)
+                             (process-variables (second version)))))))))
+         ((&flet+ expand-project ((name &rest versions) note-success)
+            (list* name (mapcan (rcurry #'process-version note-success)
+                                versions))))
          ((&flet process-project (included-project)
             (cond
               ((not (typep included-project 'json-project-include-spec))
@@ -467,11 +491,20 @@
                      same project. Multiple project versions have to ~
                      be described in a single entry.~@:>"))))
               (t
-               (let+ (((name &rest versions) included-project))
-                 (setf (gethash name projects-seen) included-project)
-                 (list (list* name (map 'list #'process-version versions)))))))))
+               (let+ ((successful-expansions 0)
+                      ((&flet note-success ()
+                         (incf successful-expansions)))
+                      ((&whole entry name &rest versions)
+                       (expand-project included-project #'note-success)))
+                 (with-simple-restart
+                     (continue "~@<Continue without the project entry~@:>")
+                   (setf (gethash name projects-seen) included-project)
+                   (when (and (plusp successful-expansions) (null versions))
+                     (object-error
+                      (list (list included-project "specified here" :error))
+                      "~@<No project versions after expansion.~@:>"))
+                   (list entry))))))))
     (make-instance 'distribution-spec
                    :name      name
-                   :variables (value-acons :__catalog (lookup :catalog)
-                                           (process-variables (lookup :variables)))
+                   :variables variables
                    :versions  (mapcan #'process-project (lookup :versions)))))

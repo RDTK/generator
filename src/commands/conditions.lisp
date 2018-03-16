@@ -61,3 +61,66 @@
              :option-designator condition)))
   (:documentation
    "Signaled when an invalid value for a command option is encountered."))
+
+;;; Phase-related conditions
+
+(define-condition phase-condition (condition)
+  ((phase :initarg :phase
+          :type    keyword
+          :reader  phase
+          :documentation
+          "Stores the execution phase during which the condition was
+           signaled."))
+  (:default-initargs
+   :phase (missing-required-initarg 'phase-condition :phase))
+  (:documentation
+   "Superclass for phase-related conditions."))
+
+(define-condition deferred-problem-condition (condition)
+  ((conditions :initarg :conditions
+               :type     list
+               :reader   conditions
+               :documentation
+               "Stores the conditions that were deferred during the
+                execution of a particular phase."))
+  (:default-initargs
+   :problems (missing-required-initarg 'deferred-problem-condition :conditions))
+  (:documentation
+   "Superclass for condition classes which collect deferred
+    conditions."))
+
+(define-condition phase-error (error
+                               phase-condition)
+  ()
+  (:documentation
+   "Superclass for phase error conditions."))
+
+(define-condition deferred-phase-error (phase-error
+                                        deferred-problem-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (let+ (((&accessors-r/o phase conditions) condition))
+       (format stream "~@<~D problem~:P during ~A phase:~@:_~@:_~
+                       ~2@T~@<~
+                         ~{~
+                           ~<~A:~
+                             ~@:_~2@T~<~A~:>~
+                           ~:>~
+                           ~^~@:_~@:_~
+                         ~}~
+                       ~:>~@:>"
+               (length conditions) phase
+               (mapcar (lambda (condition)
+                         (list (type-of condition) condition))
+                       conditions)))))
+  (:documentation
+   "Signaled when deferred errors have accumulated at the end of a
+    phase."))
+
+(defun deferred-phase-cerror (phase conditions)
+  "Signal a continuable `deferred-phase-error'."
+  (with-simple-restart (continue "~@<Ignore problems in phase ~A and ~
+                                  continue.~@:>"
+                                 phase)
+    (error 'deferred-phase-error :phase phase :conditions conditions)))

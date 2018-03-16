@@ -29,4 +29,6 @@
                               (:file       "phases")
 
                               (:file       "value-types")
-                              (:file       "mixins")))))
+                              (:file       "mixins")
+
+                              (:file       "functions-version")))))

@@ -31,4 +31,5 @@
                               (:file       "value-types")
                               (:file       "mixins")
 
-                              (:file       "functions-version")))))
+                              (:file       "functions-version")
+                              (:file       "functions-input")))))

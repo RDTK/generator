@@ -93,4 +93,4 @@
     (call-next-method)))
 
 (defmethod command-execute :before ((command jenkins-access-mixin))
-  (jenkins.api::verify-jenkins))
+  (as-phase (:verify-jenkins) (jenkins.api::verify-jenkins)))

@@ -738,7 +738,7 @@ A common case, deleting only jobs belonging to the distribution being generated,
   (when (and (interactive-stream-p *standard-output*)
              (interactive-stream-p *error-output*))
     (reinitialize-instance (configuration.options:find-option
-                            '("general" "progress-style") *schema*)
+                            '("global" "progress-style") *schema*)
                            :default :one-line))
 
   (let+ ((*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS"))) ; TODO

@@ -32,4 +32,5 @@
                               (:file       "mixins")
 
                               (:file       "functions-version")
-                              (:file       "functions-input")))))
+                              (:file       "functions-input")
+                              (:file       "functions-deploy")))))

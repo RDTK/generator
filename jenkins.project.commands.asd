@@ -40,4 +40,5 @@
                               (:file       "command-help")
 
                               (:file       "command-info-variables")
-                              (:file       "command-info-aspects")))))
+                              (:file       "command-info-aspects")
+                              (:file       "command-generate")))))

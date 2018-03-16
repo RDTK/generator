@@ -32,3 +32,32 @@
              (command condition))))
   (:documentation
    "Signaled when a specified command cannot be bound."))
+
+(define-condition option-configuration-problem
+    (command-configuration-problem
+     jenkins.project.commandline-options:option-condition)
+  ()
+  (:documentation
+   "Superclass for command option-relation conditions."))
+
+(define-condition option-value-error (option-configuration-problem
+                                      more-conditions:chainable-condition
+                                      error)
+  ((value :initarg :value
+          :type    string
+          :reader  value
+          :documentation
+          "Stores the unparsed offending value."))
+  (:default-initargs
+   :value (missing-required-initarg 'option-value-error :value))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<~S is not a valid value for the \"~A\" option ~
+                     of the \"~A\" command (specified via \"~A\")~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (value condition)
+             (jenkins.project.commandline-options:option condition)
+             (command condition)
+             :option-designator condition)))
+  (:documentation
+   "Signaled when an invalid value for a command option is encountered."))

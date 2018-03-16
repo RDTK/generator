@@ -17,7 +17,8 @@
                 (:version :configuration.options                      "0.4")
                 (:version :configuration.options-and-service-provider "0.4")
 
-                (:version :jenkins.project                            (:read-file-form "version-string.sexp")))
+                (:version :jenkins.project                            (:read-file-form "version-string.sexp"))
+                (:version :jenkins.project.commandline-options        (:read-file-form "version-string.sexp")))
   :components  ((:module     "commands"
                  :pathname   "src/commands"
                  :serial     t

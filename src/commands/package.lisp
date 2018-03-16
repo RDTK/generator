@@ -15,6 +15,9 @@
    #:jenkins.model.variables
    #:jenkins.model.project)
 
+  (:shadow
+   #:value)
+
   ;; Conditions
   (:export
    #:command-condition
@@ -22,7 +25,12 @@
 
    #:command-configuration-problem
 
-   #:command-not-found-error)
+   #:command-not-found-error
+
+   #:option-configuration-problem
+
+   #:option-value-error
+   #:value)
 
   ;; Command protocol
   (:export
@@ -30,7 +38,8 @@
    #:make-command)
 
   ;; High-level interface
-  (:export)
+  (:export
+   #:configure-command)
 
   (:documentation
    "Command classes implementing user-level blocks of functionality."))

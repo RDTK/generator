@@ -6,63 +6,6 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
-(defun configure ()
-  (when (and (interactive-stream-p *standard-output*)
-             (interactive-stream-p *error-output*))
-    (reinitialize-instance (configuration.options:find-option
-                            '("global" "progress-style") *schema*)
-                           :default :one-line))
-
-  (let+ ((*print-right-margin*   (if-let ((value (sb-posix:getenv "COLUMNS"))) ; TODO
-                                   (parse-integer value)
-                                   100))
-         (schema        *schema*)
-         (configuration (configuration.options:make-configuration schema))
-         (source        (configuration.options.sources:make-source
-                         :common-cascade ; TODO environment variables
-                         :basename "build-generator"
-                         :syntax   :ini))
-         (synchronizer  (make-instance 'configuration.options:standard-synchronizer
-                                       :target configuration))
-         ((&flet option-value (section name)
-            (let+ ((option (configuration.options:find-option
-                            (list section name) configuration)))
-              (configuration.options:option-value
-               option :if-does-not-exist nil)))))
-    ;; Process configuration options.
-    (handler-case
-        (progn
-          (configuration.options.sources:initialize source schema)
-          (configuration.options.sources:process source synchronizer))
-      (error (condition)
-        (format t "Configuration error:~%~A~%" condition)
-        (uiop:quit 3)))
-
-    (let ((debug? (option-value "general" "debug")))
-
-      (when debug?
-        (describe configuration)
-        (fresh-line))
-
-      (when (or (emptyp (uiop:command-line-arguments))
-                (option-value "general" "help"))
-        (uiop:quit))
-
-      (when (option-value "general" "version")
-        (format *standard-output* "~A version ~A~&"
-                "build-generator" *generator-version*)
-        (uiop:quit))
-
-      (when (option-value "general" "info-variables")
-        (execute-command "info-variables" '())
-        (uiop:quit))
-
-      (when (option-value "general" "info-aspects")
-        (execute-command "info-aspects" '())
-        (uiop:quit))
-
-      (values #'option-value configuration debug?))))
-
 (defun make-error-policy (designator &key debug?)
   (let+ (((&flet continue/verbose (condition &key (debug? debug?))
             (unless (typep condition '(or undefined-function

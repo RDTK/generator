@@ -39,7 +39,8 @@
 
   ;; High-level interface
   (:export
-   #:configure-command)
+   #:configure-command
+   #:execute-command)
 
   (:documentation
    "Command classes implementing user-level blocks of functionality."))

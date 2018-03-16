@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the commands module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -71,3 +71,60 @@
                            :value   value
                            :cause   condition))))
      name arguments)))
+
+(defvar *cache-directory*)
+(defvar *temp-directory*)
+
+(defun execute-command (command
+                        &key
+                        (num-processes  1)
+                        (error-policy   #'error)
+                        (progress-style :cmake)
+                        cache-directory
+                        temp-directory)
+  (let ((main-thread (bt:current-thread))
+        (lock        (bt:make-lock)))
+    (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+    (unwind-protect-case ()
+         (handler-bind ((error error-policy)
+                        (more-conditions:progress-condition
+                         (make-progress-handler progress-style)))
+           (lparallel:task-handler-bind
+               ((error error-policy)
+                (more-conditions:progress-condition
+                 (lambda (condition)
+                   (bt:interrupt-thread
+                    main-thread (lambda ()
+                                  (sb-sys:without-interrupts
+                                    (bt:with-lock-held (lock)
+                                      (signal condition))))))))
+             (let ((*cache-directory* cache-directory)
+                   (*temp-directory*  temp-directory))
+               (command-execute command))))
+      (:normal
+       (lparallel:end-kernel :wait t))
+      (:abort
+       (lparallel:end-kernel :wait nil)
+       (lparallel:kill-tasks :default)))))
+
+(defun make-progress-handler (style)
+  (lambda (condition)
+    (case style
+      (:none)
+      (:cmake
+       (princ condition)
+       (fresh-line))
+      (:one-line
+       (let* ((progress      (progress-condition-progress condition))
+              (progress/real (progress->real progress))
+              (width    20))
+         (format t "~C[2K[~VA] ~A~C[G"
+                 #\Escape
+                 width
+                 (make-string (floor progress/real (/ width))
+                              :initial-element #\#)
+                 condition
+                 #\Escape)
+         (if (eq progress t)
+             (terpri)
+             (force-output)))))))

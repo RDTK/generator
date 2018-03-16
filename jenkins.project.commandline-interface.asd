@@ -21,7 +21,8 @@
                 (:version :configuration.options-and-puri        "0.7")
 
                 (:version :jenkins.project                       (:read-file-form "version-string.sexp"))
-                (:version :jenkins.project.more-conditions-patch (:read-file-form "version-string.sexp")))
+                (:version :jenkins.project.more-conditions-patch (:read-file-form "version-string.sexp"))
+                (:version :jenkins.project.commands              (:read-file-form "version-string.sexp")))
   :components  ((:module     "commandline-interface"
                  :pathname   "src/commandline-interface"
                  :serial     t

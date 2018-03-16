@@ -45,6 +45,12 @@
   (:export
    #:define-option-mapping)
 
+  ;; Help
+  (:export
+   #:print-option
+   #:print-usage
+   #:print-options)
+
   (:documentation
    "Handling of commandline options.
 

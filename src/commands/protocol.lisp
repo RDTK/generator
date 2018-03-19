@@ -107,18 +107,18 @@
        (lparallel:end-kernel :wait nil)
        (lparallel:kill-tasks :default)))))
 
-(defun make-progress-handler (style)
+(defun make-progress-handler (style &key (stream *error-output*))
   (lambda (condition)
     (case style
       (:none)
       (:cmake
-       (princ condition)
-       (fresh-line))
+       (princ condition stream)
+       (fresh-line stream))
       (:one-line
        (let* ((progress      (progress-condition-progress condition))
               (progress/real (progress->real progress))
               (width    20))
-         (format t "~C[2K[~VA] ~A~C[G"
+         (format stream "~C[2K[~VA] ~A~C[G"
                  #\Escape
                  width
                  (make-string (floor progress/real (/ width))
@@ -126,5 +126,5 @@
                  condition
                  #\Escape)
          (if (eq progress t)
-             (terpri)
-             (force-output)))))))
+             (terpri stream)
+             (force-output stream)))))))

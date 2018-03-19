@@ -43,7 +43,8 @@
   ;; Default to "one-line" progress style when apparently running
   ;; interactively.
   (when (and (interactive-stream-p *standard-output*)
-             (interactive-stream-p *error-output*))
+             (interactive-stream-p *error-output*)
+             (not (equal (uiop:getenv "TERM") "dumb")))
     (reinitialize-instance (configuration.options:find-option
                             '("global" "progress-style") *schema*)
                            :default :one-line))

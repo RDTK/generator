@@ -64,32 +64,39 @@
 ;;; `jenkins-access-mixin'
 
 (defclass jenkins-access-mixin ()
-  ((base-uri :initarg  :base-uri
-             :type     puri:uri
-             :reader   base-uri
-             :initform (puri:uri "https://localhost:8080")
-             :documentation
-             "Jenkins base URI.")
-   (username :initarg  :username
-             :type     (or null string)
-             :reader   username
-             :initform nil
-             :documentation
-             "Username for Jenkins authentication.")
-   (password :initarg  :password
-             :type     (or null string)
-             :reader   password
-             :initform nil
-             :documentation
-             "Password for Jenkins authentication."))
+  ((base-uri  :initarg  :base-uri
+              :type     puri:uri
+              :reader   base-uri
+              :initform (puri:uri "https://localhost:8080")
+              :documentation
+              "Jenkins base URI.")
+   (username  :initarg  :username
+              :type     (or null string)
+              :reader   username
+              :initform nil
+              :documentation
+              "Username for Jenkins authentication.")
+   (password  :initarg  :password
+              :type     (or null string)
+              :reader   password
+              :initform nil
+              :documentation
+              "Password for Jenkins authentication.")
+   (api-token :initarg  :api-token
+              :type     (or null string)
+              :reader   api-token
+              :initform nil
+              :documentation
+              "API token for Jenkins authentication."))
   (:documentation
    "Adds infrastructure for accessing a Jenkins server to command classes."))
 
 (defmethod command-execute :around ((command jenkins-access-mixin))
   (let+ (((&accessors-r/o (jenkins.api:*base-url* base-uri)
                           (jenkins.api:*username* username)
-                          (jenkins.api:*password* password))
-          command))
+                          password api-token)
+          command)
+         (jenkins.api:*password* (or api-token password)))
     (call-next-method)))
 
 (defmethod command-execute :before ((command jenkins-access-mixin))

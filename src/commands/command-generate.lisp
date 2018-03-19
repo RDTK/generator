@@ -51,7 +51,8 @@
 
   (("--base-uri" "-b")      "base-uri"             "URI")
   (("--username" "-u")      "username"             "LOGIN")
-  (("--password" "-p")      "password"             "PASSWORD"))
+  (("--password" "-p")      "password"             "PASSWORD")
+  (("--api-token" "-t")     "api-token"            "API-TOKEN"))
 
 (defmethod command-execute ((command generate))
   (let+ (((&accessors-r/o distributions mode overwrites

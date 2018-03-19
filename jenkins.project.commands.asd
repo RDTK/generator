@@ -43,4 +43,5 @@
                               (:file       "command-info-aspects")
                               (:file       "command-generate")
 
+                              (:file       "command-platform-requirements")
                               (:file       "command-report")))))

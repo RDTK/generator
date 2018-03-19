@@ -44,11 +44,28 @@
   (&rest             "sources" "URI-OR-DIRECTORY" t))
 
 (defmethod command-execute ((command analyze))
-  (let+ (((&accessors-r/o sources natures) command))
-    (map nil (lambda (input)
-               (json:encode-json-plist
-                (analyze-input input :natures natures)))
-         sources)))
+  (let+ (((&accessors-r/o sources natures) command)
+         (results (as-phase (:analyze)
+                    (with-sequence-progress (:analyze sources)
+                      (lparallel:pmapcan
+                       (progressing
+                        (lambda (input)
+                          (with-simple-restart
+                              (continue "~@<Skip ~A.~@:>" input)
+                            (list (cons (princ-to-string input)
+                                        (more-conditions::without-progress
+                                          (analyze-input input :natures natures))))))
+                        :analyze)
+                       sources))))
+         (stream  *standard-output*))
+    (if (length= 1 results)
+        (json:encode-json-plist (cdr (first results)) stream)
+        (json:with-object (stream)
+          (map nil (lambda+ ((input . result))
+                     (json:as-object-member (input stream)
+                       (json:encode-json-plist result stream)))
+               results)))
+    (terpri stream)))
 
 ;;; Analysis
 

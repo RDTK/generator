@@ -1,14 +1,30 @@
 ;;;; help.lisp --- Help text generation for the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.project.commandline-options)
 
-(defun print-option (stream option colon? at?)
-  (declare (ignore at?))
-  (option-synopsis option stream :short? colon?))
+(defun print-option (stream info colon? at?)
+  (option-synopsis info stream :long? colon?)
+  (when at?
+    (format stream "~%~
+                    ~2@T~:[~
+                      <not documented>~
+                    ~;~
+                      ~:*~<~/jenkins.project.commandline-options::print-documentation/~:>~
+                    ~]"
+            (when-let* ((option        (option info))
+                        (documentation (documentation option t)))
+              (list documentation)))))
+
+(defun print-options (stream options colon? at?)
+  (declare (ignore colon? at?))
+  (format stream "~{~@:/jenkins.project.commandline-options::print-option/~^~2%~}"
+          (sort (copy-list options)
+                (rcurry #'designators< :positional-first? t)
+                :key (compose #'designators))))
 
 (defun print-usage (stream options colon? at?)
   (declare (ignore colon? at?))
@@ -19,40 +35,8 @@
                             :key #'designators))
          (boring      (set-difference options interesting :test #'eq)))
     (format stream "~:[~; [COMMAND-OPTIONS]~]~
-                    ~{ ~:/jenkins.project.commandline-options::print-option/~}"
+                    ~{ ~/jenkins.project.commandline-options::print-option/~}"
             boring interesting)))
-
-(defun print-options (stream options colon? at?)
-  (declare (ignore colon? at?))
-  (let+ (((&flet option-description (info)
-            (let+ (((&accessors-r/o designators argument-name option) info)
-                   (designators (remove-if-not
-                                 (of-type 'named-option-designator)
-                                 designators))
-                   ((&values default default?)
-                    (configuration.options:option-default
-                     option :if-does-not-exist nil))
-                   (default (when default?
-                              (configuration.options:value->string
-                               option default))))
-              (list designators
-                    (and designators argument-name)
-                    argument-name
-                    (when argument-name default)
-                    (when-let ((documentation (documentation option t)))
-                      (list documentation)))))))
-    (format stream "~{~{~
-                      ~{~A~^,~}~:[~;=~]~@[~A~]~@[ (default: ~A)~]~%~
-                      ~2@T~:[~
-                        <not documented>~
-                      ~;~
-                        ~:*~<~/jenkins.project.commandline-options::print-documentation/~:>~
-                      ~]~
-                    ~}~^~2%~}"
-            (map 'list #'option-description
-                 (sort (copy-list options)
-                       (rcurry #'designators< :positional-first? t)
-                       :key (compose #'designators))))))
 
 ;;; Utilities
 

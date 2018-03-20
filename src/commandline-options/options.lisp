@@ -1,6 +1,6 @@
 ;;;; options.lisp --- Option info classes use in the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,10 +39,10 @@
 
 (defmethod option-synopsis ((info   named-without-argument-option-info)
                             (stream t)
-                            &key short?)
+                            &key long?)
   (let+ (((&accessors-r/o designators) info))
     (format stream "~{~A~^,~}"
-            (if short? (list (first designators)) designators))))
+            (if long? designators (list (first designators))))))
 
 ;;; `named-with-argument-option-info'
 
@@ -66,17 +66,23 @@
 
 (defmethod option-synopsis ((info   named-with-argument-option-info)
                             (stream t)
-                            &key short?)
+                            &key long?)
   (let+ (((&accessors-r/o option designators argument-name) info)
+         (type (configuration.options:option-type option))
          ((&values default default?)
           (configuration.options:option-default
            option :if-does-not-exist nil))
          (default (when default?
                     (configuration.options:value->string
                      option default))))
-    (format stream "~{~A~^,~}=~A~@[ (default: ~A)~]"
-            (if short? (list (first designators)) designators)
-            argument-name default)))
+    (format stream "~{~A~^,~}=~A"
+            (if long? designators (list (first designators)))
+            argument-name)
+    (when long?
+      (format stream " (~:[~*~;default: ~A, ~]~
+                      type: ~A)"
+              (and default? (not (eq (option-multiplicity info) '*))) default
+              type))))
 
 ;;; `positional-option-info'
 
@@ -92,10 +98,12 @@
 
 (defmethod option-synopsis ((info   positional-option-info)
                             (stream t)
-                            &key short?)
-  (declare (ignore short?))
+                            &key long?)
   (let+ (((&accessors-r/o
-           argument-name mandatory? (multiplicity option-multiplicity))
-          info))
+           option argument-name mandatory? (multiplicity option-multiplicity))
+          info)
+         (type (configuration.options:option-type option)))
     (format stream "~:[[~A~@[*~]]~;~A~@[*~]~]"
-            mandatory? argument-name (eq multiplicity '*))))
+            mandatory? argument-name (eq multiplicity '*))
+    (when long?
+      (format stream " (type: ~A)" type))))

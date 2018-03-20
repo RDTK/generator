@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -34,12 +34,12 @@
     Return two values: 1) the option value 2) the number of consumed
     commandline arguments."))
 
-(defgeneric option-synopsis (info stream &key short?)
+(defgeneric option-synopsis (info stream &key long?)
   (:documentation
    "Write a representation of INFO's syntax to STREAM.
 
-    The generalized Boolean SHORT? controls whether the representation
-    should be kept as short as possible."))
+    The generalized Boolean LONG? controls whether an extended
+    representation should be produced."))
 
 ;;; Default behavior
 

@@ -142,8 +142,6 @@
     (values distributions analyzed-projects)))
 
 (defun generate-check (distributions)
-  (as-phase (:check-platform-requirements)
-    (check-platform-requirements distributions))
   (as-phase (:check-access ; :continuable? nil
              )
     (check-distribution-access distributions)))

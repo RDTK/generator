@@ -26,6 +26,7 @@
                 "zip"
 
                 (:version "build-generator"                            (:read-file-form "version-string.sexp"))
+                (:version "build-generator.language-server"            (:read-file-form "version-string.sexp"))
                 (:version "build-generator.commandline-options"        (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "bcrypt"
@@ -87,4 +88,6 @@
                               (:file       "command-report")
 
                               (:file       "command-install-jenkins")
-                              (:file       "command-create-jenkins-user")))))
+                              (:file       "command-create-jenkins-user")
+
+                              (:file       "command-language-server")))))

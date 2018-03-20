@@ -25,6 +25,7 @@
                 "zip"
 
                 (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
+                (:version "jenkins.project.language-server"            (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "bcrypt"
@@ -86,4 +87,6 @@
                               (:file       "command-report")
 
                               (:file       "command-install-jenkins")
-                              (:file       "command-create-jenkins-user")))))
+                              (:file       "command-create-jenkins-user")
+
+                              (:file       "command-language-server")))))

@@ -17,7 +17,11 @@
                     ~]"
             (when-let* ((option        (option info))
                         (documentation (documentation option t)))
-              (list documentation)))))
+              (list
+               (case (option-multiplicity info)
+                 (* (format nil "~A~2%This option can be supplied multiple times."
+                            documentation))
+                 (t documentation)))))))
 
 (defun print-options (stream options colon? at?)
   (declare (ignore colon? at?))

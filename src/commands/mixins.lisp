@@ -42,8 +42,7 @@
                   distribution.~@
                   ~@
                   Arguments to this option have to be of the form ~
-                  VARIABLE-NAME=VALUE. This option can be supplied ~
-                  multiple times.")))
+                  VARIABLE-NAME=VALUE.")))
   (:documentation
    "Adds a mode and an overwrites slot to command classes."))
 

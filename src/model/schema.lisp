@@ -1,6 +1,6 @@
 ;;;; schema.lisp --- Schema for non-aspect variables.
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2014, 2015, 2016, 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -348,3 +348,6 @@
   "The name of the associated view for the current distribution.
 
    Has no effect if the value of view.create? is not true.")
+
+(define-variable :view.columns (list-of string)
+  "Column class names for the associated view for the current distribution.")

@@ -1,6 +1,6 @@
 ;;;; functions-deploy.lisp --- Functions for deploying Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -61,15 +61,15 @@
       (reinitialize-instance spec :versions (list version))
       (flatten (deploy (instantiate spec))))))
 
-(defun configure-view (name jobs)
+(defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)
-    (let ((view (make-instance 'jenkins.api:view
-                               :id   name
-                               :jobs '())))
+    (let ((view (make-instance 'jenkins.api:view :id name)))
       (if (jenkins.api::view? name)
           (jenkins.api::update! view)
           (jenkins.api:make-view name (jenkins.api::%data view)))
       (setf (jenkins.api:jobs view) (mapcar #'jenkins.api:id jobs))
+      (when columns
+        (setf (jenkins.api::columns view) columns))
       (jenkins.api:commit! view)
       view)))
 
@@ -84,8 +84,10 @@
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
     (when-let* ((create? (value/cast distribution :view.create? nil))
                 (name    (value/cast distribution :view.name)))
-      (with-simple-restart (continue "~@<Continue without creating a view~@:>")
-        (configure-view name all-jobs)))
+      (let ((columns (value/cast distribution :view.columns nil)))
+        (with-simple-restart (continue "~@<Continue without creating a view~@:>")
+          (apply #'configure-view name all-jobs
+                 (when columns (list :columns columns))))))
     (values jobs orchestration-jobs all-jobs)))
 
 (defun configure-distributions (distributions)

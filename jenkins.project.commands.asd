@@ -47,6 +47,7 @@
                               (:file       "command-info-aspects")
                               (:file       "command-generate")
                               (:file       "command-hack-distribution")
+                              (:file       "command-hack-project")
 
                               (:file       "command-analyze")
 

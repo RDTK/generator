@@ -16,12 +16,13 @@
                For repository locations specified as URIs, the ~
                following syntax is used:~@
                ~@
-               ~2@TSCHEMA://HOST[:PORT][/PATH][#BRANCH][?sub-directory=SUB-DIRECTORY]~@
+               ~2@TSCHEMA://HOST[:PORT][/PATH][#BRANCH][?scm=SCM&sub-directory=SUB-DIRECTORY]~@
                ~@
-               where BRANCH is the branch and SUB-DIRECTORY is the ~
-               sub-directory within the repository that that should be ~
-               analyzed. All other components of the URI are passed to ~
-               respective version control system."))
+               where SCM is \"git\", \"subversion\", \"mercurial\" or ~
+               \"archive\", BRANCH is the branch and SUB-DIRECTORY is ~
+               the sub-directory within the repository that that ~
+               should be analyzed. All other components of the URI are ~
+               passed to respective version control system."))
    (natures :initarg  :natures
             :type     (or null (cons (member :maven :cmake :asdf :ros-packages) list))
             :reader   natures
@@ -72,14 +73,17 @@
 (defgeneric analyze-input (input &key natures)
 
   (:method ((input puri:uri) &key natures)
-    (let* ((branch        (or (puri:uri-fragment input)
-                              "master"))
-           (sub-directory (uri-sub-directory input))
-           (uri           (uri-without-branch-and-sub-directory input)))
+    (let+ ((branch                      (or (puri:uri-fragment input)
+                                            "master"))
+           ((&values scm sub-directory) (uri-scm-and-sub-directory input))
+           (uri                         (uri-without-branch-scm-sub-directory
+                                         input)))
       (first
        (apply #'jenkins.analysis:analyze uri :auto
               :versions `((:branch ,branch))
               (append
+               (when scm
+                 `(:scm ,scm))
                (when sub-directory
                  `(:sub-directory ,sub-directory))
                (when natures
@@ -110,10 +114,10 @@
 (defun uri-unparse-query (alist)
   (format nil "~{~A=~A~^&~}" alist))
 
-(defun uri-without-branch-and-sub-directory (uri)
+(defun uri-without-branch-scm-sub-directory (uri)
   (let ((query (uri-unparse-query
                 (remove-from-plist
-                 (uri-parse-query uri) :|sub-directory|))))
+                 (uri-parse-query uri) :|scm| :|sub-directory|))))
     (apply #'make-instance 'puri:uri
            :scheme (puri:uri-scheme uri)
            :host   (puri:uri-host uri)
@@ -122,6 +126,9 @@
            (when query
              (list :query query)))))
 
-(defun uri-sub-directory (uri)
-  (when-let ((sub-directory (getf (uri-parse-query uri) :|sub-directory|)))
-    (uiop:ensure-directory-pathname sub-directory)))
+(defun uri-scm-and-sub-directory (uri)
+  (let ((parsed-query (uri-parse-query uri)))
+    (values
+     (getf parsed-query :|scm|)
+     (when-let ((sub-directory (getf parsed-query :|sub-directory|)))
+       (uiop:ensure-directory-pathname sub-directory)))))

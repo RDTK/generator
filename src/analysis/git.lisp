@@ -1,6 +1,6 @@
 ;;;; git.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -343,7 +343,10 @@
                     :output    :lines
                     (safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))
-      (map nil person-collector lines)
+      (map nil (lambda (line)
+                 (funcall person-collector
+                          (string-trim '(#\Tab #\Space #\" #\') line)))
+           lines)
       (funcall person-collector))))
 
 ;;; Utilities

@@ -1,6 +1,6 @@
 ;;;; functions-check.lisp --- Functions for checking recipes.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -23,10 +23,10 @@
                           distribution))))))
           distributions))
 
-(defun check-platform-requirements
+(defun unresolved-platform-requirements
     (distributions
      &key
-       (platform (multiple-value-list (jenkins.analysis:current-platform))))
+     (platform (multiple-value-list (jenkins.analysis:current-platform))))
   (let ((installed-packages (jenkins.analysis:installed-packages))
         (requirements       (platform-requires distributions platform)))
     (log:info "~@<Found ~:D installed package~:P~@:>"
@@ -34,11 +34,18 @@
     (log:debug "~@<Found ~:D platform requirement~:P: ~{~A~^ ~}~@:>"
                (length requirements) requirements)
     (when (and platform installed-packages)
-      (dolist (requirement requirements)
-        (with-simple-restart
-            (continue "~@<Ignore the requirement ~A.~@:>" requirement)
-          (or (find requirement installed-packages
-                    :test #'string= :key #'first)
-              (error 'jenkins.analysis:unfulfilled-platform-dependency-error
-                     :dependency requirement))))))
-  distributions)
+      (values (with-sequence-progress (:check-platform-requirements requirements)
+                (remove-if (lambda (requirement)
+                             (progress "~A" requirement)
+                             (find requirement installed-packages
+                                   :test #'string= :key #'first))
+                           requirements))
+              platform))))
+
+(defun report-platform-requirements (requirements platform &key label)
+  (let ((requirements (sort (copy-list requirements) #'string<)))
+    (format t "~@<Found ~:D ~@[~A ~]platform requirement~:*~:P~* ~
+               for ~{~A~^ ~}:~>~@
+               ~@
+               ~@[~2@T~{~<~T\\~%~2@T~1,:;~A~>~^ ~}~]~%"
+            (length requirements) label platform requirements)))

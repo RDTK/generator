@@ -41,9 +41,5 @@
                             :temp-directory    *temp-directory*))
          (platform     (split-sequence:split-sequence #\Space platform))
          (requirements (as-phase (:check-platform-requirements)
-                         (platform-requires distributions platform)))
-         (requirements (sort (copy-list requirements) #'string<)))
-    (format t "~@<Found ~:D platform requirement~:P for ~{~A~^ ~}:~>~@
-               ~@
-               ~@[~2@T~{~<~T\\~%~2@T~1,:;~A~>~^ ~}~]~%"
-            (length requirements) platform requirements)))
+                         (platform-requires distributions platform))))
+    (report-platform-requirements requirements platform)))

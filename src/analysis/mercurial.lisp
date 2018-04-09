@@ -1,13 +1,14 @@
 ;;;; mercurial.lisp --- Support for the mercurial DVCS.
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2014, 2015, 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.analysis)
 
 (defun %run-mercurial (spec directory)
-  (run `("hg" ,@spec) directory))
+  (run `("hg" :noninteractive :color "never" :pager "never" ,@spec)
+       directory))
 
 (defmethod analyze ((source puri:uri) (schema (eql :mercurial))
                     &rest args &key

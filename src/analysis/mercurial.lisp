@@ -77,5 +77,8 @@
                     :output    :lines
                     (safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))
-      (map nil person-collector lines)
+      (map nil (lambda (line)
+                 (funcall person-collector
+                          (string-trim '(#\Tab #\Space #\" #\') line)))
+           lines)
       (funcall person-collector))))

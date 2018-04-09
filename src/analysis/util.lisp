@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -199,8 +199,24 @@
           (names+counts->person-list names+counts :count count)))))
 
 (defun names+counts->person-list (names+counts &key count)
-  (let* ((sorted    (sort (hash-table-alist names+counts) #'> :key #'cdr))
-         (truncated (if count
-                        (subseq sorted 0 (min (length sorted) count))
-                        sorted)))
-    (parse-and-merge-people-list (map 'list #'car truncated))))
+  ;; We receive a mapping from names to counts. We map the names to
+  ;; person instances and merge those, which may result in duplicates
+  ;; in PERSONS.
+  (let* ((names+counts/list (hash-table-alist names+counts))
+         (persons           (nth-value
+                             1 (rosetta-project.model.resource:merge-persons!
+                                (parse-people-list
+                                 (map 'list #'car names+counts/list)))))
+         (persons+counts    (make-hash-table :test #'eq)))
+    ;; To handle duplicates in PERSONS, we do another pass,
+    ;; accumulating counts by person in PERSONS+COUNTS.
+    (map nil (lambda+ (person (&ign . count))
+               (incf (gethash person persons+counts 0) count))
+         persons names+counts/list)
+    ;; Sort and potentially truncate the final list, then return only
+    ;; the `person' instances.
+    (let ((sorted (sort (hash-table-alist persons+counts) #'> :key #'cdr)))
+      (map 'list #'car
+           (if count
+               (subseq sorted 0 (min (length sorted) count))
+               sorted)))))

@@ -179,7 +179,10 @@
                                 clone-directory))
          (result            (apply #'analyze analyze-directory :auto
                                    (remove-from-plist args :sub-directory)))
-         (committers        (analyze clone-directory :git/committers))
+         (committers        (with-simple-restart
+                                (continue "~@<Do not analyze committers in ~A.~@:>"
+                                          clone-directory)
+                              (analyze clone-directory :git/committers)))
          ((&values commit date)
           (analyze clone-directory :git/most-recent-commit)))
     (list* :scm              :git

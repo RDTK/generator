@@ -59,7 +59,10 @@
                          (%run-mercurial `("checkout" ,commit) clone-directory)
 
                          (let ((result     (analyze-directory version analyze-directory))
-                               (committers (analyze clone-directory :mercurial/committers)))
+                               (committers (with-simple-restart
+                                               (continue "~@<Do not analyze committers in ~A.~@:>"
+                                                         clone-directory)
+                                             (analyze clone-directory :mercurial/committers))))
                            (collect (list* :scm              :mercurial
                                            :branch-directory nil
                                            :committers       committers

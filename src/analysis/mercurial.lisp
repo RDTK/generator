@@ -7,7 +7,8 @@
 (cl:in-package #:jenkins.analysis)
 
 (defun %run-mercurial (spec directory)
-  (run `("hg" :noninteractive :color "never" :pager "never" ,@spec)
+  (run `("hg" :noninteractive ; :color "never" :pager "never"
+              ,@spec)
        directory))
 
 (defmethod analyze ((source puri:uri) (schema (eql :mercurial))

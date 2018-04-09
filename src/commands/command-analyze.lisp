@@ -34,7 +34,11 @@
                The project nature(s) is/are guessed if not ~
                specified.")))
   (:documentation
-   "Analyze project repositories w.r.t. dependencies and meta-data."))
+   #.(format nil "Analyze project repositories w.r.t. dependencies ~
+      and meta-data.~@
+      ~@
+      Analysis results are printed to the standard output stream in ~
+      JSON format.")))
 
 (service-provider:register-provider/class
  'command :analyze :class 'analyze)

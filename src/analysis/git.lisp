@@ -1,4 +1,4 @@
-;;;; git.lisp ---
+;;;; git.lisp --- Analysis of git repositories.
 ;;;;
 ;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;

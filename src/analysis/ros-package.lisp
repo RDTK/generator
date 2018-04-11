@@ -1,6 +1,6 @@
 ;;;; ros-package.lisp --- Analysis of ROS packages.
 ;;;;
-;;;; Copyright (C) 2013, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -55,6 +55,13 @@
   "package/*[contains(local-name(), \"depend\")]"
   :test #'string=)
 
+(define-constant +rosjava-messags-group-id+
+  "org.ros.rosjava_messages/~A"
+  :test #'string=
+  :documentation
+  "Maven group id to use when representing provided rosjava
+   artifacts.")
+
 (defmethod analyze ((directory pathname)
                     (kind      (eql :ros-package))
                     &key)
@@ -84,9 +91,11 @@
          ((:val dependencies :type 'list/depend) +ros-package-dependencies+
                                                  :if-multiple-matches :all))
         document
-      (let+ (((&values authors maintainers) (partition-persons persons)))
+      (let+ (((&values authors maintainers) (partition-persons persons))
+             (version (parse-version version)))
         `(:natures  (,:ros-package)
-          :provides ((:cmake ,name ,(parse-version version)))
+          :provides ((:cmake ,name                    ,version)
+                     (:maven ,(rosjava-artifact name) ,version))
           :requires ,(mapcan (lambda+ ((kind name &optional version))
                                (when (member kind '("build" "test")
                                              :test #'string=)
@@ -102,6 +111,9 @@
           ,@(when maintainers `(:maintainers ,maintainers)))))))
 
 ;;; Utilities
+
+(defun rosjava-artifact (name)
+  (format nil +rosjava-messags-group-id+ name))
 
 (defun partition-persons (persons)
   (loop :for (person . role) :in persons

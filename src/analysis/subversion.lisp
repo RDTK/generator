@@ -23,6 +23,35 @@
                      ,directory)
               temp-directory username password)))
 
+(defun checkout-subversion-repository (source clone-directory
+                                       &rest args
+                                       &key
+                                       username
+                                       password
+                                       commit
+                                       sub-directory
+                                       temp-directory
+                                       &allow-other-keys)
+  (log:info "~@<Checking out ~S -> ~S~@:>" source target)
+  (let ((repository-url  (reduce #'puri:merge-uris
+                                 (append
+                                  (when sub-directory
+                                    (list (puri:uri (let ((s (namestring sub-directory)))
+                                                      (if (ends-with #\/ s)
+                                                          (subseq s 0 (1- (length s)))
+                                                          s)))))
+                                  (list (puri:uri directory) source))
+                                 :from-end t))
+        (clone-directory (reduce #'merge-pathnames
+                                 (append
+                                  (when sub-directory
+                                    (list sub-directory))
+                                  (list (parse-namestring directory)
+                                        temp-directory)))))
+    (with-trivial-progress (:checkout "~A" source)
+      (subversion-checkout repository-url clone-directory commit temp-directory
+                           :username username :password password))))
+
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
                     &rest args &key
                     username

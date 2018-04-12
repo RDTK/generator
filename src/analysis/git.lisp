@@ -202,11 +202,14 @@
       (when (probe-file file)
         (log:info "~@<Restoring analysis results in ~A~@:>" file)
         (let+ (((version . data) (cl-store:restore file)))
-          (unless (string= version *cache-version*)
-            (error "~@<Stored results have been produced by version ~A ~
-                    while this is version ~A.~@:>"
-                   version *cache-version*))
-          data)))))
+          (cond
+            ((string= version *cache-version*)
+             data)
+            (t
+             (log:warn "~@<Stored results have been produced by version ~
+                        ~A while this is version ~A.~@:>"
+                       version *cache-version*)
+             nil)))))))
 
 (defun analyze-git-branch/cache (cache-directory key results)
   (with-simple-restart (continue "~@<Do not cache results.~@:>")

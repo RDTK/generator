@@ -183,7 +183,9 @@
 
 (defun parse-people-list (thing)
   (let ((repository (make-instance 'rs.m.d::base-repository)))
-    (rs.f:process :person-list thing `(:model :repository ,repository))))
+    (rs.f:process `(:person-list :identity-score-limit :non-functional)
+                  thing
+                  `(:model :repository ,repository))))
 
 (defun merge-people-list (list)
   (values (rosetta-project.model.resource:merge-persons! list)))

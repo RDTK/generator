@@ -172,16 +172,24 @@
   (let+ ((id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
                      (value/cast thing :build-job-name)))
-         (disabled? (value/cast thing :build-job.disabled? nil))
          (kind      (let+ (((kind &optional plugin)
                             (ensure-list (value thing :kind))))
                       (if plugin
                           (list kind plugin)
                           (make-keyword (string-upcase kind)))))
-         ((&flet make-new-job (new?)
-            (let ((job (jenkins.dsl:job (kind id :disabled? (if new?
-                                                                disabled?
-                                                                nil)))))
+         (disabled? (value/cast thing :build-job.disabled? nil))
+         ((&flet make-new-job (&optional existing-job)
+            (let ((job (jenkins.dsl:job (kind id))))
+              ;; Retain value of disabled slot unless
+              ;; `:force-disabled' has been specified.
+              (cond
+                ((eq disabled? :force-disabled)
+                 (setf (disabled? job) t))
+                ((not existing-job)
+                 (setf (disabled? job) disabled?))
+                (t
+                 (setf (disabled? job) (disabled? existing-job))))
+
               (push job (jenkins.model:implementations thing))
 
               ;; Apply aspects, respecting declared ordering, and sort
@@ -200,7 +208,7 @@
                             (jenkins.api:kind existing-job))))
       (cond
         ((not existing-job)
-         (let ((new-job (make-new-job t)))
+         (let ((new-job (make-new-job)))
            (log:info "~@<Creating new job ~A~@:>" new-job)
            (jenkins.api:make-job id (jenkins.api::%data new-job))))
 
@@ -208,13 +216,13 @@
              (case kind
                (:project (string= existing-kind "project"))
                (:matrix  (string= existing-kind "matrix-project"))))
-         (let ((new-job (make-new-job nil)))
+         (let ((new-job (make-new-job existing-job)))
            (log:info "~@<Updating existing job ~A~@:>" existing-job)
            (setf (jenkins.api:job-config id)
                  (jenkins.api::%data new-job))))
 
         (t
-         (let ((new-job (make-new-job t)))
+         (let ((new-job (make-new-job existing-job)))
            (log:warn "~@<Deleting job ~A to change kind ~A -> ~(~A~)~@:>"
                      new-job (jenkins.api:kind existing-job) kind)
            (jenkins.api:delete-job id)

@@ -283,8 +283,20 @@
 
    where KIND is \"project\" or \"matrix\".")
 
-(define-variable :build-job.disabled? boolean
-  "Should the generated build job initially be disabled?")
+(define-variable :build-job.disabled? (or boolean (eql :force-disabled))
+  "Should the generated build job be disabled?
+
+   false
+
+     Enable newly created jobs. Leave existing jobs alone.
+
+   true
+
+     Disable newly created jobs. Leave existing jobs alone.
+
+   \"force-disabled\"
+
+     Disable newly created as well as existing jobs.")
 
 (define-variable :build-job.orchestrate? boolean
   "Should the generated build job be managed by orchestration jobs?")

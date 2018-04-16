@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macro-based DSL for Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -61,8 +61,6 @@
       ,@(iter (for (name value) on attributes :by #'cddr)
               (collect (process-attribute name value)))
       ,@(mapcar #'process-child body)
-      ;; TODO temp: synchronize
-      (xloc:->xml ,node (stp:root (jenkins.api::%data ,node)) ',class-name)
       (setf (kind ,node) ,kind)
       ,node)))
 

@@ -1,6 +1,6 @@
 ;;;; spec-classes.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -146,6 +146,12 @@
                (when (next-method-p)
                  (call-next-method))))
 
+(defvar *non-inheritable-variables*
+  '(:access :platform-requires :recipe.maintainer))
+
+(defun inheritable-variable? (name)
+  (not (member name *non-inheritable-variables* :test #'eq)))
+
 (defmethod variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
           ;; direct variables in front of variables from
@@ -153,13 +159,12 @@
           ;; method combination?
           (direct-variables thing)
           (mappend #'variables (templates thing))
-          ;; TODO this is a hack to not inherit the values of the
-          ;; :access and :platform-requires variables from parents
-          ;; like `distribution-spec' instances.
+          ;; TODO this is a hack to not inherit the values of certain
+          ;; variables from parents like `distribution-spec'
+          ;; instances.
           (when-let ((parent (parent thing)))
-            (remove-if (lambda (cell)
-                         (member (car cell) '(:access :platform-requires)))
-                       (variables parent)))))
+            (remove-if-not #'inheritable-variable? (variables parent)
+                           :key #'car))))
 
 (defmethod lookup ((thing project-spec) (name t) &key if-undefined)
   (declare (ignore if-undefined))
@@ -174,8 +179,7 @@
                         (lookup template name :if-undefined nil)))
                      (templates thing))
              :initial-value (multiple-value-list (call-next-method))))
-    (if (and (parent thing) (not (member name '(:access :platform-requires)
-                                         :test #'eq)))
+    (if (and (parent thing) (inheritable-variable? name))
         (lookup (parent thing) name :if-undefined nil)
         (values nil '() nil))))
 

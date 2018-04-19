@@ -12,7 +12,9 @@
      (directory spec))
     ((pathnamep spec)
      (unless (probe-file spec)
-       (error "~@<Input file does not exist: ~S.~@:>" spec))
+       (jenkins.model.project::object-error
+        (list (list spec "included here" :error))
+        "~@<File does not exist: ~A.~@:>" spec))
      (list spec))
     (t
      (error "~@<Invalid input specification: ~S.~@:>" spec))))
@@ -53,11 +55,14 @@
 ;;; Projects
 
 (defun derive-project-pattern (distribution name)
-  (merge-pathnames (make-pathname
-                    :name      name
-                    :type      "project"
-                    :directory '(:relative :back "projects"))
-                   distribution))
+  (let ((pattern (merge-pathnames (make-pathname
+                                   :name      name
+                                   :type      "project"
+                                   :directory '(:relative :back "projects"))
+                                  distribution)))
+    (setf (jenkins.model.project::location-of pattern)
+          (jenkins.model.project::location-of name))
+    pattern))
 
 (defun locate-projects (distribution-pathnames distributions)
   (let+ ((projects (make-hash-table :test #'equalp))

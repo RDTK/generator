@@ -68,17 +68,17 @@
                                                 reasons))))
          t)))
 
-(flet ((distribution-jobs (distribution)
-         (let ((versions (remove nil (mapcar #'implementation
-                                             (versions distribution)))))
+(labels ((distribution-versions (distribution)
+           (remove nil (mapcar #'implementation (versions distribution))))
+         (distribution-jobs (distribution)
            (remove-if-not (lambda (job)
                             (value/cast job :build-job.orchestrate? t))
-                          (mappend #'jobs versions))))
-       (job-name (job)
-         (when-let ((job (implementation job)))
-           (list (jenkins.api:id job))))
-       (return-value (name value)
-         (values (cons name (value-parse value)) '() t)))
+                          (mappend #'jobs (distribution-versions distribution))))
+         (job-name (job)
+           (when-let ((job (implementation job)))
+             (list (jenkins.api:id job))))
+         (return-value (name value)
+           (values (cons name (value-parse value)) '() t)))
 
   (defmethod lookup ((thing distribution-spec) (name (eql :jobs.list))
                      &key if-undefined)
@@ -99,8 +99,8 @@
                         (direct-dependencies (parent job))))))
            (value
             (loop :for job :in jobs
-               :collect (cons (first (job-name job))
-                              (mapcan #'job-name (dependencies job))))))
+                  :collect (cons (first (job-name job))
+                                 (mapcan #'job-name (dependencies job))))))
       (return-value name value)))
 
   (defmethod lookup ((thing distribution-spec) (name (eql :jobs.dependencies/groovy))
@@ -111,7 +111,18 @@
                                         ~@{~4@T~S,~%~}~
                                       ~2T],~%~}~
                                     ]"
-                               (value thing :jobs.dependencies)))))
+                               (value thing :jobs.dependencies))))
+
+  (defmethod lookup ((thing distribution-spec) (name (eql :programming-languages))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let ((counts (make-hash-table :test #'eq)))
+      (map nil (lambda (version)
+                 (map nil (lambda (language)
+                            (incf (gethash (make-keyword language) counts 0)))
+                      (value version :programming-languages '())))
+           (distribution-versions thing))
+      (return-value name (hash-table-alist counts)))))
 
 ;;; `project-spec' class
 
@@ -147,7 +158,7 @@
                  (call-next-method))))
 
 (defvar *non-inheritable-variables*
-  '(:access :platform-requires :recipe.maintainer))
+  '(:access :platform-requires :recipe.maintainer :programming-languages))
 
 (defun inheritable-variable? (name)
   (not (member name *non-inheritable-variables* :test #'eq)))

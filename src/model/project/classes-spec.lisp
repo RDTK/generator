@@ -122,6 +122,20 @@
                             (incf (gethash (make-keyword language) counts 0)))
                       (value version :programming-languages '())))
            (distribution-versions thing))
+      (return-value name (hash-table-alist counts))))
+
+  (defmethod lookup ((thing distribution-spec) (name (eql :licenses))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let ((counts (make-hash-table :test #'eq)))
+      (map nil (lambda (version)
+                 (map nil (lambda (license)
+                            (incf (gethash (make-keyword license) counts 0)))
+                      (or (value version :licenses nil)
+                          (ensure-list (value version :license nil))
+                          (ensure-list (value version :analysis.license nil))
+                          (list nil))))
+           (distribution-versions thing))
       (return-value name (hash-table-alist counts)))))
 
 ;;; `project-spec' class
@@ -158,7 +172,8 @@
                  (call-next-method))))
 
 (defvar *non-inheritable-variables*
-  '(:access :platform-requires :recipe.maintainer :programming-languages))
+  '(:access :platform-requires :recipe.maintainer :programming-languages
+    :licenses))
 
 (defun inheritable-variable? (name)
   (not (member name *non-inheritable-variables* :test #'eq)))

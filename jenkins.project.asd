@@ -29,6 +29,7 @@
                 (:version "cl-ppcre"                              "2.0.3")
                 (:version "cl-json"                               "0.4.1")
                 (:version "text.source-location"                  "0.1")
+                (:version "text.source-location.print"            "0.1")
                 "cl-store"
                 "inferior-shell"
                 "ironclad"

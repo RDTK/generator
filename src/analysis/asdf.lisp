@@ -1,6 +1,6 @@
 ;;;; asdf.lisp --- Analysis of ASDF projects.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -45,7 +45,8 @@
                                         &allow-other-keys))
             `(:provides ((:asdf
                           ,(string-downcase name)
-                          ,(process-version version)))
+                          ,@(when-let ((version (process-version version)))
+                              `(,version))))
               :requires ,(mapcar #'dependency->list
                                  (append defsystem-depends-on
                                          depends-on))

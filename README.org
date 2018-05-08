@@ -1,0 +1,9 @@
+#+TITLE:  Build Generator
+#+AUTHOR: Jan Moringen
+#+EMAIL:  jmoringe@techfak.uni-bielefeld.de
+
+* TODO Introduction
+
+  The build generator is a program for generating [[https://jenkins.io/][Jenkins]] jobs (and
+  other things) from declarative recipes describing software projects,
+  software systems (and other things).

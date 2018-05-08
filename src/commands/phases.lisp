@@ -71,9 +71,9 @@
 
 (defun call-as-phase (thunk name)
   (let (phase-errors)
-    (prog1
+    (multiple-value-prog1
         (with-error-collection (errors)
-          (prog1
+          (multiple-value-prog1
               (with-phase-timing (name)
                 (funcall thunk))
             (setf phase-errors errors)))

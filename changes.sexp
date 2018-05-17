@@ -28,32 +28,32 @@
     (:verb "version                Print the version of this program and some components.")))
 
   (:incompatible-change
-   "The configuration schema change, in particular affecting
-    the" (:file "build-generator.conf") "configuration file."
+   "The configuration schema changed, affecting environment variables
+    and the" (:file "build-generator.conf") "configuration file:"
    (:ul
     ("The old" (:code "general") "section is now
       called" (:cold "global") ":"
      (:ul
-      (:verb "general.cache-directory -> global.cache-directory")
-      (:verb "general.temp-directory  -> global.temp-directory")
-      (:verb "general.num-processes   -> global.num-processes")
-      (:verb "general.progress-style  -> global.progress-style")))
+      (:verb "general.cache-directory → global.cache-directory")
+      (:verb "general.temp-directory  → global.temp-directory")
+      (:verb "general.num-processes   → global.num-processes")
+      (:verb "general.progress-style  → global.progress-style")))
     ("The old" (:code "jenkis") "section no longer exists. Most of its
       options are now specific to the \"generate\" command:"
      (:ul
-      (:verb "jenkins.base-uri             -> commands.generate.base-uri")
-      (:verb "jenkins.username             -> commands.generate.username")
-      (:verb "jenkins.password             -> commands.generate.password")
-      (:verb "jenkins.api-token            -> commands.generate.api-token")
-      (:verb "jenkins.delete-other         -> commands.generate.delete-other?")
-      (:verb "jenkins.delete-other-pattern -> commands.generate.delete-other-pattern"))))
+      (:verb "jenkins.base-uri             → commands.generate.base-uri")
+      (:verb "jenkins.username             → commands.generate.username")
+      (:verb "jenkins.password             → commands.generate.password")
+      (:verb "jenkins.api-token            → commands.generate.api-token")
+      (:verb "jenkins.delete-other         → commands.generate.delete-other?")
+      (:verb "jenkins.delete-other-pattern → commands.generate.delete-other-pattern"))))
    "Setting the environment
     variable" (:code "BUILD_GENERATOR_CONFIG_DEBUG") "can help
     debugging configuration problems.")
 
   (:enhancement
-   "Source location is reported for missing project files included in
-    distributions.")
+   "Source locations are reported for missing project files included
+    in distribution recipes.")
 
   (:bugfix
    "The" (:variable "recipe.maintainer") "variable is no longer
@@ -72,10 +72,11 @@
     Maven artifacts in the" (:code "org.ros.rosjava_messages") "group.")
 
   (:enhancement
-   "Improved committer analysis")
+   "The analysis of repository committers has been improved.")
 
   (:enhancement
-   "Improved mercurial support")
+   "Support for the mercurial version control system has been
+    improved.")
 
   (:enhancement
    "The new variable" (:variable "view.colums") "controls columns in
@@ -85,7 +86,7 @@
 
   (:enhancement
    "The" (:code "name") "property is now optional in all recipe
-    kinds (It has already been optional in templates).")
+    kinds (It has already been optional in template recipes).")
 
   (:enhancement
    "In distributions, variable references are expanded in included
@@ -94,7 +95,7 @@
 
   (:enhancement
    "References to non-existent project versions are reported with
-    source location.")
+    source locations.")
 
   (:enhancement
    "When running interactively in a capable terminal, the \"one-line\"
@@ -108,9 +109,9 @@
 
   (:incompatible-change
    "Generated Jenkins jobs for projects with
-    archive" (:variable "scm") "now
-    respect" (:variable "sub-directory") "properly. Recipes that
-    worked around this bug have to be adjusted.")
+    archive" (:variable "scm") "now respect the value of
+    the" (:variable "sub-directory") " variable properly. Recipes that
+    worked around this bug may have to be adjusted.")
 
   (:enhancement
    "Many recipe-related errors are now reported alongside an excerpt
@@ -118,26 +119,27 @@
 
   (:enhancement
    "When generating Jenkins jobs, the ability to communicate with the
-    specified Jenkins server is ensured first, failing early in case
-    there is a problem."))
+    specified Jenkins server is ensured before performing long-running
+    operations such as project analyses, failing early in case there
+    is a problem."))
 
  (:release "0.18"
 
   (:enhancement
    "Versions defined in the" (:code "versions") "section of project
-    recipes can now specialize more variables. In particular, the
+    recipes can now overwrite more variables. In particular, the
     following variables now work as expected in version blocks:"
    (:ul
-    "repository"
-    "scm"
-    "scm.username"
-    "scm.password"
-    "sub-directory"
-    "branch"
-    "tag"
-    "commit"
-    "directory"
-    "natures"))
+    (:variable "repository")
+    (:variable "scm")
+    (:variable "scm.username")
+    (:variable "scm.password")
+    (:variable "sub-directory")
+    (:variable "branch")
+    (:variable "tag")
+    (:variable "commit")
+    (:variable "directory")
+    (:variable "natures")))
 
   (:enhancement
    "Jenkins' cross-site request forgery (CSRF) protection is now

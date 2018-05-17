@@ -32,8 +32,10 @@
   (labels ((rec (stream item)
              (optima:ematch item
 
-               ((list* :release version changes)
-                (format stream "Release ~A~:@_" version)
+               ((list* :release version date changes)
+                (format stream "Release ~A ~:[«no yet ~
+                                released»~;~:*(~A)~]~:@_"
+                        version date)
                 (if changes
                     (map nil (lambda (change)
                                (rec stream change)
@@ -81,4 +83,3 @@
                  (rec stream release)
                  (pprint-newline :mandatory stream))
            changelog))))
-

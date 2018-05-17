@@ -1,6 +1,6 @@
-((:release "0.22")
+((:release "0.22" nil)
 
- (:release "0.21"
+ (:release "0.21" "2018-05-07"
 
   (:incompatible-change
    "The commandline interface expects a sub-command that determines
@@ -82,7 +82,7 @@
    "The new variable" (:variable "view.colums") "controls columns in
     created views."))
 
- (:release "0.20"
+ (:release "0.20" "2018-03-02"
 
   (:enhancement
    "The" (:code "name") "property is now optional in all recipe
@@ -105,7 +105,7 @@
    "The" (:code "mps") "analysis no longer gets confused by symbolic
    links."))
 
- (:release "0.19"
+ (:release "0.19" "2018-02-15"
 
   (:incompatible-change
    "Generated Jenkins jobs for projects with
@@ -123,7 +123,7 @@
     operations such as project analyses, failing early in case there
     is a problem."))
 
- (:release "0.18"
+ (:release "0.18" "2018-01-02"
 
   (:enhancement
    "Versions defined in the" (:code "versions") "section of project

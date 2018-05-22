@@ -13,7 +13,7 @@
                   :type     (or null (cons string list))
                   :reader   distributions
                   :documentation
-                  "Distribution(s) for which jobs should be generated."))
+                  "Distribution recipes(s) which should be processed."))
   (:default-initargs
    :distributions (missing-required-initarg
                    'distribution-input-mixin :distributions))

@@ -155,24 +155,23 @@
     (prog1
         ;; Collect option values.
         (loop :with arguments = arguments
-           :with consumed-total = 0
-           :with position = 0
-           :while (and arguments
-                       (or (not stop-at-positional?)
-                           (named-option-designator? (first arguments))))
-           :for (option-designator maybe-value) = arguments
-           :for (info option-path multiplicity value consumed-count)
-             = (multiple-value-list
-                (value-for-option
-                 context position option-designator maybe-value))
-           :do
-             (removef missing info :test #'eq)
-             (add-value option-path value multiplicity)
-             (setf arguments (nthcdr consumed-count arguments))
-             (incf consumed-total consumed-count)
-             (when (typep info 'positional-option-info)
-               (incf position consumed-count))
-           :finally (return (when arguments consumed-total)))
+              :with consumed-total = 0
+              :with position = 0
+              :while (and arguments
+                          (or (not stop-at-positional?)
+                              (named-option-designator? (first arguments))))
+              :for (option-designator maybe-value) = arguments
+              :for (info option-path multiplicity value consumed-count)
+                 = (multiple-value-list
+                    (value-for-option
+                     context position option-designator maybe-value))
+              :do (removef missing info :test #'eq)
+                  (add-value option-path value multiplicity)
+                  (setf arguments (nthcdr consumed-count arguments))
+                  (incf consumed-total consumed-count)
+              :when (typep info 'positional-option-info)
+              :do (incf position consumed-count)
+              :finally (return (when arguments consumed-total)))
       ;; Apply collected values.
       (when missing
         (error 'mandatory-options-not-supplied-error

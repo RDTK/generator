@@ -34,17 +34,18 @@
 
 (defmethod command-execute ((command version))
   (let* ((stream    *standard-output*)
-         (version   (generator-version))
-         (versions  `(("build-generator"           ,version)
+         (versions  `(("build-generator"           ,(generator-version))
                       ("asdf"                      ,(asdf:asdf-version))
                       (,(lisp-implementation-type) ,(lisp-implementation-version))))
          (max-width (reduce #'max versions
                             :initial-value 0
                             :key           (compose #'length #'first))))
+    ;; Print version information.
     (format stream "~{~{~V:A ~:[~{~D.~D~^.~D~^-~A~}~;~A~]~}~&~}"
             (loop :for (name version) :in versions
                   :collect `(,max-width ,name ,(stringp version) ,version)))
-
+    ;; If requested, print changelog entries for specified range of
+    ;; releases.
     (when-let ((count (changelog-count command)))
       (let ((count (if (eq count t) nil count)))
         (format stream "~2%")

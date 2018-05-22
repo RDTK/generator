@@ -146,7 +146,11 @@
          ((&flet add-value (option-path value multiplicity)
             (ecase multiplicity
               (1
-               (setf (gethash option-path values) value))
+               (if (nth-value 1 (gethash option-path values))
+                   (error 'option-supplied-multiple-times-error
+                          :context context
+                          :option  (last-elt option-path))
+                   (setf (gethash option-path values) value)))
               (*
                (appendf (gethash option-path values '()) (list value))))
             (log:debug "~@<Got option ~S value ~S with ~S (result ~S)~@:>"

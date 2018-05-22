@@ -1,4 +1,8 @@
-((:release "0.22" nil)
+((:release "0.22" nil
+
+  (:bugfix
+   "Supplying single-value commandline options multiple times now
+    produces a suitable error message."))
 
  (:release "0.21" "2018-05-07"
 

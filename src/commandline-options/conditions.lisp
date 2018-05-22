@@ -50,6 +50,20 @@
   (:documentation
    "Signaled when a specified option does not exist."))
 
+(define-condition option-supplied-multiple-times-error
+    (option-context-condition
+     option-condition
+     error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (let+ (((&accessors-r/o context option) condition))
+       (format stream "~@<The \"~A\" option has been supplied more ~
+                       than once in the \"~A\" context.~@:>"
+               option context))))
+  (:documentation
+   "Signaled when a singleton option is supplied more than once."))
+
 (define-condition mandatory-options-not-supplied-error
     (option-context-condition
      error)

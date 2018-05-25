@@ -33,8 +33,7 @@
                          (included-value t)
                          (maybe-value    t))
   (if included-value
-      (error "~@<The \"~A\" option does not take an argument.~@:>"
-             designator)
+      (error 'option-does-not-accept-argument-error :option info)
       (values t 1)))
 
 (defmethod option-synopsis ((info   named-without-argument-option-info)
@@ -54,15 +53,15 @@
                          (designator     string)
                          (included-value t)
                          (maybe-value    t))
-  (let+ (((&accessors-r/o argument-name) info))
-    (cond
-      (included-value
-       (values included-value 1))
-      ((or (not maybe-value) (named-option-designator? maybe-value))
-       (error "~@<The \"~A\" option requires a ~A argument.~@:>"
-              designator argument-name))
-      (t
-       (values maybe-value 2)))))
+  (cond
+    (included-value
+     (values included-value 1))
+    ((or (not maybe-value) (named-option-designator? maybe-value))
+     (error 'mandatory-argument-not-supplied-error
+            :option        info
+            :argument-name (argument-name info)))
+    (t
+     (values maybe-value 2))))
 
 (defmethod option-synopsis ((info   named-with-argument-option-info)
                             (stream t)

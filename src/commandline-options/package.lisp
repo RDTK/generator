@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -21,7 +21,8 @@
    #:option-condition
    #:option
 
-   #:option-not-found-error)
+   #:option-not-found-error
+   #:option-argument-error)
 
   ;; Option info protocol
   (:export

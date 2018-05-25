@@ -167,8 +167,13 @@
               :for (option-designator maybe-value) = arguments
               :for (info option-path multiplicity value consumed-count)
                  = (multiple-value-list
-                    (value-for-option
-                     context position option-designator maybe-value))
+                    (handler-case
+                        (value-for-option
+                         context position option-designator maybe-value)
+                      (error (condition)
+                        (error 'option-argument-error
+                               :context context
+                               :cause   condition))))
               :do (removef missing info :test #'eq)
                   (add-value option-path value multiplicity)
                   (setf arguments (nthcdr consumed-count arguments))

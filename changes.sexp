@@ -4,6 +4,10 @@
    "Analysis results for projects using" (:variable "scm")
    (:verb "archive") "can now be cached.")
 
+  (:enhancement
+   "Better error messages for missing or wrong arguments to
+    commandline options.")
+
   (:bugfix
    "Supplying single-value commandline options multiple times now
     produces a suitable error message."))

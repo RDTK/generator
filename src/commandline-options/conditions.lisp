@@ -6,6 +6,54 @@
 
 (cl:in-package #:jenkins.project.commandline-options)
 
+;;; Option conditions
+
+(define-condition option-argument-condition ()
+  ((option :initarg :option
+           :reader  option
+           :documentation
+           "Stores the description of the option for which the problem
+            occurred."))
+  (:default-initargs
+   :option (missing-required-initarg 'option-argument-condition :option))
+  (:documentation
+   "Supertype for argument-related condition types."))
+
+(defmethod designators ((thing option-argument-condition))
+  (designators (option thing)))
+
+(define-condition option-does-not-accept-argument-error
+    (option-argument-condition
+     error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (let+ (((&accessors-r/o option) condition))
+       (format stream "~@<The \"~A\" option does not take an argument.~@:>"
+               (first (designators option))))))
+  (:documentation
+   "Signaled when an option does not accept a supplied argument."))
+
+(define-condition mandatory-argument-not-supplied-error
+    (option-argument-condition
+     error)
+  ((argument-name :initarg :argument-name
+                  :reader  argument-name
+                  :documentation
+                  "Stores the name of the missing argument."))
+  (:default-initargs
+   :argument-name (missing-required-initarg
+                   'mandatory-argument-not-supplied-error :argument-name))
+  (:report
+   (lambda (condition stream)
+     (let+ (((&accessors-r/o option argument-name) condition))
+       (format stream "~@<The \"~A\" option requires a ~A argument.~@:>"
+               (first (designators option)) argument-name))))
+  (:documentation
+   "Signaled when an argument required by an option is not supplied."))
+
+;;; Context conditions
+
 (define-condition option-context-condition (condition)
   ((context :initarg :context
             :type    string
@@ -88,3 +136,13 @@
                context (length missing) missing))))
   (:documentation
    "Signaled when at least one mandatory option is not supplied."))
+
+(define-condition option-argument-error (option-context-condition
+                                         chainable-condition
+                                         error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~A" (cause condition))))
+  (:documentation
+   "Signaled when something is wrong with the argument to an option."))

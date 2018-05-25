@@ -195,44 +195,19 @@
               (list :most-recent-commit.date date))
             result))))
 
-(defun analyze-git-branch/cached (cache-directory key)
-  (with-simple-restart (continue "~@<Do not use cache results.~@:>")
-    (let ((file (merge-pathnames key cache-directory)))
-      (log:info "~@<Maybe restoring analysis results in ~A~@:>" file)
-      (when (probe-file file)
-        (log:info "~@<Restoring analysis results in ~A~@:>" file)
-        (let+ (((version . data) (cl-store:restore file)))
-          (cond
-            ((string= version *cache-version*)
-             data)
-            (t
-             (log:warn "~@<Stored results have been produced by version ~
-                        ~A while this is version ~A.~@:>"
-                       version *cache-version*)
-             nil)))))))
-
-(defun analyze-git-branch/cache (cache-directory key results)
-  (with-simple-restart (continue "~@<Do not cache results.~@:>")
-    (let ((file (merge-pathnames key cache-directory)))
-      (log:info "~@<Storing analysis results in ~A~@:>" file)
-      (cl-store:store (cons *cache-version* results) file))))
-
 (defun analyze-git-branch/maybe-cached (clone-directory
                                         &rest args &key
                                         cache-directory
                                         key
                                         &allow-other-keys)
-  (or (when (and cache-directory key)
-        (analyze-git-branch/cached cache-directory key))
-      (let ((results (apply #'analyze-git-branch clone-directory
-                            (remove-from-plist
-                             args
-                             :commit :branch :scm :username :password
-                             :history-limit :non-interactive
-                             :cache-directory :key))))
-        (when (and cache-directory key)
-          (analyze-git-branch/cache cache-directory key results))
-        results)))
+  (cache-or-compute cache-directory key
+                    (lambda ()
+                      (apply #'analyze-git-branch clone-directory
+                             (remove-from-plist
+                              args
+                              :commit :branch :scm :username :password
+                              :history-limit :non-interactive
+                              :cache-directory :key)))))
 
 (defun clone-and-analyze-git-branch (source clone-directory
                                      &rest args &key
@@ -257,11 +232,10 @@
                                :username        username
                                :password        password
                                :non-interactive non-interactive))
-                  (key        (%natures->key
-                               natures (%sub-directory->key
+                  (key        (natures->key
+                               natures (sub-directory->key
                                         sub-directory commit-key)))
-                  (results    (analyze-git-branch/cached
-                               cache-directory key)))
+                  (results    (cache-restore cache-directory key)))
         (return-from clone-and-analyze-git-branch results))))
 
   ;; Clone the repository, then analyze the requested
@@ -274,8 +248,8 @@
                       :password        password
                       :cache-directory cache-directory
                       :non-interactive non-interactive))
-         (key        (%natures->key
-                      natures (%sub-directory->key
+         (key        (natures->key
+                      natures (sub-directory->key
                                sub-directory commit-key))))
     (log:info "~@<Cloned ~A into ~A, got key ~A~@:>"
               source clone-directory key)
@@ -391,16 +365,3 @@
 
 (defun %git-commit->key (commit)
   (format nil "git:~A" commit))
-
-(defun %sub-directory->key (sub-directory prefix)
-  (let* ((octets (when sub-directory
-                   (sb-ext:string-to-octets
-                    (namestring sub-directory) :external-format :utf-8)))
-         (hash   (when octets
-                   (coerce (ironclad:digest-sequence 'ironclad:sha256 octets) 'list))))
-    (format nil "~A:~@[~(~{~2,'0X~}~)~]" prefix hash)))
-
-(defun %natures->key (natures prefix)
-  (let* ((natures (or natures '(:none)))
-         (sorted  (sort (map 'list #'string-downcase natures) #'string<)))
-    (format nil "~A:~{~A~^;~}" prefix sorted)))

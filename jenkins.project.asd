@@ -63,6 +63,9 @@
                               (:file     "protocol")
                               (:file     "analysis")
 
+                              ;; Cache
+                              (:file     "cache")
+
                               ;; Version control systems
                               (:file     "scm-null")
                               (:file     "archive")

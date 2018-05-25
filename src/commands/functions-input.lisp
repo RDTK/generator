@@ -1,6 +1,6 @@
 ;;;; functions-input.lisp --- Functions for loading recipes.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -302,9 +302,8 @@
                          &rest args &key
                          generator-version
                          cache-directory
-                         temp-directory
-                         non-interactive)
-  (declare (ignore cache-directory temp-directory non-interactive))
+                         temp-directory)
+  (declare (ignore cache-directory temp-directory))
   (jenkins.analysis::with-git-cache ()
     (let ((other-args (remove-from-plist args :generator-version))
           (cache      jenkins.analysis::*git-cache*))

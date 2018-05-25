@@ -1,5 +1,9 @@
 ((:release "0.22" nil
 
+  (:enhancement
+   "Analysis results for projects using" (:variable "scm")
+   (:verb "archive") "can now be cached.")
+
   (:bugfix
    "Supplying single-value commandline options multiple times now
     produces a suitable error message."))

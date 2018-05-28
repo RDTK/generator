@@ -148,7 +148,16 @@
 (defmethod methods:hover ((workspace t)
                           (document  build-generator-document)
                           (position  t))
-  nil)
+  (let+ ((locations (locations document)))
+    (when locations
+      (when-let ((location (find-if (curry #'text.source-location.lookup:location-in? position)
+                                    (hash-table-alist locations) :key #'cdr :from-end t)))
+        (log:info (car location))
+        (when (typep (car location) '(cons keyword))
+          (when-let ((variable (jenkins.model.variables:find-variable (car (car location)))))
+           (proto:make-hover-result
+            (jenkins.model.variables:variable-info-documentation variable)
+            :range (text.source-location:range (cdr location)) )))))))
 
 (defmethod methods:completion ((workspace t)
                                (document  build-generator-document)

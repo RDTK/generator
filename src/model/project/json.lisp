@@ -177,8 +177,8 @@
 ;;; Structure utilities
 
 (defun check-keys (object &optional expected (exhaustive? t))
-  (let+ ((seen     '())
-         (expected (mapcar #'ensure-list expected))
+  (let+ ((expected (mapcar #'ensure-list expected))
+         (seen     '())
          (extra    '())
          ((&flet invalid-keys (reason keys &optional cells)
             (object-error
@@ -189,24 +189,31 @@
                        :collect (list cell (format nil "~:R definition" i) :error)))
              "~@<~A key~P: ~{~A~^, ~}.~@:>"
              reason (length keys) keys))))
-    (map nil (lambda+ ((&whole cell key . &ign))
+    (map nil (lambda+ ((&whole cell key . value))
                (cond
                  ((member key seen :test #'eq :key #'car)
                   (invalid-keys "duplicate" (list key)
                                 (list* cell (remove key seen
                                                     :test-not #'eq
                                                     :key      #'car))))
-                 ((member key expected :test #'eq :key #'car)
-                  (removef expected key :test #'eq :key #'car))
+                 ((when-let ((info (find key expected :test #'eq :key #'first)))
+                    (when-let ((type  (third info)))
+                      (unless (typep value type)
+                        (object-error
+                         (list (list value "defined here" :error))
+                         "~@<Value of the ~A attribute must be of type ~A.~@:>"
+                         key type)))
+                    (removef expected key :test #'eq :key #'first)
+                    t))
                  (t
                   (push cell extra)))
                (push cell seen))
          object)
     (when (and exhaustive? extra)
-      (invalid-keys "Unexpected" (map 'list #'car extra)
+      (invalid-keys "Unexpected" (map 'list #'first extra)
                     extra))
-    (when-let ((missing (remove nil expected :key #'cdr)))
-      (invalid-keys "Missing required" (map 'list #'car missing)
+    (when-let ((missing (remove nil expected :key #'second)))
+      (invalid-keys "Missing required" (map 'list #'first missing)
                     (list object))))
   object)
 
@@ -279,14 +286,14 @@
        (defun ,read-name (pathname &key generator-version ,@other-args)
          (declare (ignore ,@other-args))
          (let ((spec (%decode-json-from-source pathname)))
-           (check-generator-version spec generator-version ,context)
-           (check-keys spec '(:minimum-generator-version
+           (check-keys spec '((:minimum-generator-version nil string)
                               ,@(case name-kind
                                   (:data
-                                   '((:name . t)))
+                                   '((:name t string)))
                                   (:congruent
-                                   `(:name)))
+                                   `((:name nil string))))
                               ,@keys))
+           (check-generator-version spec generator-version ,context)
            (let ((name ,@(ecase name-kind
                            (:data
                             `((assoc-value spec :name)))
@@ -317,7 +324,7 @@
 
 ;;; Person loading
 
-(define-json-loader (person (:aliases :identities))
+(define-json-loader (person ((:aliases nil list) (:identities nil list)))
     (spec (name :data))
   (let* ((aliases    (lookup :aliases))
          (identities (map 'list #'puri:uri (lookup :identities)))
@@ -364,11 +371,14 @@
         (load-one-template/json (make-pathname :name name :defaults context)
                                 :generator-version generator-version))))
 
-(define-json-loader (one-template (:inherit :variables :aspects :jobs))
+(define-json-loader (one-template ((:inherit nil list) (:variables nil list)
+                                   (:aspects nil list) (:jobs nil list)))
     (spec (name :pathname) pathname generator-version)
   (let+ (((&flet make-aspect-spec (spec parent)
-            (check-keys spec '((:name . t) (:aspect . t) :variables
-                               :conditions))
+            (check-keys spec '((:name       t   string)
+                               (:aspect     t   string)
+                               (:variables  nil list)
+                               (:conditions nil list)))
             (make-instance 'aspect-spec
                            :name       (lookup :name spec)
                            :parent     parent
@@ -376,7 +386,9 @@
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
          ((&flet make-job-spec (spec parent)
-            (check-keys spec '((:name . t) :variables :conditions))
+            (check-keys spec '((:name       t   string)
+                               (:variables  nil list)
+                               (:conditions nil list)))
             (make-instance 'job-spec
                            :name       (lookup :name spec)
                            :parent     parent
@@ -405,10 +417,12 @@
 ;;; Project loading
 
 (define-json-loader
-    (project-spec ((:templates . t) (:variables . t) :versions :catalog))
+    (project-spec ((:templates t list) (:variables t list) (:versions nil list) :catalog))
     (spec (name :congruent) version-test)
   (let+ (((&flet make-version-spec (spec parent)
-            (check-keys spec '((:name . t) :variables :catalog))
+            (check-keys spec '((:name      t   string)
+                               (:variables nil list)
+                               :catalog))
             (let ((catalog   (lookup :catalog spec))
                   (variables (process-variables (lookup :variables spec))))
               (make-instance 'version-spec
@@ -442,7 +456,7 @@
 
 ;;; Distribution loading
 
-(define-json-loader (distribution (:variables (:versions . t) :catalog))
+(define-json-loader (distribution ((:variables nil list) (:versions t list) :catalog))
     (spec (name :congruent))
   (let+ ((variables     (value-acons :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables))))

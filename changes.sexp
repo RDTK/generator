@@ -8,6 +8,9 @@
    "Better error messages for missing or wrong arguments to
     commandline options.")
 
+  (:enhancement
+   "More cases of ill-formed recipes are caught at parse-time.")
+
   (:bugfix
    "Supplying single-value commandline options multiple times now
     produces a suitable error message."))

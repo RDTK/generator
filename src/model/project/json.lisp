@@ -446,13 +446,15 @@
      :variables (value-acons
                  :__catalog (lookup :catalog)
                  (process-variables (lookup :variables)))
-     :versions  (mapcar (rcurry #'make-version-spec instance)
-                        (if version-test
-                            (remove-if (lambda (version)
-                                         (let ((name (lookup :name version)))
-                                           (not (funcall version-test name))))
-                                       (lookup :versions))
-                            (lookup :versions))))))
+     :versions  (mappend (lambda (spec)
+                           (with-simple-restart
+                               (continue "~@<Ignore version entry.~@:>")
+                             (check-keys spec '((:name t string)) nil)
+                             (when (or (not version-test)
+                                       (let ((name (lookup :name spec)))
+                                         (funcall version-test name)))
+                               (list (make-version-spec spec instance)))))
+                         (lookup :versions)))))
 
 ;;; Distribution loading
 

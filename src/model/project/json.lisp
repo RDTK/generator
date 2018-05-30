@@ -80,8 +80,6 @@
 
 (defvar *object-members*)
 
-(defvar *cell-start*)
-
 (defun record-object-member-locations (object)
   (let ((bounds (nreverse (cdr (first *object-members*)))))
     (map nil (lambda+ (cell (stream start end))
@@ -149,22 +147,27 @@
              (beginning-of-object-handler          json::*beginning-of-object-handler*)
              (json::*beginning-of-object-handler*  (lambda ()
                                                      (setf *start* (1- (file-position stream)))
-                                                     (push (list nil) *object-members*)
+                                                     (push (list *start*) *object-members*)
                                                      (funcall beginning-of-object-handler)))
 
              (object-key-handler                   json::*object-key-handler*)
              (json::*object-key-handler*           (lambda (object)
-                                                     (setf *cell-start* *start*)
+                                                     (let ((start (- (file-position stream)
+                                                                     (length (string object))
+                                                                     2)))
+                                                       (push (list stream start nil)
+                                                             (cdr (first *object-members*))))
                                                      (funcall object-key-handler object)))
 
              (object-value-handler                 json::*object-value-handler*)
              (json::*object-value-handler*         (lambda (object)
-                                                     (push (list stream *cell-start* (file-position stream))
-                                                           (cdr (first *object-members*)))
+                                                     (setf (third (first (cdr (first *object-members*))))
+                                                           (file-position stream))
                                                      (funcall object-value-handler object)))
 
              (end-of-object-handler                json::*end-of-object-handler*)
              (json::*end-of-object-handler*        (lambda ()
+                                                     (setf *start* (first (first *object-members*)))
                                                      (prog1
                                                          (record-object-member-locations
                                                           (funcall end-of-object-handler))

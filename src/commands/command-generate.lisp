@@ -85,7 +85,7 @@
                       &key generator-version)
   (let+ (((&flet locate-and-load (kind pattern loader
                                   &key (if-no-match nil if-no-match-supplied?))
-            (let* ((files   (as-phase ((symbolicate :locate/ kind))
+            (let* ((files   (as-phase ((symbolicate :locate/ kind)) ; TODO should not be continuable if nothing matched
                               (apply #'locate-specifications kind pattern
                                      (when if-no-match-supplied?
                                        (list :if-no-match if-no-match)))))

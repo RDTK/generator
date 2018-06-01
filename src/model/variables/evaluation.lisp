@@ -69,10 +69,18 @@
   `(call-with-expansion-stack (lambda () ,@body) ,name ,thing))
 
 (defun drill-down (path value)
-  (reduce (lambda (key value)
-            (check-type value (or null variable-expression-alist))
-            (cdr (assoc key (cdr value))))
-          path :initial-value value :from-end t))
+  (with-augmented-trace ((list :drill-down path) value (cons :unused value))
+    (reduce (lambda (key value)
+              ;; (check-type value (or null variable-expression-alist))
+              (cdr (assoc key value)))
+            path :initial-value value :from-end t)))
+
+(defun drill-down/raw (path value)
+  (with-augmented-trace ((list :drill-down/raw path) value (cons :unused value))
+    (reduce (lambda (key value)
+              (check-type value (or null variable-expression-alist))
+              (cdr (assoc key (cdr value))))
+            path :initial-value value :from-end t)))
 
 (defun collapse (thing)
   (let+ (((&flet atom? (thing)
@@ -117,8 +125,12 @@
                                                        (funcall lookup name default)
                                                        (funcall lookup name))))
                  (if (string= name "next-value")
-                     (recur (when result (drill-down path result)) result (lookup new-lookup) path)
-                     (recur result                                 result (lookup new-lookup) '()))))
+                     ; (recur (when result (drill-down path result)) result (lookup new-lookup) path)
+                     (let ((value (with-augmented-trace (:next-value nil (list result))
+                                    (recur result result (lookup new-lookup) '()))))
+                       (when value (list (drill-down path (first value)))))
+                     (with-augmented-trace (name nil (cons name result))
+                       (recur result                                 result (lookup new-lookup) '())))))
 
               ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
@@ -147,7 +159,7 @@
                             (let ((path (reverse (mapcar (compose #'make-keyword
                                                                   #'string-upcase)
                                                          arguments))))
-                              (values (drill-down path callable)
+                              (values (drill-down/raw path callable)
                                       callable
                                       path))))))
 
@@ -171,7 +183,7 @@
                             (let ((path (reverse (mapcar (compose #'make-keyword
                                                                   #'string-upcase)
                                                          arguments))))
-                              (values (drill-down path callable)
+                              (values (drill-down/raw path callable)
                                       callable
                                       path))))))
                    (first (recur result/raw root lookup path)))))

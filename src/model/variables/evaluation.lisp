@@ -94,8 +94,14 @@
               (if default-supplied?
                   (funcall lookup name default)
                   (funcall lookup name)))))
-         ((&labels recur (pattern path)
+         ((&labels recur (pattern root path)
             (optima:ematch pattern
+              ;; Make the current value available.
+              ((list (or :ref :ref/list) "value")
+               (list
+                (with-augmented-trace (:value nil)
+                  root)))
+
               ;; Make the current path available.
               ((list (or :ref :ref/list) "structure-path")
                (list (with-augmented-trace (:structure-path nil)
@@ -107,7 +113,7 @@
                       (or '() (list (and :default default?) default)))
                (let ((result (if default?
                                  (lookup name (lambda ()
-                                                (first (recur default path))))
+                                                (first (recur default root path))))
                                  (lookup name))))
                  (list (if (string= name "next-value")
                            (drill-down path result)
@@ -116,9 +122,9 @@
               ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
               ((list* (and (or :ref :ref/list) which) pattern rest)
-               (let* ((name     (first (recur pattern path)))
+               (let* ((name     (first (recur pattern root path)))
                       (resolved (list* which name rest))
-                      (result   (recur resolved path)))
+                      (result   (recur resolved root path)))
                  (ecase which
                    (:ref      result)
                    (:ref/list (first result)))))
@@ -129,18 +135,20 @@
 
               ;; List expression.
               ((list* :list subpatterns)
-               (list (mappend (rcurry #'recur path) subpatterns)))
+               (list (mappend (rcurry #'recur root path) subpatterns)))
 
               ;; Alist expression
               ((list* :alist subpatterns)
-               (list (mapcar (lambda+ ((key . value))
-                               (cons key (first (recur value (list* key path)))))
-                             subpatterns)))
+               (list (mapcar
+                      (lambda+ ((key . value))
+                        (cons key (first (recur value root (list* key path)))))
+                      subpatterns)))
 
               ;; Concatenation expression.
               ((list* subpatterns)
-               (list (collapse (mappend (rcurry #'recur path) subpatterns))))))))
-    (first (recur pattern '()))))
+               (list (collapse (mappend (rcurry #'recur root path)
+                                        subpatterns))))))))
+    (first (recur pattern pattern '()))))
 
 (defmethod value ((thing t) (name t) &optional (default nil default-supplied?))
   (let+ (((&values raw raw/next-values defined?)

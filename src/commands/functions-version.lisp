@@ -60,6 +60,8 @@
                       items))
 
                ((list :verb (and content (type string)))
+                (when (find #\Newline content)
+                  (pprint-newline :mandatory stream))
                 (write-string content stream))
 
                ((list* (type symbol) body)

@@ -1,6 +1,59 @@
 ((:release "0.22" nil
 
   (:enhancement
+   "Recipes can now be written using YAML syntax following (mostly)
+    the same structural schema as before. As JSON is a subset of YAML,
+    the legacy JSON syntax and in particular existing recipes are
+    still supported. The following differences are noteworthy:"
+   (:ul
+    ("Comments are now allowed and can be written as" (:verb "# comment"))
+    ("Many string literals can be written in vastly improved manner:"
+     (:ul
+      "Quotes and escaping are not necessary in most cases"
+      "Multi-line strings pose no problems"
+      "A suitable interpretation of surrounding whitespace and
+       indentation can be specified as appropriate"))
+    ("The inclusion of projects in distributions can now be written in
+     several different ways:"
+     (:ul
+      ("Old way for compatibility:"
+       (:verb "[ \"NAME\", VERSION₁, VERSION₂, …]") "where
+       each" (:verb "VERSION") "is either a string or"
+       (:verb "[ \"NAME\", { \"PARAMETER₁\": \"VALUE₁\", … } ] "))
+      ("New way, compact:" (:verb "NAME@VERSION") "or"
+       (:verb "NAME … @VERSION") "to allow the"
+       (:verb "NAME₁             @VERSION₁
+MUCH-LONGER-NAME₂ @VERSION₂")
+       "idiom")
+      ("New way, single version with parameters:"
+       (:verb "name: NAME
+version: VERSION
+parameters:
+  PARAMETER₁: VALUE₁
+  PARAMETER₂: VALUE₂"))
+      ("New way, multiple versions with or without parameters:"
+       (:verb "name: NAME
+versions:
+- version: VERSION₁
+  parameters:
+    PARAMETER₁₁: VALUE₁₁
+    PARAMETER₁₂: VALUE₁₂
+- version: VERSION₂"))))
+    ("Dependency specifications can now be written in several
+     different ways:"
+     (:ul
+      ("Old way for compatibility:"
+       (:verb "[ \"NATURE\", \"TARGET\" ]") "or"
+       (:verb "[ \"NATURE\",\"TARGET\", VERSION ]") "where"
+       (:verb "VERSION") "is either a string or a list of version
+        component strings")
+      ("New way:"
+       (:verb "nature: NATURE
+target: TARGET
+version: VERSION")
+       "where the" (:verb "version") "property is optional")))))
+
+  (:enhancement
    "The new" (:verb "validate") "command checks the syntax and
     referential integrity of recipes in a given recipe repository.")
 

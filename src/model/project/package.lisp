@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -112,6 +112,12 @@
    #:load-template/yaml
    #:load-project-spec/yaml
    #:load-distribution/yaml)
+
+  ;; Backward compatibility
+  (:export
+   #:load-template/json-or-yaml
+   #:load-project-spec/json-or-yaml
+   #:load-distribution/json-or-yaml)
 
   (:documentation
    "Contains distribution, project and related concepts of the model."))

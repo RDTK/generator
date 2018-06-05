@@ -100,7 +100,7 @@
 (defun load-project/versioned (file versions distribution &key generator-version)
   (let+ ((version-names (mapcar #'first versions))
          (project       (reinitialize-instance
-                         (load-project-spec/yaml
+                         (load-project-spec/json-or-yaml
                           file
                           :version-test      (lambda (version)
                                                (find version version-names

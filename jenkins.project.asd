@@ -136,6 +136,7 @@
                               (:file     "classes-model")
 
                               (:file     "yaml")
+                              (:file     "json")
 
                               (:file     "progress")))
 

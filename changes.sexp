@@ -1,6 +1,10 @@
 ((:release "0.22" nil
 
   (:enhancement
+   "The new" (:verb "validate") "command checks the syntax and
+    referential integrity of recipes in a given recipe repository.")
+
+  (:enhancement
    "Analysis results for projects using" (:variable "scm")
    (:verb "archive") "can now be cached.")
 

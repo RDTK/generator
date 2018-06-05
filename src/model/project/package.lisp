@@ -19,6 +19,9 @@
    #:jenkins.api
    #:jenkins.dsl)
 
+  (:local-nicknames
+   (#:bp #:architecture.builder-protocol))
+
   (:shadow
    #:node)
 
@@ -103,12 +106,12 @@
    #:platform-requires
    #:platform-provides)
 
-  ;; JSON stuff
+  ;; YAML stuff
   (:export
-   #:load-person/json
-   #:load-template/json
-   #:load-project-spec/json
-   #:load-distribution/json)
+   #:load-person/yaml
+   #:load-template/yaml
+   #:load-project-spec/yaml
+   #:load-distribution/yaml)
 
   (:documentation
    "Contains distribution, project and related concepts of the model."))

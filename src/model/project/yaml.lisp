@@ -1,6 +1,6 @@
-;;;; json.lisp --- Minimal JSON import for templates and projects.
+;;;; yaml.lisp --- YAML syntax for templates and projects.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2016-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -53,129 +53,17 @@
            :format-arguments format-arguments)
     (apply #'error format-control format-arguments)))
 
-;;; JSON syntax
+;;; YAML syntax
 
-(define-condition json-syntax-error (error
-                                     annotation-condition
-                                     more-conditions:chainable-condition)
-  ()
-  (:report
-   (lambda (condition stream)
-     (let ((cause (more-conditions:cause condition)))
-       (apply #'format stream (simple-condition-format-control cause)
-              (simple-condition-format-arguments cause))))))
-
-(defvar *source*)
-
-(defun source (stream)
-  (flet ((make-source ()
-           (apply #'text.source-location:make-source stream
-                  (when-let ((file (ignore-errors (pathname stream))))
-                    (list :content (read-file-into-string file))))))
-    (or *source* (setf *source* (make-source)))))
-
-(defun record-object-location (object stream start end)
-  (setf (location-of object) (text.source-location:make-location
-                              (source stream) start end)))
-
-(defvar *object-members*)
-
-(defun record-object-member-locations (object)
-  (let ((bounds (nreverse (cdr (first *object-members*)))))
-    (map nil (lambda+ (cell (stream start end))
-               (record-object-location cell stream start end))
-         object bounds))
-  object)
-
-(defvar *start*)
-
-(defun call-with-object-result (thunk stream)
-  (let* ((*start*  (file-position stream))
-         (object   (funcall thunk stream))
-         (end      (file-position stream))
-         (location (text.source-location:make-location
-                    (source stream) *start* end)))
-    (setf (location-of object) location)
-    object))
-
-(defmacro with-object-result ((stream) &body body)
-  (check-type stream symbol)
-  `(call-with-object-result (lambda (,stream) ,@body) ,stream))
-
-(defun %decode-json-from-source (source)
-  ;; Look away, carry on. Look, this is only a temporary
-  ;; solution. Right? I'm sorry.
-  (handler-bind
-      ((json:json-syntax-error
-        (lambda (condition)
-          (let+ ((control   (simple-condition-format-control condition))
-                 (arguments (simple-condition-format-arguments condition))
-                 (position  (json::stream-error-stream-file-position condition))
-                 ((&values start end)
-                  (cond
-                    ((and (stringp control)
-                          (eql 0 (search "Invalid JSON literal" control))
-                          (typep arguments '(cons string)))
-                     (values (- position (length (first arguments))) position))
-                    ((and (stringp control)
-                          (eql 0 (search "Invalid char on JSON input" control)))
-                     (values position (1+ position)))
-                    (t
-                     (values (max 0 (1- position)) (max 1 position))))))
-            (error 'json-syntax-error
-                   :cause       condition
-                   :annotations (list (text.source-location:make-annotation
-                                       (text.source-location:make-location
-                                        (source source) start end)
-                                       "here" :kind :error)))))))
-    (with-input-from-file (stream source)
-      (let* ((json::*json-identifier-name-to-lisp* #'string-upcase)
-             (json:*internal-decoder*              (lambda (stream)
-                                                     (with-object-result (stream)
-                                                       (json:decode-json stream))))
-
-             (beginning-of-string-handler          json::*beginning-of-string-handler*)
-             (json::*beginning-of-string-handler*  (lambda ()
-                                                     (setf *start* (1- (file-position stream)))
-                                                     (funcall beginning-of-string-handler)))
-
-             (beginning-of-array-handler           json::*beginning-of-array-handler*)
-             (json::*beginning-of-array-handler*   (lambda ()
-                                                     (setf *start* (1- (file-position stream)))
-                                                     (funcall beginning-of-array-handler)))
-
-             (beginning-of-object-handler          json::*beginning-of-object-handler*)
-             (json::*beginning-of-object-handler*  (lambda ()
-                                                     (setf *start* (1- (file-position stream)))
-                                                     (push (list *start*) *object-members*)
-                                                     (funcall beginning-of-object-handler)))
-
-             (object-key-handler                   json::*object-key-handler*)
-             (json::*object-key-handler*           (lambda (object)
-                                                     (let ((start (- (file-position stream)
-                                                                     (length (string object))
-                                                                     2)))
-                                                       (push (list stream start nil)
-                                                             (cdr (first *object-members*))))
-                                                     (funcall object-key-handler object)))
-
-             (object-value-handler                 json::*object-value-handler*)
-             (json::*object-value-handler*         (lambda (object)
-                                                     (setf (third (first (cdr (first *object-members*))))
-                                                           (file-position stream))
-                                                     (funcall object-value-handler object)))
-
-             (end-of-object-handler                json::*end-of-object-handler*)
-             (json::*end-of-object-handler*        (lambda ()
-                                                     (setf *start* (first (first *object-members*)))
-                                                     (prog1
-                                                         (record-object-member-locations
-                                                          (funcall end-of-object-handler))
-                                                       (pop *object-members*))))
-
-             (*source*                             nil)
-             (*object-members*                     '()))
-        (json:decode-json-from-source stream json:*internal-decoder*)))))
+(defun %load-yaml (file)
+  (let* ((source  (text.source-location:make-source
+                   file :content (read-file-into-string file)))
+         (builder (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder
+                                 :target   (make-instance 'language.yaml.construct::native-builder)
+                                 :source   source
+                                 :callback (lambda (object location)
+                                             (setf (location-of object) location)))))
+    (language.yaml:load file :builder builder)))
 
 ;;; Structure utilities
 
@@ -220,14 +108,14 @@
                     (list object))))
   object)
 
-(deftype json-version-include-spec ()
+(deftype yaml-version-include-spec ()
   '(or string (cons string (cons list null))))
 
-(defun json-list-of-version-include-specs (thing)
-  (and (listp thing) (every (of-type 'json-version-include-spec) thing)))
+(defun yaml-list-of-version-include-specs (thing)
+  (and (listp thing) (every (of-type 'yaml-version-include-spec) thing)))
 
-(deftype json-project-include-spec ()
-  '(cons string (satisfies json-list-of-version-include-specs)))
+(deftype yaml-project-include-spec ()
+  '(cons string (satisfies yaml-list-of-version-include-specs)))
 
 (defun check-generator-version (spec generator-version context)
   (when-let ((required-version (assoc-value spec :minimum-generator-version)))
@@ -260,20 +148,20 @@
                (push cell (gethash key entries)))
          alist)
     (loop :for key :being :the :hash-key :of entries
-       :using (:hash-value cells)
-       :do (unless (length= 1 cells)
-             (object-error
-              (loop :for cell :in cells
-                    :for i :downfrom (length cells)
-                    :collect (list cell (format nil "~:R definition" i)
-                                   (if (= i 1) :note :error)))
-              "~@<Multiple definitions of variable ~A.~@:>"
-              key))
-       :collect (value-cons key (cdr (first cells))))))
+          :using (:hash-value cells)
+          :unless (length= 1 cells)
+          :do (object-error
+               (loop :for cell :in cells
+                     :for i :downfrom (length cells)
+                     :collect (list cell (format nil "~:R definition" i)
+                                    (if (= i 1) :note :error)))
+               "~@<Multiple definitions of variable ~A.~@:>"
+               key)
+          :collect (value-cons key (cdr (first cells))))))
 
 ;;; Loader definition macro
 
-(defmacro define-json-loader ((concept keys) (spec-var name &rest args)
+(defmacro define-yaml-loader ((concept keys) (spec-var name &rest args)
                               &body body)
   (check-type spec-var symbol)
   (check-type name (cons symbol (cons (member :data :pathname :congruent) null)))
@@ -281,14 +169,14 @@
          (other-args (set-difference args '(pathname generator-version)
                                      :test #'eq))
          (all-args   (list* 'pathname 'generator-version other-args))
-         (read-name  (symbolicate '#:read-  concept '#:/json))
-         (parse-name (symbolicate '#:parse- concept '#:/json))
-         (load-name  (symbolicate '#:load-  concept '#:/json))
+         (read-name  (symbolicate '#:read-  concept '#:/yaml))
+         (parse-name (symbolicate '#:parse- concept '#:/yaml))
+         (load-name  (symbolicate '#:load-  concept '#:/yaml))
          (context    (format nil "~(~A~) recipe" concept)))
     `(progn
        (defun ,read-name (pathname &key generator-version ,@other-args)
          (declare (ignore ,@other-args))
-         (let ((spec (%decode-json-from-source pathname)))
+         (let ((spec (%load-yaml pathname)))
            (check-keys spec '((:minimum-generator-version nil string)
                               ,@(case name-kind
                                   (:data
@@ -327,7 +215,7 @@
 
 ;;; Person loading
 
-(define-json-loader (person ((:aliases nil list) (:identities nil list)))
+(define-yaml-loader (person ((:aliases nil list) (:identities nil list)))
     (spec (name :data))
   (let* ((aliases    (lookup :aliases))
          (identities (map 'list #'puri:uri (lookup :identities)))
@@ -371,10 +259,10 @@
 (defun resolve-template-dependency (name context &key generator-version)
   (or (find-template name :if-does-not-exist nil)
       (loading-template (name)
-        (load-one-template/json (make-pathname :name name :defaults context)
+        (load-one-template/yaml (make-pathname :name name :defaults context)
                                 :generator-version generator-version))))
 
-(define-json-loader (one-template ((:inherit nil list) (:variables nil list)
+(define-yaml-loader (one-template ((:inherit nil list) (:variables nil list)
                                    (:aspects nil list) (:jobs nil list)))
     (spec (name :pathname) pathname generator-version)
   (let+ (((&flet make-aspect-spec (spec parent)
@@ -410,16 +298,16 @@
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
 
-(defun load-template/json (pathname &key generator-version)
+(defun load-template/yaml (pathname &key generator-version)
   (let ((name (pathname-name pathname)))
     (or (find-template name :if-does-not-exist nil)
         (loading-template (name)
-          (load-one-template/json
+          (load-one-template/yaml
            pathname :generator-version generator-version)))))
 
 ;;; Project loading
 
-(define-json-loader
+(define-yaml-loader
     (project-spec ((:templates t list) (:variables t list) (:versions nil list) :catalog))
     (spec (name :congruent) version-test)
   (let+ (((&flet make-version-spec (spec parent)
@@ -461,13 +349,13 @@
 
 ;;; Distribution loading
 
-(define-json-loader (distribution ((:variables nil list) (:versions t list) :catalog))
+(define-yaml-loader (distribution ((:variables nil list) (:versions t list) :catalog))
     (spec (name :congruent))
   (let+ ((variables     (value-acons :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables))))
          ;; We allow using variables defined directly in the
          ;; distribution recipe to be used in project version
-         ;; expressions. Since
+         ;; expressions.
          (context       (make-instance 'direct-variables-mixin
                                        :variables variables))
          (projects-seen (make-hash-table :test #'equal))
@@ -496,7 +384,7 @@
                                 versions))))
          ((&flet process-project (included-project)
             (cond
-              ((not (typep included-project 'json-project-include-spec))
+              ((not (typep included-project 'yaml-project-include-spec))
                (with-simple-restart
                    (continue "~@<Continue without the project entry~@:>")
                  (object-error

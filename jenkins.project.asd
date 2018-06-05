@@ -13,35 +13,38 @@
 
   :version     (:read-file-form "version-string.sexp")
   :depends-on  ("alexandria"
-                (:version "split-sequence"                        "1.1")
+                (:version "split-sequence"                               "1.1")
                 "iterate"
-                (:version "let-plus"                              "0.1")
-                (:version "more-conditions"                       "0.1.0")
-                (:version "utilities.print-items"                 "0.1.0")
-                (:version "utilities.print-tree"                  "0.1.0")
+                (:version "let-plus"                                     "0.1")
+                (:version "more-conditions"                              "0.1.0")
+                (:version "utilities.print-items"                        "0.1.0")
+                (:version "utilities.print-tree"                         "0.1.0")
                 "local-time"
                 "lparallel"
                 "log4cl"
 
                 "puri"
                 "xml.location"
-                (:version "esrap"                                 "0.9")
-                (:version "cl-ppcre"                              "2.0.3")
-                (:version "cl-json"                               "0.4.1")
-                (:version "text.source-location"                  "0.1")
-                (:version "text.source-location.print"            "0.1")
+                (:version "esrap"                                        "0.9")
+                (:version "cl-ppcre"                                     "2.0.3")
+                (:version "cl-json"                                      "0.4.1")
+                (:version "language.yaml"                                "0.1")
+                (:version "text.source-location"                         "0.1")
+                (:version "text.source-location.print"                   "0.1")
+                (:version "text.source-location.source-tracking-builder" "0.1")
+
                 "cl-store"
                 "inferior-shell"
                 "ironclad"
 
-                (:version "rosetta"                               "0.4")
-                (:version "rosetta-project"                       "0.4")
+                (:version "rosetta"                                      "0.4")
+                (:version "rosetta-project"                              "0.4")
 
-                (:version "jenkins.api"                           "0.1")
+                (:version "jenkins.api"                                  "0.1")
 
                 "cl-dot"
 
-                (:version "jenkins.project.more-conditions-patch" (:read-file-form "version-string.sexp")))
+                (:version "jenkins.project.more-conditions-patch"        (:read-file-form "version-string.sexp")))
 
   :components  ((:file       "cxml-hack"
                  :pathname   "src/cxml-patch")
@@ -132,7 +135,7 @@
                               (:file     "classes-spec")
                               (:file     "classes-model")
 
-                              (:file     "json")
+                              (:file     "yaml")
 
                               (:file     "progress")))
 

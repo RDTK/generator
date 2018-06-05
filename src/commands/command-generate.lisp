@@ -91,7 +91,7 @@
                                          (first distributions) mode)))
          (templates
           (locate-and-load :template template-patterns
-                           (rcurry #'load-template/json
+                           (rcurry #'load-template/yaml
                                    :generator-version generator-version)))
          ;; Persons
          (person-patterns         (list (merge-pathnames
@@ -102,13 +102,13 @@
                                          (first distributions))))
          (persons
           (locate-and-load :person person-patterns
-                           (rcurry #'load-person/json
+                           (rcurry #'load-person/yaml
                                    :generator-version generator-version)
                            :if-no-match '()))
          ;; Distributions
          ((&values distributions distribution-files)
           (locate-and-load :distribution distributions
-                           (rcurry #'load-distribution/json
+                           (rcurry #'load-distribution/yaml
                                    :generator-version generator-version)))
          (distributions           (as-phase (:overwrites)
                                     (set-overwrites distributions overwrites)))

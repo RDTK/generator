@@ -369,52 +369,37 @@
                  (list (list expression "specified here" :error))
                  "~@<Failed to evaluate version of included project: ~A~@:>"
                  condition)))))
-         ((&flet process-version (version note-success)
+         ((&flet+ process-version ((name . parameters) note-success)
             (with-simple-restart
                 (continue "~@<Continue without the project version~@:>")
-              (typecase version
-                (string
-                 (when-let ((expansion (expand-version version note-success)))
-                   (list (ensure-list expansion))))
-                (cons
-                 (list (list (expand-version (first version) note-success)
-                             (process-variables (second version)))))))))
-         ((&flet+ expand-project ((name &rest versions) note-success)
+              (list (list (expand-version name note-success)
+                          (when parameters (process-variables parameters)))))))
+         ((&flet expand-project (name versions note-success)
             (list* name (mapcan (rcurry #'process-version note-success)
                                 versions))))
          ((&flet process-project (included-project)
-            (cond
-              ((not (typep included-project 'yaml-project-include-spec))
-               (with-simple-restart
-                   (continue "~@<Continue without the project entry~@:>")
-                 (object-error
-                  (list (list included-project "included here" :error))
-                  "~@<Project entry is not a project name followed by ~
-                   one or more (parametrized) project versions.~:@>")))
-              ((when-let ((previous (gethash (first included-project)
-                                             projects-seen)))
-                 (with-simple-restart
-                     (continue "~@<Ignore the additional project entry~@:>")
-                   (object-error
-                    (list (list previous         "initial definition"   :note)
-                          (list included-project "offending definition" :error))
-                    "~@<Project entry followed by another entry for ~
+            (with-simple-restart
+                (continue "~@<Continue without the project entry~@:>")
+              (let+ (((&values name versions)
+                      (parse-include-spec included-project)))
+                (when-let ((previous (gethash name projects-seen)))
+                  (object-error
+                   (list (list previous         "initial definition"   :note)
+                         (list included-project "offending definition" :error))
+                   "~@<Project entry followed by another entry for ~
                      same project. Multiple project versions have to ~
-                     be described in a single entry.~@:>"))))
-              (t
-               (let+ ((successful-expansions 0)
-                      ((&flet note-success ()
-                         (incf successful-expansions)))
-                      ((&whole entry name &rest versions)
-                       (expand-project included-project #'note-success)))
-                 (with-simple-restart
-                     (continue "~@<Continue without the project entry~@:>")
-                   (setf (gethash name projects-seen) included-project)
-                   (when (and (plusp successful-expansions) (null versions))
-                     (object-error
-                      (list (list included-project "specified here" :error))
-                      "~@<No project versions after expansion.~@:>"))
-                   (list entry))))))))
+                     be described in a single entry.~@:>"))
+                (let+ ((successful-expansions 0)
+                       ((&flet note-success ()
+                          (incf successful-expansions)))
+                       ((&whole entry name &rest versions)
+                        (expand-project name versions #'note-success)))
+                  (setf (gethash name projects-seen) included-project)
+                  (when (and (plusp successful-expansions) (null versions))
+                    (object-error
+                     (list (list included-project "specified here" :error))
+                     "~@<No project versions after expansion.~@:>"))
+                  (list entry)))))))
     (make-instance 'distribution-spec
                    :name      name
                    :variables variables

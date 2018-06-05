@@ -7,11 +7,11 @@
 (cl:in-package #:jenkins.project.commands)
 
 (defclass validate ()
-  ((recipe-directory :initarg  :recipe-directory
-                     :type     pathname
-                     :reader   recipe-directory
-                     :documentation
-                     "Directory from which recipes should be collected."))
+  ((recipes :initarg  :recipes
+            :type     pathname
+            :reader   recipes
+            :documentation
+            "Distribution recipe or root directory of recipe repository."))
   (:documentation
    "Perform basic sanity checks for a given recipe repository."))
 
@@ -20,13 +20,20 @@
 
 (jenkins.project.commandline-options:define-option-mapping
     (*command-schema* "validate")
-  (0 "recipe-directory" "DIRECTORY" t))
+  (0 "recipes" "FILENAME-OR-DIRECTORY" t))
 
 (defmethod command-execute ((command validate))
-  (let* ((pattern            (merge-pathnames
-                              "distributions/*.distribution"
-                              (uiop:ensure-directory-pathname
-                               (recipe-directory command))))
-         (distribution-files (directory pattern)))
+  (let* ((recipes            (recipes command))
+         (distribution-files
+           (cond
+             ((wild-pathname-p recipes)
+              (directory recipes))
+             ((equal (pathname-type recipes) "distribution")
+              (list recipes))
+             (t
+              (directory
+               (merge-pathnames
+                "distributions/*.distribution"
+                (uiop:ensure-directory-pathname recipes)))))))
     (generate-load distribution-files "toolkit" '()
                    :generator-version (generator-version))))

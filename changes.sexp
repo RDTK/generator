@@ -16,6 +16,11 @@
    "More cases of ill-formed recipes are caught at parse-time.")
 
   (:bugfix
+   "The" (:verb "generate") "command accepts a"
+   (:verb "-a API-TOKEN") "commandline argument like the old
+    commandline interface.")
+
+  (:bugfix
    "Supplying single-value commandline options multiple times now
     produces a suitable error message."))
 

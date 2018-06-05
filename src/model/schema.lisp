@@ -23,7 +23,8 @@
   (and (listp thing) (every #'stringp thing)))
 
 (deftype dependency ()
-  '(cons string (cons string (or null (cons string null)))))
+  '(or (cons string (cons string (or null (cons string null))))
+       (cons (cons keyword t) list)))
 
 (defun every-dependency (thing)
   (and (listp thing) (every (of-type 'dependency) thing) ))

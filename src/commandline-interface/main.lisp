@@ -105,7 +105,8 @@
                              (setf serious-errors? t)))
          :progress-style  (option-value "global" "progress-style")
          :cache-directory (option-value "global" "cache-directory")
-         :temp-directory  (option-value "global" "temp-directory"))
+         :temp-directory  (option-value "global" "temp-directory")
+         :trace-variables (option-value "global" "trace-variable"))
         (uiop:quit (if serious-errors? 1 0))))))
 
 (eval-when (:load-toplevel)

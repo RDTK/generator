@@ -81,7 +81,13 @@
                         (error-policy   #'error)
                         (progress-style :cmake)
                         cache-directory
-                        temp-directory)
+                        temp-directory
+                        trace-variables)
+  ;; We modify the global value so that all threads pick up the value
+  ;; without additional work.
+  (setf *traced-variables* (map 'list (compose #'make-keyword #'string-upcase)
+                                trace-variables))
+
   (let ((main-thread (bt:current-thread))
         (lock        (bt:make-lock)))
     (setf lparallel:*kernel* (lparallel:make-kernel num-processes))

@@ -1,6 +1,6 @@
 ;;;; configuration.lisp --- Configuration for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -43,7 +43,11 @@
                       "Directory into which cached data like repository mirrors should be written.")
   ("temp-directory"   :type 'pathname :default #P"/tmp/"
                       :documentation
-                      "Directory into which temporary files should be written."))
+                      "Directory into which temporary files should be written.")
+  ;; Application-level debugging
+  ("trace-variable"   :type '(list string :inherit? t)
+                      :documentation
+                      "Trace all accesses to the specified variable."))
 
 (configuration.options:define-schema *schema*
   "Configuration options of the build generator."
@@ -64,7 +68,9 @@
   ("--progress-style"       "progress-style"  "STYLE")
   ;; Directories
   ("--cache-directory"      "cache-directory" "DIRECTORY")
-  ("--temp-directory"       "temp-directory"  "DIRECTORY"))
+  ("--temp-directory"       "temp-directory"  "DIRECTORY")
+  ;; Application-level debugging
+  ("--trace-variable"       "trace-variable"  "VARIABLE-NAME"))
 
 ;;; Configuration processing
 

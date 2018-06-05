@@ -16,6 +16,10 @@
    "More cases of ill-formed recipes are caught at parse-time.")
 
   (:bugfix
+   "The" (:verb "trace-variable") "commandline option has been
+    restored.")
+
+  (:bugfix
    "The" (:verb "generate") "command accepts a"
    (:verb "-a API-TOKEN") "commandline argument like the old
     commandline interface.")

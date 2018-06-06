@@ -141,6 +141,15 @@
 (deftype json-project-include-spec ()
   '(cons string (satisfies json-list-of-version-include-specs)))
 
+(defun check-name-pathname-congruence (name pathname)
+  (unless (string= name (pathname-name pathname))
+    (object-error
+     (list (list name "name attribute" :error))
+     "~@<Value of \"name\" attribute, ~S, does not match filename ~
+      ~S.~@:>"
+     name (pathname-name pathname)))
+  name)
+
 ;;; Loader definition macro
 
 (defmacro define-json-loader ((concept keys) (spec-var name &rest args)

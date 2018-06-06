@@ -127,15 +127,6 @@
         generator is version ~S.~@:>"
        context required-version generator-version))))
 
-(defun check-name-pathname-congruence (name pathname)
-  (unless (string= name (pathname-name pathname))
-    (object-error
-     (list (list name "name attribute" :error))
-     "~@<Value of \"name\" attribute, ~S, does not match filename ~
-      ~S.~@:>"
-     name (pathname-name pathname)))
-  name)
-
 (defun process-variables (alist)
   (let ((entries (make-hash-table :test #'eq)))
     (map nil (lambda+ ((&whole cell key . &ign))
@@ -164,7 +155,7 @@
 (defmacro define-yaml-loader ((concept keys) (spec-var name &rest args)
                               &body body)
   (check-type spec-var symbol)
-  (check-type name (cons symbol (cons (member :data :pathname :congruent) null)))
+  (check-type name (cons symbol (cons (member :data :pathname) null)))
   (let+ (((&optional name-var name-kind) name)
          (other-args (set-difference args '(pathname generator-version)
                                      :test #'eq))
@@ -178,22 +169,15 @@
          (declare (ignore ,@other-args))
          (let ((spec (%load-yaml pathname)))
            (check-keys spec '((:minimum-generator-version nil string)
-                              ,@(case name-kind
-                                  (:data
-                                   '((:name t string)))
-                                  (:congruent
-                                   `((:name nil string))))
+                              ,@(when (eq name-kind :data)
+                                  '((:name t string)))
                               ,@keys))
            (check-generator-version spec generator-version ,context)
            (let ((name ,@(ecase name-kind
                            (:data
                             `((assoc-value spec :name)))
                            (:pathname
-                            `((pathname-name pathname)))
-                           (:congruent
-                            `((if-let ((name (assoc-value spec :name)))
-                                (check-name-pathname-congruence name pathname)
-                                (pathname-name pathname)))))))
+                            `((pathname-name pathname))))))
              (values spec name pathname))))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
@@ -309,7 +293,7 @@
 
 (define-yaml-loader
     (project-spec ((:templates t list) (:variables t list) (:versions nil list) :catalog))
-    (spec (name :congruent) version-test)
+    (spec (name :pathname) version-test)
   (let+ (((&flet make-version-spec (spec parent)
             (check-keys spec '((:name      t   string)
                                (:variables nil list)
@@ -350,7 +334,7 @@
 ;;; Distribution loading
 
 (define-yaml-loader (distribution ((:variables nil list) (:versions t list) :catalog))
-    (spec (name :congruent))
+    (spec (name :pathname))
   (let+ ((variables     (value-acons :__catalog (lookup :catalog)
                                      (process-variables (lookup :variables))))
          ;; We allow using variables defined directly in the

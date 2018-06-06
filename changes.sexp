@@ -13,8 +13,10 @@
       "Multi-line strings pose no problems"
       "A suitable interpretation of surrounding whitespace and
        indentation can be specified as appropriate"))
+    ("The" (:verb "name") "attribute is not allowed in project,
+      distribution and template recipes")
     ("The inclusion of projects in distributions can now be written in
-     several different ways:"
+      several different ways:"
      (:ul
       ("Old way for compatibility:"
        (:verb "[ \"NAME\", VERSION₁, VERSION₂, …]") "where

@@ -128,8 +128,9 @@
                                         (list (list name "included here" :error))
                                         "~@<No version section for ~
                                          version ~S in project ~
-                                         ~A.~@:>"
-                                        name project))
+                                         ~/print-items:format-print-items/~
+                                         .~@:>"
+                                        name (print-items:print-items project)))
                                       (t
                                        (make-instance 'version-spec
                                                       :name      name
@@ -325,8 +326,9 @@
 (defun resolve-project-version (project version)
   (let ((project (find-project project)))
     (or (find version (versions project) :test #'string= :key #'name)
-        (error "~@<Could not find version ~S in project ~A.~@:>"
-               version project))))
+        (error "~@<Could not find version ~S in project ~
+                ~/print-items:format-print-items/.~@:>"
+               version (print-items:print-items project)))))
 
 (defun resolve-project-versions (versions)
   (mapcan (lambda+ ((project &rest versions))

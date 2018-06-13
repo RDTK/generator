@@ -243,8 +243,8 @@
 (defun resolve-template-dependency (name context &key generator-version)
   (or (find-template name :if-does-not-exist nil)
       (loading-template (name)
-        (load-one-template/yaml (make-pathname :name name :defaults context)
-                                :generator-version generator-version))))
+        (load-one-template/json-or-yaml (make-pathname :name name :defaults context)
+                                        :generator-version generator-version))))
 
 (define-yaml-loader (one-template ((:inherit nil list) (:variables nil list)
                                    (:aspects nil list) (:jobs nil list)))

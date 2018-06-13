@@ -252,17 +252,21 @@
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
 
+(defun load-one-template/json-or-yaml (pathname &key generator-version)
+  (handler-case
+      (load-one-template/json
+       pathname :generator-version generator-version)
+    (json-syntax-error ()
+      (log:warn "Failed to load ~S as JSON, trying YAML" pathname)
+      (load-one-template/yaml
+       pathname :generator-version generator-version))))
+
 (defun load-template/json-or-yaml (pathname &key generator-version)
   (let ((name (pathname-name pathname)))
     (or (find-template name :if-does-not-exist nil)
         (loading-template (name)
-          (handler-case
-              (load-one-template/json
-               pathname :generator-version generator-version)
-            (json-syntax-error ()
-              (log:warn "Failed to load ~S as JSON, trying YAML" pathname)
-              (load-one-template/yaml
-               pathname :generator-version generator-version)))))))
+          (load-one-template/json-or-yaml
+           pathname :generator-version generator-version)))))
 
 ;;; Project loading
 

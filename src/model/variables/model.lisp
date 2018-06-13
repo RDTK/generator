@@ -174,7 +174,7 @@
 
 (defun value-acons (&rest args)
   (let ((cells (butlast args))
-        (rest (lastcar args)))
+        (rest  (lastcar args)))
     (check-type rest variable-expression-alist-element-list)
     (append (loop :for (name value) :on cells :by #'cddr
                :do (check-type name keyword)

@@ -219,9 +219,9 @@
                          (lookup thing name1
                                  :if-undefined (if default-supplied? (cons :default default) #'error))))
                    (values (cdr raw) (make-lookup raw/next-values) (not defined?))
-                  #+no (if default-supplied?
-                      (value thing name1 default)
-                      (value thing name1))))
+                   #+no (if default-supplied?
+                            (value thing name1 default)
+                            (value thing name1))))
                 (first-value
                  (progn ; with-augmented-trace (name1 nil first-value)
                    (values (cdr first-value) (make-lookup next-values))))
@@ -242,9 +242,10 @@
 
 (defmethod evaluate ((thing t) (expression t))
   (let+ (((&flet lookup (name &optional (default nil default-supplied?))
-            (if default-supplied?
-                (value thing name default)
-                (value thing name)))))
+            (value-parse ; TODO value-parse is a hack
+             (if default-supplied?
+                 (value thing name default)
+                 (value thing name))))))
     (expand expression #'lookup)))
 
 ;;; Casts

@@ -30,7 +30,8 @@
 
 (defmethod print-items:print-items append ((object variable-info))
   (let+ (((&structure-r/o variable-info- name type) object))
-    `((:name ,name "~A") (:type ,type ": ~A"))))
+    `((:name ,name "~A")
+      (:type ,type ": ~A" ((:after :name))))))
 
 (defvar *variables* (make-hash-table :test #'eq))
 

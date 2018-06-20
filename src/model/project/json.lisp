@@ -257,7 +257,6 @@
       (load-one-template/json
        pathname :generator-version generator-version)
     (json-syntax-error ()
-      (log:warn "Failed to load ~S as JSON, trying YAML" pathname)
       (load-one-template/yaml
        pathname :generator-version generator-version))))
 
@@ -315,7 +314,6 @@
       (load-project-spec/json pathname :generator-version generator-version
                                        :version-test      version-test)
     (json-syntax-error ()
-      (log:warn "Failed to load ~S as JSON, trying YAML" pathname)
       (load-project-spec/yaml pathname :generator-version generator-version
                                        :version-test      version-test))))
 
@@ -396,5 +394,4 @@
   (handler-case
       (load-distribution/json pathname :generator-version generator-version)
     (json-syntax-error ()
-      (log:warn "Failed to load ~S as JSON, trying YAML" pathname)
       (load-distribution/yaml pathname :generator-version generator-version))))

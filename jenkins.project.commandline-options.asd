@@ -17,7 +17,7 @@
                 (:version "let-plus"              "0.2")
                 (:version "more-conditions"       "0.2")
 
-                (:version "configuration.options" "0.6"))
+                (:version "configuration.options" "0.8"))
 
   :components  ((:module     "commandline-options"
                  :pathname   "src/commandline-options"

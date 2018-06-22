@@ -8,7 +8,7 @@
 
 (defclass analyze ()
   ((sources :initarg  :sources
-            :type     (or null (cons (or puri:uri pathname) list))
+            :type     (or null (cons (or configuration.options::proper-puri pathname) list))
             :reader   sources
             :documentation
             #.(format nil "Location(s) of the project repository(ies).~@

@@ -52,6 +52,18 @@
   :documentation
   "A list of keywords characterizing the project, distribution, etc.")
 
+(define-variable :licenses (list-of string)
+  :documentation
+  "A list of names of licenses (usually one) associated to the project.
+
+   It is not currently specified whether multiple licenses apply to
+   different parts of the project or constitute alternatives from
+   which a user can choose.")
+
+(define-variable :programming-languages (list-of string)
+  :documentation
+  "A list of programming languages used in the project.")
+
 (define-variable :platform-provides (list-of dependency)
   :documentation
   "A list of things provided by the operating system or otherwise

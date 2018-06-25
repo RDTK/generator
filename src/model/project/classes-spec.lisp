@@ -20,6 +20,15 @@
 
 (cl:in-package #:jenkins.model.project)
 
+(defun variable-inheritable? (name)
+  (if-let ((info (find-variable name :if-does-not-exist nil)))
+    (inheritance info)
+    t))
+
+(defun variable-aggregation (name)
+  (when-let ((info (find-variable name :if-does-not-exist nil)))
+    (aggregation info)))
+
 ;;; `distribution-spec' class
 
 (defclass distribution-spec (named-mixin
@@ -113,16 +122,15 @@
                                     ]"
                                (value thing :jobs.dependencies))))
 
-  (defmethod lookup ((thing distribution-spec) (name (eql :programming-languages))
+  (defmethod lookup ((thing distribution-spec) (name t)
                      &key if-undefined)
     (declare (ignore if-undefined))
-    (let ((counts (make-hash-table :test #'eq)))
-      (map nil (lambda (version)
-                 (map nil (lambda (language)
-                            (incf (gethash (make-keyword language) counts 0)))
-                      (value version :programming-languages '())))
-           (distribution-versions thing))
-      (return-value name (hash-table-alist counts))))
+    (if-let ((strategy        (variable-aggregation name)))
+      (let* ((value           (call-next-method thing name :if-undefined '()))
+             (children        (distribution-versions thing))
+             (effective-value (aggregate-values value children name strategy)))
+        (return-value name effective-value))
+      (call-next-method)))
 
   (defmethod lookup ((thing distribution-spec) (name (eql :licenses))
                      &key if-undefined)
@@ -171,13 +179,6 @@
                (when (next-method-p)
                  (call-next-method))))
 
-(defvar *non-inheritable-variables*
-  '(:access :platform-requires :recipe.maintainer :programming-languages
-    :licenses))
-
-(defun inheritable-variable? (name)
-  (not (member name *non-inheritable-variables* :test #'eq)))
-
 (defmethod variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
           ;; direct variables in front of variables from
@@ -189,7 +190,7 @@
           ;; variables from parents like `distribution-spec'
           ;; instances.
           (when-let ((parent (parent thing)))
-            (remove-if-not #'inheritable-variable? (variables parent)
+            (remove-if-not #'variable-inheritable? (variables parent)
                            :key #'car))))
 
 (defmethod lookup ((thing project-spec) (name t) &key if-undefined)
@@ -205,7 +206,7 @@
                         (lookup template name :if-undefined nil)))
                      (templates thing))
              :initial-value (multiple-value-list (call-next-method))))
-    (if (and (parent thing) (inheritable-variable? name))
+    (if (and (parent thing) (variable-inheritable? name))
         (lookup (parent thing) name :if-undefined nil)
         (values nil '() nil))))
 

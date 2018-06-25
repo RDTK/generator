@@ -106,6 +106,7 @@
                               (:file     "model")
                               (:file     "grammar")
                               (:file     "evaluation")
+                              (:file     "aggregation")
 
                               (:file     "mixins")))
 

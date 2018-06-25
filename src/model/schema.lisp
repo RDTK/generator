@@ -32,6 +32,7 @@
 ;;; General variables
 
 (define-variable :recipe.maintainer (or string (list-of string))
+  :inheritance nil
   :documentation
   "Names and Email address of the maintainer(s) of the recipe.
 
@@ -45,14 +46,19 @@
    .")
 
 (define-variable :description string
+  :inheritance nil
   :documentation
   "A short description of the project, distribution, etc.")
 
 (define-variable :keywords (list-of string)
+  :inheritance nil
+  :aggregation :histogram
   :documentation
   "A list of keywords characterizing the project, distribution, etc.")
 
 (define-variable :licenses (list-of string)
+  :inheritance nil
+  :aggregation :histogram
   :documentation
   "A list of names of licenses (usually one) associated to the project.
 
@@ -61,6 +67,8 @@
    which a user can choose.")
 
 (define-variable :programming-languages (list-of string)
+  :inheritance nil
+  :aggregation :histogram
   :documentation
   "A list of programming languages used in the project.")
 
@@ -182,6 +190,8 @@
    sole content of the repository.")
 
 (define-variable :natures (list-of string)
+  :inheritance nil
+  :aggregation :histogram
   :documentation
   "A list of project natures the generator should consider when
    analyzing the source of the project.
@@ -252,6 +262,7 @@
 ;;; Project and distribution variables
 
 (define-variable :access (or (eql :private) (eql :public))
+  :inheritance nil
   :documentation
   "Specifies access restrictions of the project or distribution. If present,
    has to have one of the values \"private\" and \"public\". Omitting the
@@ -261,6 +272,7 @@
    private access.")
 
 (define-variable :platform-requires list
+  :inheritance nil
   :documentation
   "An object which can contain entries of the following forms
 

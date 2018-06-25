@@ -90,6 +90,10 @@
 
     If NAME does not name a defined variable, signal an error."))
 
+(defgeneric aggregate-values (thing children name strategy)
+  (:documentation
+   "Aggregate values of NAME in THING and CHILDREN according to STRATEGY."))
+
 ;; Default behavior
 
 (defmethod lookup :around ((thing t) (name t)

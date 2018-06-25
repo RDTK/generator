@@ -50,7 +50,9 @@
    #:evaluate
 
    #:as
-   #:value/cast)
+   #:value/cast
+
+   #:aggregate-values)
 
   ;; Variable protocol and mixin class
   (:export
@@ -64,6 +66,8 @@
    #:variable-info
    #:variable-info-name
    #:variable-info-type
+   #:inheritance
+   #:aggregation
    #:variable-info-documentation
 
    #:make-variable-info

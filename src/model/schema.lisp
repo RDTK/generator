@@ -273,6 +273,7 @@
 
 (define-variable :platform-requires list
   :inheritance nil
+  :aggregation :merge
   :documentation
   "An object which can contain entries of the following forms
 

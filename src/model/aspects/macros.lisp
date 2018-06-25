@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macros provided by the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -29,7 +29,7 @@
     (values
      (apply #'make-instance 'aspect-parameter
             :variable     (make-variable-info
-                           parameter-name type documentation)
+                           parameter-name type :documentation documentation)
             :binding-name name
             (cond
               ((not default-supplied?)
@@ -44,7 +44,7 @@
   (let+ (((&structure-r/o variable-info- name type documentation)
           (aspect-parameter-variable parameter)))
     (unless explicit-name?
-      `(note-variable ',name ',type ,documentation))))
+      `(note-variable ',name ',type :documentation ,documentation))))
 
 (defun make-aspect-parameter-form (parameter)
   (let+ (((&structure-r/o aspect-parameter-

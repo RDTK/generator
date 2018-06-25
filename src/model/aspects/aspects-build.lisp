@@ -1,6 +1,6 @@
 ;;;; aspects-build.lisp --- Definitions of builder-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -65,6 +65,7 @@
         (builders job)))
 
 (define-variable :aspect.cmake/unix.find-commands list ; :write
+  :documentation
   "Shell commands for finding upstream CMake packages.
 
    A list of strings of the form
@@ -75,6 +76,7 @@
    module.")
 
 (define-variable :aspect.cmake/unix.dir-options list ; :write
+  :documentation
   "CMake commandline options for configuring upstream packages.
 
    A list of strings of the form

@@ -32,6 +32,7 @@
 ;;; General variables
 
 (define-variable :recipe.maintainer (or string (list-of string))
+  :documentation
   "Names and Email address of the maintainer(s) of the recipe.
 
    Either a string or a list of strings. In both cases, each
@@ -44,12 +45,15 @@
    .")
 
 (define-variable :description string
+  :documentation
   "A short description of the project, distribution, etc.")
 
 (define-variable :keywords (list-of string)
+  :documentation
   "A list of keywords characterizing the project, distribution, etc.")
 
 (define-variable :platform-provides (list-of dependency)
+  :documentation
   "A list of things provided by the operating system or otherwise
    available \"a priori\".
 
@@ -80,12 +84,14 @@
 ;;; Project variables
 
 (define-variable :scm string
+  :documentation
   "Forces the use a particular source code management system in the
    generator's analysis and generated Jenkins jobs.
 
    Common values are \"archive\", \"git\", \"svn\" and \"mercurial\".")
 
 (define-variable :scm.credentials (or null string)
+  :documentation
   "A reference to an entry in Jenkins' global credentials store that
    should be used for authentication by Jenkins when accessing the
    repository of this project.
@@ -103,12 +109,14 @@
      private access.")
 
 (define-variable :scm.username string
+  :documentation
   "The username that should be used for accessing the source code
    management system of the project.
 
    Used in the generator's analysis and generated Jenkins jobs.")
 
 (define-variable :scm.password (or null string)
+  :documentation
   "The password that should be used for accessing the source code
    management system of the project.
 
@@ -119,9 +127,11 @@
    permissions.")
 
 (define-variable :scm.history-limit positive-integer
+  :documentation
   "Do not use.")
 
 (define-variable :repository string
+  :documentation
   "The URL of the source repository, download location or filesystem
    location for the project.
 
@@ -129,21 +139,27 @@
    kind is guessed automatically.")
 
 (define-variable :branches (list-of string)
+  :documentation
   "A list of names of branch available in the project repository.")
 
 (define-variable :tags (list-of string)
+  :documentation
   "A list of names of tags available in the project repository.")
 
 (define-variable :branch string
+  :documentation
   "The name of a specific branch to process.")
 
 (define-variable :tag string
+  :documentation
   "The name of a specific tag to process.")
 
 (define-variable :commit string
+  :documentation
   "A specific commit to process.")
 
 (define-variable :sub-directory string
+  :documentation
   "The name of a sub-directory within the project repository in which
    the project should be considered to reside.
 
@@ -154,6 +170,7 @@
    sole content of the repository.")
 
 (define-variable :natures (list-of string)
+  :documentation
   "A list of project natures the generator should consider when
    analyzing the source of the project.
 
@@ -161,6 +178,7 @@
    \"maven\", \"ros-package\" and \"asdf\".")
 
 (define-variable :extra-requires (list-of dependency)
+  :documentation
   "A list of additional (i.e. not covered by automatic analysis)
    requirements.
 
@@ -190,6 +208,7 @@
        required.")
 
 (define-variable :extra-provides (list-of dependency)
+  :documentation
   "A list of additional (i.e. not covered by automatic analysis)
    provides.
 
@@ -221,6 +240,7 @@
 ;;; Project and distribution variables
 
 (define-variable :access (or (eql :private) (eql :public))
+  :documentation
   "Specifies access restrictions of the project or distribution. If present,
    has to have one of the values \"private\" and \"public\". Omitting the
    variable is equivalent to \"public\".
@@ -229,6 +249,7 @@
    private access.")
 
 (define-variable :platform-requires list
+  :documentation
   "An object which can contain entries of the following forms
 
      \"OPERATING-SYSTEM-TYPE\": {
@@ -273,9 +294,11 @@
 ;;; Job variables
 
 (define-variable :build-job-name string
+  :documentation
   "Name of the Jenkins job that should be generated.")
 
 (define-variable :kind (or string (cons string (cons string null)))
+  :documentation
   "The kind of the Jenkins job that should be generated.
 
    Typically a string
@@ -285,6 +308,7 @@
    where KIND is \"project\" or \"matrix\".")
 
 (define-variable :build-job.disabled? (or boolean (eql :force-disabled))
+  :documentation
   "Should the generated build job be disabled?
 
    false
@@ -300,12 +324,15 @@
      Disable newly created as well as existing jobs.")
 
 (define-variable :build-job.orchestrate? boolean
+  :documentation
   "Should the generated build job be managed by orchestration jobs?")
 
 (define-variable :dependency-job-name string
+  :documentation
   "Internal.")
 
 (define-variable :dependencies.mode (or (eql :direct) (eql :minimal) (eql :none))
+  :documentation
   "Controls up/downstream relations between generated jobs.
 
    \"direct\"
@@ -327,20 +354,24 @@
      generated jobs.")
 
 (define-variable :upstream-dir string
+  :documentation
   "Directory in which artifacts copied from upstream jobs should be
    placed.")
 
 ;;; Orchestration variables
 
 (define-variable :jobs.list list
+  :documentation
   "A list of names for all Jenkins jobs.
 
    Does not include \"orchestration\" jobs.")
 
 (define-variable :jobs.dependencies list
+  :documentation
   "An association between up- and downstream build jobs.")
 
 (define-variable :jobs.dependencies/groovy string
+  :documentation
   "jobs.dependencies, formatted as a Groovy script string.
 
    The association is represented as a map of the form
@@ -355,12 +386,15 @@
 ;;; View variables
 
 (define-variable :view.create? boolean
+  :documentation
   "If true, create an associated view for each created distribution.")
 
 (define-variable :view.name string
+  :documentation
   "The name of the associated view for the current distribution.
 
    Has no effect if the value of view.create? is not true.")
 
 (define-variable :view.columns (list-of string)
+  :documentation
   "Column class names for the associated view for the current distribution.")

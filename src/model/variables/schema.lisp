@@ -1,6 +1,6 @@
 ;;;; schema.lisp --- Meta-data and checks for defined variables..
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2014, 2015, 2016, 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -22,7 +22,7 @@
    :name (missing-required-initarg 'variable-info :name)
    :type (missing-required-initarg 'variable-info :type)))
 
-(defun make-variable-info (name type &optional documentation)
+(defun make-variable-info (name type &key documentation)
   (make-instance 'variable-info
                  :name          name
                  :type          type
@@ -52,14 +52,16 @@
   (declare (ignore if-does-not-exist))
   (setf (gethash name *variables*) info))
 
-(defun note-variable (name type &optional documentation assume-used?)
+(defun note-variable (name type &key assume-used?
+                                     documentation)
   (let ((variable (if-let ((existing (find-variable name)))
                     (reinitialize-instance existing
                                            :name          name
                                            :type          type
                                            :documentation documentation)
                     (setf (find-variable name)
-                          (make-variable-info name type documentation)))))
+                          (make-variable-info name type
+                                              :documentation documentation)))))
     (when assume-used?
       (note-variable-use variable))
     variable))
@@ -69,9 +71,11 @@
 
 ;;; Macros
 
-(defmacro define-variable (name type &optional documentation)
+(defmacro define-variable (name type
+                           &key documentation)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (note-variable ',name ',type ,documentation)))
+     (note-variable ',name ',type
+                    :documentation ,documentation)))
 
 ;;; Compile-time checks
 

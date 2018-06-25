@@ -304,9 +304,9 @@
                    (format nil "Shell fragment to execute ~A the shell ~
                                 fragment of the ~A aspect."
                            when aspect-name)))
-              (note-variable name type documentation)
+              (note-variable name type :documentation documentation)
               (values name `(load-time-value
-                             (note-variable ,name ',type ,documentation))))))
+                             (note-variable ,name ',type :documentation ,documentation))))))
          ((&values prefix-var-name prefix-var-form)
           (make-variable '#:.prefix "before"))
          ((&values suffix-var-name suffix-var-form)

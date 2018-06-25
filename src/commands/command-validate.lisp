@@ -59,6 +59,8 @@
                         check-variables~@
                         analyze~@
                         check-access.")))
+  (:default-initargs
+   :recipes (missing-required-initarg 'validate :recipes))
   (:documentation
    "Perform basic sanity checks for a given recipe repository."))
 

@@ -6,6 +6,18 @@
 
 (cl:in-package #:jenkins.model.variables)
 
+;;; Append strategy
+
+(defmethod aggregate-values ((value    t)
+                             (children t)
+                             (name     t)
+                             (strategy (eql :append)))
+  (remove-duplicates
+   (append value (mappend (lambda (version)
+                            (value version name '()))
+                          children))
+   :test #'string=))
+
 ;;; Histogram strategy
 
 (defmethod aggregate-values ((value    t)

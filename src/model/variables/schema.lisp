@@ -12,7 +12,7 @@
   'boolean)
 
 (deftype aggregation-mode ()
-  '(member nil :histogram))
+  '(member nil :append :histogram))
 
 (defclass variable-info (print-items:print-items-mixin)
   ((name          :initarg  :name

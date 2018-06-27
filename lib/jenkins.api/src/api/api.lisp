@@ -377,9 +377,8 @@
     (name)
   (request/xml))
 
-;; TODO renamed to cancel!
 (define-operation/name-or-object
-    (stop :path (format nil "job/~a/stop" build))
+    (stop! :path (format nil "job/~a/stop" build))
     ((build build))
   (request :method :post)
   (values))
@@ -395,9 +394,8 @@
 
   (:config-path (format nil "queue/~A/api/xml" name)))
 
-;; TODO renamed to cancel!
 (define-operation/name-or-object
-    (cancel :path (format nil "queue/item/~A/cancelQueue" item))
+    (cancel! :path (format nil "queue/item/~A/cancelQueue" item))
     ((item item))
   (request :method :post)
   (values))

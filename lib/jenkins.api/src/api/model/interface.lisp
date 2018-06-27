@@ -35,9 +35,6 @@
        (defmethod xloc:xml-> ((value stp:element)
                               (type  (eql ',name))
                               &key &allow-other-keys)
-         ,(format nil "Lookup the name of the ~S implementation and ~
-                      convert VALUE to an instance of that type."
-                  name)
          ;; Try to look up the implementation class for the
          ;; implementation name stored in VALUE. If the class cannot be
          ;; found, signal an `unmapped-class' condition and return a
@@ -55,7 +52,6 @@
                               (dest  stp:element)
                               (type  (eql ',name))
                               &key &allow-other-keys)
-         ,(format nil "Store the ~S instance VALUE in DEST." name)
          (let* ((class-name (class-name (class-of value)))
                 (name       (gethash class-name ,class->name-table)))
            (unless name

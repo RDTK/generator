@@ -1,6 +1,6 @@
 ;;;; jenkins.api.asd --- System definition for the jenkins.api system.
 ;;;;
-;;;; Copyright (C) 2011-2017 Jan Moringen
+;;;; Copyright (C) 2011-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,13 +26,7 @@
                 (:version "xml.location"    "0.2.0")
                 (:version "cl-json"         "0.4.1"))
 
-  :components  ((:module     "model"
-                 :pathname   "src/api/model"
-                 :depends-on ("api")
-                 :serial     t
-                 :components ((:file     "view")))
-
-                (:module     "api"
+  :components  ((:module     "api-early"
                  :pathname   "src/api"
                  :serial     t
                  :components ((:file     "package")
@@ -40,14 +34,29 @@
                               (:file     "conditions")
                               (:file     "variables")
                               (:file     "protocol")
-                              (:file     "conversion")
-                              (:file     "classes")
+                              (:file     "conversion")))
+
+                (:module     "model"
+                 :pathname   "src/api/model"
+                 :depends-on ("api-early")
+                 :serial     t
+                 :components ((:file     "model-class")
+                              (:file     "interface")
+
+                              (:file     "job")
+                              (:file     "view")))
+
+                (:module     "api-late"
+                 :pathname   "src/api"
+                 :depends-on ("api-early" "model")
+                 :serial     t
+                 :components ((:file     "classes")
                               (:file     "csrf")
                               (:file     "api")))
 
                 (:module     "dsl"
                  :pathname   "src/dsl"
-                 :depends-on ("api")
+                 :depends-on ("api-late")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "macros")))))

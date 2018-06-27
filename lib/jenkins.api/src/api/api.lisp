@@ -1,6 +1,6 @@
 ;;;; api.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -403,8 +403,6 @@
   (values))
 
 ;;; View-related operations
-
-(defclass view () ()) ; forward declaration
 
 (define-items view
   (:prefix      "view")

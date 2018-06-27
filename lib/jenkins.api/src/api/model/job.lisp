@@ -681,8 +681,6 @@
                                ;; TODO :initform '()
                                )
 
-   (dsl :type string :xpath "dsl/text()") ; TODO hack
-
    ;; TODO Not sure about these
    (slaves          :type     string/node ; TODO(jmoringe, 2012-07-10): not correct
                     :xpath    ("axes/hudson.matrix.LabelAxis[name/text()='label']/values/string"

@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -317,7 +317,7 @@
 ;;; * `publisher'
 
 (deftype git-browser ()
-  '(member :redmine-web :github-web))
+  '(member :redmine-web :github-web :gitea))
 
 (defmethod xloc:xml-> ((value string)
                        (type  (eql 'git-browser))
@@ -327,6 +327,8 @@
      :redmine-web)
     ((string= value "hudson.plugins.git.browser.GithubWeb")
      :github-web)
+    ((string= value "org.jenkinsci.plugin.gitea.GiteaBrowser")
+     :gitea)
     (t
      (error "~@<Unknown browser kind ~S.~@:>" value))))
 
@@ -336,7 +338,8 @@
                        &key &allow-other-keys)
   (ecase value
     (:redmine-web "hudson.plugins.git.browser.RedmineWeb")
-    (:github-web  "hudson.plugins.git.browser.GithubWeb")))
+    (:github-web  "hudson.plugins.git.browser.GithubWeb")
+    (:gitea       "org.jenkinsci.plugin.gitea.GiteaBrowser")))
 
 (deftype subversion-checkout-strategy ()
   '(member :fresh-copy :update :emulate-fresh-copy))

@@ -32,6 +32,7 @@
                  :components ((:file     "package")
                               (:file     "types")
                               (:file     "conditions")
+                              (:file     "util")
                               (:file     "variables")
                               (:file     "protocol")
                               (:file     "conversion")))

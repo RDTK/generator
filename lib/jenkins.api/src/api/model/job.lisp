@@ -16,75 +16,19 @@
 ;;; * `builder'
 ;;; * `publisher'
 
-(deftype git-browser ()
-  '(member :redmine-web :github-web :gitea))
+(define-enum-type git-browser
+  (:redmine-web "hudson.plugins.git.browser.RedmineWeb")
+  (:github-web  "hudson.plugins.git.browser.GithubWeb")
+  (:gitea       "org.jenkinsci.plugin.gitea.GiteaBrowser"))
 
-(defmethod xloc:xml-> ((value string)
-                       (type  (eql 'git-browser))
-                       &key &allow-other-keys)
-  (cond
-    ((string= value "hudson.plugins.git.browser.RedmineWeb")
-     :redmine-web)
-    ((string= value "hudson.plugins.git.browser.GithubWeb")
-     :github-web)
-    ((string= value "org.jenkinsci.plugin.gitea.GiteaBrowser")
-     :gitea)
-    (t
-     (error "~@<Unknown browser kind ~S.~@:>" value))))
+(define-enum-type subversion-checkout-strategy
+  (:fresh-copy         "hudson.scm.subversion.CheckoutUpdater")
+  (:update             "hudson.scm.subversion.UpdateUpdater")
+  (:emulate-fresh-copy "hudson.scm.subversion.UpdateWithCleanUpdater"))
 
-(defmethod xloc:->xml ((value symbol)
-                       (dest  (eql 'string))
-                       (type  (eql 'git-browser))
-                       &key &allow-other-keys)
-  (ecase value
-    (:redmine-web "hudson.plugins.git.browser.RedmineWeb")
-    (:github-web  "hudson.plugins.git.browser.GithubWeb")
-    (:gitea       "org.jenkinsci.plugin.gitea.GiteaBrowser")))
-
-(deftype subversion-checkout-strategy ()
-  '(member :fresh-copy :update :emulate-fresh-copy))
-
-(defmethod xloc:xml-> ((value string)
-                       (type  (eql 'subversion-checkout-strategy))
-                       &key &allow-other-keys)
-  (cond
-    ((string= value "hudson.scm.subversion.CheckoutUpdater")
-     :fresh-copy)
-    ((string= value "hudson.scm.subversion.UpdateUpdater")
-     :update)
-    ((string= value "hudson.scm.subversion.UpdateWithCleanUpdater")
-     :emulate-fresh-copy)
-    (t
-     (error "~@<Unknown checkout strategy ~S.~@:>" value))))
-
-(defmethod xloc:->xml ((value symbol)
-                       (dest  (eql 'string))
-                       (type  (eql 'subversion-checkout-strategy))
-                       &key &allow-other-keys)
-  (ecase value
-    (:fresh-copy         "hudson.scm.subversion.CheckoutUpdater")
-    (:update             "hudson.scm.subversion.UpdateUpdater")
-    (:emulate-fresh-copy "hudson.scm.subversion.UpdateWithCleanUpdater")))
-
-(deftype mercurial-revision-type ()
-  '(member :branch :tag))
-
-(defmethod xloc:xml-> ((value string)
-                       (type  (eql 'mercurial-revision-type))
-                       &key &allow-other-keys)
-  (switch (value :test #'string=)
-          ("BRANCH"
-           :branch)
-          ("TAG"
-           :tag)
-          (t
-           (error "~@<Unknown revision type ~S.~@:>" value))))
-
-(defmethod xloc:->xml ((value symbol)
-                       (dest  (eql 'string))
-                       (type  (eql 'mercurial-revision-type))
-                       &key &allow-other-keys)
-  (princ-to-string value))
+(define-enum-type mercurial-revision-type
+  (:branch "BRANCH")
+  (:tag    "TAG"))
 
 (define-interface-implementations (scm
                                    :class-location (xloc:val "@class"))

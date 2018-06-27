@@ -1,6 +1,6 @@
 ;;;; conversion.lisp --- Conversions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,29 +8,9 @@
 
 ;;; Boolean
 
-(defmethod xloc:xml-> ((value string)
-                       (type  (eql 'boolean))
-                       &key &allow-other-keys)
-  (cond
-    ((member value '("true" "yes") :test #'string-equal)
-     t)
-    ((member value '("false" "no") :test #'string-equal)
-     nil)
-    (t
-     (error "~@<Value ~S is invalid for type ~S.~@:>"
-            value type))))
-
-(defmethod xloc:->xml ((value (eql nil))
-                       (dest  (eql 'string))
-                       (type  (eql 'boolean))
-                       &key &allow-other-keys)
-  "false")
-
-(defmethod xloc:->xml ((value t)
-                       (dest  (eql 'string))
-                       (type  (eql 'boolean))
-                       &key &allow-other-keys)
-  "true")
+(define-enum-type (boolean :test string-equal :deftype? nil)
+  (nil "false" "no")
+  (t   "true"  "yes"))
 
 ;;; Boolean encoded by presence of an Element
 

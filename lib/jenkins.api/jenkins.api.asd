@@ -48,6 +48,7 @@
                 :iterate #+maybe-later (:version :iterate         "1.4.4")
                 (:version :let-plus        "0.1")
                 (:version :more-conditions "0.1.0")
+                (:version :log4cl          "1.1.3")
 
                 (:version :cl-ppcre        "2.0.3")
                 :puri

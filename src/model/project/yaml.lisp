@@ -55,6 +55,16 @@
 
 ;;; YAML syntax
 
+(define-condition yaml-syntax-error (error
+                                     annotation-condition
+                                     more-conditions:chainable-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (let* ((cause (more-conditions:cause condition))
+            (context (esrap::esrap-parse-error-context cause)))
+       (esrap::error-report context stream)))))
+
 (defun %load-yaml (file)
   (let* ((source  (text.source-location:make-source
                    file :content (read-file-into-string file)))
@@ -63,7 +73,16 @@
                                  :source   source
                                  :callback (lambda (object location)
                                              (setf (location-of object) location)))))
-    (language.yaml:load file :builder builder)))
+    (handler-case
+        (language.yaml:load file :builder builder)
+      (esrap:esrap-parse-error (condition)
+        (let ((start (esrap:esrap-error-position condition)))
+         (error 'yaml-syntax-error
+                :cause       condition
+                :annotations (list (text.source-location:make-annotation
+                                    (text.source-location:make-location
+                                     source start (1+ start))
+                                    "here" :kind :error))))))))
 
 ;;; Structure utilities
 

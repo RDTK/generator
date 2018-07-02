@@ -24,7 +24,8 @@
 
 (define-condition annotation-condition ()
   ((annotations :initarg  :annotations
-                :accessor annotations)))
+                :accessor annotations
+                :initform '())))
 
 (defmethod print-object :around ((object annotation-condition) stream)
   (let ((annotations (annotations object)))
@@ -244,16 +245,19 @@
      (reverse (list* name *template-load-stack*))))
   (let ((*template-load-stack* (list* name *template-load-stack*)))
     (handler-bind
-        ((annotation-condition
+        (((and error (not annotation-condition))
           (lambda (condition)
-            (when (eq name (first *template-load-stack*))
-              (let ((annotations
+            (let* ((condition (make-condition 'simple-object-error
+                                              :format-control   "~A"
+                                              :format-arguments (list condition)))
+                   (annotations
                      (mappend (lambda (name)
                                 (when-let ((location (location-of name)))
                                   (list (text.source-location:make-annotation
                                          location "included here" :kind :info))))
                               *template-load-stack*)))
-                (appendf (annotations condition) annotations))))))
+              (appendf (annotations condition) annotations)
+              (error condition)))))
       (funcall thunk))))
 
 (defmacro loading-template ((name) &body body)

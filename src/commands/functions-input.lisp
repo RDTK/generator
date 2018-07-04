@@ -289,11 +289,25 @@
                  (when results
                    (list (analyze-version version results))))
                versions
-               (apply #'jenkins.analysis:analyze repository :auto
-                      :project  project
-                      :versions (map 'list #'resolve-analysis-variables
-                                     versions)
-                      (append other-info args)))))))
+               (handler-bind
+                   ((error (lambda (condition)
+                             (jenkins.model.project::object-error
+                              (list* (list repository "repository specified here" :note)
+                                     (loop :for version :in versions
+                                           :for stuff = (resolve-analysis-variables version)
+                                           :appending (loop :for (key value) :on stuff :by #'cddr
+                                                            :collect (list value (format nil "~(~A~) specified here" key) :note))))
+                              "~@<Error analyzing project ~A: ~A~@:>"
+                              (name (project-spec-and-versions-spec project))
+                              condition)
+                             #+no (error 'jenkins.analysis:analysis-error
+                                         :specification
+                                         :cause         condition))))
+                 (apply #'jenkins.analysis:analyze repository :auto
+                        :project  project
+                        :versions (map 'list #'resolve-analysis-variables
+                                       versions)
+                        (append other-info args))))))))
     (mapc #'analyze-group groups)
     project))
 

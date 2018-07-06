@@ -173,11 +173,12 @@
     ;; version could not be restored from the cache, download and
     ;; extract the archive and re-run the analysis. Already cached
     ;; results can be re-used.
-    (with-extracted-archive ((extract-directory content-key)
-                             (source temp-directory
-                                     :username      username
-                                     :password      password
-                                     :sub-directory sub-directory))
-      ;; Note that SUB-DIRECTORY has been taken care of in
-      ;; EXTRACT-DIRECTORY.
-      (analyze-versions content-key :extract-directory extract-directory))))
+    (with-simple-restart (continue "~@<Give up analyzing ~A.~@:>" source)
+      (with-extracted-archive ((extract-directory content-key)
+                               (source temp-directory
+                                       :username      username
+                                       :password      password
+                                       :sub-directory sub-directory))
+        ;; Note that SUB-DIRECTORY has been taken care of in
+        ;; EXTRACT-DIRECTORY.
+        (analyze-versions content-key :extract-directory extract-directory)))))

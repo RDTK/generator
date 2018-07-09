@@ -214,8 +214,11 @@
                                    description from ~S: ~A~@:>"
                                   ',concept pathname condition))))
            (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname args)))
-             (apply #',parse-name spec name :pathname pathname args)))))))
+                   (apply #',read-name pathname args))
+                  (result (apply #',parse-name spec name :pathname pathname
+                                 args)))
+             (setf (location-of result) (location-of spec))
+             result))))))
 
 ;;; Person loading
 
@@ -225,7 +228,8 @@
          (identities (map 'list #'puri:uri (lookup :identities)))
          (person     (apply #'rosetta-project.model.resource:make-person
                             name (append aliases identities))))
-    (push person *persons*)))
+    (push person *persons*)
+    person))
 
 ;;; Template loading
 
@@ -351,7 +355,11 @@
                              (when (or (not version-test)
                                        (let ((name (lookup :name spec)))
                                          (funcall version-test name)))
-                               (list (make-version-spec spec instance)))))
+                               (let ((version-spec (make-version-spec
+                                                    spec instance)))
+                                 (setf (location-of version-spec)
+                                       (location-of spec))
+                                 (list version-spec)))))
                          (lookup :versions)))))
 
 ;;; Distribution loading

@@ -132,10 +132,16 @@
                                          .~@:>"
                                         name (print-items:print-items project)))
                                       (t
-                                       (make-instance 'version-spec
-                                                      :name      name
-                                                      :parent    project
-                                                      :variables '()))))
+                                       (let ((version-spec
+                                               (make-instance 'version-spec
+                                                              :name      name
+                                                              :parent    project
+                                                              :variables '())))
+                                         (setf (jenkins.model.project::location-of
+                                                version-spec)
+                                               (jenkins.model.project::location-of
+                                                name))
+                                         version-spec))))
                      (name-variable (cond
                                       (branch? :branch)
                                       (tag?    :tag)))

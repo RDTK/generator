@@ -201,8 +201,11 @@
                                    description from ~S: ~A~@:>"
                                   ',concept pathname condition))))
            (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname args)))
-             (apply #',parse-name spec name :pathname pathname args)))))))
+                   (apply #',read-name pathname args))
+                  (result (apply #',parse-name spec name :pathname pathname
+                                 args)))
+             (setf (location-of result) (location-of spec))
+             result))))))
 
 ;;; Person loading
 
@@ -306,7 +309,11 @@
                              (when (or (not version-test)
                                        (let ((name (lookup :name spec)))
                                          (funcall version-test name)))
-                               (list (make-version-spec spec instance)))))
+                               (let ((version-spec (make-version-spec
+                                                    spec instance)))
+                                 (setf (location-of version-spec)
+                                       (location-of spec))
+                                 (list version-spec)))))
                          (lookup :versions)))))
 
 (defun load-project-spec/json-or-yaml (pathname &key generator-version version-test)

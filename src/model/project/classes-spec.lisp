@@ -126,7 +126,27 @@
                      &key if-undefined)
     (declare (ignore if-undefined))
     (if-let ((strategy        (variable-aggregation name)))
-      (let* ((value           (call-next-method thing name :if-undefined '()))
+      (let+ (((&values raw raw/next-values) ; TODO duplicates much of `value'
+              (call-next-method thing name :if-undefined '()))
+             ((&labels+ make-lookup ((&optional first-value &rest next-values))
+                (lambda (name1 &optional (default nil default-supplied?))
+                  (cond
+                    ((not (eq name1 :next-value))
+                     (if default-supplied?
+                         (value thing name1 default)
+                         (value thing name1)))
+                    (first-value
+                     (jenkins.model.variables::with-augmented-trace (name1 nil first-value)
+                       (expand (cdr first-value) (make-lookup next-values))))
+                    (default-supplied?
+                     (jenkins.model.variables::with-augmented-trace (name1 :default (cons :unused default))
+                       (if (functionp default) (funcall default) default)))
+                    (t
+                     (error "~@<No next value for ~A.~@:>"
+                            name))))))
+             (value           (jenkins.model.variables::with-augmented-trace (name thing raw)
+                                (jenkins.model.variables::with-expansion-stack (name thing)
+                                  (expand (cdr raw) (make-lookup raw/next-values)))))
              (children        (distribution-versions thing))
              (effective-value (aggregate-values value children name strategy)))
         (return-value name effective-value))

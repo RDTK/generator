@@ -165,6 +165,7 @@
                  :depends-on ("model-project")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "conditions")
                               (:file     "protocol")
                               (:file     "util")
                               (:file     "json")

@@ -58,41 +58,21 @@
                             :xpath    ("branches/hudson.plugins.git.BranchSpec"
                                        :if-multiple-matches :all))
     (local-branch           :type     string
-                            :xpath    (:version
-                                       ("git@1.1.26"
-                                        "localBranch/text()")
-                                       (t
-                                        "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"))
+                            :xpath    "extensions/hudson.plugins.git.extensions.impl.LocalBranch/localBranch/text()"
                             :initform nil)
     (clone-timeout          :type     integer
                             :xpath    "extensions/hudson.plugins.git.extensions.impl.CloneOption/timeout/text()"
                             :initform nil)
     (wipe-out-workspace?    :type     (boolean/element "hudson.plugins.git.extensions.impl.WipeWorkspace")
-                            :xpath    (:version
-                                       ("git@1.1.26"
-                                        "wipeOutWorkspace/text()")
-                                       (t
-                                        "extensions")))
+                            :xpath    "extensions")
     (clean-before-checkout? :type     (boolean/element "hudson.plugins.git.extensions.impl.CleanBeforeCheckout")
                             :xpath    "extensions")
     (checkout-submodules?   :type     boolean
-                            :xpath    (:version
-                                       ("git@1.1.26"
-                                        "recursiveSubmodules/text()")
-                                       (t
-                                        "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")))
+                            :xpath    "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")
     (shallow?               :type     boolean
-                            :xpath    (:version
-                                       ("git@1.1.26"
-                                        "useShallowClone/text()")
-                                       (t
-                                        "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")))
+                            :xpath    "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")
     (internal-tag?          :type     (boolean/element "hudson.plugins.git.extensions.impl.PerBuildTag")
-                            :xpath    (:version
-                                       ("git@1.1.26"
-                                        "skipTag/text()")
-                                       (t
-                                        "extensions")))
+                            :xpath    "extensions")
     (browser-kind           :type     git-browser
                             :xpath    "browser/@class"
                             :initform nil)

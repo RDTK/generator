@@ -32,30 +32,34 @@
 
 (defun download-file (url output-file &rest args &key username password)
   (declare (ignore username password))
-  (apply #'call-with-download-stream
-         (lambda (stream)
-           ;; In order to download the file and obtain the hash in a
-           ;; single pass, copy the first
-           ;; `+archive-hash-length-limit+' bytes from STREAM into
-           ;; both, OUTPUT and DIGEST. Then copy the remainder into
-           ;; OUTPUT only.
-           (let ((digest (ironclad:make-digesting-stream :sha512)))
-             (with-output-to-file
-                 (output output-file :element-type '(unsigned-byte 8))
-               (copy-stream stream (make-broadcast-stream output digest)
-                            :end +archive-hash-length-limit+)
-               (copy-stream stream output))
-             (ironclad:produce-digest digest)))
-         url args))
+  (with-retries (usocket:ns-try-again-condition :limit 3)
+    (with-retry-restart ("Retry downloading ~A" url)
+      (apply #'call-with-download-stream
+             (lambda (stream)
+               ;; In order to download the file and obtain the hash in
+               ;; a single pass, copy the first
+               ;; `+archive-hash-length-limit+' bytes from STREAM into
+               ;; both, OUTPUT and DIGEST. Then copy the remainder
+               ;; into OUTPUT only.
+               (let ((digest (ironclad:make-digesting-stream :sha512)))
+                 (with-output-to-file
+                     (output output-file :element-type '(unsigned-byte 8))
+                   (copy-stream stream (make-broadcast-stream output digest)
+                                :end +archive-hash-length-limit+)
+                   (copy-stream stream output))
+                 (ironclad:produce-digest digest)))
+             url args))))
 
 (defun archive-remote-hash (url &rest args &key username password)
   (declare (ignore username password))
-  (apply #'call-with-download-stream
-         (lambda (stream)
-           (let ((digest (ironclad:make-digesting-stream :sha512)))
-             (copy-stream stream digest :end +archive-hash-length-limit+)
-             (ironclad:produce-digest digest)))
-         url args))
+  (with-retries (usocket:ns-try-again-condition :limit 3)
+    (with-retry-restart ("Retry obtaining hash for ~A" url)
+      (apply #'call-with-download-stream
+             (lambda (stream)
+               (let ((digest (ironclad:make-digesting-stream :sha512)))
+                 (copy-stream stream digest :end +archive-hash-length-limit+)
+                 (ironclad:produce-digest digest)))
+             url args))))
 
 (defun call-with-extracted-archive (thunk source temp-directory
                                     &key username password sub-directory)

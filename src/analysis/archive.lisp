@@ -132,7 +132,7 @@
                                       version-args))))))
 
 (defmethod analyze ((source puri:uri) (kind (eql :archive))
-                    &rest args &key
+                    &key
                     username
                     password
                     (versions       (missing-required-argument :versions))

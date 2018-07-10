@@ -19,9 +19,9 @@
                              (merge-pathnames hint-pathname
                                               (parse-namestring base))
                              (parse-namestring base)))))
-   (sb-ext:parse-native-namestring (sb-posix:mkdtemp template)
-                                   nil *default-pathname-defaults*
-                                   :as-directory t)))
+    (sb-ext:parse-native-namestring (sb-posix:mkdtemp template)
+                                    nil *default-pathname-defaults*
+                                    :as-directory t)))
 
 (defun find-files (pattern &key (exclude "(\.svn|\.git)"))
   (let ((candidates (directory pattern)))

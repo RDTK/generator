@@ -41,7 +41,12 @@
                            requirements))
               platform))))
 
-(defun report-platform-requirements (requirements platform &key label)
+(defun report-platform-requirements (requirements platform
+                                     &key label repositories keys)
+  (when keys
+    (format t "Keys :~A~%" keys))
+  (when repositories
+    (format t "Repositories :~A~%" repositories))
   (let ((requirements (sort (copy-list requirements) #'string<)))
     (format t "~@<Found ~:D ~@[~A ~]platform requirement~:*~:P~* ~
                for ~{~A~^ ~}:~>~@

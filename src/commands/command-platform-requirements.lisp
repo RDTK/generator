@@ -49,7 +49,7 @@
          ((&values distributions projects)
           (generate-load distributions mode overwrites
                          :generator-version (generator-version)))
-         (distributions
+         ((&values distributions analyzed-projects)
           (generate-analyze distributions projects
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
@@ -60,7 +60,22 @@
                       (when-let ((distribution (instantiate distribution-spec)))
                         (list distribution)))
                     distributions)))
-         (platform     (split-sequence:split-sequence #\Space platform))
-         (requirements (as-phase (:check-platform-requirements)
-                         (platform-requires distributions platform))))
-    (report-platform-requirements requirements platform)))
+         (platform (split-sequence:split-sequence #\Space platform))
+         ((&values packages repositories keys)
+          (as-phase (:check-platform-requirements)
+            (%platform-requirements distributions platform))))
+    (report-platform-requirements packages platform
+                                  :repositories repositories
+                                  :keys         keys)))
+
+(defun %platform-requirements (distributions platform)
+  (let* ((requirements (map 'list (rcurry #'jenkins.model.variables:value :platform-requires '())
+                            distributions))
+         (merged       (reduce #'jenkins.model.variables::merge-alists
+                               requirements)))
+    (values (jenkins.model.project::platform-specific-value
+             merged platform "packages")
+            (jenkins.model.project::platform-specific-value
+             merged platform "repositories")
+            (jenkins.model.project::platform-specific-value
+             merged platform "key-ids"))))

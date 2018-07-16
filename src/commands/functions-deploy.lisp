@@ -74,12 +74,17 @@
       view)))
 
 (defun configure-distribution (distribution)
-  (let* ((jobs               (mappend (compose #'jobs #'implementation)
+  (let* ((jobs               (mappend (lambda (version-spec)
+                                        (when-let ((version (implementation
+                                                             version-spec)))
+                                          (jobs version)))
                                       (versions distribution)))
          (orchestration-jobs (with-simple-restart
                                  (continue "~@<Continue without configuring orchestration jobs~@:>")
                                (configure-orchestration distribution)))
-         (all-jobs           (mapcar #'implementation
+         (all-jobs           (mapcan (lambda (job)
+                                       (when-let ((jenkins-job (implementation job)))
+                                         (list jenkins-job)))
                                      (append jobs orchestration-jobs))))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
     (when-let* ((create? (value/cast distribution :view.create? nil))

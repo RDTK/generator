@@ -102,10 +102,12 @@
               (let* ((dependency-name (as (value thing :dependency-job-name
                                                  (name job))
                                           'string)))
-                (mapcar (lambda (dependency)
-                          (find dependency-name (jobs dependency)
-                                :test #'string= :key #'name))
-                        (direct-dependencies (parent job))))))
+                (mappend (lambda (dependency)
+                           (when-let ((dependency-job
+                                       (find dependency-name (jobs dependency)
+                                             :test #'string= :key #'name)))
+                             (list dependency-job)))
+                         (direct-dependencies (parent job))))))
            (value
             (loop :for job :in jobs
                   :collect (cons (first (job-name job))

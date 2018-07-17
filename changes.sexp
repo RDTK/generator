@@ -1,6 +1,20 @@
 ((:release "0.23" nil
 
   (:enhancement
+   "The YAML syntax for recipes now supports including other YAML
+    documents as well as text files:"
+   (:ul
+    ("A tagged scalar node of the form"
+     (:verb "!b!include FILENAME")
+     "causes" (:verb "FILENAME") "to be loaded as a YAML file and
+      spliced into the current recipe, replacing the tagged scalar
+      node.")
+    ("A tagged scalar node of the form"
+     (:verb "!b!literal-include FILENAME")
+     "causes" (:verb "FILENAME") "to be read as a string and spliced
+      into the current recipe, replacing the tagged scalar node.")))
+
+  (:enhancement
    "Better error reports for syntax errors and missing templates in
     YAML recipes.")
 

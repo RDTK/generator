@@ -1,4 +1,29 @@
-((:release "0.23" nil)
+((:release "0.23" nil
+
+  (:enhancement
+   "Better error reports for syntax errors and missing templates in
+    YAML recipes.")
+
+  (:enhancement
+   "During the analysis phase, certain kinds of failed HTTP downloads
+    now lead to a limited number of retries instead of an immediate
+    failure.")
+
+  (:enhancement
+   "Errors during report generation are now reported with their own
+    error kind.")
+
+  (:enhancement
+   "Information for Gitea repositories can now be generated into the
+    configuration of the Jenkins Git plugin.")
+
+  (:enhancement
+   "The" (:verb "analyze") "command now handles URIs and filesystem
+    paths properly.")
+
+  (:enhancement
+   "A warning is no longer emitted when automatically switching from
+    JSON to YAML syntax for a recipe."))
 
  (:release "0.22" "2018-06-08"
 

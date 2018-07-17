@@ -92,7 +92,9 @@
                                                  :if-multiple-matches :all))
         document
       (let+ (((&values authors maintainers) (partition-persons persons))
-             (version (parse-version version)))
+             (version (parse-version version))
+             ((&flet trim (string)
+                (string-trim '(#\Space #\Tab #\Newline) string))))
         `(:natures  (,:ros-package)
           :provides ((:cmake ,name                    ,version)
                      (:maven ,(rosjava-artifact name) ,version))
@@ -103,8 +105,10 @@
                                            ,@(when version `(,(parse-version version)))))))
                              dependencies)
           ,@(cond
-              (description/long  `(:description ,description/long))
-              (description/brief `(:description ,description/brief)))
+              (description/long
+               `(:description ,(trim description/long)))
+              (description/brief
+               `(:description ,(trim description/brief))))
           ,@(when url         `(:url         ,(cdr (first url))))
           ,@(when license     `(:license     ,license))
           ,@(when authors     `(:authors     ,authors))

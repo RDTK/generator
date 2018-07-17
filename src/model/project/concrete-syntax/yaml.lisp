@@ -9,11 +9,7 @@
 (defun %load-yaml (file)
   (let* ((source  (text.source-location:make-source
                    file :content (read-file-into-string file)))
-         (builder (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder
-                                 :target   (make-instance 'language.yaml.construct::native-builder)
-                                 :source   source
-                                 :callback (lambda (object location)
-                                             (setf (location-of object) location)))))
+         (builder (make-builder source)))
     (handler-case
         (language.yaml:load file :builder builder)
       (esrap:esrap-parse-error (condition)

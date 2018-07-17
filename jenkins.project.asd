@@ -147,6 +147,7 @@
 
                               (:file     "util")
 
+                              (:file     "builder")
                               (:file     "yaml")
                               (:file     "json")))
 

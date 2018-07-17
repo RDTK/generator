@@ -37,7 +37,12 @@
 
   (:enhancement
    "A warning is no longer emitted when automatically switching from
-    JSON to YAML syntax for a recipe."))
+    JSON to YAML syntax for a recipe.")
+
+  (:bugfix
+   "A long-standing problem related non-ASCII characters in Jenkins
+    job data has been fixed by working around the way Jenkins handles
+    HTTP content types and XML encoding declarations."))
 
  (:release "0.22" "2018-06-08"
 

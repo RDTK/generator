@@ -157,19 +157,19 @@
 
              (define-operation (,setf-config-name :path ,config-path) (config name)
                (request :name         name
-                        :content-type "text/xml"
+                        :method       :post
+                        :content-type "application/xml; charset=utf-8"
                         :content      (coerce
                                        (stp:serialize config (cxml:make-octet-vector-sink))
-                                       '(simple-array (unsigned-byte 8) (*)))
-                        :method       :post))
+                                       '(simple-array (unsigned-byte 8) (*)))))
 
              (define-operation (,make-name :path ,make-path) (name config)
                (request :name         name
-                        :content-type "text/xml"
+                        :method       :post
+                        :content-type "application/xml; charset=utf-8"
                         :content      (coerce
                                        (stp:serialize config (cxml:make-octet-vector-sink))
-                                       '(simple-array (unsigned-byte 8) (*)))
-                        :method       :post))))
+                                       '(simple-array (unsigned-byte 8) (*)))))))
 
        ;; TODO name or object
        (define-operation (,copy-name :path ,make-path) (source-name new-name)

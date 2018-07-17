@@ -8,16 +8,6 @@
 
 ;;; JSON syntax
 
-(define-condition json-syntax-error (error
-                                     annotation-condition
-                                     more-conditions:chainable-condition)
-  ()
-  (:report
-   (lambda (condition stream)
-     (let ((cause (more-conditions:cause condition)))
-       (apply #'format stream (simple-condition-format-control cause)
-              (simple-condition-format-arguments cause))))))
-
 (defvar *source*)
 
 (defun source (stream)

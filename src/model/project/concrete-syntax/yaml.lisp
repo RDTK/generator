@@ -6,66 +6,6 @@
 
 (cl:in-package #:jenkins.model.project)
 
-;;; Source location utilities
-
-(defvar *locations* (make-hash-table :test #'eq))
-
-(defvar *locations-lock* (bt:make-lock "locations"))
-
-(defun location-of (object)
-  (bt:with-lock-held (*locations-lock*)
-    (gethash object *locations*)))
-
-(defun (setf location-of) (new-value object)
-  (bt:with-lock-held (*locations-lock*)
-    (setf (gethash object *locations*) new-value)))
-
-;;; Source location conditions
-
-(define-condition annotation-condition ()
-  ((annotations :initarg  :annotations
-                :accessor annotations
-                :initform '())))
-
-(defmethod print-object :around ((object annotation-condition) stream)
-  (let ((annotations (annotations object)))
-    (let ((*print-circle* nil))
-      (pprint-logical-block (stream annotations)
-        (call-next-method)
-        (loop :repeat 2 :do (pprint-newline :mandatory stream))
-        (text.source-location.print::print-annotations stream annotations)))))
-
-(define-condition simple-object-error (error
-                                       annotation-condition
-                                       simple-condition)
-  ())
-
-(defun object-error (annotated-objects
-                     &optional format-control &rest format-arguments)
-  (if-let ((annotations
-            (loop :for (object text kind) :in annotated-objects
-                  :for location = (location-of object)
-                  :when location
-                  :collect (apply #'text.source-location:make-annotation
-                                  location text (when kind (list :kind kind))))))
-    (error 'simple-object-error
-           :annotations      annotations
-           :format-control   format-control
-           :format-arguments format-arguments)
-    (apply #'error format-control format-arguments)))
-
-;;; YAML syntax
-
-(define-condition yaml-syntax-error (error
-                                     annotation-condition
-                                     more-conditions:chainable-condition)
-  ()
-  (:report
-   (lambda (condition stream)
-     (let* ((cause (more-conditions:cause condition))
-            (context (esrap::esrap-parse-error-context cause)))
-       (esrap::error-report context stream)))))
-
 (defun %load-yaml (file)
   (let* ((source  (text.source-location:make-source
                    file :content (read-file-into-string file)))
@@ -87,47 +27,6 @@
 
 ;;; Structure utilities
 
-(defun check-keys (object &optional expected (exhaustive? t))
-  (let+ ((expected (mapcar #'ensure-list expected))
-         (seen     '())
-         (extra    '())
-         ((&flet invalid-keys (reason keys &optional cells)
-            (object-error
-             (if (length= 1 cells)
-                 (list (list (first cells) "defined here" :error))
-                 (loop :for cell :in cells
-                       :for i :downfrom (length cells)
-                       :collect (list cell (format nil "~:R definition" i) :error)))
-             "~@<~A key~P: ~{~A~^, ~}.~@:>"
-             reason (length keys) keys))))
-    (map nil (lambda+ ((&whole cell key . value))
-               (cond
-                 ((member key seen :test #'eq :key #'car)
-                  (invalid-keys "duplicate" (list key)
-                                (list* cell (remove key seen
-                                                    :test-not #'eq
-                                                    :key      #'car))))
-                 ((when-let ((info (find key expected :test #'eq :key #'first)))
-                    (when-let ((type  (third info)))
-                      (unless (typep value type)
-                        (object-error
-                         (list (list value "defined here" :error))
-                         "~@<Value of the ~A attribute must be of type ~A.~@:>"
-                         key type)))
-                    (removef expected key :test #'eq :key #'first)
-                    t))
-                 (t
-                  (push cell extra)))
-               (push cell seen))
-         object)
-    (when (and exhaustive? extra)
-      (invalid-keys "Unexpected" (map 'list #'first extra)
-                    extra))
-    (when-let ((missing (remove nil expected :key #'second)))
-      (invalid-keys "Missing required" (map 'list #'first missing)
-                    (list object))))
-  object)
-
 (deftype yaml-version-include-spec ()
   '(or string (cons string (cons list null))))
 
@@ -137,38 +36,71 @@
 (deftype yaml-project-include-spec ()
   '(cons string (satisfies yaml-list-of-version-include-specs)))
 
-(defun check-generator-version (spec generator-version context)
-  (when-let ((required-version (assoc-value spec :minimum-generator-version)))
-    (unless (version-matches (parse-version required-version)
-                             (parse-version generator-version))
-      (object-error
-       (list (list required-version "minimum version declaration" :info))
-       "~@<The ~A requires generator version ~S, but this ~
-        generator is version ~S.~@:>"
-       context required-version generator-version))))
+(defun parse-include-spec (spec)
+  (optima:match spec
 
-(defun process-variables (alist)
-  (let ((entries (make-hash-table :test #'eq)))
-    (map nil (lambda+ ((&whole cell key . &ign))
-               (when (starts-with-subseq "__" (string key))
+    ;; Legacy syntax variants
+    ((list* (and name (type string)) versions)
+     (flet ((parse-version (spec)
+              (optima:match spec
+                ((type string)
+                 (cons spec '()))
+                ((list (and name (type string))
+                       (and parameters (type list)))
+                 (cons name parameters))
+                (otherwise
                  (object-error
-                  (list (list cell "variable definition" :error))
-                  "~@<Variable name ~A starts with \"__\". These ~
-                   variable names are reserved for internal use.~@:>"
-                  key))
-               (push cell (gethash key entries)))
-         alist)
-    (loop :for key :being :the :hash-key :of entries
-          :using (:hash-value cells)
-          :unless (length= 1 cells)
-          :do (object-error
-               (loop :for cell :in cells
-                     :for i :downfrom (length cells)
-                     :collect (list cell (format nil "~:R definition" i)
-                                    (if (= i 1) :note :error)))
-               "~@<Multiple definitions of variable ~A.~@:>"
-               key)
-          :collect (value-cons key (cdr (first cells))))))
+                  (list (list spec "specified here" :error))
+                  "~@<Version is neither a string nor a list of a ~
+                   string followed by a dictionary of ~
+                   parameters.~@:>")))))
+       (values name (map 'list #'parse-version versions))))
+
+    ;; Current syntax for a single version
+    ((optima:guard (type string) (position #\@ spec)) ; TODO check length
+     (let* ((index   (position #\@ spec))
+            (name    (string-right-trim '(#\Space) (subseq spec 0 index)))
+            (version (string-right-trim '(#\Space) (subseq spec (1+ index)))))
+       (setf (location-of name)    (location-of spec)
+             (location-of version) (location-of spec))
+       (values name (list (cons version nil)))))
+
+    ((and (assoc :name    (and name    (type string)))
+          (assoc :version (and version (type string)))
+          (or (assoc :parameters (and parameters (type list)))
+              (and)))
+     (check-keys spec '((:name       t   string)
+                        (:version    t   string)
+                        (:parameters nil list)))
+     (values name (list (cons version parameters))))
+
+    ;; Current syntax for multiple versions
+    ((and (assoc :name     (and name     (type string)))
+          (assoc :versions (and versions (type list))))
+     (check-keys spec '((:name t string) (:versions t list)))
+     (flet ((parse-version (spec)
+              (optima:match spec
+                ((and (assoc :version (and version (type string)))
+                      (or (assoc :parameters (and parameters (type list)))
+                          (and)))
+                 (check-keys spec '((:version    t   string)
+                                    (:parameters nil list)))
+                 (cons version parameters))
+                (otherwise
+                 (object-error
+                  (list (list spec "specified here" :error))
+                  "~@<Project version entry is not a dictionary with ~
+                   keys \"version\" and optionally ~
+                   \"parameters\".~:@>")))))
+       (values name (map 'list #'parse-version versions))))
+
+    (otherwise
+     (object-error
+      (list (list spec "specified here" :error))
+      "~@<Project entry is neither a list consisting of a project name ~
+       followed by one or more (parametrized) project versions nor a ~
+       string of the form NAME@VERSION nor a dictionary with keys ~
+       \"name\" and \"version\" or \"versions\".~:@>"))))
 
 ;;; Loader definition macro
 

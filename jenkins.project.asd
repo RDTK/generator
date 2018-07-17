@@ -136,10 +136,19 @@
                               (:file     "classes-spec")
                               (:file     "classes-model")
 
-                              (:file     "yaml")
-                              (:file     "json")
-
                               (:file     "progress")))
+
+                (:module     "concrete-syntax"
+                 :pathname   "src/model/project/concrete-syntax"
+                 :depends-on ("model-project")
+                 :serial     t
+                 :components ((:file     "locations")
+                              (:file     "conditions")
+
+                              (:file     "util")
+
+                              (:file     "yaml")
+                              (:file     "json")))
 
                 (:module     "model-aspects"
                  :pathname   "src/model/aspects"

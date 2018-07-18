@@ -17,9 +17,9 @@
                 "iterate"
                 (:version "more-conditions"                       "0.2")
 
-                (:version "configuration.options"                 "0.8")
-                (:version "configuration.options-syntax-ini"      "0.8")
-                (:version "configuration.options-and-puri"        "0.8")
+                (:version "configuration.options"                 "0.9")
+                (:version "configuration.options-syntax-ini"      "0.9")
+                (:version "configuration.options-and-puri"        "0.9")
 
                 (:version "jenkins.project"                       (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.more-conditions-patch" (:read-file-form "version-string.sexp"))

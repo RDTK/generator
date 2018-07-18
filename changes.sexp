@@ -42,7 +42,13 @@
   (:bugfix
    "A long-standing problem related non-ASCII characters in Jenkins
     job data has been fixed by working around the way Jenkins handles
-    HTTP content types and XML encoding declarations."))
+    HTTP content types and XML encoding declarations.")
+
+  (:bugfix
+   "The" (:verb "temp-directory") "and" (:verb "cache-directory") "configuration
+    options are now explicitly interpreted as directory names. This
+    solves issues with directories specified without a trailing
+    \"/\"."))
 
  (:release "0.22" "2018-06-08"
 

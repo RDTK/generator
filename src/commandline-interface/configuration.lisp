@@ -38,10 +38,11 @@
                       :documentation
                       "Progress display style.")
   ;; Directories
-  ("cache-directory"  :type 'pathname
+  ("cache-directory"  :type 'configuration.options:directory-pathname
                       :documentation
                       "Directory into which cached data like repository mirrors should be written.")
-  ("temp-directory"   :type 'pathname :default #P"/tmp/"
+  ("temp-directory"   :type 'configuration.options:directory-pathname
+                      :default #P"/tmp/"
                       :documentation
                       "Directory into which temporary files should be written.")
   ;; Application-level debugging

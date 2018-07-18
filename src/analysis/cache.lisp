@@ -44,6 +44,10 @@
 
 (defun cache-store (cache-directory key results)
   (with-simple-restart (continue "~@<Do not cache results.~@:>")
+    (unless (probe-file cache-directory)
+      (log:info "~@<Creating non-existent cache directory ~S.~@:>"
+                cache-directory)
+      (ensure-directories-exist cache-directory))
     (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Storing analysis results in ~A~@:>" file)
       (cl-store:store (cons *cache-version* results) file))))

@@ -24,7 +24,7 @@
                       :documentation
                       "Enable debug mode.")
   ;; Execution mode and feedback
-  ("on-error"         :type '(member :abort :continue) :default :abort
+  ("on-error"         :type '(member :abort :continue) :default :continue
                       :documentation
                       "Abort when encountering errors? Either \"abort\" or \"continue\".")
   ("non-interactive"  :type 'boolean :default nil

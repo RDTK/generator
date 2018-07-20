@@ -1,4 +1,9 @@
-((:release "0.24" nil)
+((:release "0.24" nil
+
+  (:incompatible-change
+   "The default of the" (:verb "--on-error") "commandline option is
+    now" (:verb "continue") "since the overwhelming majority of use
+    cases seem to mandate this value."))
 
  (:release "0.23" "2018-07-20"
 

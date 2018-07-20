@@ -16,9 +16,9 @@
                 (:version "let-plus"                                   "0.2")
                 (:version "more-conditions"                            "0.2")
 
-                (:version "configuration.options"                      "0.8")
-                (:version "configuration.options-and-service-provider" "0.8")
-                (:version "configuration.options-and-puri"             "0.8")
+                (:version "configuration.options"                      "0.10")
+                (:version "configuration.options-and-service-provider" "0.10")
+                (:version "configuration.options-and-puri"             "0.10")
 
                 (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))

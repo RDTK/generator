@@ -50,7 +50,7 @@
 
 (defclass output-directory-mixin ()
   ((output-directory :initarg  :output-directory
-                     :type     pathname
+                     :type     configuration.options:directory-pathname
                      :reader   output-directory
                      :documentation
                      "Directory into which output should be written."))

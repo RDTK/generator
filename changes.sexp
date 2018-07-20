@@ -1,4 +1,4 @@
-((:release "0.23" nil
+((:release "0.23" "2018-07-20"
 
   (:enhancement
    "The YAML syntax for recipes now supports including other YAML

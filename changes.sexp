@@ -15,7 +15,10 @@
 
   (:enhancement
    "When analyzing CMake projects, the" (:verb "VERSION") "keyword of
-    the" (:verb "project()") "command is now considered."))
+    the" (:verb "project()") "command is now considered.")
+
+  (:enhancement
+   "Unfulfilled dependencies are reported more compactly."))
 
  (:release "0.23" "2018-07-20"
 

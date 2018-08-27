@@ -29,7 +29,6 @@
                  :pathname   "src/commandline-interface"
                  :serial     t
                  :components ((:file       "package")
-                              (:file       "conditions")
                               (:file       "configuration")
                               (:file       "main"))))
 

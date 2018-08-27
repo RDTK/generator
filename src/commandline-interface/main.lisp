@@ -33,7 +33,7 @@
   (lambda (condition)
     (when (and (typep condition
                       '(and error
-                            (not unfulfilled-project-dependency-error))))
+                            (not jenkins.project.commands::unfulfilled-project-dependency-error))))
       (funcall function condition))
     (funcall error-policy condition)))
 

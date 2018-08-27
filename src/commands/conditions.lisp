@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions signaled by the commands module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -95,14 +95,52 @@
   (:documentation
    "Superclass for phase error conditions."))
 
+(defun unfulfilled-project-dependency-error? (condition)
+  (when (typep condition 'instantiation-error)
+    (let ((root-cause (root-cause condition)))
+      (typep root-cause 'jenkins.analysis:unfulfilled-project-dependency-error))))
+
+(deftype unfulfilled-project-dependency-error ()
+  '(satisfies unfulfilled-project-dependency-error?))
+
+(defun print-unfulfilled-dependencies (stream conditions &optional colon? at?)
+  (declare (ignore colon? at?))
+  (let ((table (make-hash-table :test #'equal)))
+    (loop :for condition :in conditions
+          :for specification = (instantiation-condition-specification
+                                condition)
+          :for cause = (root-cause condition)
+          :for dependency = (jenkins.analysis:dependency-condition-dependency
+                             cause)
+          :for key = (subseq dependency 0 2)
+          :do (push (list (print-items:print-items specification)
+                          (third dependency))
+                    (gethash key table)))
+    (format stream "~@<~{~{~
+                      No provider for ~{~A~^ ~}~@:_~
+                      ~2@T~@<~
+                        ~@{~{~
+                          ~/print-items:format-print-items/ ~
+                          requires ~:[it~;~:*version ~A~]~
+                        ~}~^~@:_~}~
+                      ~:>~
+                    ~}~^~@:_~@:_~}~:>"
+            (hash-table-alist table))))
+
 (define-condition deferred-phase-error (phase-error
                                         deferred-problem-condition)
   ()
   (:report
    (lambda (condition stream)
-     (let+ (((&accessors-r/o phase conditions) condition))
+     (let+ (((&accessors-r/o phase conditions) condition)
+            (dependency-conditions (remove-if-not #'unfulfilled-project-dependency-error? conditions))
+            (other-conditions      (set-difference conditions dependency-conditions )))
        (format stream "~@<~D problem~:P during ~A phase:~@:_~@:_~
                        ~2@T~@<~
+                         ~@[~
+                           ~/jenkins.project.commands::print-unfulfilled-dependencies/~
+                           ~@:_~@:_~
+                         ~]~
                          ~{~
                            ~<~A:~
                              ~@:_~2@T~<~A~:>~
@@ -111,9 +149,10 @@
                          ~}~
                        ~:>~@:>"
                (length conditions) phase
+               dependency-conditions
                (mapcar (lambda (condition)
                          (list (type-of condition) condition))
-                       conditions)))))
+                       other-conditions)))))
   (:documentation
    "Signaled when deferred errors have accumulated at the end of a
     phase."))

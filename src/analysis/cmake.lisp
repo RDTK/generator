@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -42,6 +42,17 @@
    :multi-line-mode       t
    :case-insensitive-mode t)
   "Finds subdirs(<name> …) calls.")
+
+(defparameter *include-scanner*
+  (ppcre:create-scanner
+   (format nil "^[ \\t]*include[ \\t\\n]*\\(~
+                  [ \\t\\n]*\"?~
+                    ([^)\"]*)~
+                  \"?~
+                \\)")
+   :multi-line-mode       t
+   :case-insensitive-mode t)
+  "Finds include(<name> …) calls.")
 
 (defparameter *add-subdirectory-scanner*
   (ppcre:create-scanner
@@ -218,7 +229,8 @@
                       (with-simple-restart
                           (continue "~@<Skip sub-directory ~S~@:>" directory)
                         (list (analyze directory kind
-                                       :parent-variables variables)))))
+                                       :parent-variables   variables
+                                       :implicit-provides? nil)))))
                   sub-directories))
          ((&flet property-values (name)
             (loop :for project       in sub-projects
@@ -274,7 +286,8 @@
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))
                     &key
-                    (parent-variables '()))
+                    (parent-variables   '())
+                    (implicit-provides? t))
   (let+ ((content (read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
@@ -283,43 +296,72 @@
             (log:trace "~@<Adding variable ~A = ~A~@:>" name value)
             (push (cons name value) variables)))
          ((&flet find-variable (name &key (test #'string=))
-            (cdr (find name variables :test test :key #'car)))))
-    ;; Collect all variables.
+            (cdr (find name variables :test test :key #'car))))
+         (included-requires '()))
+
+    ;; Collect all variables directly defined in SOURCE.
     (ppcre:do-register-groups (key value) (*set-variable-scanner* content)
       (add-variable! key value))
+
     ;; Collect variables for project(…) calls.
     (ppcre:do-register-groups (project) (*project-scanner* content)
       (log:debug "~@<Found project(…) call with name ~S~@:>" project)
       (add-variable! "CMAKE_PROJECT_NAME" project)
       (add-variable! "PROJECT_NAME"       project))
+
     ;; If we found a define_project_version(…) call, use the versions
     ;; defined there.
     (mapc (curry #'apply #'add-variable!) components)
+
+    ;; Collect requirements in files included via include(…) calls.
+    (ppcre:do-register-groups (include) (*include-scanner* content)
+      (let ((label include))
+        (with-simple-restart
+            (continue "~@<Ignore included file ~S.~@:>" label)
+          (let+ ((resolved (%cmake-resolve-variables
+                            include variables
+                            :if-unresolved (rcurry #'%cmake-resolution-error
+                                                   "include(…) expression")))
+                 (filename (merge-pathnames resolved source))
+                 ((&values results variables)
+                  (when (probe-file filename)
+                    (setf label resolved)
+                    (analyze filename kind
+                             :parent-variables   variables
+                             :implicit-provides? nil))))
+            (appendf included-requires (getf results :requires))
+            (loop :for (name . value) :in variables
+                  :do (add-variable! name value))))))
 
     ;; Compute and resolve name and version, analyze find_package(…)
     ;; and pkg_(search|check)_module(…) calls.
     (let+ (((&flet find/suffix (name)
               (find-variable name :test #'ends-with-subseq)))
-           (name/resolved    (%cmake-resolve-variables
-                              "${CMAKE_PROJECT_NAME}" variables
-                              :if-unresolved nil))
-           (version          (or project-version
-                                 (find/suffix "VERSION")
-                                 (let+ (((major minor patch)
-                                         (mapcar #'find/suffix
-                                                 '("VERSION_MAJOR"
-                                                   "VERSION_MINOR"
-                                                   "VERSION_PATCH"))))
-                                   (when major
-                                     (format-version major minor patch)))))
-           (version/resolved (%cmake-resolve-variables
-                              version variables :if-unresolved nil)))
+           (name/resolved    (when implicit-provides?
+                               (%cmake-resolve-variables
+                                "${CMAKE_PROJECT_NAME}" variables
+                                :if-unresolved nil)))
+           (version          (when implicit-provides?
+                               (or project-version
+                                   (find/suffix "VERSION")
+                                   (let+ (((major minor patch)
+                                           (mapcar #'find/suffix
+                                                   '("VERSION_MAJOR"
+                                                     "VERSION_MINOR"
+                                                     "VERSION_PATCH"))))
+                                     (when major
+                                       (format-version major minor patch))))))
+           (version/resolved (when implicit-provides?
+                               (%cmake-resolve-variables
+                                version variables :if-unresolved nil))))
       (values
        (list
         :provides (when name/resolved
                     (list (%cmake-make-dependency name/resolved version/resolved)))
-        :requires (append (%cmake-analyze-find-packages content variables)
-                          (%cmake-analyze-pkg-configs content variables)))
+        :requires (merge-dependencies
+                   (append (%cmake-analyze-find-packages content variables)
+                           (%cmake-analyze-pkg-configs content variables)
+                           included-requires)))
        variables
        (%cmake-analyze-sub-directories
         content variables

@@ -3,7 +3,11 @@
   (:incompatible-change
    "The default of the" (:verb "--on-error") "commandline option is
     now" (:verb "continue") "since the overwhelming majority of use
-    cases seem to mandate this value."))
+    cases seem to mandate this value.")
+
+  (:enhancement
+   "When analyzing CMake projects," (:verb "include()") "commands are
+    now considered."))
 
  (:release "0.23" "2018-07-20"
 

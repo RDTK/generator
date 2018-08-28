@@ -9,6 +9,15 @@
 (defparameter *main-cmake-file-name* "CMakeLists.txt"
   "The filename of the CMake file for a project.")
 
+(defparameter *variable-reference-scanner*
+  (ppcre:create-scanner
+   (format nil "(?:~
+                  \\$\\{([^$}]+)\\}~
+                |~
+                  @([^@]+)@~
+                )"))
+  "Finds reference of the forms ${…} and @…@.")
+
 (defparameter *set-variable-scanner*
   (ppcre:create-scanner
    (format nil "^[ \\t]*set[ \\t\\n]*\\(~
@@ -177,23 +186,45 @@
                       (list major   minor   patch   version))))))
 
 (defun %cmake-resolve-variables (spec variables &key (if-unresolved :partial))
-  (iter (repeat 32)
-        (while (or (find #\$ spec) (find #\@ spec)))
-        (iter (for (name . value) in variables)
-              (when value
-                (setf spec (ppcre:regex-replace-all
-                            `(:sequence "${" ,name "}") spec value))
-                (setf spec (ppcre:regex-replace-all
-                            `(:sequence "@" ,name "@") spec value))))
-        (finally (return (cond
-                           ((not (ppcre:scan "[${}@]" spec))
-                            spec)
-                           ((functionp if-unresolved)
-                            (funcall if-unresolved spec))
-                           ((eq if-unresolved :partial)
-                            spec)
-                           (t
-                            if-unresolved))))))
+  (flet ((replace-all (string)
+           (let ((complete? t))
+             (multiple-value-call #'values
+               (ppcre:regex-replace-all
+                *variable-reference-scanner* string
+                (lambda (string start end match-start match-end group-starts group-ends)
+                  (declare (ignore start end))
+                  (let ((name  (cond ((when-let ((start (aref group-starts 0))) ; ${…}
+                                        (subseq string start (aref group-ends 0))))
+                                     ((when-let ((start (aref group-starts 1))) ; @…@
+                                        (subseq string start (aref group-ends 1)))))))
+                    (or (assoc-value variables name :test #'string=)
+                        (progn
+                          (setf complete? nil)
+                          (subseq string match-start match-end))))))
+               complete?))))
+    (loop :repeat 32
+          :for (result match? complete?) = (list spec t t) :then (multiple-value-list
+                                                                  (replace-all result))
+          :while match?
+          :finally (return (cond (complete?
+                                  result)
+                                 ((functionp if-unresolved)
+                                  (funcall if-unresolved spec))
+                                 ((eq if-unresolved :partial)
+                                  result)
+                                 (t
+                                  if-unresolved))))))
+
+(let ((string1   "${fo${fez}}${bar}${baz}")
+      (string2   "${fo${fez}}${bar}${ba}")
+      (variables '(("foo" . "1") ("bar" . "2") ("baz" . "3") ("fez" . "o"))))
+  (assert (string= (%cmake-resolve-variables string1 variables)                         "123"))
+  (assert (string= (%cmake-resolve-variables string2 variables)                         "12${ba}"))
+  (assert (string= (%cmake-resolve-variables string2 variables :if-unresolved :partial) "12${ba}"))
+  (assert (eq      (%cmake-resolve-variables string2 variables :if-unresolved :foo)     :foo))
+  (assert (null (ignore-errors
+                 (%cmake-resolve-variables
+                  string2 variables :if-unresolved (rcurry #'%cmake-resolution-error ""))))))
 
 (defun %cmake-resolution-error (thing context)
   (error "~@<Could not resolve ~S in ~A.~@:>"

@@ -7,7 +7,11 @@
 
   (:enhancement
    "When analyzing CMake projects," (:verb "include()") "commands are
-    now considered."))
+    now considered.")
+
+  (:enhancement
+   "When analyzing CMake projects, variable references are evaluated
+    more accurately and more efficiently."))
 
  (:release "0.23" "2018-07-20"
 

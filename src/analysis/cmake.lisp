@@ -37,11 +37,23 @@
                   [ \\t\\n]*\"?~
                     ([^ \\t\\n)\"]*)~
                   \"?~
+                  (?:~
+                    [^)]*~
+                    version~
+                    [ \\t\\n]*\"?~
+                      ([^ \\t\\n)\"]*)~
+                    \"?~
+                  )?~
                   [^)]*~
                 \\)")
    :multi-line-mode       t
    :case-insensitive-mode t)
   "Finds project(<name> …) calls.")
+
+(assert (equalp #("foo" "1")
+                (nth-value
+                 1 (ppcre:scan-to-strings
+                    *project-scanner* "project(foo version \"1\")"))))
 
 (defparameter *subdirs-scanner*
   (ppcre:create-scanner
@@ -338,13 +350,19 @@
       (add-variable! key value))
 
     ;; Collect variables for project(…) calls.
-    (ppcre:do-register-groups (project) (*project-scanner* content)
-      (log:debug "~@<Found project(…) call with name ~S~@:>"
-                 project)
+    (ppcre:do-register-groups (project version) (*project-scanner* content)
+      (log:debug "~@<Found project(…) call with name ~S~@[ and version ~S~]~@:>"
+                 project version)
       (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
                                                    (uiop:pathname-directory-pathname
                                                     source)))
-      (add-project-variable! "PROJECT_NAME"       project))
+      (add-project-variable! "PROJECT_NAME"       project)
+      (when version
+        (add-project-variable! "PROJECT_VERSION" version)
+        (loop :for name      :in '("MAJOR" "MINOR" "PATH")
+              :for value     :in (parse-version version)
+              :for variable  =   (format nil "PROJECT_VERSION_~A" name)
+              :do  (add-project-variable! variable (princ-to-string value)))))
     ;; If we found a define_project_version(…) call, use the versions
     ;; defined there.
     (mapc (curry #'apply #'add-variable!) components)

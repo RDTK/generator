@@ -11,7 +11,11 @@
 
   (:enhancement
    "When analyzing CMake projects, variable references are evaluated
-    more accurately and more efficiently."))
+    more accurately and more efficiently.")
+
+  (:enhancement
+   "When analyzing CMake projects, the" (:verb "VERSION") "keyword of
+    the" (:verb "project()") "command is now considered."))
 
  (:release "0.23" "2018-07-20"
 

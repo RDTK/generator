@@ -295,6 +295,9 @@
          ((&flet add-variable! (name value)
             (log:trace "~@<Adding variable ~A = ~A~@:>" name value)
             (push (cons name value) variables)))
+         ((&flet add-project-variable! (name value)
+            (add-variable! name                         value)
+            (add-variable! (format nil "CMAKE_~A" name) value)))
          ((&flet find-variable (name &key (test #'string=))
             (cdr (find name variables :test test :key #'car))))
          (included-requires '()))
@@ -305,10 +308,12 @@
 
     ;; Collect variables for project(…) calls.
     (ppcre:do-register-groups (project) (*project-scanner* content)
-      (log:debug "~@<Found project(…) call with name ~S~@:>" project)
-      (add-variable! "CMAKE_PROJECT_NAME" project)
-      (add-variable! "PROJECT_NAME"       project))
-
+      (log:debug "~@<Found project(…) call with name ~S~@:>"
+                 project)
+      (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
+                                                   (uiop:pathname-directory-pathname
+                                                    source)))
+      (add-project-variable! "PROJECT_NAME"       project))
     ;; If we found a define_project_version(…) call, use the versions
     ;; defined there.
     (mapc (curry #'apply #'add-variable!) components)

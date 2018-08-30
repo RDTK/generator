@@ -4,7 +4,25 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:defpackage #:jenkins.analysis.cmake
+  (:use
+   #:cl
+   #:alexandria
+   #:split-sequence
+   #:let-plus
+   #:iterate
+
+   #:jenkins.version)
+
+  (:import-from #:jenkins.analysis
+   #:analyze
+
+   #:read-file-into-string*
+   #:find-files
+   #:merge-dependencies
+   #:effective-requires))
+
+(cl:in-package #:jenkins.analysis.cmake)
 
 (defparameter *main-cmake-file-name* "CMakeLists.txt"
   "The filename of the CMake file for a project.")

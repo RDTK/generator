@@ -126,8 +126,10 @@
                    (when (not default?)
                      (case name
                        ((:extra-requires :extra-provides)
-                        (loop :for (nature) :in value
-                              :unless (member nature known-natures :test #'string=)
+                        (loop :for dependency :in value
+                              :for (nature) = (jenkins.model.project::parse-dependency-spec ; TODO parsing breaks source locations
+                                               dependency)
+                              :unless (member nature known-natures :test #'string-equal)
                               :do (jenkins.model.project::object-error
                                    (list (list nature "used here" :error))
                                    "~@<Suspicious nature ~S in ~S value.~@:>"

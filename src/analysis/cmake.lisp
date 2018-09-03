@@ -300,10 +300,13 @@
 
 (let* ((string1   "${fo${fez}}${bar}${baz}")
        (string2   "${fo${fez}}${bar}${ba}")
+       (string3   "@foo@@bar@")
        (variables '(("foo" . "1") ("bar" . "2") ("baz" . "3") ("fez" . "o")))
        (environment (augment! (make-instance 'environment) variables)))
   (assert (string= (%resolve-variables string1 environment)                         "123"))
   (assert (string= (%resolve-variables string2 environment)                         "12${ba}"))
+  (assert (string= (%resolve-variables string3 environment)                         "12"))
+
   (assert (string= (%resolve-variables string2 environment :if-unresolved :partial) "12${ba}"))
   (assert (eq      (%resolve-variables string2 environment :if-unresolved :foo)     :foo))
   (assert (null (ignore-errors
@@ -329,8 +332,18 @@
 
 (defmethod analyze ((source pathname) (kind (eql :cmake/one-directory))
                     &key
+                    (seen              (make-hash-table :test #'equalp))
                     parent-environment
                     implicit-provides?)
+  (when-let ((truename (probe-file source)))
+    (if (gethash truename seen)
+        (progn
+          (log:info "~@<Skipping already analyzed directory ~
+                     ~S (~S)~@:>"
+                    source truename)
+          (return-from analyze))
+        (setf (gethash truename seen) t)))
+
   (log:info "~@<Analyzing directory ~S (~S) ~:[without~;with~] ~
              implicit provides~@:>"
             source (probe-file source) implicit-provides?)
@@ -339,6 +352,7 @@
                    environment
                    sub-directories)
           (analyze lists-file :cmake/one-file
+                   :seen               seen
                    :parent-environment parent-environment
                    :implicit-provides? implicit-provides?))
          (project-version (third (first provides)))
@@ -349,6 +363,7 @@
                       (with-simple-restart
                           (continue "~@<Skip sub-directory ~S~@:>" directory)
                         (list (analyze directory kind
+                                       :seen               seen
                                        :parent-environment environment)))))
                   sub-directories))
          ((&flet property-values (name)
@@ -375,6 +390,7 @@
                   (log:info "~@<Analyzing secondary file ~S~@:>" file)
                   (with-simple-restart (continue "Skip file ~S" file)
                     (appending (analyze file kind
+                                        :seen            seen
                                         :environment     environment
                                         :project-version project-version))))))
          (config-mode-files    (%find-config-mode-templates source))
@@ -396,18 +412,32 @@
                                         pkg-config-provides)))
          (requires             (merge-dependencies
                                 (append requires sub-requires))))
+    (log:info config-mode-files pkg-config-files sub-secondary-files)
+    (log:info source provides)
     `(:natures               (:cmake)
       :provides              ,provides
       :requires              ,(effective-requires requires provides)
-      :programming-languages ("C++") ; TODO actual analysis
-      :secondary-files       ,(append config-mode-files pkg-config-files))))
+      :programming-languages ("C++")    ; TODO actual analysis
+      :secondary-files       ,(append config-mode-files pkg-config-files
+                                      sub-secondary-files))))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))
                     &key
-                    (parent-environment '())
+                    (seen               (make-hash-table :test #'equalp))
+                    (parent-environment nil)
                     (environment        (make-instance 'environment :parent parent-environment))
                     implicit-provides?)
+  (when-let ((truename (probe-file source)))
+    (if (gethash truename seen)
+        (progn
+          (log:info "~@<Skipping already analyzed CMake file ~
+                     ~S (~S)~@:>"
+                    source truename)
+          (return-from analyze))
+        (setf (gethash truename seen) t)))
+
+  (log:info "~@<Analyzing CMake file ~S (~S)~@:>" source (probe-file source))
   (let+ ((content (read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
@@ -465,6 +495,7 @@
                       (results  (when (probe-file filename)
                                   (setf label resolved)
                                   (analyze filename kind
+                                           :seen        seen
                                            :environment environment))))
             (appendf included-requires (getf results :requires))))))
 

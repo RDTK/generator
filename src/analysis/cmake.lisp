@@ -58,7 +58,7 @@
                   (?:~
                     [^)]*~
                     version~
-                    [ \\t\\n]*\"?~
+                    [ \\t\\n]+\"?~
                       ([^ \\t\\n)\"]*)~
                     \"?~
                   )?~
@@ -72,6 +72,10 @@
                 (nth-value
                  1 (ppcre:scan-to-strings
                     *project-scanner* "project(foo version \"1\")"))))
+(assert (equalp #("foo" "${BAR}")
+                (nth-value
+                 1 (ppcre:scan-to-strings
+                    *project-scanner* "project(foo version ${BAR} LANGUAGES C CXX)"))))
 
 (defparameter *subdirs-scanner*
   (ppcre:create-scanner
@@ -407,8 +411,8 @@
 
     ;; Collect variables for project(…) calls.
     (ppcre:do-register-groups (project version) (*project-scanner* content)
-      (log:debug "~@<Found project(…) call with name ~S~@[ and version ~S~]~@:>"
-                 project version)
+      (log:info "~@<Found project(…) call with name ~S~@[ and version ~S~]~@:>"
+                project version)
       (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
                                                    (uiop:pathname-directory-pathname
                                                     source)))

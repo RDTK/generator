@@ -365,7 +365,7 @@
     ;; Set CMAKE_SOURCE_DIR to the current directory in case an
     ;; include(…) call or similar depends on it.
     (add-variable! "CMAKE_SOURCE_DIR"
-                   (uiop:pathname-directory-pathname source))
+                   (namestring (uiop:pathname-directory-pathname source)))
 
     ;; Collect all variables directly defined in SOURCE.
     (ppcre:do-register-groups (key value) (*set-variable-scanner* content)

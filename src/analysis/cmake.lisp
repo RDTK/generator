@@ -306,19 +306,22 @@
 
 (defmethod analyze ((source pathname) (kind (eql :cmake))
                     &key)
-  ;; Remove the internal-use :secondary-files property.
-  (remove-from-plist (analyze source :cmake/one-directory) :secondary-files))
+  (let ((result (analyze source :cmake/one-directory :implicit-provides? t)))
+    ;; Remove the internal-use :secondary-files property.
+    (remove-from-plist result :secondary-files)))
 
 (defmethod analyze ((source pathname) (kind (eql :cmake/one-directory))
                     &key
-                    parent-environment)
+                    parent-environment
+                    implicit-provides?)
   (log:info "~@<Analyzing directory ~S~@:>" source)
   (let+ ((lists-file (merge-pathnames *main-cmake-file-name* source))
          ((&values (&plist-r/o (provides :provides) (requires :requires))
                    environment
                    sub-directories)
           (analyze lists-file :cmake/one-file
-                   :parent-environment parent-environment))
+                   :parent-environment parent-environment
+                   :implicit-provides? implicit-provides?))
          (project-version (third (first provides)))
          ;; Analyze sub-projects.
          (sub-projects
@@ -327,8 +330,7 @@
                       (with-simple-restart
                           (continue "~@<Skip sub-directory ~S~@:>" directory)
                         (list (analyze directory kind
-                                       :parent-environment environment
-                                       :implicit-provides? nil)))))
+                                       :parent-environment environment)))))
                   sub-directories))
          ((&flet property-values (name)
             (loop :for project       in sub-projects
@@ -386,7 +388,7 @@
                     &key
                     (parent-environment '())
                     (environment        (make-instance 'environment :parent parent-environment))
-                    (implicit-provides? t))
+                    implicit-provides?)
   (let+ ((content (read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
@@ -440,9 +442,7 @@
                  (results
                    (when (probe-file filename)
                      (setf label resolved)
-                     (analyze filename kind
-                              :environment        environment
-                              :implicit-provides? nil))))
+                     (analyze filename kind :environment environment))))
             (appendf included-requires (getf results :requires))))))
 
     ;; Compute and resolve name and version, analyze find_package(…)

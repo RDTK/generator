@@ -37,17 +37,25 @@
   (let ((filename (expand-pathname builder content)))
     (language.yaml:load filename :builder builder)))
 
+(defun protect-string (string)
+  (ppcre:regex-replace-all "\\${" string "\\${"))
+
+(let ((raw "${foo} \\${bar} \\baz $fez \\\\"))
+  (assert (equal raw (jenkins.model.variables:value-parse
+                      (protect-string raw)))))
+
 (defmethod language.yaml.construct::make-node-using-tag
     ((builder recipe-builder)
      (kind    (eql :scalar))
      (tag     (eql (language.yaml.tags:find-tag "tag:build-generator,2018:literal-include")))
      &key
      content)
-  (let* ((filename (expand-pathname builder content))
-         (content  (read-file-into-string filename)))
+  (let* ((filename  (expand-pathname builder content))
+         (content   (read-file-into-string filename))
+         (protected (protect-string content)))
     (architecture.builder-protocol:make-node builder :scalar
                                              :tag     "tag:yaml.org,2002:str"
-                                             :content content)))
+                                             :content protected)))
 
 (defun make-builder (source)
   (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder

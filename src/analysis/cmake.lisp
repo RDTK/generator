@@ -193,7 +193,7 @@
    :case-insensitive-mode t)
   "Finds define_project_version(…) calls.")
 
-(defun cmake-config-file->project-name (pathname)
+(defun config-file->project-name (pathname)
   (ppcre:regex-replace "(.*)(?:Config|-config)(?:\\..+)"
                        (pathname-name pathname)
                        "\\1"))
@@ -215,7 +215,7 @@
                       (list "MAJOR" "MINOR" "PATCH" nil)
                       (list major   minor   patch   version))))))
 
-(defun %cmake-resolve-variables (spec variables &key (if-unresolved :partial))
+(defun %resolve-variables (spec variables &key (if-unresolved :partial))
   (flet ((replace-all (string)
            (let ((complete? t))
              (multiple-value-call #'values
@@ -248,24 +248,24 @@
 (let ((string1   "${fo${fez}}${bar}${baz}")
       (string2   "${fo${fez}}${bar}${ba}")
       (variables '(("foo" . "1") ("bar" . "2") ("baz" . "3") ("fez" . "o"))))
-  (assert (string= (%cmake-resolve-variables string1 variables)                         "123"))
-  (assert (string= (%cmake-resolve-variables string2 variables)                         "12${ba}"))
-  (assert (string= (%cmake-resolve-variables string2 variables :if-unresolved :partial) "12${ba}"))
-  (assert (eq      (%cmake-resolve-variables string2 variables :if-unresolved :foo)     :foo))
+  (assert (string= (%resolve-variables string1 variables)                         "123"))
+  (assert (string= (%resolve-variables string2 variables)                         "12${ba}"))
+  (assert (string= (%resolve-variables string2 variables :if-unresolved :partial) "12${ba}"))
+  (assert (eq      (%resolve-variables string2 variables :if-unresolved :foo)     :foo))
   (assert (null (ignore-errors
-                 (%cmake-resolve-variables
-                  string2 variables :if-unresolved (rcurry #'%cmake-resolution-error ""))))))
+                 (%resolve-variables
+                  string2 variables :if-unresolved (rcurry #'%resolution-error ""))))))
 
-(defun %cmake-resolution-error (thing context)
+(defun %resolution-error (thing context)
   (error "~@<Could not resolve ~S in ~A.~@:>"
          thing context))
 
-(defun %cmake-continuable-resolution-error (context report)
+(defun %continuable-resolution-error (context report)
   (lambda (expression)
     (if report
         (with-simple-restart (continue report)
-          (%cmake-resolution-error expression context))
-        (%cmake-resolution-error expression context))))
+          (%resolution-error expression context))
+        (%resolution-error expression context))))
 
 (defmethod analyze ((source pathname) (kind (eql :cmake))
                     &key)
@@ -319,13 +319,13 @@
                     (appending (analyze file kind
                                         :variables       variables
                                         :project-version project-version))))))
-         (config-mode-files    (%cmake-find-config-mode-templates source))
+         (config-mode-files    (%find-config-mode-templates source))
          (config-mode-provides (analyze-secondary
                                 (set-difference
                                  config-mode-files sub-secondary-files
                                  :test #'equalp)
                                 :cmake/config-mode-template))
-         (pkg-config-files     (%cmake-find-pkg-config-template-files source))
+         (pkg-config-files     (%find-pkg-config-template-files source))
          (pkg-config-provides  (analyze-secondary
                                 (set-difference
                                  pkg-config-files sub-secondary-files
@@ -394,9 +394,9 @@
       (let ((label include))
         (with-simple-restart
             (continue "~@<Ignore included file ~S.~@:>" label)
-          (let+ ((resolved (%cmake-resolve-variables
+          (let+ ((resolved (%resolve-variables
                             include variables
-                            :if-unresolved (rcurry #'%cmake-resolution-error
+                            :if-unresolved (rcurry #'%resolution-error
                                                    "include(…) expression")))
                  (filename (merge-pathnames resolved source))
                  ((&values results variables)
@@ -414,7 +414,7 @@
     (let+ (((&flet find/suffix (name)
               (find-variable name :test #'ends-with-subseq)))
            (name/resolved    (when implicit-provides?
-                               (%cmake-resolve-variables
+                               (%resolve-variables
                                 "${CMAKE_PROJECT_NAME}" variables
                                 :if-unresolved nil)))
            (version          (when implicit-provides?
@@ -428,31 +428,31 @@
                                      (when major
                                        (format-version major minor patch))))))
            (version/resolved (when implicit-provides?
-                               (%cmake-resolve-variables
+                               (%resolve-variables
                                 version variables :if-unresolved nil))))
       (values
        (list
         :provides (when name/resolved
-                    (list (%cmake-make-dependency name/resolved version/resolved)))
+                    (list (%make-dependency name/resolved version/resolved)))
         :requires (merge-dependencies
-                   (append (%cmake-analyze-find-packages content variables)
-                           (%cmake-analyze-pkg-configs content variables)
+                   (append (%analyze-find-packages content variables)
+                           (%analyze-pkg-configs content variables)
                            included-requires)))
        variables
-       (%cmake-analyze-sub-directories
+       (%analyze-sub-directories
         content variables
         (uiop:pathname-directory-pathname source))))))
 
-(defun %cmake-analyze-sub-directory (kind arguments variables directory)
+(defun %analyze-sub-directory (kind arguments variables directory)
   (let+ ((description (ecase kind
                         (:subdirs          "subdirs(…) expression")
                         (:add-subdirectory "add_subdirectory(…) expression")))
          ((&flet resolve (expression &optional continue-report)
-            (%cmake-resolve-variables
+            (%resolve-variables
              expression variables
-             :if-unresolved (%cmake-continuable-resolution-error
+             :if-unresolved (%continuable-resolution-error
                              description continue-report))))
-         (arguments          (%cmake-split-arguments arguments))
+         (arguments          (%split-arguments arguments))
          (arguments/relevant (ecase kind
                                (:subdirs          arguments)
                                (:add-subdirectory (subseq arguments 0 1))))
@@ -461,7 +461,7 @@
     (log:debug "~@<Found ~A with director~@P ~{~{~S~^ → ~S~}~^, ~
                 ~}~@:>"
                description (length arguments)
-               (mapcar #'%cmake-list-unless-equal
+               (mapcar #'%list-unless-equal
                        arguments arguments/resolved))
     (mapcan (lambda (sub-directory)
               (when (and sub-directory (not (emptyp sub-directory)))
@@ -470,94 +470,92 @@
                        directory))))
             arguments/resolved)))
 
-(defun %cmake-analyze-sub-directories (content variables directory)
+(defun %analyze-sub-directories (content variables directory)
   (let ((result '()))
     (ppcre:do-register-groups (arguments)
         (*subdirs-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
-        (appendf result (%cmake-analyze-sub-directory
+        (appendf result (%analyze-sub-directory
                          :subdirs arguments variables directory))))
     (ppcre:do-register-groups (arguments)
         (*add-subdirectory-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
-        (appendf result (%cmake-analyze-sub-directory
+        (appendf result (%analyze-sub-directory
                          :add-subdirectory arguments variables directory))))
     result))
 
-(defun %cmake-analyze-find-package (name version components variables)
+(defun %analyze-find-package (name version components variables)
   (let+ (((&flet resolve (expression &optional continue-report)
-            (%cmake-resolve-variables
+            (%resolve-variables
              expression variables
-             :if-unresolved (%cmake-continuable-resolution-error
+             :if-unresolved (%continuable-resolution-error
                              "find_package(…) expression"
                              continue-report))))
          (name/resolved       (resolve name))
          (version/resolved    (when version
                                 (resolve version "Treat the dependency as not versioned")))
-         (components          (%cmake-split-arguments components))
+         (components          (%split-arguments components))
          (components/resolved (mapcar (rcurry #'resolve "Ignore the component")
                                       components)))
     (log:debug "~@<Found find_package(…) call with ~
                 ~{~S~^ → ~S~}~
                 ~@[ version ~{~S~^ → ~S~}~]~
                 ~@[ components ~{~{~S~^ → ~S~}~^, ~}~]~@:>"
-               (%cmake-list-unless-equal name name/resolved)
-               (%cmake-list-unless-equal version version/resolved)
-               (mapcar #'%cmake-list-unless-equal
+               (%list-unless-equal name name/resolved)
+               (%list-unless-equal version version/resolved)
+               (mapcar #'%list-unless-equal
                        components components/resolved))
     (if (string-equal name "catkin")
-        (mapcar #'%cmake-make-dependency (remove nil components/resolved))
-        (list (%cmake-make-dependency name/resolved version/resolved)))))
+        (mapcar #'%make-dependency (remove nil components/resolved))
+        (list (%make-dependency name/resolved version/resolved)))))
 
-(defun %cmake-analyze-find-packages (content variables)
+(defun %analyze-find-packages (content variables)
   (let ((result '()))
     (ppcre:do-register-groups (name version components)
         (*find-package-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
-        (appendf result (%cmake-analyze-find-package
+        (appendf result (%analyze-find-package
                          name version components variables))))
     result))
 
-(defun %cmake-parse-pkg-config-module (spec)
+(defun %parse-pkg-config-module (spec)
   (ppcre:register-groups-bind (name version) ("([^>=]+)>=(.*)" spec)
-    (return-from %cmake-parse-pkg-config-module (values name version)))
+    (return-from %parse-pkg-config-module (values name version)))
   spec)
 
-(defun %cmake-analyze-pkg-config (variable modules variables)
+(defun %analyze-pkg-config (variable modules variables)
   (let+ (((&flet resolve (expression &optional continue-report)
-            (%cmake-resolve-variables
+            (%resolve-variables
              expression variables
-             :if-unresolved (%cmake-continuable-resolution-error
+             :if-unresolved (%continuable-resolution-error
                              "pkg_(search|check)_module(…) expression"
                              continue-report))))
-         (modules          (%cmake-split-arguments modules))
+         (modules          (%split-arguments modules))
          (modules/resolved (mapcar (rcurry #'resolve "Ignore the module")
                                    modules)))
     (log:debug "~@<Found pkg_(search|check)_module(…) call with ~
                 output ~S modules ~{~{~S~^ → ~S~}~^, ~}~@:>"
                variable
-               (mapcar #'%cmake-list-unless-equal
-                       modules modules/resolved))
+               (mapcar #'%list-unless-equal modules modules/resolved))
     (mapcan (lambda (module)
               (when module
                 (with-simple-restart (continue "Skip module ~S" module)
                   (let+ (((&values name version)
-                          (%cmake-parse-pkg-config-module module)))
-                    (list (%cmake-make-dependency name version :pkg-config))))))
+                          (%parse-pkg-config-module module)))
+                    (list (%make-dependency name version :pkg-config))))))
             modules/resolved)))
 
-(defun %cmake-analyze-pkg-configs (content variables)
+(defun %analyze-pkg-configs (content variables)
   (let ((result '()))
     (ppcre:do-register-groups (variable modules)
         (*pkg-check-modules-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
-        (appendf result (%cmake-analyze-pkg-config
-                         variable modules variables))))
+        (appendf result (%analyze-pkg-config variable modules variables))))
     result))
 
 ;;; CMake Config-mode Template Files
 
-(defun %cmake-find-config-mode-templates (directory)
+(defun %find-config-mode-templates (directory)
   (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
           (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
 
@@ -565,12 +563,12 @@
                     (kind   (eql :cmake/config-mode-template))
                     &key
                     project-version)
-  (let ((name (cmake-config-file->project-name source)))
-    (%cmake-make-dependencies name :version project-version)))
+  (let ((name (config-file->project-name source)))
+    (%make-dependencies name :version project-version)))
 
 ;;; pkg-config Template Files
 
-(defun %cmake-find-pkg-config-template-files (directory)
+(defun %find-pkg-config-template-files (directory)
   (find-files (merge-pathnames #P"**/*.pc.*" directory)))
 
 (defmethod analyze ((source pathname)
@@ -579,35 +577,35 @@
                     variables)
   (let* ((name    (first (split-sequence #\. (pathname-name source))))
          (content (read-file-into-string source))
-         (content (%cmake-resolve-variables content variables)))
+         (content (%resolve-variables content variables)))
     (when-let* ((result (with-input-from-string (stream content)
                           (analyze stream :pkg-config :name name))))
       (getf result :provides))))
 
 ;;; Utility functions
 
-(defun %cmake-make-dependency (name &optional version (nature :cmake))
+(defun %make-dependency (name &optional version (nature :cmake))
   (list* nature name (typecase version
                        (string (list (parse-version version)))
                        (cons   (list version)))))
 
-(defun %cmake-make-dependencies (name
-                                 &key
-                                 version
-                                 (add-lower-case? t)
-                                 (add-upper-case? t))
+(defun %make-dependencies (name
+                           &key
+                           version
+                           (add-lower-case? t)
+                           (add-upper-case? t))
   (let ((name/lower-case (when add-lower-case?
                            (string-downcase name)))
         (name/upper-case (when add-upper-case?
                            (string-upcase name))))
     (append
-     (list (%cmake-make-dependency name version))
+     (list (%make-dependency name version))
      (when (and name/lower-case (string/= name/lower-case name))
-       (list (%cmake-make-dependency name/lower-case version)))
+       (list (%make-dependency name/lower-case version)))
      (when (and name/upper-case (string/= name/upper-case name))
-       (list (%cmake-make-dependency name/upper-case version))))))
+       (list (%make-dependency name/upper-case version))))))
 
-(defun %cmake-project-version-from-variables (versions)
+(defun %project-version-from-variables (versions)
   (let+ (((&flet find-component (name)
             (cdr (find (format nil "VERSION_~A" name) versions
                        :test #'ends-with-subseq :key #'car))))
@@ -618,13 +616,13 @@
                  major minor patch)
       (format-version major minor patch))))
 
-(defun %cmake-split-arguments (arguments)
+(defun %split-arguments (arguments)
   (let ((result '()))
     (ppcre:do-matches-as-strings
         (argument "(?:\"[^\"]*\"|[^ \\t\\n\"]+)" arguments)
       (push (string-trim '(#\") argument) result))
     (nreverse result)))
 
-(defun %cmake-list-unless-equal (first second)
+(defun %list-unless-equal (first second)
   (when first
     (list* first (unless (equal first second) (list second)))))

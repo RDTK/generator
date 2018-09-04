@@ -198,9 +198,11 @@
   "Finds define_project_version(…) calls.")
 
 (defun config-file->project-name (pathname)
-  (ppcre:regex-replace "(.*)(?:Config|-config)(?:\\..+)"
-                       (pathname-name pathname)
-                       "\\1"))
+  (let+ (((&values match? groups)
+          (ppcre:scan-to-strings "(.+)(?:Config|-config)"
+                                 (pathname-name pathname))))
+    (when match?
+      (aref groups 0))))
 
 (defun format-version (major &optional minor patch)
   (format nil "~D~{~@[.~D~]~}" major (list minor patch)))
@@ -597,7 +599,7 @@
                     (kind   (eql :cmake/config-mode-template))
                     &key
                     project-version)
-  (let ((name (config-file->project-name source)))
+  (when-let ((name (config-file->project-name source)))
     (%make-dependencies name :version project-version)))
 
 ;;; pkg-config Template Files

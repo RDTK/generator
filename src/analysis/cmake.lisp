@@ -215,7 +215,39 @@
                       (list "MAJOR" "MINOR" "PATCH" nil)
                       (list major   minor   patch   version))))))
 
-(defun %resolve-variables (spec variables &key (if-unresolved :partial))
+(defclass environment (print-items:print-items-mixin)
+  ((%parent    :initarg  :parent
+               :reader   parent
+               :initform nil)
+   (%variables :reader   %variables
+               :initform (make-hash-table :test #'equal))))
+
+(defmethod print-items:print-items append ((object environment))
+  (let+ (((&labels depth (environment)
+            (if-let ((parent (parent environment)))
+              (1+ (depth parent))
+              0)))
+         (variable-count (hash-table-count (%variables object))))
+    `((:variable-count ,variable-count "~:D variable~:P")
+      (:depth          ,(depth object) " @~D"            ((:after :variable-count))))))
+
+(defmethod lookup ((name string) (environment environment))
+  (or (gethash name (%variables environment))
+      (when-let ((parent (parent environment)))
+        (lookup name parent))))
+
+(defmethod (setf lookup) ((new-value   t)
+                          (name        string)
+                          (environment environment))
+  (setf (gethash name (%variables environment)) new-value))
+
+(defmethod augment! ((environment environment)
+                     (entries     list))
+  (loop :for (name . value) :in entries
+        :do (setf (lookup name environment) value))
+  environment)
+
+(defun %resolve-variables (spec environment &key (if-unresolved :partial))
   (flet ((replace-all (string)
            (let ((complete? t))
              (multiple-value-call #'values
@@ -227,7 +259,7 @@
                                         (subseq string start (aref group-ends 0))))
                                      ((when-let ((start (aref group-starts 1))) ; @…@
                                         (subseq string start (aref group-ends 1)))))))
-                    (or (assoc-value variables name :test #'string=)
+                    (or (lookup name environment)
                         (progn
                           (setf complete? nil)
                           (subseq string match-start match-end))))))
@@ -245,16 +277,17 @@
                                  (t
                                   if-unresolved))))))
 
-(let ((string1   "${fo${fez}}${bar}${baz}")
-      (string2   "${fo${fez}}${bar}${ba}")
-      (variables '(("foo" . "1") ("bar" . "2") ("baz" . "3") ("fez" . "o"))))
-  (assert (string= (%resolve-variables string1 variables)                         "123"))
-  (assert (string= (%resolve-variables string2 variables)                         "12${ba}"))
-  (assert (string= (%resolve-variables string2 variables :if-unresolved :partial) "12${ba}"))
-  (assert (eq      (%resolve-variables string2 variables :if-unresolved :foo)     :foo))
+(let* ((string1   "${fo${fez}}${bar}${baz}")
+       (string2   "${fo${fez}}${bar}${ba}")
+       (variables '(("foo" . "1") ("bar" . "2") ("baz" . "3") ("fez" . "o")))
+       (environment (augment! (make-instance 'environment) variables)))
+  (assert (string= (%resolve-variables string1 environment)                         "123"))
+  (assert (string= (%resolve-variables string2 environment)                         "12${ba}"))
+  (assert (string= (%resolve-variables string2 environment :if-unresolved :partial) "12${ba}"))
+  (assert (eq      (%resolve-variables string2 environment :if-unresolved :foo)     :foo))
   (assert (null (ignore-errors
                  (%resolve-variables
-                  string2 variables :if-unresolved (rcurry #'%resolution-error ""))))))
+                  string2 environment :if-unresolved (rcurry #'%resolution-error ""))))))
 
 (defun %resolution-error (thing context)
   (error "~@<Could not resolve ~S in ~A.~@:>"
@@ -274,14 +307,14 @@
 
 (defmethod analyze ((source pathname) (kind (eql :cmake/one-directory))
                     &key
-                    parent-variables)
+                    parent-environment)
   (log:info "~@<Analyzing directory ~S~@:>" source)
   (let+ ((lists-file (merge-pathnames *main-cmake-file-name* source))
          ((&values (&plist-r/o (provides :provides) (requires :requires))
-                   variables
+                   environment
                    sub-directories)
           (analyze lists-file :cmake/one-file
-                   :parent-variables parent-variables))
+                   :parent-environment parent-environment))
          (project-version (third (first provides)))
          ;; Analyze sub-projects.
          (sub-projects
@@ -290,7 +323,7 @@
                       (with-simple-restart
                           (continue "~@<Skip sub-directory ~S~@:>" directory)
                         (list (analyze directory kind
-                                       :parent-variables   variables
+                                       :parent-environment environment
                                        :implicit-provides? nil)))))
                   sub-directories))
          ((&flet property-values (name)
@@ -317,7 +350,7 @@
                   (log:info "~@<Analyzing secondary file ~S~@:>" file)
                   (with-simple-restart (continue "Skip file ~S" file)
                     (appending (analyze file kind
-                                        :variables       variables
+                                        :environment     environment
                                         :project-version project-version))))))
          (config-mode-files    (%find-config-mode-templates source))
          (config-mode-provides (analyze-secondary
@@ -347,20 +380,21 @@
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))
                     &key
-                    (parent-variables   '())
+                    (parent-environment '())
+                    (environment        (make-instance 'environment :parent parent-environment))
                     (implicit-provides? t))
   (let+ ((content (read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
-         (variables parent-variables)
          ((&flet add-variable! (name value)
             (log:trace "~@<Adding variable ~A = ~A~@:>" name value)
-            (push (cons name value) variables)))
+            (setf (lookup name environment) value)))
          ((&flet add-project-variable! (name value)
             (add-variable! name                         value)
             (add-variable! (format nil "CMAKE_~A" name) value)))
-         ((&flet find-variable (name &key (test #'string=))
-            (cdr (find name variables :test test :key #'car))))
+         ((&flet resolve (expression)
+            (%resolve-variables
+             expression environment :if-unresolved nil)))
          (included-requires '()))
     ;; Set CMAKE_SOURCE_DIR to the current directory in case an
     ;; include(…) call or similar depends on it.
@@ -394,62 +428,58 @@
       (let ((label include))
         (with-simple-restart
             (continue "~@<Ignore included file ~S.~@:>" label)
-          (let+ ((resolved (%resolve-variables
-                            include variables
+          (let* ((resolved (%resolve-variables
+                            include environment
                             :if-unresolved (rcurry #'%resolution-error
                                                    "include(…) expression")))
                  (filename (merge-pathnames resolved source))
-                 ((&values results variables)
-                  (when (probe-file filename)
-                    (setf label resolved)
-                    (analyze filename kind
-                             :parent-variables   variables
-                             :implicit-provides? nil))))
-            (appendf included-requires (getf results :requires))
-            (loop :for (name . value) :in variables
-                  :do (add-variable! name value))))))
+                 (results
+                   (when (probe-file filename)
+                     (setf label resolved)
+                     (analyze filename kind
+                              :environment        environment
+                              :implicit-provides? nil))))
+            (appendf included-requires (getf results :requires))))))
 
     ;; Compute and resolve name and version, analyze find_package(…)
     ;; and pkg_(search|check)_module(…) calls.
-    (let+ (((&flet find/suffix (name)
-              (find-variable name :test #'ends-with-subseq)))
-           (name/resolved    (when implicit-provides?
-                               (%resolve-variables
-                                "${CMAKE_PROJECT_NAME}" variables
-                                :if-unresolved nil)))
+    (let+ ((name/resolved    (when implicit-provides?
+                               (resolve "${CMAKE_PROJECT_NAME}")))
+           ((&flet resolve-project-variable (name)
+              (resolve (format nil "${~A_~A}" "CMAKE_PROJECT" name))))
            (version          (when implicit-provides?
                                (or project-version
-                                   (find/suffix "VERSION")
-                                   (let+ (((major minor patch)
-                                           (mapcar #'find/suffix
-                                                   '("VERSION_MAJOR"
-                                                     "VERSION_MINOR"
-                                                     "VERSION_PATCH"))))
-                                     (when major
-                                       (format-version major minor patch))))))
+                                   (when name/resolved
+                                     (or (resolve-project-variable "VERSION")
+                                         (let+ (((major minor patch)
+                                                 (map 'list #'resolve-project-variable
+                                                      '("VERSION_MAJOR"
+                                                        "VERSION_MINOR"
+                                                        "VERSION_PATCH"))))
+                                           (when major
+                                             (format-version major minor patch))))))))
            (version/resolved (when implicit-provides?
-                               (%resolve-variables
-                                version variables :if-unresolved nil))))
+                               (resolve version))))
       (values
        (list
         :provides (when name/resolved
                     (list (%make-dependency name/resolved version/resolved)))
         :requires (merge-dependencies
-                   (append (%analyze-find-packages content variables)
-                           (%analyze-pkg-configs content variables)
+                   (append (%analyze-find-packages content environment)
+                           (%analyze-pkg-configs content environment)
                            included-requires)))
-       variables
+       environment
        (%analyze-sub-directories
-        content variables
+        content environment
         (uiop:pathname-directory-pathname source))))))
 
-(defun %analyze-sub-directory (kind arguments variables directory)
+(defun %analyze-sub-directory (kind arguments environment directory)
   (let+ ((description (ecase kind
                         (:subdirs          "subdirs(…) expression")
                         (:add-subdirectory "add_subdirectory(…) expression")))
          ((&flet resolve (expression &optional continue-report)
             (%resolve-variables
-             expression variables
+             expression environment
              :if-unresolved (%continuable-resolution-error
                              description continue-report))))
          (arguments          (%split-arguments arguments))
@@ -470,24 +500,24 @@
                        directory))))
             arguments/resolved)))
 
-(defun %analyze-sub-directories (content variables directory)
+(defun %analyze-sub-directories (content environment directory)
   (let ((result '()))
     (ppcre:do-register-groups (arguments)
         (*subdirs-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
         (appendf result (%analyze-sub-directory
-                         :subdirs arguments variables directory))))
+                         :subdirs arguments environment directory))))
     (ppcre:do-register-groups (arguments)
         (*add-subdirectory-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
         (appendf result (%analyze-sub-directory
-                         :add-subdirectory arguments variables directory))))
+                         :add-subdirectory arguments environment directory))))
     result))
 
-(defun %analyze-find-package (name version components variables)
+(defun %analyze-find-package (name version components environment)
   (let+ (((&flet resolve (expression &optional continue-report)
             (%resolve-variables
-             expression variables
+             expression environment
              :if-unresolved (%continuable-resolution-error
                              "find_package(…) expression"
                              continue-report))))
@@ -509,13 +539,13 @@
         (mapcar #'%make-dependency (remove nil components/resolved))
         (list (%make-dependency name/resolved version/resolved)))))
 
-(defun %analyze-find-packages (content variables)
+(defun %analyze-find-packages (content environment)
   (let ((result '()))
     (ppcre:do-register-groups (name version components)
         (*find-package-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
         (appendf result (%analyze-find-package
-                         name version components variables))))
+                         name version components environment))))
     result))
 
 (defun %parse-pkg-config-module (spec)
@@ -523,10 +553,10 @@
     (return-from %parse-pkg-config-module (values name version)))
   spec)
 
-(defun %analyze-pkg-config (variable modules variables)
+(defun %analyze-pkg-config (variable modules environment)
   (let+ (((&flet resolve (expression &optional continue-report)
             (%resolve-variables
-             expression variables
+             expression environment
              :if-unresolved (%continuable-resolution-error
                              "pkg_(search|check)_module(…) expression"
                              continue-report))))
@@ -545,12 +575,12 @@
                     (list (%make-dependency name version :pkg-config))))))
             modules/resolved)))
 
-(defun %analyze-pkg-configs (content variables)
+(defun %analyze-pkg-configs (content environment)
   (let ((result '()))
     (ppcre:do-register-groups (variable modules)
         (*pkg-check-modules-scanner* content)
       (with-simple-restart (continue "Skip the dependency")
-        (appendf result (%analyze-pkg-config variable modules variables))))
+        (appendf result (%analyze-pkg-config variable modules environment))))
     result))
 
 ;;; CMake Config-mode Template Files
@@ -574,10 +604,10 @@
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/pkg-config-template))
                     &key
-                    variables)
+                    environment)
   (let* ((name    (first (split-sequence #\. (pathname-name source))))
          (content (read-file-into-string source))
-         (content (%resolve-variables content variables)))
+         (content (%resolve-variables content environment)))
     (when-let* ((result (with-input-from-string (stream content)
                           (analyze stream :pkg-config :name name))))
       (getf result :provides))))

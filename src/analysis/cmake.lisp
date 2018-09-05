@@ -436,15 +436,16 @@
       (let ((label include))
         (with-simple-restart
             (continue "~@<Ignore included file ~S.~@:>" label)
-          (let* ((resolved (%resolve-variables
-                            include environment
-                            :if-unresolved (rcurry #'%resolution-error
-                                                   "include(…) expression")))
-                 (filename (merge-pathnames resolved source))
-                 (results
-                   (when (probe-file filename)
-                     (setf label resolved)
-                     (analyze filename kind :environment environment))))
+          (when-let* ((resolved (%resolve-variables
+                                 include environment
+                                 :if-unresolved (rcurry #'%resolution-error
+                                                        "include(…) expression")))
+                      (filename (unless (emptyp resolved)
+                                  (merge-pathnames resolved source)))
+                      (results  (when (probe-file filename)
+                                  (setf label resolved)
+                                  (analyze filename kind
+                                           :environment environment))))
             (appendf included-requires (getf results :requires))))))
 
     ;; Compute and resolve name and version, analyze find_package(…)

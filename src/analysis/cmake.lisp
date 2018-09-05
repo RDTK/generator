@@ -453,7 +453,8 @@
     (let+ ((name/resolved    (when implicit-provides?
                                (resolve "${CMAKE_PROJECT_NAME}")))
            ((&flet resolve-project-variable (name)
-              (resolve (format nil "${~A_~A}" "CMAKE_PROJECT" name))))
+              (or (resolve (format nil "${~A_~A}" "CMAKE_PROJECT" name))
+                  (resolve (format nil "${~:@(~A~)_~A}" name/resolved name)))))
            (version          (when implicit-provides?
                                (or project-version
                                    (when name/resolved

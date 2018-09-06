@@ -37,7 +37,7 @@
                                        :test #'string=)))
                  ("most-specific"
                   (lambda (values)
-                    (some #'identity values))))))
+                    (some #'identity (reverse values)))))))
     (value-parse (platform-specific-value spec platform name
                                           :merge merge))))
 

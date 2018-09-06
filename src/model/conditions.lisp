@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used by the project module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -12,7 +12,8 @@
   ((specification :initarg  :specification
                   :reader   instantiation-condition-specification
                   :documentation
-                  ""))
+                  "The specification the instantiation of which caused
+                   the condition."))
   (:default-initargs
    :specification (missing-required-initarg
                    'instantiation-condition :specification))
@@ -26,9 +27,8 @@
   (:report
    (lambda (condition stream)
      (format stream "~@<Error during instantiation of ~
-                     ~{~A~^ » ~}~/more-conditions:maybe-print-cause/~@:>"
-             (nreverse
-              (ancestors (instantiation-condition-specification condition)))
+                     ~A~/more-conditions:maybe-print-cause/~@:>"
+             (instantiation-condition-specification condition)
              condition)))
   (:documentation
    "This error is signaled when an error is encountered during the
@@ -40,7 +40,7 @@
   ((thing :initarg  :thing
           :reader   deployment-condition-thing
           :documentation
-          ""))
+          "The thing the deployment of which caused the condition."))
   (:default-initargs
    :thing (missing-required-initarg 'deployment-condition :thing))
   (:documentation
@@ -53,9 +53,8 @@
   (:report
    (lambda (condition stream)
      (format stream "~@<Error during deployment of ~
-                     ~{~A~^ » ~}~/more-conditions:maybe-print-cause/~@:>"
-             (nreverse
-              (ancestors (deployment-condition-thing condition)))
+                     ~A~/more-conditions:maybe-print-cause/~@:>"
+             (deployment-condition-thing condition)
              condition)))
   (:documentation
    "This error is signaled when an error is encountered during

@@ -37,6 +37,6 @@
       (otherwise
        (object-error
         (list (list spec "specified here" :error))
-        "~@<Dependency specification must a list of two or three ~
+        "~@<Dependency specification must be a list of two or three ~
          elements or a dictionary with keys \"nature\", \"target\" and ~
          optionally \"version\".~@:>")))))

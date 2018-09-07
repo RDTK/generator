@@ -316,7 +316,9 @@
                     &key
                     parent-environment
                     implicit-provides?)
-  (log:info "~@<Analyzing directory ~S~@:>" source)
+  (log:info "~@<Analyzing directory ~S (~S) ~:[without~;with~] ~
+             implicit provides~@:>"
+            source (probe-file source) implicit-provides?)
   (let+ ((lists-file (merge-pathnames *main-cmake-file-name* source))
          ((&values (&plist-r/o (provides :provides) (requires :requires))
                    environment
@@ -471,7 +473,8 @@
       (values
        (list
         :provides (when name/resolved
-                    (list (%make-dependency name/resolved version/resolved)))
+                    (%make-dependencies name/resolved
+                                        :version version/resolved))
         :requires (merge-dependencies
                    (append (%analyze-find-packages content environment)
                            (%analyze-pkg-configs content environment)

@@ -335,6 +335,25 @@
   (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
     (setf (timeout/minutes timeout) timeout/minutes)))
 
+;;; sonar cube scanner aspect
+
+(define-aspect (sonar-cube-scanner) ()
+    ((mode :type (or (eql :inject) (eql :explicit))
+      :documentation
+      "How should the SonarCube Scanner be invoked?
+
+       inject: Insert a wrapper that defines environment variables to
+       be picked up by Maven or Gradle invocations.
+
+       explicit: Insert a build step that invokes the scanner
+       explicitly."))
+  "Adds SonarCube Scanner configuration."
+  (ecase mode
+    (:inject
+     (with-interface (build-wrappers job) (nil (build-wrapper/sonar))))
+    (:explicit
+     (error "Not implemented."))))
+
 ;;; Slaves aspect
 
 ;; TODO separate slaves aspect for matrix-project jobs?

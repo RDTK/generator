@@ -18,7 +18,11 @@
     the" (:verb "project()") "command is now considered.")
 
   (:enhancement
-   "Unfulfilled dependencies are reported more compactly."))
+   "Unfulfilled dependencies are reported more compactly.")
+
+  (:enhancement
+   "The SonarCube Scanner plugin for standard build steps such as
+    Ant, Maven and Gradle is now supported."))
 
  (:release "0.23" "2018-07-20"
 

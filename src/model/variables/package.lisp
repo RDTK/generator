@@ -25,6 +25,10 @@
    #:undefined-variable-warning
    #:undefined-variable-error)
 
+  ;; Types
+  (:export
+   #:list-of)
+
   ;; Variables
   (:export
    #:*traced-variables*)

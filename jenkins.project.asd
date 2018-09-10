@@ -99,6 +99,7 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")
+                              (:file     "types")
                               (:file     "variables")
                               (:file     "protocol")
                               (:file     "schema")

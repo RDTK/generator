@@ -197,7 +197,17 @@
 
 (defmethod as ((value t) (type cons) &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
-  (case (car type)
+  (case (first type)
+    (list-of
+     (let ((element-type (second type)))
+       (values-list
+        (reduce (lambda+ (value (values all-match?))
+                  (let+ (((&values value match?)
+                          (as value element-type
+                              :if-type-mismatch nil)))
+                    (list (list* value values)
+                          (and match? all-match?))))
+                value :initial-value '(() t) :from-end t))))
     (or
      (dolist (type (rest type))
        (let+ (((&values value match?)

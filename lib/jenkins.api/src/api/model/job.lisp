@@ -132,11 +132,12 @@
                                            :if-no-match :do-nothing)
                             (default       "defaultValue/text()"
                                            :if-no-match :do-nothing))
-    value
+      value
     (list* :kind (switch (class :test #'string=)
-                         ("hudson.model.TextParameterDefinition"   :text)
-                         ("hudson.model.StringParameterDefinition" :string)
-                         (t                                        class))
+                   ("hudson.model.TextParameterDefinition"    :text)
+                   ("hudson.model.StringParameterDefinition"  :string)
+                   ("hudson.model.BooleanParameterDefinition" :boolean)
+                   (t                                         class))
            :name name
            (append
             (when description (list :description description))
@@ -150,15 +151,16 @@
                         (name1          "name/text()")
                         (description1   "description/text()")
                         (default1       "defaultValue/text()"))
-    dest
+      dest
     (let+ (((&key kind name description default) value))
-          (setf class (case kind
-                        (:text   "hudson.model.TextParameterDefinition")
-                        (:string "hudson.model.StringParameterDefinition")
-                        (t       kind))
-                name1        name
-                description1 (or description "")
-                default1     (or default ""))))
+      (setf class        (case kind
+                           (:text    "hudson.model.TextParameterDefinition")
+                           (:string  "hudson.model.StringParameterDefinition")
+                           (:boolean "hudson.model.BooleanParameterDefinition")
+                           (t        kind))
+            name1        name
+            description1 (or description "")
+            default1     (or default ""))))
   dest)
 
 (define-interface-implementations (property)

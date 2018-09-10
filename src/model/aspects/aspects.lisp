@@ -73,18 +73,16 @@
 (define-aspect (parameters) ()
     ((parameters :type (or (list-of parameter-entry)
                            (list-of parameter-entry/legacy))
-                 :documentation
-                 "A list of parameters that should be configured for the
+      :documentation
+      "A list of parameters that should be configured for the
        generated job.
 
        Each entry has to be of one of the forms
 
-         {
-           \"name\":        \"NAME\"
-           \"kind\":        \"KIND\",
-           \"default\":     DEFAULT,
-           \"description\": \"DESCRIPTION\"
-         }
+         name:        NAME
+         kind:        KIND
+         default:     DEFAULT
+         description: DESCRIPTION
 
        where
 

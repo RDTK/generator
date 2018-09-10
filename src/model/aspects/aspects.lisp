@@ -63,7 +63,8 @@
     (when-let* ((name (assoc-value value :name))
                 (kind (assoc-value value :kind))
                 (kind (as kind '(or (eql :text)
-                                    (eql :string))
+                                    (eql :string)
+                                    (eql :boolean))
                           :if-type-mismatch nil)))
       (values
        (list* :name name

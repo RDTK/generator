@@ -22,7 +22,10 @@
 
   (:enhancement
    "The SonarCube Scanner plugin for standard build steps such as
-    Ant, Maven and Gradle is now supported."))
+    Ant, Maven and Gradle is now supported.")
+
+  (:enhancement
+   "Boolean parameters for Jenkins jobs are now supported."))
 
  (:release "0.23" "2018-07-20"
 

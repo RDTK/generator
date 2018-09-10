@@ -82,6 +82,31 @@
 
 ;;; `distribution-spec' class
 
+(defun operator-not (value)
+  (if (as value 'boolean) nil t))
+
+(defun operator-and (&rest values)
+  (if (every (rcurry #'as 'boolean) values) t nil))
+
+(defun operator-or (&rest values)
+  (if (some (rcurry #'as 'boolean) values) t nil))
+
+(defun operator-if (value then &optional else)
+  (value-parse (if (print (as value 'boolean)) then else)))
+
+(let ((c (make-instance 'direct-variables-mixin
+                        :variables (rest (value-parse `((:not  . ,#'operator-not)
+                                                        (:and  . ,#'operator-and)
+                                                        (:or   . ,#'operator-or)
+                                                        (:if   . ,#'operator-if)
+
+                                                        (:foo  . "true")
+                                                        (:list . ("a" "b"))
+                                                        (:bar  . "$(if true @{list})")
+                                                        (:baz  . ("${bar}"))
+                                                        (:fez  . ("@{baz}" "$(if ${foo} $(if $(or $(not ${foo}) ${foo}) 2 3) ${bar})"))))))))
+  (value c :fez))
+
 (defclass distribution-spec (named-mixin
                              direct-variables-mixin
                              person-container-mixin
@@ -104,6 +129,12 @@
 (defmethod direct-variables ((thing distribution-spec))
   (value-acons :distribution-name       (name thing)
                :platform-specific-value #'platform-specific-value-adapter
+
+               :not                     #'operator-not
+               :and                     #'operator-and
+               :or                      #'operator-or
+               :if                      #'operator-if
+
                (when (next-method-p)
                  (call-next-method))))
 

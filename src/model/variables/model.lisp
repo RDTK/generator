@@ -1,6 +1,6 @@
 ;;;; model.lisp --- Model for value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -153,8 +153,8 @@
                 thing)
                ((and (stringp thing) (emptyp thing))
                 nil)
-               ((and (stringp thing)
-                     (not (position #\{ thing))
+               ((and (stringp thing) ; fast path
+                     (not (ppcre:scan "(:?(:?\\$|@)(:?{|\\()|\\\\)" thing))
                      (not (position #\\ thing)))
                 thing)
                ((stringp thing)

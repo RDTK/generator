@@ -44,23 +44,54 @@
   (and (listp thing) (every (of-type 'parameter-entry/legacy) thing)))
 
 (defun parameter-entry? (thing)
-  (and (consp thing)
-       (every #'consp thing)
-       (loop :with name? = nil
-          :with kind? = nil
-          :for (key . value) :in thing
-          :always (member key '(:name :kind :default :description))
-          :when (eq key :name) :do (setf name? t)
-          :when (eq key :kind) :do (setf kind? t)
-          :finally (return (and name? kind?)))
-       (member (assoc-value thing :kind) '("text" "string")
-               :test #'string=)))
+  (nth-value 1 (as thing 'parameter-entry :if-type-mismatch nil)))
 
 (deftype parameter-entry ()
   '(and cons (satisfies parameter-entry?)))
 
 (defun every-parameter-entry (thing)
   (and (listp thing) (every (of-type 'parameter-entry) thing)))
+
+(defmethod as ((value t) (type (eql 'parameter-entry)) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (when (and (consp value)
+             (every (lambda (cell)
+                      (and (consp cell)
+                           (member (car cell)
+                                   '(:name :kind :default :description))))
+                    value))
+    (when-let* ((name (assoc-value value :name))
+                (kind (assoc-value value :kind))
+                (kind (as kind '(or (eql :text)
+                                    (eql :string))
+                          :if-type-mismatch nil)))
+      (values
+       (list* :name name
+              :kind kind
+              (append (when-let ((default (assoc-value value :default)))
+                        `(:default ,default))
+                      (when-let ((description (assoc-value value :description)))
+                        `(:description ,description))))
+       t))))
+
+(defmethod as ((value t) (type (eql 'parameter-entry/legacy))
+               &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (when (typep value '(cons string))
+    (log:warn "~@<Parameter specific uses legacy format: ~S.~@:>"
+              (json:encode-json-to-string value))
+    (destructuring-bind (kind name &optional (default nil default?))
+        value
+      (when-let ((kind (as kind '(or (eql :text) (eql :string)))))
+        (values (list* :kind kind :name name
+                       (when default?
+                         (list :default default)))
+                t)))))
+
+(assert (equal (as '((:name . "foo") (:kind . "text")) 'parameter-entry)
+               '(:name "foo" :kind :text)))
+(assert (equal (as '(((:name . "foo") (:kind . "text"))) '(list-of parameter-entry))
+               '((:name "foo" :kind :text))))
 
 (assert (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry/legacy)))
 (assert (not (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry))))
@@ -101,40 +132,11 @@
        For more details, see Jenkins documentation."))
   "Adds parameters to the created job."
   (with-interface (properties job) (parameters* (property/parameters))
-    (mapc (lambda+ ((&key
-                     kind
-                     name
-                     (default     nil default?)
-                     (description nil description?)))
+    (mapc (lambda+ ((&whole spec &key name &allow-other-keys))
             (setf (parameters parameters*)
-                  (remove name (parameters parameters*)
-                          :key (rcurry #'getf :name)))
-            (let ((kind (cond
-                          ((string= kind "text")   :text)
-                          ((string= kind "string") :string)
-                          (t
-                           (error "~@<Unsupported parameter kind: ~S.~@:>"
-                                  kind)))))
-              (push (list* :kind kind :name name
-                           (append (when default?
-                                     (list :default default))
-                                   (when description?
-                                     (list :description description))))
-                    (parameters parameters*))))
-          (map 'list (lambda (spec)
-                       (etypecase spec
-                         ((cons (cons keyword t))
-                          (alist-plist spec))
-                         ((cons string)
-                          (log:info "~@<Parameter specific uses legacy format: ~S.~@:>"
-                                    (json:encode-json-to-string spec))
-                          (destructuring-bind
-                                (kind name &optional (default nil default?))
-                              spec
-                            (list* :kind kind :name name
-                                   (when default?
-                                     (list :default default)))))))
-               parameters))))
+                  (list* spec (remove name (parameters parameters*)
+                                      :key (rcurry #'getf :name)))))
+          parameters)))
 
 ;;; Retention aspect
 

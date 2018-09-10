@@ -17,8 +17,11 @@
 
 (defmacro with-interface ((accessor object) (var (class &rest initargs))
                           &body body)
-  `(let ((,var (ensure-interface (,accessor ,object) (,class ,@initargs))))
-     ,@body))
+  (let ((ensure `(ensure-interface (,accessor ,object) (,class ,@initargs))))
+    `(,@ (if var
+             `(let ((,var ,ensure)))
+             `(progn ,ensure))
+         ,@body)))
 
 ;;; Description aspect
 

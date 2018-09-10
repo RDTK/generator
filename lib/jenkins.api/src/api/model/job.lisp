@@ -259,7 +259,11 @@
     (fail-build?     :type     boolean
                      :xpath   "failBuild/text()"
                      :initform nil))
-   (:name-slot kind)))
+   (:name-slot kind))
+
+  ((sonar "hudson.plugins.sonar.SonarBuildWrapper"
+          :plugin "sonar@2.6.1")
+   ()))
 
 ;;; builder interface
 

@@ -82,17 +82,50 @@
 
 ;;; `distribution-spec' class
 
-(defun operator-not (value)
-  (if (as value 'boolean) nil t))
+(defun operator-not (thunk)
+  (if (as (first (funcall thunk)) 'boolean) nil t))
 
-(defun operator-and (&rest values)
-  (if (every (rcurry #'as 'boolean) values) t nil))
+(defun operator-and (&rest thunks)
+  (let+ ((thunks    thunks)
+         (arguments '())
+         ((&flet fetch ()
+            (when thunks
+              (setf arguments (funcall (pop thunks))))))
+         ((&flet argument ()
+            (unless arguments
+              (fetch))
+            (if arguments
+                (values (pop arguments) t)
+                (values nil             nil)))))
+    (loop :for (argument argument?) = (multiple-value-list (argument))
+          :while argument?
+          :do (print argument)
+          :always argument)))
 
-(defun operator-or (&rest values)
-  (if (some (rcurry #'as 'boolean) values) t nil))
+(operator-and)
+(operator-and (lambda () (print 1) (list t)))
+(operator-and (lambda () (print 2) (list t nil)))
+(operator-and (lambda () (print 2) (list nil)))
+(operator-and (lambda () (print 3) (list t t t))   (lambda () (print 4) (list t nil)))
+(operator-and (lambda () (print 5) (list nil)) (lambda () (print 5) (list t)))
 
-(defun operator-if (value then &optional else)
-  (value-parse (if (print (as value 'boolean)) then else)))
+(defun operator-or (&rest thunks)
+  (if (some (lambda (thunk)
+              (as (funcall thunk) 'boolean :if-type-mismatch 1))
+            thunks)
+      t
+      nil))
+
+(defun operator-if (value-thunk then-thunk &optional else-thunk)
+  (print (value-parse (if (as (first (funcall value-thunk)) 'boolean :if-type-mismatch 1)
+                          (first (funcall then-thunk))
+                          (when else-thunk (first (funcall else-thunk)))))))
+
+(defun operator-equal (&rest thunks)
+  (let ((arguments (mappend #'funcall thunks)))
+    (unless (length= 2 arguments)
+      (error "Invalid number of arguments"))
+    (apply #'equal arguments)))
 
 (let ((c (make-instance 'direct-variables-mixin
                         :variables (rest (value-parse `((:not  . ,#'operator-not)
@@ -102,10 +135,108 @@
 
                                                         (:foo  . "true")
                                                         (:list . ("a" "b"))
-                                                        (:bar  . "$(if true @{list})")
-                                                        (:baz  . ("${bar}"))
-                                                        (:fez  . ("@{baz}" "$(if ${foo} $(if $(or $(not ${foo}) ${foo}) 2 3) ${bar})"))))))))
+                                                        (:bar  . "$(if true ${list})")
+                                                        (:baz  . " ${bar}")
+                                                        (:fez  . (" @{baz}" "$(if ${foo}
+                                                                                 $(if $(or $(not ${foo}) ${foo}) 2 3)
+                                                                                 \"baz ${bar} fez\")"))))))))
   (value c :fez))
+
+(let ((c (make-instance 'direct-variables-mixin
+                        :variables (rest (value-parse `((:not  . ,#'operator-not)
+                                                        (:and  . ,#'operator-and)
+                                                        (:or   . ,#'operator-or)
+                                                        (:if   . ,#'operator-if)
+                                                        (:equal   . ,#'operator-equal)
+
+                                        ; (:finish-hook-name . "foo")
+                                                        (:li . "$(if $(equal 1 2) [3,4])")
+                                                        (:list . "$(if true [1,2,'@{li}'])")
+                                                        (:prepare-hook-name . "prepare")
+                                                        (:run-prepare . "$(if ${prepare-hook-name|}
+                    'runHook(\"Running prepare hook job\", \"${prepare-hook-name}\")')")
+                                                        (:run-finish  . "$(if ${finish-hook-name|}
+         |
+           runHook(\"Running finish hook job\", \"${finish-hook-name}\")
+         ${list})")))))))
+  (value c :run-prepare))
+
+(let ((c (make-instance 'direct-variables-mixin
+                        :variables (rest (value-parse `((:not  . ,#'operator-not)
+                                                        (:and  . ,#'operator-and)
+                                                        (:or   . ,#'operator-or)
+                                                        (:if   . ,#'operator-if)
+                                                        (:equal   . ,#'operator-equal)
+
+                                        ; (:finish-hook-name . "foo")
+                                                        (:li . "$(if $(equal 1 2) [3,4])")
+                                                        (:list . "$(if true [1,2,'@{li}'])")
+                                                        (:prepare-hook-name . "prepare")
+                                                        (:run-prepare . "$(if ${prepare-hook-name|}
+                    'runHook(\"Running prepare hook job\", \"${prepare-hook-name}\")')")
+                                                        (:run-finish  . "$(if ${finish-hook-name|}
+         |
+           runHook(\"Running finish hook job\", \"${finish-hook-name}\")
+         ${list})")))))))
+  (value c :run-prepare))
+
+(let ((c (make-instance 'direct-variables-mixin
+                        :variables (rest (value-parse `((:not  . ,#'operator-not)
+                                                        (:and  . ,#'operator-and)
+                                                        (:or   . ,#'operator-or)
+                                                        (:if   . ,#'operator-if)
+                                                        (:equal   . ,#'operator-equal)
+
+                                                        (:list . (1 2))
+                                                        (:value . "$(if true ${list})")))))))
+  (value c :value))
+
+
+
+(defun try-yaml (text &key (indent 0) (start 0))
+  (architecture.builder-protocol:with-builder ('list)
+    (let ((language.yaml.parser::*c* :flow-in)
+          (language.yaml.parser::*n* -1))
+      (esrap:parse 'language.yaml.parser::ns-flow-yaml-node
+                   ;; 'language.yaml.parser::c-flow-json-node
+                   ;; 'language.yaml.parser::s-l+flow-in-block
+                   ;; 'language.yaml.parser::s-l+block-node
+                   text :start start :junk-allowed t))))
+
+(try-yaml "hallo 'foo'" :start 6 :indent 0)
+(try-yaml "\"baz ${bar} fez\"")
+(try-yaml "!baz foo: bar")
+(esrap:parse 'jenkins.model.variables::expr "$(if true @{list})")
+(esrap:parse 'jenkins.model.variables::expr
+             "$(if '${foo}'
+  |
+    $(if $(or $(not ${foo}) ${foo}) 2 3)
+      foo
+    baz ${bar} fez
+  foo: bar
+)")
+
+(esrap:parse 'jenkins.model.variables::expr
+             "$(if ${foo} $(if $(or $(not ${foo}) ${foo}) 2 3)
+  baz: |
+    ${bar}
+  fez: true
+)")
+
+(esrap:parse 'jenkins.model.variables::expr
+ "$(if ${foo}
+       $(if $(or $(not ${foo}) ${foo}) 2 3)
+       \"baz ${bar} fez\")")
+
+(architecture.builder-protocol:with-builder ('list)
+  (let ((language.yaml.parser::*c* :block-in)
+        (language.yaml.parser::*n* 1))
+    (esrap:parse 'language.yaml.parser::s-l+block-node
+                 "  baz: |
+    ${bar}
+  fez: true"
+                 :start 0 :junk-allowed t)))
+
 
 (defclass distribution-spec (named-mixin
                              direct-variables-mixin
@@ -134,6 +265,7 @@
                :and                     #'operator-and
                :or                      #'operator-or
                :if                      #'operator-if
+               :equal                   #'operator-equal
 
                (when (next-method-p)
                  (call-next-method))))

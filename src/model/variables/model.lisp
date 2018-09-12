@@ -151,8 +151,6 @@
              (cond
                ((typep thing '(or real boolean function))
                 thing)
-               ((and (stringp thing) (emptyp thing))
-                nil)
                ((and (stringp thing) ; fast path
                      (not (ppcre:scan "(:?(:?\\$|@)(:?{|\\()|\\\\)" thing))
                      (not (position #\\ thing)))

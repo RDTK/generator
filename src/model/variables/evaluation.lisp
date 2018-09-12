@@ -130,7 +130,7 @@
                                     (recur result result (lookup new-lookup) '()))))
                        (when value (list (drill-down path (first value)))))
                      (with-augmented-trace (name nil (cons name result))
-                       (recur result                                 result (lookup new-lookup) '())))))
+                       (recur result result (lookup new-lookup) '())))))
 
               ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
@@ -150,7 +150,10 @@
                                           root
                                           (funcall lookup name))))
                         (arguments  (with-augmented-trace (:arguments nil (list arguments))
-                                      (mappend (rcurry #'recur root lookup path) arguments)))
+                                      (map 'list (lambda (argument)
+                                                   (lambda ()
+                                                     (recur argument root lookup path)))
+                                           arguments)))
                         ((&values result/raw root path)
                          (etypecase callable
                            (function
@@ -174,7 +177,10 @@
                                           root
                                           (funcall lookup name))))
                         (arguments  (with-augmented-trace (:arguments nil (list arguments))
-                                      (mappend (rcurry #'recur root lookup path) arguments)))
+                                      (map 'list (lambda (argument)
+                                                   (lambda ()
+                                                     (recur argument root lookup path)))
+                                           arguments)))
                         ((&values result/raw root path)
                          (etypecase callable
                            (function

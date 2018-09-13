@@ -473,8 +473,7 @@
       (values
        (list
         :provides (when name/resolved
-                    (%make-dependencies name/resolved
-                                        :version version/resolved))
+                    (list (%make-dependency name/resolved version/resolved)))
         :requires (merge-dependencies
                    (append (%analyze-find-packages content environment)
                            (%analyze-pkg-configs content environment)
@@ -605,7 +604,7 @@
                     &key
                     project-version)
   (when-let ((name (config-file->project-name source)))
-    (%make-dependencies name :version project-version)))
+    (list (%make-dependency name project-version))))
 
 ;;; pkg-config Template Files
 
@@ -629,22 +628,6 @@
   (list* nature name (typecase version
                        (string (list (parse-version version)))
                        (cons   (list version)))))
-
-(defun %make-dependencies (name
-                           &key
-                           version
-                           (add-lower-case? t)
-                           (add-upper-case? t))
-  (let ((name/lower-case (when add-lower-case?
-                           (string-downcase name)))
-        (name/upper-case (when add-upper-case?
-                           (string-upcase name))))
-    (append
-     (list (%make-dependency name version))
-     (when (and name/lower-case (string/= name/lower-case name))
-       (list (%make-dependency name/lower-case version)))
-     (when (and name/upper-case (string/= name/upper-case name))
-       (list (%make-dependency name/upper-case version))))))
 
 (defun %project-version-from-variables (versions)
   (let+ (((&flet find-component (name)

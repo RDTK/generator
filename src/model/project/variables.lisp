@@ -1,6 +1,6 @@
 ;;;; variables.lisp --- Variables used by the project module.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -84,7 +84,7 @@
                                 (providers         (providers/alist))
                                 order)
   (log:trace "~@<Trying to find provider of ~S~@:>" spec)
-  (let+ (((mechanism name &optional version) spec)
+  (let+ (((nature target &optional version) spec)
          ((&flet version-better (left right)
             (cond
               ((equal version left) ; LEFT is an exact match => LEFT is best
@@ -109,13 +109,15 @@
                      (version-better (provider-version (car left))
                                      (provider-version (car right)))))))
          ;; Find providers in PROVIDERS which can provide the required
-         ;; MECHANISM, NAME and VERSION of SPEC.
-         (candidates (remove-if-not (lambda+ ((mechanism1 name1 &optional version1))
-                                      (and (eq              mechanism1 mechanism)
-                                           (string=         name1      name)
-                                           (version-matches version    version1)))
-                                    providers
-                                    :key #'car))
+         ;; NATURE, TARGET and VERSION of SPEC.
+         (candidates (remove-if-not
+                      (lambda+ ((other-nature other-target &optional other-version))
+                        (and (eq other-nature nature)
+                             (or (string= other-target target)
+                                 (and (eq nature :cmake)
+                                      (string-equal other-target target)))
+                             (version-matches version other-version)))
+                      providers :key #'car))
          ;; Sort CANDIDATES according to PROVIDER-BETTER (which may
          ;; use ORDER).
          (candidates (stable-sort candidates #'provider-better)))

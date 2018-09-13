@@ -161,7 +161,7 @@
                            (variable-expression-alist
                             (let ((path (reverse (mapcar (compose #'make-keyword
                                                                   #'string-upcase)
-                                                         arguments))))
+                                                         (mappend #'funcall arguments)))))
                               (values (drill-down/raw path callable)
                                       callable
                                       path))))))
@@ -188,7 +188,7 @@
                            (variable-expression-alist
                             (let ((path (reverse (mapcar (compose #'make-keyword
                                                                   #'string-upcase)
-                                                         arguments))))
+                                                         (mappend #'funcall arguments)))))
                               (values (drill-down/raw path callable)
                                       callable
                                       path))))))

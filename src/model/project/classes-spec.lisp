@@ -29,17 +29,22 @@
   (when-let ((info (find-variable name :if-does-not-exist nil)))
     (aggregation info)))
 
-(defun platform-specific-value-adapter (spec platform name &optional (merge "append"))
-  (let ((merge (eswitch (merge :test string=)
-                 ("append"
-                  (lambda (values)
-                    (remove-duplicates (reduce #'append values :from-end t)
-                                       :test #'string=)))
-                 ("most-specific"
-                  (lambda (values)
-                    (some #'identity (reverse values)))))))
-    (value-parse (platform-specific-value spec platform name
-                                          :merge merge))))
+(defun platform-specific-value-adapter (spec-thunk platform-thunk name-thunk
+                                        &optional (merge-thunk (constantly "append")))
+  (let ((spec     (first (funcall spec-thunk)))
+        (platform (first (funcall platform-thunk)))
+        (name     (first (funcall name-thunk)))
+        (merge    (first (funcall merge-thunk))))
+    (let ((merge (eswitch (merge :test string=)
+                   ("append"
+                    (lambda (values)
+                      (remove-duplicates (reduce #'append values :from-end t)
+                                         :test #'string=)))
+                   ("most-specific"
+                    (lambda (values)
+                      (some #'identity (reverse values)))))))
+      (value-parse (platform-specific-value spec platform name
+                                            :merge merge)))))
 
 ;;; `distribution-include'
 

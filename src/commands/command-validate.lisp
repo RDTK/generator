@@ -92,7 +92,7 @@
          (projects
           (when (validation-level>= level :check-variables)
             (check-variables/early projects)))
-         ((&values distributions &ign)
+         ((&values distributions analyzed-projects)
           (when (validation-level>= level :analyze)
             (generate-analyze distributions projects
                               :generator-version (generator-version)
@@ -102,6 +102,8 @@
           (when (validation-level>= level :instantiate)
             (as-phase (:instantiate/project)
               (instantiate-projects analyzed-projects distributions)))))
+    (when (validation-level>= level :analyze)
+      (check-dependencies analyzed-projects))
     (when (validation-level>= level :check-access)
       (check-distribution-access distributions))))
 
@@ -213,4 +215,42 @@
       ;; Report
       (funcall description-checker)
       (funcall title-checker))
+    projects))
+
+;;;
+
+(defun check-project-dependencies (project)
+  (mapc (lambda (project-version)
+          (let ((requires/analysis (jenkins.model.project::%requires project-version))
+                (requires/extra    (map 'list #'jenkins.model.project::parse-dependency-spec
+                                        (value/cast project-version :extra-requires '()))))
+            (when-let ((redundant (intersection requires/analysis requires/extra
+                                                :test #'equalp :key #'second)))
+              (error "~@<Redundant requirement specification: ~S~@:_~
+                      ~2@TAnalysis: ~<~S~:>~@:_~
+                      ~2@TExtra:    ~<~S~:>~@:>"
+                     redundant (list requires/analysis) (list requires/extra))))
+          (let ((provides/analysis (jenkins.model.project::%provides project-version))
+                (provides/extra    (remove :meta (map 'list #'jenkins.model.project::parse-dependency-spec
+                                                      (value/cast project-version :extra-provides '()))
+                                           :key #'first)))
+            (when-let ((redundant (intersection provides/analysis provides/extra
+                                                :test #'equalp :key #'second)))
+              (error "~@<Redundant provided specification: ~S~@:_~
+                      ~2@TAnalysis: ~<~S~:>~@:_~
+                      ~2@TExtra:    ~<~S~:>~@:>"
+                     redundant (list provides/analysis) (list provides/extra)))))
+        (versions project)))
+
+(defun check-dependencies (projects)
+  (as-phase (:check-dependencies)
+    (with-sequence-progress (:check-dependencies projects)
+      (mapc ;lparallel:pmapc
+       (lambda (project)
+         (progress "~A" project)
+         (with-simple-restart
+             (continue "~@<Skip project ~A.~@:>" project)
+           (check-project-dependencies project)))
+       ;; :parts 100
+       projects))
     projects))

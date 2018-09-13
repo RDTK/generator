@@ -417,18 +417,22 @@
 
     ;; Collect variables for project(…) calls.
     (ppcre:do-register-groups (project version) (*project-scanner* content)
-      (log:info "~@<Found project(…) call with name ~S~@[ and version ~S~]~@:>"
-                project version)
-      (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
-                                                   (uiop:pathname-directory-pathname
-                                                    source)))
-      (add-project-variable! "PROJECT_NAME"       project)
-      (when version
-        (add-project-variable! "PROJECT_VERSION" version)
-        (loop :for name      :in '("MAJOR" "MINOR" "PATH")
-              :for value     :in (parse-version version)
-              :for variable  =   (format nil "PROJECT_VERSION_~A" name)
-              :do  (add-project-variable! variable (princ-to-string value)))))
+      (let ((project/resolved (resolve project))
+            (version/resolved (resolve version)))
+        (log:info "~@<Found project(…) call with name ~{~S~^ → ~S~}~
+                   ~@[ and version ~{~S~^ → ~S~}~]~@:>"
+                  (%list-unless-equal project project/resolved)
+                  (%list-unless-equal version version/resolved))
+        (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
+                                                     (uiop:pathname-directory-pathname
+                                                      source)))
+        (add-project-variable! "PROJECT_NAME"       project/resolved)
+        (when version/resolved
+          (add-project-variable! "PROJECT_VERSION" version/resolved)
+          (loop :for name      :in '("MAJOR" "MINOR" "PATH")
+                :for value     :in (parse-version version/resolved)
+                :for variable  =   (format nil "PROJECT_VERSION_~A" name)
+                :do  (add-project-variable! variable (princ-to-string value))))))
     ;; If we found a define_project_version(…) call, use the versions
     ;; defined there.
     (mapc (curry #'apply #'add-variable!) components)

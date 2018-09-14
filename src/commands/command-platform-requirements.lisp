@@ -13,7 +13,22 @@
              :reader   platform
              :documentation
              #.(format nil "The platform for which dependencies should ~
-                be computed.")))
+                be computed.~@
+                ~@
+
+                The platform is specified as a space-separated ~
+                sequence of increasingly specific component ~
+                strings:~@
+                ~@
+                ~2@TSYSTEM-NAME [SYSTEM-VERSION [ARCHITECTURE]]~@
+                ~@
+                Examples:~@
+                ~@
+                • \"ubuntu\"~@
+                ~@
+                • \"ubuntu bionic\"~@
+                ~@
+                • \"ubuntu bionic x86_64\"")))
   (:documentation
    "Analyze system packages required on a given platform."))
 

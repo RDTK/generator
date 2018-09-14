@@ -1,6 +1,6 @@
 ;;;; ros-packages.lisp --- Analysis of multi-ROS package repositories.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -61,18 +61,10 @@
                                           #'string< :key #'first))))))))
          (requires (property-value/dependencies :requires))
          (provides (property-value/dependencies :provides)))
-    ;; Reduce to effectively required packages.
-    (setf requires
-          (set-difference
-           requires provides
-           :test (lambda+ ((&ign required-name &optional required-version)
-                           (&ign provided-name &optional provided-version))
-                   (and (string= required-name provided-name)
-                        (version-matches required-version provided-version)))))
     ;; Final result.
     `(:natures  (,kind)
       :provides ,provides
-      :requires ,requires
+      :requires ,(effective-requires requires provides)
       ,@(maybe-property/description   :description)
       ,@(maybe-property/merge-persons :authors)
       ,@(maybe-property/merge-persons :maintainers)

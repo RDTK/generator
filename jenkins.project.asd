@@ -64,6 +64,7 @@
                               (:file     "util")
                               (:file     "conditions")
                               (:file     "protocol")
+                              (:file     "dependencies")
                               (:file     "analysis")
 
                               ;; Cache

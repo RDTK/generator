@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -30,6 +30,16 @@
    #:unfulfilled-project-dependency-candidates
 
    #:unfulfilled-platform-dependency-error)
+
+  ;; Natures, targets and dependencies
+  (:export
+   #:same-target?
+   #:target-matches?
+
+   #:dependency-matches?
+
+   #:merge-dependencies
+   #:effective-requires)
 
   ;; Analysis protocol
   (:export

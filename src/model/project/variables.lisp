@@ -84,7 +84,7 @@
                                 (providers         (providers/alist))
                                 order)
   (log:trace "~@<Trying to find provider of ~S~@:>" spec)
-  (let+ (((nature target &optional version) spec)
+  (let+ (((&whole required &ign &ign &optional version) spec)
          ((&flet version-better (left right)
             (cond
               ((equal version left) ; LEFT is an exact match => LEFT is best
@@ -111,12 +111,7 @@
          ;; Find providers in PROVIDERS which can provide the required
          ;; NATURE, TARGET and VERSION of SPEC.
          (candidates (remove-if-not
-                      (lambda+ ((other-nature other-target &optional other-version))
-                        (and (eq other-nature nature)
-                             (or (string= other-target target)
-                                 (and (eq nature :cmake)
-                                      (string-equal other-target target)))
-                             (version-matches version other-version)))
+                      (curry #'jenkins.analysis:dependency-matches? required)
                       providers :key #'car))
          ;; Sort CANDIDATES according to PROVIDER-BETTER (which may
          ;; use ORDER).

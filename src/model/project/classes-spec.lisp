@@ -316,12 +316,10 @@
   (jobs (parent thing)))
 
 (defmethod requires :around ((spec version-spec))
-  (remove-duplicates
-   (call-next-method) :test #'equal :key (rcurry #'subseq 0 2)))
+  (jenkins.analysis:merge-dependencies (call-next-method)))
 
 (defmethod provides :around ((spec version-spec))
-  (remove-duplicates
-   (call-next-method) :test #'equal :key (rcurry #'subseq 0 2)))
+  (jenkins.analysis:merge-dependencies (call-next-method)))
 
 (defmethod requires ((spec version-spec))
   (append (mapcar #'parse-dependency-spec

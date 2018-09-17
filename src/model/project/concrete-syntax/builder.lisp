@@ -57,6 +57,7 @@
      (tag     (eql (language.yaml.tags:find-tag "tag:build-generator,2018:include")))
      &key
      content)
+  ;; TODO generalize mechanism in call-with-loading-template and use here
   (let ((filename (expand-pathname builder content)))
     (language.yaml:load filename :builder builder)))
 

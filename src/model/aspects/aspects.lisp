@@ -79,7 +79,7 @@
                &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
   (when (typep value '(cons string))
-    (log:warn "~@<Parameter specific uses legacy format: ~S.~@:>"
+    (log:warn "~@<Parameter specification uses legacy format: ~S.~@:>"
               (json:encode-json-to-string value))
     (destructuring-bind (kind name &optional (default nil default?))
         value

@@ -49,13 +49,21 @@
      (kind    (eql :scalar))
      (tag     (eql (language.yaml.tags:find-tag "tag:build-generator,2018:literal-include")))
      &key
-     content)
-  (let* ((filename  (expand-pathname builder content))
-         (content   (read-file-into-string filename))
-         (protected (protect-string content)))
-    (architecture.builder-protocol:make-node builder :scalar
-                                             :tag     "tag:yaml.org,2002:str"
-                                             :content protected)))
+     content
+     location)
+  (handler-bind ((error (lambda (condition)
+                          (setf (location-of content) location)
+                          (object-error
+                           `((,content "included here" :error))
+                           "~@<Could not literally-include the ~
+                            contents of \"~A\": ~A.~@:>"
+                           content condition))))
+    (let* ((filename  (expand-pathname builder content))
+           (content   (read-file-into-string filename))
+           (protected (protect-string content)))
+      (architecture.builder-protocol:make-node builder :scalar
+                                               :tag     "tag:yaml.org,2002:str"
+                                               :content protected))))
 
 (defun make-builder (source)
   (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder

@@ -8,9 +8,7 @@
 
 ;;; Deployment
 
-(defun instantiate-projects (specs
-                             &optional
-                             (distributions nil distributions-supplied?))
+(defun instantiate-projects (specs distributions)
   (let+ ((projects (mapcar (lambda (spec)
                              (instantiate spec :parent (parent spec)))
                            specs))
@@ -24,9 +22,7 @@
     (iter (for project in projects)
           (for spec    in specs)
           (when project
-            (apply #'add-dependencies! project spec
-                   (when distributions-supplied?
-                     (list :providers #'find-version)))
+            (add-dependencies! project spec :providers #'find-version)
             (collect project)))))
 
 (defun deploy-projects (projects)

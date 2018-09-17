@@ -80,9 +80,8 @@
 
 (defun find-provider/version (spec
                               &key
-                                (if-does-not-exist #'error)
-                                (providers         (providers/alist))
-                                order)
+                              (if-does-not-exist #'error)
+                              (providers         (providers/alist)))
   (log:trace "~@<Trying to find provider of ~S~@:>" spec)
   (let+ (((&whole required &ign &ign &optional version) spec)
          ((&flet version-better (left right)
@@ -104,10 +103,8 @@
          ((&flet provider-better (left right)
             ;; If ORDER is supplied, use it. If not (or ORDER returns
             ;; nil), use VERSION-BETTER.
-            (or (and order (funcall order left right))
-                (and (not (and order (funcall order right left)))
-                     (version-better (provider-version (car left))
-                                     (provider-version (car right)))))))
+            (version-better (provider-version (car left))
+                            (provider-version (car right)))))
          ;; Find providers in PROVIDERS which can provide the required
          ;; NATURE, TARGET and VERSION of SPEC.
          (candidates (remove-if-not

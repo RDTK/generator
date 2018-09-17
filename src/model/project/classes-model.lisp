@@ -45,12 +45,10 @@
 
 (defmethod add-dependencies! ((thing project) (spec project-spec)
                               &key
-                              (providers nil providers-supplied?))
-  (mapc (if providers-supplied?
-            (lambda (version version-spec)
-              (add-dependencies! version version-spec
-                                 :providers (funcall providers version-spec)))
-            #'add-dependencies!)
+                              (providers (missing-required-argument :providers)))
+  (mapc (lambda (version version-spec)
+          (add-dependencies! version version-spec
+                             :providers (funcall providers version-spec)))
         (versions thing) (versions spec)))
 
 (defmethod deploy ((thing project))
@@ -89,7 +87,7 @@
 
 (defmethod add-dependencies! ((thing version) (spec version-spec)
                               &key
-                              (providers nil providers-supplied?))
+                              (providers (missing-required-argument :providers)))
   (let+ (platform-provides (platform-provides? nil)
          ((&flet platform-provides ()
             (if platform-provides?
@@ -100,28 +98,18 @@
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
           (with-simple-restart (continue "~@<Skip requirement ~S.~@:>" requires)
-            (let+ (((&flet instantiable-jobs (spec)
-                      (remove-if-not (rcurry #'instantiate? spec) (jobs spec))))
-                   ((&flet count-jobs (provider)
-                      (length (intersection (instantiable-jobs spec)
-                                            (instantiable-jobs provider)
-                                            :test #'string= :key #'name))))
-                   ((&flet+ order ((&ign . left-provider) (&ign . right-provider))
-                      (> (count-jobs left-provider) (count-jobs right-provider))))
-                   (candidate (when-let ((match (apply #'find-provider/version requires
-                                                       :if-does-not-exist nil
-                                                       (if providers-supplied?
-                                                           (list :providers providers)
-                                                           (list :order #'order)))))
-                                (implementation match))))
-              (cond
-                (candidate
-                 (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-                 (unless (eq candidate thing)
-                   (pushnew candidate (%direct-dependencies thing))))
-                (t
-                 (find-provider/version
-                  requires :providers (platform-provides))))))))
+            (cond ((when-let* ((match     (find-provider/version
+                                           requires
+                                           :if-does-not-exist nil
+                                           :providers         providers))
+                               (candidate (implementation match)))
+                     (log:trace "~@<Best candidate is ~S.~@:>" candidate)
+                     (unless (eq candidate thing)
+                       (pushnew candidate (%direct-dependencies thing)))
+                     t))
+                  (t
+                   (find-provider/version
+                    requires :providers (platform-provides)))))))
 
   (mapc #'add-dependencies! (jobs thing) (jobs spec)))
 

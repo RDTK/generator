@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -90,33 +90,38 @@
 (defmethod add-dependencies! ((thing version) (spec version-spec)
                               &key
                               (providers nil providers-supplied?))
-  (iter (for requires in (requires spec))
-        (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
-                   requires thing)
-        (with-simple-restart (continue "~@<Skip requirement ~S.~@:>" requires)
-          (let+ (((&flet instantiable-jobs (spec)
-                    (remove-if-not (rcurry #'instantiate? spec) (jobs spec))))
-                 ((&flet count-jobs (provider)
-                    (length (intersection (instantiable-jobs spec)
-                                          (instantiable-jobs provider)
-                                          :test #'string= :key #'name))))
-                 ((&flet+ order ((&ign . left-provider) (&ign . right-provider))
-                    (> (count-jobs left-provider) (count-jobs right-provider))))
-                 (candidate (when-let ((match (apply #'find-provider/version requires
-                                                     :if-does-not-exist nil
-                                                     (if providers-supplied?
-                                                         (list :providers providers)
-                                                         (list :order #'order)))))
-                              (implementation match))))
-            (cond
-              (candidate
-               (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-               (unless (eq candidate thing)
-                 (pushnew candidate (%direct-dependencies thing))))
-              (t
-               (let ((platform-provides (platform-provides thing)))
+  (let+ (platform-provides (platform-provides? nil)
+         ((&flet platform-provides ()
+            (if platform-provides?
+                platform-provides
+                (setf platform-provides? t
+                      platform-provides  (platform-provides thing))))))
+    (iter (for requires in (requires spec))
+          (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
+                     requires thing)
+          (with-simple-restart (continue "~@<Skip requirement ~S.~@:>" requires)
+            (let+ (((&flet instantiable-jobs (spec)
+                      (remove-if-not (rcurry #'instantiate? spec) (jobs spec))))
+                   ((&flet count-jobs (provider)
+                      (length (intersection (instantiable-jobs spec)
+                                            (instantiable-jobs provider)
+                                            :test #'string= :key #'name))))
+                   ((&flet+ order ((&ign . left-provider) (&ign . right-provider))
+                      (> (count-jobs left-provider) (count-jobs right-provider))))
+                   (candidate (when-let ((match (apply #'find-provider/version requires
+                                                       :if-does-not-exist nil
+                                                       (if providers-supplied?
+                                                           (list :providers providers)
+                                                           (list :order #'order)))))
+                                (implementation match))))
+              (cond
+                (candidate
+                 (log:trace "~@<Best candidate is ~S.~@:>" candidate)
+                 (unless (eq candidate thing)
+                   (pushnew candidate (%direct-dependencies thing))))
+                (t
                  (find-provider/version
-                  requires :providers platform-provides)))))))
+                  requires :providers (platform-provides))))))))
 
   (mapc #'add-dependencies! (jobs thing) (jobs spec)))
 

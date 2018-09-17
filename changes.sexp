@@ -1,4 +1,4 @@
-((:release "0.24" nil
+((:release "0.24" "2018-09-17"
 
   (:incompatible-change
    "The default of the" (:verb "--on-error") "commandline option is

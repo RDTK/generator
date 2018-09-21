@@ -6,6 +6,23 @@
 
 (cl:in-package #:build-generator.language-server)
 
+(defun all-keywords ()
+ (handler-bind ((error #'continue))
+   (let* ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
+          (projects                           (progn
+                                                (map nil #'jenkins.model.project:load-template/yaml
+                                                     (directory "~/code/citec/citk/recipes/templates/toolkit/*.template"))
+                                                (mappend (lambda (filename)
+                                                           (with-simple-restart (continue "Skip")
+                                                             (list (jenkins.model.project:load-project-spec/yaml filename))))
+                                                         (directory "~/code/citec/citk/recipes/projects/*.project")))))
+     (remove-duplicates
+      (mappend (lambda (project)
+                 (with-simple-restart (continue "Skip")
+                   (jenkins.model.variables:value/cast project :keywords '())))
+               projects)
+      :test #'string=))))
+
 (defclass workspace (lsp:standard-workspace)
   ((%templates :accessor %templates
                :initform nil)))

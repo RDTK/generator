@@ -104,8 +104,15 @@
        Can be used to force building from scratch without deleting the
        cloned repository, thus enabling incremental updates instead of
        fresh clones for every build.")
-     ((checkout-submodules?           nil)  :type boolean)
-     ((shallow?                       nil)  :type boolean)
+     ((checkout-submodules?           nil)  :type boolean
+      :documentation
+      "Should sub-modules be cloned and checked out?
+
+       This is sometimes called a \"recursive clone\".")
+     ((shallow?                       nil)  :type boolean
+       :documentation
+      "Should a shallow clone, that is not fetching only recent and
+       not the full repository history, be performed?")
      (((:sub-directory sub-directory) nil)  :type string))
   "Configures a GIT repository in the generated job.
 
@@ -172,7 +179,23 @@
      (local-dir                       :type string)
      ((checkout-strategy :fresh-copy) :type (or (eql :fresh-copy)
                                                 (eql :update)
-                                                (eql :emulate-fresh-copy))))
+                                                (eql :emulate-fresh-copy))
+      :documentation
+      "The strategy to use when checking out from a remote repository.
+
+       fresh-copy
+
+         Always start from scratch and retrieve everything from the
+         remote repository.
+
+       update
+
+         Keep a local checkout and update it by transferring
+         differences from the remote repository.
+
+       emulate-fresh-copy
+
+         ?"))
   "Configures a Subversion repository in the generated job.
 
    If CREDENTIALS is supplied, a corresponding entry has to be created

@@ -33,6 +33,7 @@
                 (:version "text.source-location"                         "0.1")
                 (:version "text.source-location.print"                   "0.1")
                 (:version "text.source-location.source-tracking-builder" "0.1")
+                (:version "text.source-location.lookup"                  "0.1")
 
                 "cl-store"
                 "inferior-shell"

@@ -192,8 +192,12 @@
 
    Entries are of one of the following forms
 
-     [ \"NATURE\", \"NAME\" ]
-     [ \"NATURE\", \"NAME\", \"MIN-VERSION\" ]
+     nature: NATURE
+     target: TARGET
+
+     nature: NATURE
+     target: TARGET
+     version: MIN-VERSION
 
    where
 
@@ -201,7 +205,7 @@
      within which the requirement originates such as \"cmake\",
      \"maven\", \"pkg-config\"
 
-     NAME is the name of the required artifact within the namespace
+     TARGET is the name of the required artifact within the namespace
      designated by NATURE.
 
      The optional MIN-VERSION specifies the minimum version of the
@@ -209,7 +213,9 @@
 
    Examples:
 
-     [ \"program\", \"sbin/spread\", \"4.1\" ]
+     nature: program
+     target: spread
+     version: '4.1'
 
        Version 4.1 of the program installed under the name
        \"sbin/spread\" in the current installation prefix is
@@ -222,8 +228,12 @@
 
    Entries are of one of the following forms
 
-     [ \"NATURE\", \"NAME\" ]
-     [ \"NATURE\", \"NAME\", \"VERSION\" ]
+     nature: NATURE
+     target: TARGET
+
+     nature: NATURE
+     target: TARGET
+     version: VERSION
 
    where
 
@@ -231,7 +241,7 @@
      which the artifact can be used such as \"cmake\", \"maven\",
      \"pkg-config\"
 
-     NAME is the name of the provided artifact within the namespace
+     TARGET is the name of the provided artifact within the namespace
      designated by NATURE.
 
      The optional VERSION specifies the version of the provided
@@ -239,7 +249,9 @@
 
    Examples:
 
-     [ \"program\", \"sbin/spread\", \"4.1\" ]
+     nature: program
+     target: spread
+     version: '4.1'
 
        Version 4.1 of the program installed under the name
        \"sbin/spread\" in the current installation prefix is
@@ -263,9 +275,11 @@
   :documentation
   "An object which can contain entries of the following forms
 
-     \"OPERATING-SYSTEM-TYPE\": {
-         \"packages\": [ \"PACKAGE₁\", \"PACKAGE₂\", … ]
-     }
+     OPERATING-SYSTEM-TYPE:
+       packages:
+       - PACKAGE₁
+       - PACKAGE₂
+       ⋮
 
    A list of packages that have to be installed when building on an
    operating system of type OPERATING-SYSTEM-TYPE, independent of
@@ -273,11 +287,12 @@
 
    Example values for OPERATING-SYSTEM-TYPE: \"ubuntu\", \"debian\".
 
-     \"OPERATING-SYSTEM-TYPE\": {
-         \"OPERATING-SYSTEM-VERSION\": {
-             \"packages\": [ \"PACKAGE₁\", \"PACKAGE₂\", … ]
-         }
-     }
+     OPERATING-SYSTEM-TYPE:
+       OPERATING-SYSTEM-VERSION:
+         packages
+         - PACKAGE₁
+         - PACKAGE₂
+         ⋮
 
    A list of packages that have to be installed when building on an
    operating system of type *OPERATING-SYSTEM-TYPE* with version
@@ -287,13 +302,13 @@
    Example values: for OPERATING-SYSTEM-VERSION when
    OPERATING-SYSTEM-TYPE is \"ubuntu\": \"precise\", \"trusty\".
 
-     \"OPERATING-SYSTEM-TYPE\" {
-         \"OPERATING-SYSTEM-VERSION\": {
-             \"ARCHITECTURE\": {
-                 \"packages\": [ \"PACKAGE₁\", \"PACKAGE₂\", … ]
-             }
-         }
-     }
+     OPERATING-SYSTEM-TYPE:
+       OPERATING-SYSTEM-VERSION:
+         ARCHITECTURE:
+           packages:
+           - PACKAGE₁
+           - PACKAGE₂
+           ⋮
 
    A list of packages that have to be installed when building on a
    ARCHITECTURE machine with an operating system of type

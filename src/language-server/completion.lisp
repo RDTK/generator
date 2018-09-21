@@ -150,15 +150,36 @@
 (defmethod possible-values-using-head ((type cons) (head (eql 'eql)))
   (list (format nil "~(~A~)" (second type))))
 
+(defun remote-refs (project kind)
+  (when-let ((repository (jenkins.model.variables:value/cast project :repository nil)))
+    (mappend (lambda (line)
+               (let+ (((&values match? groups)
+                       (ppcre:scan-to-strings
+                        (ecase kind
+                          (:branch "refs/heads/(.*)$")
+                          (:tag    "refs/tags/(.*)$"))
+                        line)))
+                 (when match?
+                   (list (proto:make-completion-item
+                          (aref groups 0)
+                          :kind   :constant
+                          :detail (format nil "Remote ~(~A~)" kind))))))
+             (inferior-shell:run/lines `("git" "ls-remote" ,repository)))))
+
 (defmethod contrib:completion-contributions
     ((workspace    t)
      (document     t)
      (context      variable-value-context)
      (contriubutor variable-value-completion-contributor))
   (let ((variable (variable-node context)))
-    (map 'list (lambda (value)
-                 (proto:make-completion-item value :kind :constant))
-         (possible-values (jenkins.model.variables:variable-info-type variable)))))
+    (cond ((member (jenkins.model.variables:variable-info-name variable) '(:branches :branch))
+           (remote-refs (object document) :branch))
+          ((member (jenkins.model.variables:variable-info-name variable) '(:tags :tag))
+           (remote-refs (object document) :tag))
+          (t
+           (map 'list (lambda (value)
+                        (proto:make-completion-item value :kind :constant))
+                (possible-values (jenkins.model.variables:variable-info-type variable)))))))
 
 (defclass document ()
   ((index :initarg :index

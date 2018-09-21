@@ -16,9 +16,7 @@
         (pattern (merge-pathnames "../templates/toolkit/*.template"
                                   (lsp:root-path container))))
     (log:error "Background-loading templates from ~A" pattern)
-    (methods::log-message "Background-loading templates") ; log-message doesn't work from this thread
     (map nil #'project:load-template/yaml (directory pattern))
-    (methods::log-message "Done background-loading templates")
     project::*templates*))
 
 (defmethod ensure-templates ((container workspace))
@@ -27,6 +25,7 @@
         :do (let ((promise (lparallel:promise)))
               (when (null (sb-ext:compare-and-swap
                            (slot-value container '%templates) nil promise))
+                (methods::log-message (proto:make-message :info "Background-loading templates"))
                 (lparallel:future (lparallel:fulfill promise
                                     (load-templates container)))))))
 

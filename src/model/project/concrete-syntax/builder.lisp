@@ -65,10 +65,12 @@
                                                :tag     "tag:yaml.org,2002:str"
                                                :content protected))))
 
-(defun make-builder (source)
+(defun make-builder (source &optional index)
   (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder
                  :target   (make-instance 'recipe-builder
                                           :base-path (text.source-location:name source))
                  :source   source
                  :callback (lambda (object location)
+                             (when index
+                               (text.source-location.lookup:add! location index))
                              (setf (location-of object) location))))

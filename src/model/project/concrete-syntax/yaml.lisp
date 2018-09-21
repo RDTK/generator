@@ -6,12 +6,20 @@
 
 (cl:in-package #:jenkins.model.project)
 
-(defun %load-yaml (file)
-  (let* ((source  (text.source-location:make-source
-                   file :content (read-file-into-string file)))
-         (builder (make-builder source)))
+(defun %load-yaml (source
+                   &key
+                   (file    (if (pathnamep source)
+                                source
+                                (error "Must supply ~S when source is a string"
+                                       :file)))
+                   (content (when (pathnamep source)
+                              (read-file-into-string source)))
+                   index)
+  (let* ((source* (apply #'text.source-location:make-source source
+                         (when content  (list :content content))))
+         (builder (make-builder source* index)))
     (handler-case
-        (language.yaml:load file :builder builder)
+        (values (language.yaml:load source :builder builder) file source*)
       (esrap:esrap-parse-error (condition)
         (let ((start (esrap:esrap-error-position condition)))
           (error 'yaml-syntax-error
@@ -136,18 +144,23 @@
   (check-type name (cons symbol (cons (member :data :pathname) null)))
   (let+ (((&optional name-var name-kind) name)
          (other-args (set-difference
-                      args '(repository pathname generator-version)
+                      args '(repository pathname content index generator-version)
                       :test #'eq))
-         (all-args   (list* 'repository 'pathname 'generator-version
+         (all-args   (list* 'repository 'pathname 'content 'index 'generator-version
                             other-args))
          (read-name  (symbolicate '#:read-  concept '#:/yaml))
          (parse-name (symbolicate '#:parse- concept '#:/yaml))
          (load-name  (symbolicate '#:load-  concept '#:/yaml))
          (context    (format nil "~(~A~) recipe" concept)))
     `(progn
-       (defun ,read-name (pathname &key generator-version ,@other-args)
+       (defun ,read-name (source &key ,@all-args)
          (declare (ignore ,@other-args))
-         (let ((spec (%load-yaml pathname)))
+         (let+ (((&values spec pathname source)
+                 (apply #'%load-yaml source
+                        (append (when pathname
+                                  (list :file pathname :content content))
+                                (when index
+                                  (list :index index))))))
            (check-keys spec '((:minimum-generator-version nil string)
                               ,@(when (eq name-kind :data)
                                   '((:name t string)))
@@ -156,7 +169,7 @@
            (let ((name ,@(ecase name-kind
                            (:data     `((assoc-value spec :name)))
                            (:pathname `((pathname-name pathname))))))
-             (values spec name pathname))))
+             (values spec name pathname source))))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
          (declare (ignore ,@(set-difference all-args args)))
@@ -164,27 +177,27 @@
                    (cdr (assoc name where)))))
            ,@body))
 
-       (defun ,load-name (pathname
+       (defun ,load-name (source
                           &rest args
                           &key (repository (missing-required-argument :repository))
                                generator-version
                                ,@other-args)
          (declare (ignore generator-version ,@other-args))
          (handler-bind (((and error (not annotation-condition))
-                         (lambda (condition)
-                           (error "~@<Error when loading ~(~A~) ~
+                          (lambda (condition)
+                            (error "~@<Error when loading ~(~A~) ~
                                    description from ~S: ~A~@:>"
                                   ',concept
                                   (jenkins.util:safe-enough-namestring pathname)
                                   condition))))
-           (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname
-                          (remove-from-plist args :repository))))
-             (copy-location
-              spec (apply #',parse-name spec name
-                          :repository repository
-                          :pathname   pathname
-                          args))))))))
+           (let+ (((&values spec name pathname source*)
+                   (apply #',read-name source
+                          (remove-from-plist args :repository)))
+                  (result (apply #',parse-name spec name
+                                 :repository repository
+                                 :pathname   pathname
+                                 args)))
+             (values (copy-location spec result) source*)))))))
 
 ;;; Person loading
 

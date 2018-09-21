@@ -14,21 +14,27 @@
   :version     (:read-file-form "version-string.sexp")
   :depends-on  ("alexandria"
                 "split-sequence"
-                (:version "let-plus"                    "0.2")
+                (:version "let-plus"                             "0.2")
 
                 "swank" ; TODO temp
-                (:version "protocol.language-server"    "0.1")
-                (:version "text.source-location.lookup" "0.1")
 
-                (:version "jenkins.project"             (:read-file-form "version-string.sexp")))
+                (:version "text.source-location.lookup"          "0.1")
+
+                (:version "protocol.language-server"             "0.1")
+                (:version "protocol.language-server.contributor" "0.1")
+
+                (:version "jenkins.project"                      (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "language-server"
                  :pathname   "src/language-server"
                  :serial     t
                  :components ((:file       "package")
 
-                              (:file       "document-methods")
+                              (:file       "workspace")
+                              (:file       "document")
 
+                              (:file       "context")
+                              (:file       "hover")
                               (:file       "completion")
 
                               ; TODO later (:file       "parser")

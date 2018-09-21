@@ -11,10 +11,17 @@
    #:split-sequence
    #:let-plus)
 
+  (:shadow
+   #:variable)
+
   (:local-nicknames
+   (#:sloc    #:text.source-location)
+   (#:lookup  #:text.source-location.lookup)
+
    (#:lsp     #:protocol.language-server)
    (#:methods #:protocol.language-server.methods)
    (#:proto   #:protocol.language-server.protocol)
+   (#:contrib #:protocol.language-server.contributor)
 
    (#:var     #:jenkins.model.variables)
    (#:project #:jenkins.model.project))

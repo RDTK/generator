@@ -9,7 +9,10 @@
 (defclass language-server ()
   ()
   (:documentation
-   "Start a language server for use by IDEs."))
+   "Start a language server for use by IDEs.
+
+    The language server implements version TODO of the language server
+    protocol and operates in stdin/stdout mode."))
 
 (service-provider:register-provider/class
  'command :language-server :class 'language-server)
@@ -26,7 +29,7 @@
   (uiop:symbol-call '#:swank '#:start-server "/tmp/port.txt" :dont-close t)
 
   ;; TODO (lsp:language-server *standard-input* *standard-output*)
-  (catch 'exit
+  (catch 'exit ; TODO gotta be wrong
     (with-output-to-file (*trace-output* "/tmp/trace" :if-exists :supersede)
       (loop :with connection = (setf jenkins.language-server::*connection*
                                      (protocol.language-server.connection:make-connection

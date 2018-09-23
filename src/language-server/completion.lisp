@@ -151,7 +151,7 @@
   (list (format nil "~(~A~)" (second type))))
 
 (defun remote-refs (project kind)
-  (when-let ((repository (jenkins.model.variables:value/cast project :repository nil)))
+  (when-let ((repository (var:value/cast project :repository nil)))
     (mappend (lambda (line)
                (let+ (((&values match? groups)
                        (ppcre:scan-to-strings
@@ -180,6 +180,50 @@
            (map 'list (lambda (value)
                         (proto:make-completion-item value :kind :constant))
                 (possible-values (var:variable-info-type variable)))))))
+
+;;;
+
+(defclass project-name-completion-contributor () ())
+
+(defun describe-project (project)
+  (let ((natures     (var:value/cast
+                      project :natures '()))
+        (programming-languages     (var:value/cast
+                      project :programming-languages '()))
+        (licenses    (var:value/cast
+                       project :licenses '()))
+        (maintainers (var:value/cast
+                      project :recipe.maintainer '()))
+        (description (var:value/cast
+                      project :description "«no description»")))
+    (format nil "Nature: ~A~%~
+                 Programming Languages: ~A~%~
+                 License: ~{~A~^ ~}~%~
+                 Maintainer~P:~%~
+                 ~{* ~A~^~%~}~
+                 ~2%~A"
+            natures
+            programming-languages
+            licenses
+            (length maintainers) maintainers
+            description)))
+
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     project-name-context)
+     (contributor project-name-completion-contributor))
+  (let ((prefix (prefix context)))
+    (mapcan (lambda (project)
+              (let ((name (model:name project)))
+                (when (starts-with-subseq prefix name)
+                  (list (proto:make-completion-item
+                         name :kind          :file
+                         :detail        "project"
+                         :documentation (describe-project project))))))
+            (projects (workspace document)))))
+
+;;;
 
 (defclass document ()
   ((index :initarg :index

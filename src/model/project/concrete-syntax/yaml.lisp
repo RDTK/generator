@@ -13,11 +13,10 @@
                                 (error "Must supply ~S when source is a string"
                                        :file)))
                    (content (when (pathnamep source)
-                              (read-file-into-string source)))
-                   index)
+                              (read-file-into-string source))))
   (let* ((source* (apply #'text.source-location:make-source source
                          (when content  (list :content content))))
-         (builder (make-builder source* index)))
+         (builder (make-builder source*)))
     (handler-case
         (values (language.yaml:load source :builder builder) file source*)
       (esrap:esrap-parse-error (condition)

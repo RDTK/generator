@@ -19,3 +19,21 @@
            (or (jenkins.model.variables:variable-info-documentation variable-node)
                "«undocumented variable»"))
      (text.source-location:range variable-location) )))
+
+;;;
+
+(defclass project-version-hover-contributor () ())
+
+(defmethod contrib:hover-contribution
+    ((workspace   t)
+     (document    t)
+     (context     project-name-context)
+     (contributor project-version-hover-contributor))
+  (let ((prefix (prefix context)))
+    (log:error prefix)
+    (map nil (lambda (project)
+               (let ((name (jenkins.model:name project)))
+                 (when (starts-with-subseq prefix name)
+                   (return-from contrib:hover-contribution
+                     (values (describe-project project))))))
+         (projects (workspace document)))))

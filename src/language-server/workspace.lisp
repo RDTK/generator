@@ -6,25 +6,10 @@
 
 (cl:in-package #:jenkins.language-server)
 
-(defun all-keywords ()
- (handler-bind ((error #'continue))
-   (let* ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
-          (projects                           (progn
-                                                (map nil #'jenkins.model.project:load-template/yaml
-                                                     (directory "~/code/citec/citk/recipes/templates/toolkit/*.template"))
-                                                (mappend (lambda (filename)
-                                                           (with-simple-restart (continue "Skip")
-                                                             (list (jenkins.model.project:load-project-spec/yaml filename))))
-                                                         (directory "~/code/citec/citk/recipes/projects/*.project")))))
-     (remove-duplicates
-      (mappend (lambda (project)
-                 (with-simple-restart (continue "Skip")
-                   (jenkins.model.variables:value/cast project :keywords '())))
-               projects)
-      :test #'string=))))
-
 (defclass workspace (lsp:standard-workspace)
   ((%templates :accessor %templates
+               :initform nil)
+   (%projects  :accessor %projects
                :initform nil)))
 
 (defmethod load-templates ((container workspace))
@@ -51,6 +36,40 @@
 
 (defmethod find-template ((name t) (container workspace))
   (gethash name (ensure-templates container)))
+
+(defmethod load-projects ((container workspace))
+  (let ((jenkins.model.project::*templates* (ensure-templates container))
+        (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
+                                           )
+        (jenkins.model.project::*projects-lock* (bt:make-lock))
+        (pattern "../projects/*.project" (lsp:root-path container)))
+    (handler-bind ((error #'continue))
+      (mappend (lambda (filename)
+                 (with-simple-restart (continue "Skip")
+                   (log:error "Loading ~A" filename)
+                   (list (jenkins.model.project:load-project-spec/yaml filename))))
+               (directory pattern)))))
+
+(defmethod ensure-projects ((container workspace))
+  (loop :for projects = (%projects container)
+        :when projects :do (return (lparallel:force projects))
+        :do (let ((promise (lparallel:promise)))
+              (when (null (sb-ext:compare-and-swap
+                           (slot-value container '%projects) nil promise))
+                (methods::log-message (proto::make-message :info "Background-loading projects"))
+                (lparallel:future (lparallel:fulfill promise
+                                    (load-projects container)))))))
+
+(defmethod projects ((container workspace))
+  (ensure-projects container))
+
+#+no (defun all-keywords ()
+  (remove-duplicates
+   (mappend (lambda (project)
+              (with-simple-restart (continue "Skip")
+                (jenkins.model.variables:value/cast project :keywords '())))
+            (projects container))
+   :test #'string=))
 
 (defvar *connection*)
 (defvar *uri* nil)

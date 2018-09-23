@@ -87,93 +87,6 @@
     (log:error locations name template location )
     (list (proto:unparse-location location))))
 
-;;; `project-document'
-
-(defclass project-document (build-generator-document)
-  ())
-
-(defmethod parse ((document project-document) (text string) (pathname t) (index t))
-  (let ((jenkins.model.project::*templates* (ensure-templates (workspace document))))
-    (jenkins.model.project::load-project-spec/yaml
-     text
-     :pathname          pathname
-     :index             index
-     :generator-version "0.25.0")))
-
-(defmethod contrib:make-context-contributors ((document project-document))
-  (list* (make-instance 'template-name-context-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-completion-contributors ((document project-document))
-  (list* (make-instance 'template-name-completion-contributor)
-         (call-next-method)))
-
-;;; `distribution-document'
-
-(defclass distribution-document (build-generator-document)
-  ())
-
-(defmethod parse ((document distribution-document) (text string) (pathname t) (index t))
-  (jenkins.model.project::load-distribution/yaml
-   text
-   :pathname          pathname
-   :index             index
-   :generator-version "0.25.0"))
-
-(defmethod contrib:make-context-contributors ((document project-document))
-  (list* (make-instance 'template-name-context-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-completion-contributors ((document project-document))
-  (list* (make-instance 'template-name-completion-contributor)
-         (call-next-method)))
-
-;;; `template-document'
-
-(defclass template-document (build-generator-document)
-  ())
-
-(defmethod (setf lsp:text) :after ((new-value string)
-                                   (document  template-document))
-  (let ((errors    '())
-        (result    nil)
-        (locations nil))
-    (handler-bind ((error (lambda (condition)
-                            (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
-                            (push condition errors)
-                            (unless (typep condition '(or undefined-function
-                                                          unbound-variable))
-                              (continue))
-                            (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
-      (clrhash jenkins.model.project::*templates*)
-      (clrhash jenkins.model.project::*locations*)
-      (with-simple-restart (continue "Abort parse")
-        (setf (values result locations)
-              (let* ((pathname (pathname (file-namestring (pathname *uri*))))
-                     (name     (pathname-name pathname)))
-                (values
-                 (jenkins.model.project::loading-template (name)
-                   (jenkins.model.project::load-one-template/json-or-yaml
-                    (make-string-input-stream (lsp:text document))
-                    :pathname          pathname
-                    :content           (lsp:text document)
-                    :generator-version "0.20.0"))
-                 jenkins.model.project::*locations*)))))
-    (log:info "still alive 0")
-    (setf (object document)    result
-          (locations document) locations)
-    (log:info "still alive 1")
-    (when locations
-      (log:info (hash-table-alist locations)))
-    (log:info "still alive 2")
-    (flet ((diagnostic (condition)
-             (make-instance 'protocol.language-server.protocol:diagnostic
-                            :annotation (first (jenkins.model.project::annotations condition))
-                            :message    condition)))
-      (methods::publish-diagnostics document (map 'list #'diagnostic errors)))))
-
-;;;
-
 (defmethod methods:highlight-in-document ((workspace t)
                                           (document  build-generator-document)
                                           (version   t)
@@ -190,3 +103,73 @@
                                  (range     t)
                                  (context   t))
   nil)
+
+;;; `project-document'
+
+(defclass project-document (build-generator-document)
+  ())
+
+(defmethod parse ((document project-document) (text string) (pathname t) (index t))
+  (let ((jenkins.model.project::*templates* (ensure-templates (workspace document)))
+        (jenkins.model.project::*location-hook*
+          (lambda (object location)
+            (declare (ignore object))
+            (text.source-location.lookup:add! location index))))
+    (jenkins.model.project::load-project-spec/yaml
+     text
+     :pathname          pathname
+     :generator-version "0.25.0")))
+
+(defmethod contrib:make-context-contributors ((document project-document))
+  (list* (make-instance 'template-name-context-contributor)
+         (call-next-method)))
+
+(defmethod contrib:make-completion-contributors ((document project-document))
+  (list* (make-instance 'template-name-completion-contributor)
+         (call-next-method)))
+
+;;; `distribution-document'
+
+(defclass distribution-document (build-generator-document)
+  ())
+
+(defmethod parse ((document distribution-document) (text string) (pathname t) (index t))
+  (let ((jenkins.model.project::*location-hook*
+          (lambda (object location)
+            (declare (ignore object))
+            (text.source-location.lookup:add! location index))))
+    (jenkins.model.project::load-distribution/yaml
+     text
+     :pathname          pathname
+     :generator-version "0.25.0")))
+
+(defmethod contrib:make-context-contributors ((document distribution-document))
+  (list* (make-instance 'template-name-context-contributor)
+         (make-instance 'project-version-reference-context-contributor)
+         (call-next-method)))
+
+(defmethod contrib:make-completion-contributors ((document distribution-document))
+  (list* (make-instance 'template-name-completion-contributor)
+         (make-instance 'project-name-completion-contributor)
+         (call-next-method)))
+
+(defmethod contrib:make-hover-contributors ((document distribution-document))
+  (list* (make-instance 'project-version-hover-contributor)
+         (call-next-method)))
+
+;;; `template-document'
+
+(defclass template-document (build-generator-document)
+  ())
+
+(defmethod parse ((document template-document) (text string) (pathname t) (index t))
+  (let ((name (pathname-name pathname))
+        (jenkins.model.project::*location-hook*
+          (lambda (object location)
+            (declare (ignore object))
+            (text.source-location.lookup:add! location index))))
+    (jenkins.model.project::loading-template (name)
+      (jenkins.model.project::load-one-template/json-or-yaml
+       (make-string-input-stream text)
+       :pathname          pathname
+       :generator-version "0.25.0"))))

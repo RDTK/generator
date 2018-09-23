@@ -181,6 +181,50 @@
                         (proto:make-completion-item value :kind :constant))
                 (possible-values (jenkins.model.variables:variable-info-type variable)))))))
 
+;;;
+
+(defclass project-name-completion-contributor () ())
+
+(defun describe-project (project)
+  (let ((natures     (jenkins.model.variables:value/cast
+                      project :natures '()))
+        (programming-languages     (jenkins.model.variables:value/cast
+                      project :programming-languages '()))
+        (licenses    (jenkins.model.variables:value/cast
+                       project :licenses '()))
+        (maintainers (jenkins.model.variables:value/cast
+                      project :recipe.maintainer '()))
+        (description (jenkins.model.variables:value/cast
+                      project :description "«no description»")))
+    (format nil "Nature: ~A~%~
+                 Programming Languages: ~A~%~
+                 License: ~{~A~^ ~}~%~
+                 Maintainer~P:~%~
+                 ~{* ~A~^~%~}~
+                 ~2%~A"
+            natures
+            programming-languages
+            licenses
+            (length maintainers) maintainers
+            description)))
+
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     project-name-context)
+     (contributor project-name-completion-contributor))
+  (let ((prefix (prefix context)))
+    (mapcan (lambda (project)
+              (let ((name (jenkins.model:name project)))
+                (when (starts-with-subseq prefix name)
+                  (list (proto:make-completion-item
+                         name :kind          :file
+                         :detail        "project"
+                         :documentation (describe-project project))))))
+            (projects (workspace document)))))
+
+;;;
+
 (defclass document ()
   ((index :initarg :index
           :reader  index)))

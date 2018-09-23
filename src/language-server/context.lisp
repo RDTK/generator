@@ -98,3 +98,26 @@
           (list (make-instance 'variable-value-context
                                :variable-location location ; TODO
                                :variable-node     variable)))))))
+
+;;; project version reference context provider
+
+(defclass project-name-context ()
+  ((%prefix :initarg :prefix
+            :reader  prefix)))
+
+(defclass project-version-context () ())
+
+(defclass project-version-reference-context-contributor () ())
+
+(defmethod contrib:context-contributions
+    ((workspace   t)
+     (document    t)
+     (position    t)
+     (contributor project-version-reference-context-contributor))
+  (let+ (((&values path (&optional location &rest &ign))
+          (structure-path position document))
+         (thing (gethash location (location->object document))))
+    (log:error path location thing)
+    (when-let ((position (position :versions path)))
+      (cond ((and (= position 0) (stringp thing) (not (find #\@ thing)))
+             (list (make-instance 'project-name-context :prefix thing)))))))

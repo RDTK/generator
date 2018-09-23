@@ -10,6 +10,8 @@
 
 (defvar *location->object* (make-hash-table :test #'eq))
 
+(defvar *location-hook* nil)
+
 (defvar *locations-lock* (bt:make-lock "locations"))
 
 (defun object-at (location)
@@ -23,7 +25,9 @@
 (defun (setf location-of) (new-value object)
   (bt:with-lock-held (*locations-lock*)
     (setf (gethash object    *locations*)        new-value
-          (gethash new-value *location->object*) object)))
+          (gethash new-value *location->object*) object)
+    (when-let ((hook *location-hook*))
+      (funcall hook object new-value))))
 
 (defun copy-location (old-object new-object)
   (setf (location-of new-object) (location-of old-object))

@@ -9,10 +9,22 @@
 (defclass language-server ()
   ()
   (:documentation
-   "Start a language server for use by IDEs.
-
-    The language server implements version TODO of the language server
-    protocol and operates in stdin/stdout mode."))
+   #.(format nil "Start a language server for use by IDEs.~@
+      ~@
+      The language server implements version TODO of the language ~
+      server protocol and operates in stdin/stdout mode.~@
+      ~@
+      The language server implements multiple languages to for the ~
+      different recipes types:~@
+      ~@
+      • template-recipe~@
+      • project-recipe~@
+      • distribution-recipe~@
+      ~@
+      For now, a separate workspace is created for each recipe type, ~
+      the respective root directory being the corresponding ~
+      sub-directory of the recipe repository: projects/ for the ~
+      project-recipe language and similarly for the others.")))
 
 (service-provider:register-provider/class
  'command :language-server :class 'language-server)

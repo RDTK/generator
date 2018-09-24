@@ -90,13 +90,11 @@
                               (language  t)
                               (version   t)
                               (text      t))
-  (let ((doc (make-instance (ecase language
-                          (:template-recipe     'template-document)
-                          (:project-recipe      'project-document)
-                          (:distribution-recipe 'distribution-document))
-                        :language  language
-                        :version   version
-                        :text      text
-                        :workspace container)))
-    (log:error doc)
-    doc))
+  (make-instance (ecase language
+                   (:template-recipe     'template-document)
+                   (:project-recipe      'project-document)
+                   (:distribution-recipe 'distribution-document))
+                 :language  language
+                 :version   version
+                 :text      text
+                 :workspace container))

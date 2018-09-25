@@ -16,7 +16,7 @@
   (let ((project::*templates* (make-hash-table :test #'equal))
         (project::*templates-lock* (bt:make-lock))
         (pattern (merge-pathnames "../templates/toolkit/*.template"
-                                  (lsp:root-path container))))
+                                  (lsp:root-directory container))))
     (log:error "Background-loading templates from ~A" pattern)
     (map nil #'project:load-template/yaml (directory pattern))
     project::*templates*))
@@ -42,7 +42,7 @@
         (project::*projects* nil ; (make-hash-table :test #'equal)
                                            )
         (project::*projects-lock* (bt:make-lock))
-        (pattern "../projects/*.project" (lsp:root-path container)))
+        (pattern "../projects/*.project" (lsp:root-directory container)))
     (handler-bind ((error #'continue))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")

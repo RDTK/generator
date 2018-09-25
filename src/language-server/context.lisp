@@ -69,7 +69,14 @@
 
 ;;;
 
-(defclass variable-name-context () ())
+(defclass variable-name-context (print-items:print-items-mixin)
+  ((%prefix       :initarg :prefix
+                  :reader  prefix)
+   (%prefix-range :initarg :prefix-range
+                  :reader  prefix-range)))
+
+(defmethod print-items:print-items append ((object variable-name-context))
+  `((:prefix ,(prefix object) "~S")))
 
 (defclass variable-name-context-contributor () ())
 
@@ -84,16 +91,19 @@
                            leaf))
               (path      (structure-path position document))
               (position* (position :variables path)))
-    (log:error locations leaf path position*)
     (cond ((and (= position* 1)
                 (string-equal leaf (first path))) ;; TODO could be deeper within dictionary value
-           (list (make-instance 'variable-name-context)))
+           (list (make-instance 'variable-name-context
+                                :prefix       (string leaf)
+                                :prefix-range (sloc:range (first locations)))))
 
           ((stringp leaf)
            (let ((relative (- (sloc:index position) (sloc:index (sloc:start (first locations))))))
              (log:error leaf (sloc:start (first locations)) relative)
              (when (search "${" leaf :end2 (1+ relative) :from-end t)
-               (list (make-instance 'variable-name-context))))))))
+               (list (make-instance 'variable-name-context
+                                    :prefix       leaf
+                                    :prefix-range (sloc:range (first locations))))))))))
 
 ;;;
 

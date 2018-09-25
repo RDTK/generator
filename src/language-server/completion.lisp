@@ -140,6 +140,7 @@
                :kind          :variable
                :detail        (format nil "Type: ~A " type)
                :documentation documentation
+               :range         (prefix-range context)
                :new-text      new-text)))))
     (loop :for variable :in (var:all-variables)
              #+no :when #+no (starts-with-subseq

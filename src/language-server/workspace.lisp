@@ -15,7 +15,7 @@
 (defmethod load-templates ((container workspace))
   (let ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
         (jenkins.model.project::*templates-lock* (bt:make-lock))
-        (pattern (merge-pathnames "../templates/toolkit/*.template"
+        (pattern (merge-pathnames "templates/toolkit/*.template"
                                   (lsp:root-directory container))))
     (log:error "Background-loading templates from ~A" pattern)
     (map nil #'jenkins.model.project:load-template/yaml (directory pattern))
@@ -42,7 +42,7 @@
         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
                                            )
         (jenkins.model.project::*projects-lock* (bt:make-lock))
-        (pattern "../projects/*.project" (lsp:root-directory container)))
+        (pattern "projects/*.project" (lsp:root-directory container)))
     (handler-bind ((error #'continue))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")

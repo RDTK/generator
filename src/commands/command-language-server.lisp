@@ -49,4 +49,10 @@
             :with context = (make-instance 'protocol.language-server::context
                                            :connection      connection
                                            :workspace-class 'jenkins.language-server::workspace)
-            :do (protocol.language-server::process-request connection context)))))
+            :do (handler-bind
+                    ((error (lambda (condition)
+                              (format *error-output* "Unhandled error processing request~%")
+                              (ignore-errors (format *error-output* "~A" condition))
+                              (ignore-errors (sb-debug:print-backtrace :stream *error-output*))
+                              (continue))))
+                  (protocol.language-server::process-request connection context))))))

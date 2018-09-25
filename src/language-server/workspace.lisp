@@ -23,7 +23,7 @@
 
 (defmethod ensure-templates ((container workspace))
   (loop :for templates = (%templates container)
-        :when templates :do (return (lparallel:force templates))
+        :when templates :do (return templates)
         :do (let ((promise (lparallel:promise)))
               (when (null (sb-ext:compare-and-swap
                            (slot-value container '%templates) nil promise))
@@ -32,13 +32,19 @@
                                     (load-templates container)))))))
 
 (defmethod templates ((container workspace))
-  (hash-table-values (ensure-templates container)))
+  (let ((templates (ensure-templates container)))
+    (if (lparallel:fulfilledp templates)
+        (hash-table-values (lparallel:force templates))
+        (lparallel:future (hash-table-values (lparallel:force templates))))))
 
 (defmethod find-template ((name t) (container workspace))
-  (gethash name (ensure-templates container)))
+  (let ((templates (ensure-templates container)))
+    (if (lparallel:fulfilledp templates)
+        (gethash name (lparallel:force templates))
+        (lparallel:future (gethash name (lparallel:force templates))))))
 
 (defmethod load-projects ((container workspace))
-  (let ((jenkins.model.project::*templates* (ensure-templates container))
+  (let ((jenkins.model.project::*templates* (lparallel:force (ensure-templates container)))
         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
                                            )
         (jenkins.model.project::*projects-lock* (bt:make-lock))
@@ -46,13 +52,12 @@
     (handler-bind ((error #'continue))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")
-                   (log:error "Loading ~A" filename)
                    (list (jenkins.model.project:load-project-spec/yaml filename))))
                (directory pattern)))))
 
 (defmethod ensure-projects ((container workspace))
   (loop :for projects = (%projects container)
-        :when projects :do (return (lparallel:force projects))
+        :when projects :do (return projects)
         :do (let ((promise (lparallel:promise)))
               (when (null (sb-ext:compare-and-swap
                            (slot-value container '%projects) nil promise))

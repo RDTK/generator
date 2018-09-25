@@ -51,7 +51,7 @@
                             (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
                             (push condition errors)
                             (unless (typep condition '(or undefined-function
-                                                       unbound-variable))
+                                                          unbound-variable))
                               (continue))
                             (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
       (with-simple-restart (continue "Abort parse")
@@ -66,10 +66,10 @@
           (index document)     index
           (location->object document) jenkins.model.project::*location->object*)
     (flet ((diagnostic (condition)
-             (make-instance 'protocol.language-server.protocol:diagnostic
-                            :annotation (first (jenkins.model.project::annotations condition))
-                            :message    condition)))
-      (methods:publish-diagnostics document (map 'list #'diagnostic errors)))))
+             (list (make-instance 'protocol.language-server.protocol:diagnostic
+                                  :annotation (first (jenkins.model.project::annotations condition))
+                                  :message    condition))))
+      (methods:publish-diagnostics document (mappend #'diagnostic errors)))))
 
 (defmethod contrib:contexts :around ((workspace t) ; HACK))))
                                      (document  build-generator-document)
@@ -111,7 +111,7 @@
 
 (defmethod parse ((document project-document) (text string) (pathname t) (index t))
   (let ((jenkins.model.project::*templates* (ensure-templates (workspace document)))
-        (jenkins.model.project::*location-hook*
+        (jenkins.model.project::*location-hook* ; TODO do this in superclass's method?
           (lambda (object location)
             (declare (ignore object))
             (text.source-location.lookup:add! location index))))
@@ -133,24 +133,38 @@
 (defclass distribution-document (build-generator-document)
   ())
 
-(defmethod parse ((document distribution-document) (text string) (pathname t) (index t))
-  (let ((jenkins.model.project::*location-hook*
-          (lambda (object location)
-            (declare (ignore object))
-            (text.source-location.lookup:add! location index))))
-    (jenkins.model.project::load-distribution/yaml
-     text
-     :pathname          pathname
-     :generator-version "0.25.0")))
+(defmethod parse ((document distribution-document)
+                  (text     string)
+                  (pathname t)
+                  (index    t))
+  (let* ((distribution (let ((jenkins.model.project::*location-hook*
+                               (lambda (object location)
+                                 (declare (ignore object))
+                                 (text.source-location.lookup:add! location index))))
+                         (jenkins.model.project::load-distribution/yaml
+                          text
+                          :pathname          pathname
+                          :generator-version "0.25.0")))
+         (jenkins.model.project::*templates*        (lparallel:force (ensure-templates (workspace document))))
+         (jenkins.model.project::*projects*         (make-hash-table :test #'equal))
+         (jenkins.model.project::*locations*        (make-hash-table :test #'eq))
+         (jenkins.model.project::*location->object* (make-hash-table :test #'eq))
+         (projects-files+versions (uiop:symbol-call '#:jenkins.project.commands '#:locate-projects
+                                                    (list pathname) (list distribution)))
+
+         (projects                (uiop:symbol-call '#:jenkins.project.commands '#:load-projects/versioned
+                                                    projects-files+versions
+                                                    :generator-version "0.25.0" ; generator-version
+                                                    )))
+    (lsp::debug1 (list :parse-distribution projects-files+versions projects))
+    distribution))
 
 (defmethod contrib:make-context-contributors ((document distribution-document))
-  (list* (make-instance 'template-name-context-contributor)
-         (make-instance 'project-version-reference-context-contributor)
+  (list* (make-instance 'project-version-reference-context-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-completion-contributors ((document distribution-document))
-  (list* (make-instance 'template-name-completion-contributor)
-         (make-instance 'project-name-completion-contributor)
+  (list* (make-instance 'project-name-completion-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-hover-contributors ((document distribution-document))
@@ -164,12 +178,23 @@
 
 (defmethod parse ((document template-document) (text string) (pathname t) (index t))
   (let ((name (pathname-name pathname))
+        (jenkins.model.project::*templates* (make-hash-table :test #'equal))
         (jenkins.model.project::*location-hook*
           (lambda (object location)
             (declare (ignore object))
             (text.source-location.lookup:add! location index))))
     (jenkins.model.project::loading-template (name)
-      (jenkins.model.project::load-one-template/json-or-yaml
-       (make-string-input-stream text)
+      (jenkins.model.project::load-one-template/yaml
+       text
        :pathname          pathname
        :generator-version "0.25.0"))))
+
+(defmethod contrib:make-context-contributors ((document template-document))
+  (list* (make-instance 'template-name-context-contributor)
+         (make-instance 'aspect-class-context-contributor)
+         (call-next-method)))
+
+(defmethod contrib:make-completion-contributors ((document template-document))
+  (list* (make-instance 'template-name-completion-contributor)
+         (make-instance 'aspect-class-completion-contributor)
+         (call-next-method)))

@@ -10,6 +10,9 @@
 
 (defun structure-path (position document)
   (when-let* ((locations (lookup:lookup position (index document))))
+    #+NO (lsp::debug1 (list* position (sloc:index position) (subseq (lsp:text document) (- (sloc:index position) 2) (+ (sloc:index position) 2))
+                        (loop :for location :in locations
+                              :collect (cons location (gethash location (location->object document))))))
     (let ((path (mappend
                  (lambda (node)
                    (when (typep node '(cons keyword))
@@ -21,9 +24,12 @@
 
 ;;; `structure-context'
 
-(defclass structure-context ()
-  ((path :initarg :path
-         :reader  path)))
+(defclass structure-context (print-items:print-items-mixin)
+  ((%path :initarg :path
+          :reader  path)))
+
+(defmethod print-items:print-items append ((object structure-context))
+  `((:path ,(reverse (path object)) "~{~A~^ » ~}")))
 
 (defclass structure-context-contributor () ())
 
@@ -43,12 +49,22 @@
 
 (defmethod contrib:context-contributions
     ((workspace   t)
-     (document    t)
+     (document    project-document)
      (position    t)
      (contributor template-name-context-contributor))
   (when-let* ((path  (structure-path position document))
               (depth (position :templates path)))
-    (when (= depth 0)
+    (when (eql depth 0)
+      (list (make-instance 'template-name-context)))))
+
+(defmethod contrib:context-contributions
+    ((workspace   t)
+     (document    template-document)
+     (position    t)
+     (contributor template-name-context-contributor))
+  (when-let* ((path  (structure-path position document))
+              (depth (position :inherit path)))
+    (when (eql depth 0)
       (list (make-instance 'template-name-context)))))
 
 ;;;
@@ -67,7 +83,7 @@
               (leaf      (when (stringp leaf)
                            leaf))
               (path      (structure-path position document))
-              (position*  (position :variables path)))
+              (position* (position :variables path)))
     (log:error locations leaf path position*)
     (cond ((and (= position* 1)
                 (string-equal leaf (first path))) ;; TODO could be deeper within dictionary value
@@ -107,9 +123,12 @@
 
 ;;; project version reference context provider
 
-(defclass project-name-context ()
+(defclass project-name-context (print-items:print-items-mixin)
   ((%prefix :initarg :prefix
             :reader  prefix)))
+
+(defmethod print-items:print-items append ((object project-name-context))
+  `((:prefix ,(prefix object) "~S")))
 
 (defclass project-version-context () ())
 
@@ -127,3 +146,23 @@
     (when-let ((position (position :versions path)))
       (cond ((and (= position 0) (stringp thing) (not (find #\@ thing)))
              (list (make-instance 'project-name-context :prefix thing)))))))
+
+;;; Aspect name context
+
+(defclass aspect-class-context ()
+  ((%prefix :initarg :prefix
+            :reader  prefix)))
+
+(defclass aspect-class-context-contributor () ())
+
+(defmethod contrib:context-contributions
+    ((workspcae   t)
+     (document    t)
+     (position    t)
+     (contributor aspect-class-context-contributor))
+  (let+ (((&values path (&optional location &rest &ign))
+          (structure-path position document))
+         (thing (gethash location (location->object document))))
+    (log:error path location thing)
+    (when (ends-with-subseq '(:aspect :aspects) path)
+      (list (make-instance 'aspect-class-context :prefix thing)))))

@@ -79,6 +79,21 @@
           ((and (length= 2 path) (ends-with :versions path))
            (map 'list #'make-item '(:name :versions :variables))))))
 
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    template-document)
+     (context     structure-context)
+     (contributor structure-completion-contributor))
+  (let+ ((path (path context))
+         ((&flet make-item (section)
+            (proto:make-completion-item (string-downcase section)))))
+    (cond ((length= 1 path)
+           (map 'list #'make-item '(:inherit :variables :aspects :jobs)))
+          ((and (length= 2 path) (ends-with :aspects path))
+           (map 'list #'make-item '(:name :aspect :conditions :variables)))
+          ((and (length= 2 path) (ends-with :jobs path))
+           (map 'list #'make-item '(:name :conditions :variables))))))
+
 ;;;
 
 (defclass template-name-completion-contributor () ())
@@ -88,11 +103,13 @@
      (document    t)
      (context     template-name-context)
      (contributor template-name-completion-contributor))
-  (let+ (((&flet make-item (template)
+  (let+ ((templates (templates workspace))
+         ((&flet make-item (template)
             (proto:make-completion-item (model:name template)))))
-    (loop :for template :in (templates workspace)
-          ;; when
-          :collect (make-item template))))
+    (when (lparallel:fulfilledp templates)
+      (loop :for template :in (lparallel:force templates)
+            ;; when
+            :collect (make-item template)))))
 
 ;;;
 
@@ -192,8 +209,8 @@
                       project :programming-languages '()))
         (licenses    (var:value/cast
                        project :licenses '()))
-        (maintainers (var:value/cast
-                      project :recipe.maintainer '()))
+        (maintainers (ensure-list (var:value/cast
+                                   project :recipe.maintainer '())))
         (description (var:value/cast
                       project :description "«no description»")))
     (format nil "Nature: ~A~%~
@@ -213,15 +230,37 @@
      (document    t)
      (context     project-name-context)
      (contributor project-name-completion-contributor))
-  (let ((prefix (prefix context)))
-    (mapcan (lambda (project)
-              (let ((name (model:name project)))
-                (when (starts-with-subseq prefix name)
-                  (list (proto:make-completion-item
-                         name :kind          :file
-                         :detail        "project"
-                         :documentation (describe-project project))))))
-            (projects (workspace document)))))
+  (let ((prefix   (prefix context))
+        (projects (projects (workspace document))))
+    (when (lparallel:fulfilledp projects)
+     (mapcan (lambda (project)
+               (let ((name (model:name project)))
+                 (when (starts-with-subseq prefix name)
+                   (list (proto:make-completion-item
+                          name
+                          :kind          :file
+                          :detail        "project"
+                          :documentation (describe-project project))))))
+             (lparallel:force projects)))))
+
+;;;
+
+(defclass aspect-class-completion-contributor () ())
+
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     aspect-class-context)
+     (contributor aspect-class-completion-contributor))
+  (protocol.language-server::debug1 context)
+  (let ((prefix ""                      ;(prefix context)
+                ))
+    (mappend (lambda (provider)
+               (let ((name (string-downcase (service-provider:provider-name provider))))
+                 (when (starts-with-subseq prefix name)
+                   (list (proto:make-completion-item
+                          name :kind :class :detail "aspect")))))
+             (service-provider:service-providers 'build-generator.model.aspects::aspect))))
 
 ;;;
 

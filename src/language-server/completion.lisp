@@ -85,15 +85,7 @@
                    (type          (var:variable-info-type variable))
                    (documentation (var:variable-info-documentation variable))
                    (title         (string-downcase name))
-                   (new-text      (typecase type
-                                    ((eql string)
-                                     (format nil "~(~A~): \"\""
-                                             name))
-                                    ((cons (eql model::list-of) (cons (eql string) null))
-                                     (format nil "~(~A~):~%- "
-                                             name))
-                                    (t
-                                     (format nil "~(~A~): " name)))))
+                   (new-text      title))
               (proto:make-completion-item
                title
                :kind          :variable

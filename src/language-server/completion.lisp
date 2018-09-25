@@ -85,15 +85,7 @@
                    (type          (jenkins.model.variables:variable-info-type variable))
                    (documentation (jenkins.model.variables:variable-info-documentation variable))
                    (title         (string-downcase name))
-                   (new-text      (typecase type
-                                    ((eql string)
-                                     (format nil "~(~A~): \"\""
-                                             name))
-                                    ((cons (eql jenkins.model::list-of) (cons (eql string) null))
-                                     (format nil "~(~A~):~%- "
-                                             name))
-                                    (t
-                                     (format nil "~(~A~): " name)))))
+                   (new-text      title))
               (proto:make-completion-item
                title
                :kind          :variable

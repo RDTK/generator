@@ -111,7 +111,9 @@
   ((%variable-location :initarg :variable-location
                        :reader  variable-location)
    (%variable-node     :initarg :variable-node
-                       :reader  variable-node)))
+                       :reader  variable-node)
+   (%prefix-range      :initarg :prefix-range
+                       :reader  prefix-range)))
 
 (defclass variable-value-context-contributor () ())
 
@@ -126,10 +128,12 @@
       (when (= position 1)
         (when-let* ((name     (first path))
                     (variable (var:find-variable name :if-does-not-exist nil)))
-          (log:error path position name variable)
+          (log:error (list path position name variable location))
           (list (make-instance 'variable-value-context
                                :variable-location location ; TODO
-                               :variable-node     variable)))))))
+                               :variable-node     variable
+                               ; :prefix-range
+                               )))))))
 
 ;;; project version reference context provider
 

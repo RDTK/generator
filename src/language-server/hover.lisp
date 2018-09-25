@@ -6,6 +6,8 @@
 
 (cl:in-package #:build-generator.language-server)
 
+;;; Variable
+
 (defclass variable-hover-contributor () ())
 
 (defmethod contrib:hover-contribution ((workspace   t)
@@ -19,7 +21,7 @@
                "«undocumented variable»"))
      (text.source-location:range variable-location) )))
 
-;;;
+;;; Project version
 
 (defclass project-version-hover-contributor () ())
 

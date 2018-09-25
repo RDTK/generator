@@ -133,7 +133,8 @@
 
 (defun load-projects/versioned (files-and-includes repository &key generator-version)
   (with-sequence-progress (:load/project files-and-includes)
-    (lparallel:pmapcan
+    (; lparallel:p
+     mapcan
      (lambda+ ((file project-includes))
        (progress "~A" (util:safe-enough-namestring file))
        (with-simple-restart
@@ -142,7 +143,8 @@
           (list (load-project/versioned
                  file version-names repository
                  :generator-version generator-version)))))
-     :parts most-positive-fixnum files-and-includes)))
+     ; :parts most-positive-fixnum
+     files-and-includes)))
 
 ;;; The values of these variables uniquely identify a "repository
 ;;; access".

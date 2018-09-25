@@ -10,9 +10,6 @@
 
 (defun structure-path (position document)
   (when-let* ((locations (lookup:lookup position (index document))))
-    #+NO (lsp::debug1 (list* position (sloc:index position) (subseq (lsp:text document) (- (sloc:index position) 2) (+ (sloc:index position) 2))
-                        (loop :for location :in locations
-                              :collect (cons location (gethash location (location->object document))))))
     (let ((path (mappend
                  (lambda (node)
                    (when (typep node '(cons keyword))

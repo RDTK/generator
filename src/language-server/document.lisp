@@ -110,7 +110,7 @@
   ())
 
 (defmethod parse ((document project-document) (text string) (pathname t) (index t))
-  (let ((project::*templates* (ensure-templates (workspace document)))
+  (let ((project::*templates* (lparallel:force (ensure-templates (workspace document))))
         (project::*location-hook* ; TODO do this in superclass's method?
           (lambda (object location)
             (declare (ignore object))

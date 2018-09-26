@@ -110,7 +110,7 @@
   ())
 
 (defmethod parse ((document project-document) (text string) (pathname t) (index t))
-  (let ((jenkins.model.project::*templates* (ensure-templates (workspace document)))
+  (let ((jenkins.model.project::*templates* (lparallel:force (ensure-templates (workspace document))))
         (jenkins.model.project::*location-hook* ; TODO do this in superclass's method?
           (lambda (object location)
             (declare (ignore object))

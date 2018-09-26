@@ -48,7 +48,7 @@
         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
                                            )
         (jenkins.model.project::*projects-lock* (bt:make-lock))
-        (pattern "projects/*.project" (lsp:root-directory container)))
+        (pattern (merge-pathnames "projects/*.project" (lsp:root-directory container))))
     (handler-bind ((error #'continue))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")

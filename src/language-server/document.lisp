@@ -63,11 +63,19 @@
           (locations document) locations
           (source document)    source
           (index document)     index)
-    (flet ((diagnostic (condition)
-             (list (make-instance 'protocol.language-server.protocol:diagnostic
-                                  :annotation (first (jenkins.model.project::annotations condition))
-                                  :message    condition))))
-      (methods:publish-diagnostics document (mappend #'diagnostic errors)))))
+    (let ((diagnostics '())
+          (messages    '()))
+      (flet ((do-condition (condition)
+               (if (compute-applicable-methods #'jenkins.model.project::annotations (list condition))
+                   (push (make-instance 'protocol.language-server.protocol:diagnostic
+                                        :annotation (first (jenkins.model.project::annotations condition))
+                                        :message    condition)
+                         diagnostics)
+                   (push (proto:make-message :error (princ-to-string condition))
+                         messages))))
+        (map nil #'do-condition errors)
+        (methods:publish-diagnostics document diagnostics)
+        (map nil #'methods::log-message messages)))))
 
 (defmethod contrib:contexts :around ((workspace t) ; HACK))))
                                      (document  build-generator-document)

@@ -6,29 +6,52 @@
 
 (cl:in-package #:jenkins.model.project)
 
-(defvar *locations* (make-hash-table :test #'eq))
+(declaim (special *locations*)
+         (type locations *locations*))
 
-(defvar *location->object* (make-hash-table :test #'eq))
+(defclass locations ()
+  ((%parent           :initarg  :parent
+                      :reader   parent
+                      :initform *locations*)
+   (%object->location :reader   object->location
+                      :initform (make-hash-table :test #'eq))
+   (%location->object :reader   location->object
+                      :initform (make-hash-table :test #'eq))
+   (%hook             :initarg  :hook
+                      :reader   %hook
+                      :initform :inherit)))
 
-(defvar *location-hook* nil)
+(defvar *locations* (make-instance 'locations :parent nil))
 
 (defvar *locations-lock* (bt:make-lock "locations"))
 
-(defun object-at (location)
-  (bt:with-lock-held (*locations-lock*)
-    (gethash location *location->object*)))
+(defun object-at (location &optional (repository *locations*))
+  (or (bt:with-lock-held (*locations-lock*)
+        (gethash location (location->object repository)))
+      (when-let ((parent (parent repository)))
+        (object-at location parent))))
 
-(defun location-of (object)
-  (bt:with-lock-held (*locations-lock*)
-    (gethash object *locations*)))
+(defun location-of (object &optional (repository *locations*))
+  (or (bt:with-lock-held (*locations-lock*)
+        (gethash object (object->location repository)))
+      (when-let ((parent (parent repository)))
+        (location-of object repository))))
 
-(defun (setf location-of) (new-value object)
+(defun (setf location-of) (new-value object &optional (repository *locations*))
   (bt:with-lock-held (*locations-lock*)
-    (setf (gethash object    *locations*)        new-value
-          (gethash new-value *location->object*) object)
-    (when-let ((hook *location-hook*))
+    (setf (gethash object    (object->location repository)) new-value
+          (gethash new-value (location->object repository)) object)
+    (when-let ((hook (hook repository)))
       (funcall hook object new-value))))
 
 (defun copy-location (old-object new-object)
   (setf (location-of new-object) (location-of old-object))
   new-object)
+
+(defun hook (repository)
+  (let ((hook (%hook repository)))
+    (case hook
+      ((nil)    nil)
+      (:inherit (when-let ((parent (parent repository)))
+                  (hook parent)))
+      (t        hook))))

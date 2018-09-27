@@ -19,9 +19,7 @@
    (%source    :accessor source
                :initform nil)
    (%index     :accessor index
-               :initform nil)
-   (%location->object :accessor location->object
-                      :initform nil)))
+               :initform nil)))
 
 (defmethod contrib:make-context-contributors ((document build-generator-document))
   (list (make-instance 'structure-context-contributor)
@@ -38,15 +36,16 @@
 
 (defmethod (setf lsp:text) :after ((new-value string)
                                    (document  build-generator-document))
-  (let ((jenkins.model.project::*projects*         (make-hash-table :test #'equal))
-        (jenkins.model.project::*locations*        (make-hash-table :test #'eq))
-        (jenkins.model.project::*location->object* (make-hash-table :test #'eq))
+  (let* ((errors    '())
+         (result    nil)
+         (locations nil)
+         (source    nil)
+         (index     (make-instance 'text.source-location.lookup::range-index))
 
-        (errors    '())
-        (result    nil)
-        (locations nil)
-        (source    nil)
-        (index     (make-instance 'text.source-location.lookup::range-index)))
+         (jenkins.model.project::*locations* (make-instance 'jenkins.model.project::locations
+                                                            :hook (lambda (object location)
+                                                                    (declare (ignore object))
+                                                                    (text.source-location.lookup:add! location index)))))
     (handler-bind ((error (lambda (condition)
                             (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
                             (push condition errors)
@@ -58,13 +57,12 @@
         (setf (values result locations source)
               (let ((pathname (pathname (file-namestring (pathname *uri*)))))
                 (values
-                 (parse document (lsp:text document) pathname index)
+                 (parse document (lsp:text document) pathname)
                  jenkins.model.project::*locations*)))))
     (setf (object document)    result
           (locations document) locations
           (source document)    source
-          (index document)     index
-          (location->object document) jenkins.model.project::*location->object*)
+          (index document)     index)
     (flet ((diagnostic (condition)
              (list (make-instance 'protocol.language-server.protocol:diagnostic
                                   :annotation (first (jenkins.model.project::annotations condition))
@@ -81,21 +79,17 @@
                                (document  build-generator-document)
                                (position  t))
   (when-let* ((locations (lookup:lookup position (index document)))
-              (name      (gethash (first locations) (location->object document)))
+              (name      (jenkins.model.project::object-at (first locations) (locations document)))
               (template  (jenkins.model.project:find-template name :if-does-not-exist nil))
-              (location (jenkins.model.project::location-of template)))
-    (log:error locations name template location )
+              (location  (jenkins.model.project::location-of template (locations document))))
     (list (proto:unparse-location location))))
 
 (defmethod methods:highlight-in-document ((workspace t)
                                           (document  build-generator-document)
                                           (version   t)
                                           (position  t))
-  (or (let+ ((locations (locations document)))
-        (when locations
-          (when-let ((location (find-if (curry #'text.source-location.lookup:location-in? position)
-                                        (hash-table-alist locations) :key #'cdr :from-end t)))
-            (vector (proto:make-highlight :text (text.source-location:range (cdr location)))))))
+  (or (when-let ((locations (lookup:lookup position (index document))))
+        (vector (proto:make-highlight :text (text.source-location:range (first locations)))))
       #()))
 
 (defmethod methods:code-actions ((workspace t)
@@ -109,12 +103,8 @@
 (defclass project-document (build-generator-document)
   ())
 
-(defmethod parse ((document project-document) (text string) (pathname t) (index t))
-  (let ((jenkins.model.project::*templates* (lparallel:force (ensure-templates (workspace document))))
-        (jenkins.model.project::*location-hook* ; TODO do this in superclass's method?
-          (lambda (object location)
-            (declare (ignore object))
-            (text.source-location.lookup:add! location index))))
+(defmethod parse ((document project-document) (text string) (pathname t))
+  (let ((jenkins.model.project::*templates* (lparallel:force (ensure-templates (workspace document)))))
     (jenkins.model.project::load-project-spec/yaml
      text
      :pathname          pathname
@@ -133,30 +123,21 @@
 (defclass distribution-document (build-generator-document)
   ())
 
-(defmethod parse ((document distribution-document)
-                  (text     string)
-                  (pathname t)
-                  (index    t))
-  (let* ((distribution (let ((jenkins.model.project::*location-hook*
-                               (lambda (object location)
-                                 (declare (ignore object))
-                                 (text.source-location.lookup:add! location index))))
-                         (jenkins.model.project::load-distribution/yaml
-                          text
-                          :pathname          pathname
-                          :generator-version "0.25.0")))
-         (jenkins.model.project::*templates*        (lparallel:force (ensure-templates (workspace document))))
-         (jenkins.model.project::*projects*         (make-hash-table :test #'equal))
-         (jenkins.model.project::*locations*        (make-hash-table :test #'eq))
-         (jenkins.model.project::*location->object* (make-hash-table :test #'eq))
+(defmethod parse ((document distribution-document) (text string) (pathname t))
+  (let* ((distribution (jenkins.model.project::load-distribution/yaml
+                        text
+                        :pathname          pathname
+                        :generator-version "0.25.0"))
          (projects-files+versions (uiop:symbol-call '#:jenkins.project.commands '#:locate-projects
                                                     (list pathname) (list distribution)))
-
-         (projects                (uiop:symbol-call '#:jenkins.project.commands '#:load-projects/versioned
-                                                    projects-files+versions
-                                                    :generator-version "0.25.0" ; generator-version
-                                                    )))
-    (lsp::debug1 (list :parse-distribution projects-files+versions projects))
+         (jenkins.model.project::*templates*        (lparallel:force (ensure-templates (workspace document))))
+         (jenkins.model.project::*projects*         (make-hash-table :test #'equal))
+         (jenkins.model.project::*locations*        (make-instance 'jenkins.model.project::locations
+                                                                   :hook nil))
+         (projects (uiop:symbol-call '#:jenkins.project.commands '#:load-projects/versioned
+                                     projects-files+versions
+                                     :generator-version "0.25.0" ; generator-version
+                                     )))
     distribution))
 
 (defmethod contrib:make-context-contributors ((document distribution-document))
@@ -176,13 +157,9 @@
 (defclass template-document (build-generator-document)
   ())
 
-(defmethod parse ((document template-document) (text string) (pathname t) (index t))
+(defmethod parse ((document template-document) (text string) (pathname t))
   (let ((name (pathname-name pathname))
-        (jenkins.model.project::*templates* (make-hash-table :test #'equal))
-        (jenkins.model.project::*location-hook*
-          (lambda (object location)
-            (declare (ignore object))
-            (text.source-location.lookup:add! location index))))
+        (jenkins.model.project::*templates* (make-hash-table :test #'equal)))
     (jenkins.model.project::loading-template (name)
       (jenkins.model.project::load-one-template/yaml
        text

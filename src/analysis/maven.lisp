@@ -1,6 +1,6 @@
 ;;;; maven.lisp --- Analysis of maven projects.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -181,7 +181,8 @@
                        inner-types)
   (declare (ignore inner-types))
   (xloc:with-locations-r/o (((:name name) ".")
-                            (value        "text()")) value
+                            (value        "text()" :if-no-match :do-nothing))
+      value
     (cons name value)))
 
 (deftype list/dependency ()

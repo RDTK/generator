@@ -35,7 +35,7 @@
   (or (bt:with-lock-held (*locations-lock*)
         (gethash object (object->location repository)))
       (when-let ((parent (parent repository)))
-        (location-of object repository))))
+        (location-of object parent))))
 
 (defun (setf location-of) (new-value object &optional (repository *locations*))
   (bt:with-lock-held (*locations-lock*)

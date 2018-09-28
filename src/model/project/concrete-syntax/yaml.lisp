@@ -12,10 +12,12 @@
                                 source
                                 (error "Must supply ~S when source is a string"
                                        :file)))
-                   (content (when (pathnamep source)
-                              (read-file-into-string source))))
-  (let* ((source* (apply #'text.source-location:make-source source
-                         (when content  (list :content content))))
+                   (content (cond ((pathnamep source)
+                                   (read-file-into-string source))
+                                  ((stringp source)
+                                   source))))
+  (let* ((source* (apply #'text.source-location:make-source file
+                         (when content (list :content content))))
          (builder (make-builder source*)))
     (handler-case
         (values (language.yaml:load source :builder builder) file source*)
@@ -159,9 +161,9 @@
   (check-type name (cons symbol (cons (member :data :pathname) null)))
   (let+ (((&optional name-var name-kind) name)
          (other-args (set-difference
-                      args '(repository pathname content index generator-version)
+                      args '(repository pathname generator-version)
                       :test #'eq))
-         (all-args   (list* 'repository 'pathname 'content 'index 'generator-version
+         (all-args   (list* 'repository 'pathname 'generator-version
                             other-args))
          (read-name  (symbolicate '#:read-  concept '#:/yaml))
          (parse-name (symbolicate '#:parse- concept '#:/yaml))
@@ -172,10 +174,8 @@
          (declare (ignore ,@other-args))
          (let+ (((&values spec pathname source)
                  (apply #'%load-yaml source
-                        (append (when pathname
-                                  (list :file pathname :content content))
-                                (when index
-                                  (list :index index))))))
+                        (when pathname
+                          (list :file pathname)))))
            (check-keys spec '((:minimum-generator-version nil string)
                               ,@(when (eq name-kind :data)
                                   '((:name t string)))

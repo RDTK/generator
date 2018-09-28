@@ -89,7 +89,8 @@
 
 ;;; Project variables
 
-(define-variable :scm string
+(define-variable :scm (or (eql :archive) (eql :git) (eql :svn) (eql :mercurial)
+                          string)
   :documentation
   "Forces the use a particular source code management system in the
    generator's analysis and generated Jenkins jobs.

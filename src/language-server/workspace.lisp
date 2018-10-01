@@ -6,7 +6,10 @@
 
 (cl:in-package #:build-generator.language-server)
 
-(defclass workspace (lsp:standard-workspace)
+(defclass workspace (lsp:workspace
+                     lsp:document-container-mixin
+                     lsp:root-uri-mixin
+                     print-items:print-items-mixin)
   ((%templates :accessor %templates
                :initform nil)
    (%projects  :accessor %projects

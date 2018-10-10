@@ -55,13 +55,10 @@
                             (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
       (with-simple-restart (continue "Abort parse")
         (assert (starts-with-subseq "file:///" *uri*))
-        (setf (values result locations source)
-              (let ((pathname (pathname (subseq *uri* (length "file://")))))
-                (values
-                 (parse document (lsp:text document) pathname)
-                 project::*locations*)))))
+        (setf result (let ((pathname (pathname (subseq *uri* (length "file://")))))
+                       (parse document (lsp:text document) pathname)))))
     (setf (object document)    result
-          (locations document) locations
+          (locations document) project::*locations*
           (source document)    source
           (index document)     index)
     (let ((diagnostics '())

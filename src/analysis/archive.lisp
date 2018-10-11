@@ -85,7 +85,7 @@
          ;; on it.
          (let* ((directory (or (first (directory (merge-pathnames
                                                   "*.*" temp-directory)))
-                               (error "~@<Cannot locate directory
+                               (error "~@<Cannot locate directory ~
                                        extracted from ~A in ~A.~@:>"
                                       archive-name temp-directory)))
                 (directory     (if sub-directory

@@ -36,7 +36,14 @@
 
 (defmethod (setf lsp:text) :after ((new-value string)
                                    (document  build-generator-document))
-  (let* ((errors    '())
+  (unless (starts-with-subseq "file:///" *uri*)
+    (error "unsupported URI: ~S" *uri*))
+
+  (let* ((pathname (pathname (subseq *uri* (length "file://"))))
+         (source   (setf (source document)
+                         (sloc:make-source pathname :content (lsp:text document))))
+
+         (errors    '())
          (result    nil)
          (locations nil)
          (source    nil)
@@ -54,12 +61,10 @@
                               (continue))
                             (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
       (with-simple-restart (continue "Abort parse")
-        (assert (starts-with-subseq "file:///" *uri*))
-        (setf result (let ((pathname (pathname (subseq *uri* (length "file://")))))
-                       (parse document (lsp:text document) pathname)))))
+
+        (setf result (parse document (lsp:text document) pathname))))
     (setf (object document)    result
           (locations document) project::*locations*
-          (source document)    source
           (index document)     index)
     (let ((diagnostics '())
           (messages    '()))

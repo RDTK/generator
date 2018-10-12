@@ -33,6 +33,7 @@
                               (:file       "workspace")
                               (:file       "document")
 
+                              (:file       "diagnostics")
                               (:file       "context")
                               (:file       "hover")
                               (:file       "completion")

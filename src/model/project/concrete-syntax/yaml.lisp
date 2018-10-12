@@ -150,12 +150,17 @@
 
 ;;; Person loading
 
-(define-yaml-loader (person ((:aliases nil list) (:identities nil list)))
+(define-yaml-loader (person ((:aliases    nil list)
+                             (:identities nil list)
+                             (:variables  nil list)))
     (spec (name :data))
   (let* ((aliases    (lookup :aliases))
          (identities (map 'list #'puri:uri (lookup :identities)))
-         (person     (apply #'rosetta-project.model.resource:make-person
-                            name (append aliases identities))))
+         (variables  (process-variables (lookup :variables)))
+         (person     (change-class
+                      (apply #'rosetta-project.model.resource:make-person
+                             name (append aliases identities))
+                      'person :variables variables)))
     (push person *persons*)
     person))
 

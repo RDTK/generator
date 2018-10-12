@@ -7,6 +7,7 @@
 (cl:in-package #:build-generator.language-server)
 
 (defclass build-generator-document (lsp:document
+                                    contrib:diagnostics-contributors-mixin
                                     contrib:context-contributors-mixin
                                     contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin)
@@ -20,6 +21,10 @@
                :initform nil)
    (%index     :accessor index
                :initform nil)))
+
+(defmethod contrib:make-diagnostics-contributors ((document build-generator-document))
+  (list (make-instance 'tabs-diagnostics-contributor)
+        (make-instance 'variable-diagnostics-contributor)))
 
 (defmethod contrib:make-context-contributors ((document build-generator-document))
   (list (make-instance 'structure-context-contributor)
@@ -66,7 +71,7 @@
     (setf (object document)    result
           (locations document) project::*locations*
           (index document)     index)
-    (let ((diagnostics '())
+    (let ((diagnostics (contrib:diagnostics (workspace document) document))
           (messages    '()))
       (flet ((do-condition (condition)
                (if (compute-applicable-methods #'project::annotations (list condition))

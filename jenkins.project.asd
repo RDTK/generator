@@ -38,7 +38,7 @@
                 "ironclad"
 
                 (:version "rosetta"                                      "0.4")
-                (:version "rosetta-project"                              "0.4")
+                (:version "rosetta-project"                              "0.5")
 
                 (:version "jenkins.api"                                  "0.1")
 

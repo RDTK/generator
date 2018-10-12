@@ -1,6 +1,6 @@
 ;;;; setuptools.lisp ---
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -189,7 +189,7 @@
     (merge-people-list
      (map 'list (lambda (person email)
                   (if (and person email)
-                      (apply #'rosetta-project.model.resource:augment-person!
-                             person (rosetta-project.model.resource:identities email))
+                      (rosetta-project.model.resource:augment-person!
+                       person (rosetta-project.model.resource:identities email))
                       (or person email)))
           (pad names names-length) (pad emails emails-length)))))

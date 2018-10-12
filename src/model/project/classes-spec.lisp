@@ -477,3 +477,17 @@
                :name      (name spec)
                :parent    parent
                :variables (direct-variables spec)))
+
+;;; `person'
+
+(defclass person (rosetta-project.model.resource:person
+                  direct-variables-mixin)
+  ()
+  (:documentation
+   "Adds variables to the rosetta-project `person' class."))
+
+(defmethod rosetta-project.model.resource:augment-person!
+    ((person rosetta-project.model.resource:person) (other-person person))
+  (rosetta-project.model.resource:augment-person!
+   (change-class person 'person :variables (direct-variables other-person))
+   other-person))

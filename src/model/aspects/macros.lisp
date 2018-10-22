@@ -85,12 +85,12 @@
          (class-name (name->class-name name))
          ((&values parameters explicit-names)
           (loop :for spec :in parameters
-             :for (parameter explicit-name?)
-             = (multiple-value-list
-                (parse-aspect-parameter-spec name spec))
-             :collect parameter :into parameters
-             :collect explicit-name? :into explicit-names
-             :finally (return (values parameters explicit-names)))))
+                :for (parameter explicit-name?)
+                   = (multiple-value-list
+                      (parse-aspect-parameter-spec name spec))
+                :collect parameter :into parameters
+                :collect explicit-name? :into explicit-names
+                :finally (return (values parameters explicit-names)))))
     `(progn
        ;; Announce variables at compile-time.
        (eval-when (:compile-toplevel :load-toplevel :execute)

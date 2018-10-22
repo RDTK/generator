@@ -1,4 +1,8 @@
-((:release "0.25" nil)
+((:release "0.25" nil
+
+  (:enhancement
+   "Recipes describing persons can now contain
+    a" (:verb "variables") "section."))
 
  (:release "0.24" "2018-09-17"
 

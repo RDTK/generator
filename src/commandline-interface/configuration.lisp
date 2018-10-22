@@ -133,11 +133,9 @@
   (let+ (((&flet notify (name event value &key (raw? t))
             (configuration.options:notify
              synchronizer name event value :source :commandline :raw? raw?)))
-         ((&flet set-value (name value error-handler)
-            (handler-bind ((error error-handler))
-              (notify :added     name nil)
-              (notify :new-value name value
-                      :raw? (not (typep value 'boolean)))))))
+         ((&flet set-value (name value)
+            (notify :added     name nil)
+            (notify :new-value name value
+                    :raw? (not (typep value 'boolean))))))
     (jenkins.project.commandline-options:map-commandline-options
-     (rcurry #'set-value #'error) "global" arguments
-     :stop-at-positional? t)))
+     #'set-value "global" arguments :stop-at-positional? t)))

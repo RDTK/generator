@@ -46,10 +46,7 @@
 
                 (:version "jenkins.project.more-conditions-patch"        (:read-file-form "version-string.sexp")))
 
-  :components  ((:file       "cxml-hack"
-                 :pathname   "src/cxml-patch")
-
-                (:module     "version"
+  :components  ((:module     "version"
                  :pathname   "src/version"
                  :serial     t
                  :components ((:file     "package")

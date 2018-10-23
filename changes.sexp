@@ -7,6 +7,37 @@
     behavior may arise around line breaks in quoted strings.")
 
   (:enhancement
+   "Entries in the" (:verb "versions") "section of project recipes now
+    allow using the key" (:verb "pattern") "instead
+    of" (:verb "name") "for specifying the name of the version. The
+    corresponding value must be a regular expression which may contain
+    capture groups. In case" (:verb "pattern") "is used, project
+    versions specified in distribution recipes are scanned using the
+    regular expression and matching ones are considered existing
+    project versions. Within such a project version section, the
+    variables" (:verb "version-name") "," (:verb "match:0") ","
+    (:verb "match:1") "," (:verb "match:2") ", … are bound to the
+    whole matched string and the values of the capture groups in the
+    pattern respectively."
+   "For example, matching" (:verb "0.15-test") "against the
+    pattern" (:verb "^([0-9]+\.[0-9]+)-(.*)$") "results in bindings"
+   (:ul
+    (:verb "version-name → 0.15-test")
+    (:verb "match:0      → 0.15-test")
+    (:verb "match:1      → 0.15")
+    (:verb "match:2      → test"))
+   "These variables can be used in definitions of other variables in
+    the project version such as" (:verb "branch") "."
+   "Full example:"
+   (:verb "versions:
+- pattern: '^(.*)-without-tests$'
+  variables:
+    branch: ${match:1}
+    cmake.options:
+    - '@{next-value}'
+    - -DBUILD_TESTS=false"))
+
+  (:enhancement
    "Recipes describing persons can now contain
     a" (:verb "variables") "section.")
 

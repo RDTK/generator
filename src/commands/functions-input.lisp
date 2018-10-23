@@ -102,9 +102,14 @@
          (project       (reinitialize-instance
                          (load-project-spec/yaml
                           file
-                          :version-test      (lambda (version)
-                                               (find version version-names
-                                                     :test #'string=))
+                          :version-test      (lambda (name pattern)
+                                               (cond
+                                                 (name
+                                                  (find name version-names
+                                                        :test #'string=))
+                                                 (pattern
+                                                  (remove pattern version-names
+                                                          :test-not #'ppcre:scan))))
                           :generator-version generator-version)
                          :parent distribution))
          (branches      (value/cast project :branches '()))

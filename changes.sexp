@@ -6,7 +6,13 @@
 
   (:enhancement
    "The new" (:verb "catalog") "report type outputs files in a format
-    that can be consumed by the citkat catalog server."))
+    that can be consumed by the citkat catalog server.")
+
+  (:enhancement
+   "When analyzing CMake projects, the project version can now be
+    determined when a" (:verb "PROJECT-NAMEConfigVersion.cmake.in")
+   "or" (:verb "PROJECT-NAME-config-version.cmake.in") "file refers to
+    a variable containing the project version."))
 
  (:release "0.24" "2018-09-17"
 

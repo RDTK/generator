@@ -199,10 +199,25 @@
 
 (defun config-file->project-name (pathname)
   (let+ (((&values match? groups)
-          (ppcre:scan-to-strings "(.+)(?:Config|-config)"
-                                 (pathname-name pathname))))
+          (ppcre:scan-to-strings
+           "^(.+)(?:Config(-version)|Config(Version)?|-config(-version)?)"
+           (pathname-name pathname))))
     (when match?
-      (aref groups 0))))
+      (values (aref groups 0)
+              (when (or (aref groups 1) (aref groups 2) (aref groups 3))
+                t)))))
+
+(mapc (lambda+ ((pathname expected))
+        (assert (equal expected
+                       (multiple-value-list
+                        (config-file->project-name pathname)))))
+      `((,#P"FooConfig.cmake.in"       ("Foo" nil))
+
+        (,#P"FooConfig.cmake"          ("Foo" nil))
+        (,#P"FooConfigVersion.cmake"   ("Foo" t))
+        (,#P"foo-config.cmake"         ("foo" nil))
+        (,#P"foo-config-version.cmake" ("foo" t))
+        (,#P"FooConfig-version.cmake"  ("Foo" t))))
 
 (defun format-version (major &optional minor patch)
   (format nil "~D~{~@[.~D~]~}" major (list minor patch)))
@@ -600,14 +615,38 @@
 
 (defun %find-config-mode-templates (directory)
   (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
-          (find-files (merge-pathnames "**/*Config.cmake.*" directory))))
+          (find-files (merge-pathnames "**/*-config-version.cmake.*" directory))
+          (find-files (merge-pathnames "**/*Config.cmake.*" directory))
+          (find-files (merge-pathnames "**/*ConfigVersion.cmake.*" directory))
+          (find-files (merge-pathnames "**/*Config-version.cmake.*" directory))))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/config-mode-template))
                     &key
-                    project-version)
-  (when-let ((name (config-file->project-name source)))
-    (list (%make-dependency name project-version))))
+                    project-version
+                    environment)
+  (let+ (((&values name version?) (config-file->project-name source)))
+    (if version?
+        (let+ (((&whole matchers
+                        major-version minor-version patch-version
+                        matching-version any-version)
+                (map 'list (rcurry #'make-matcher environment)
+                     `("VERSION_MAJOR" "VERSION_MINOR" "VERSION_PATCH"
+                       ,name nil)))
+               (content (read-file-into-string source)))
+          (ppcre:do-matches-as-strings (reference *variable-reference-scanner* content)
+            (when (and (starts-with #\@ reference)
+                       (search "VERSION" reference))
+              (some (rcurry #'funcall reference) matchers)))
+          (let ((version (or (when-let ((major (funcall major-version))
+                                        (minor (funcall minor-version)))
+                               (let ((patch (funcall patch-version)))
+                                 (format-version major minor patch)))
+                             (funcall matching-version)
+                             (funcall any-version)
+                             project-version)))
+            (list (%make-dependency name version))))
+        (list (%make-dependency name project-version)))))
 
 ;;; pkg-config Template Files
 
@@ -642,3 +681,23 @@
 (defun %list-unless-equal (first second)
   (when first
     (list* first (unless (equal first second) (list second)))))
+
+(defun make-matcher (pattern environment)
+  (let ((best-value  nil)
+        (best-length nil))
+    (lambda (&optional new-expression)
+      (if new-expression
+          (when (or (not pattern)
+                    (search pattern new-expression
+                            :test #'char-equal))
+            (let ((new-length (length new-expression)))
+              (when (or (not best-length) (< new-length best-length))
+                (when-let ((new-value (%resolve-variables
+                                       new-expression environment
+                                       :if-unresolved nil)))
+                  (log:info "~@<~A matcher found ~S → ~S (~D)~@:>"
+                            pattern new-expression new-value new-length)
+                  (setf best-value  new-value
+                        best-length new-length))))
+            t)
+          (values best-value best-length)))))

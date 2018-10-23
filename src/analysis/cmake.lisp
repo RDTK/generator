@@ -403,8 +403,7 @@
             (add-variable! name                         value)
             (add-variable! (format nil "CMAKE_~A" name) value)))
          ((&flet resolve (expression)
-            (%resolve-variables
-             expression environment :if-unresolved nil)))
+            (%resolve-variables expression environment :if-unresolved nil)))
          (included-requires '()))
     ;; Set CMAKE_SOURCE_DIR to the current directory in case an
     ;; include(…) call or similar depends on it.
@@ -632,17 +631,6 @@
   (list* nature name (typecase version
                        (string (list (parse-version version)))
                        (cons   (list version)))))
-
-(defun %project-version-from-variables (versions)
-  (let+ (((&flet find-component (name)
-            (cdr (find (format nil "VERSION_~A" name) versions
-                       :test #'ends-with-subseq :key #'car))))
-         ((major minor patch)
-          (mapcar #'find-component '("MAJOR" "MINOR" "PATCH"))))
-    (when major
-      (log:debug "~@<Found version in variables ~A~@[.~A~@[.~A~]~]~@:>"
-                 major minor patch)
-      (format-version major minor patch))))
 
 (defun %split-arguments (arguments)
   (let ((result '()))

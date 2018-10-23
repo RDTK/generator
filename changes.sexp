@@ -2,7 +2,11 @@
 
   (:enhancement
    "Recipes describing persons can now contain
-    a" (:verb "variables") "section."))
+    a" (:verb "variables") "section.")
+
+  (:enhancement
+   "The new" (:verb "catalog") "report type outputs files in a format
+    that can be consumed by the citkat catalog server."))
 
  (:release "0.24" "2018-09-17"
 

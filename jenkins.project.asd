@@ -180,5 +180,7 @@
                               (:file     "conditions")
                               (:file     "protocol")
                               (:file     "util")
+
                               (:file     "json")
-                              (:file     "graphviz")))))
+                              (:file     "graphviz")
+                              (:file     "catalog")))))

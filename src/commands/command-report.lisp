@@ -10,7 +10,7 @@
                   mode-mixin
                   output-directory-mixin)
   ((kind :initarg :kind
-         :type    (or null (cons (member :json :graph)))
+         :type    (or null (cons (member :json :graph :catalog)))
          :reader  kind
          :documentation
          "The kind(s) of report(s) that should be generated."))

@@ -18,7 +18,7 @@
    #:jenkins.model.project)
 
   (:shadowing-import-from #:jenkins.model.variables
-   #:value
+   #:value #:value/cast
 
    #:as
 

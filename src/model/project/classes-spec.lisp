@@ -99,9 +99,8 @@
     (declare (ignore if-undefined))
     (let+ ((jobs (distribution-jobs thing))
            ((&flet dependencies (job)
-              (let* ((dependency-name (as (value thing :dependency-job-name
-                                                 (name job))
-                                          'string)))
+              (let* ((dependency-name (value/cast thing :dependency-job-name
+                                                  (name job))))
                 (mappend (lambda (dependency)
                            (when-let ((dependency-job
                                        (find dependency-name (jobs dependency)
@@ -127,7 +126,7 @@
   (defmethod lookup ((thing distribution-spec) (name t)
                      &key if-undefined)
     (declare (ignore if-undefined))
-    (if-let ((strategy        (variable-aggregation name)))
+    (if-let ((strategy (variable-aggregation name)))
       (let+ (((&values raw raw/next-values) ; TODO duplicates much of `value'
               (call-next-method thing name :if-undefined '()))
              ((&labels+ make-lookup ((&optional first-value &rest next-values))

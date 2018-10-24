@@ -18,7 +18,8 @@
                               (jenkins.model.project::object-at
                                location (locations document)))
                       locations))))
-      (values path locations))))
+      ;; TODO removing duplicates should not be necessary
+      (values (remove-duplicates path :test #'equal) locations))))
 
 ;;; `structure-context'
 

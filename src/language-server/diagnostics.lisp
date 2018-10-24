@@ -39,6 +39,14 @@
       (mappend (named-lambda check-one (variable)
                  (let ((name (var:variable-info-name variable))
                        (type (var:variable-info-type variable)))
+                   ;; HACK
+                   (when (and (typep object 'project::distribution-spec)
+                              (member name '(:jobs.list :jobs.dependencies
+                                             :jobs.dependencies/groovy
+                                             :platform-requires :natures
+                                             :programming-languages :licenses
+                                             :keywords)))
+                     (return-from check-one))
                    (with-simple-restart
                        (continue "~@<Skip the variable ~A.~@:>" name)
                      (handler-bind

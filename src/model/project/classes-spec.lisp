@@ -245,23 +245,19 @@
 
 (defmethod instantiate ((spec project-spec) &key parent specification-parent)
   (declare (ignore parent specification-parent))
-  (let+ (((&flet make-version (spec parent)
-            (when (instantiate? spec parent)
-              (when-let ((version (instantiate spec :parent parent)))
-                (list version)))))
-         (project (make-instance 'project
+  (let+ ((project (make-instance 'project
                                  :name          (name spec)
-                                 :variables     '()
-                                 :specification spec)))
+                                 :specification spec))
+         ((&flet make-version (spec)
+            (when-let ((version (instantiate spec :parent project)))
+              (list version)))))
     (reinitialize-instance
-     project
-     :versions (mapcan (rcurry #'make-version project) (versions spec)))))
+     project :versions (mapcan #'make-version (versions spec)))))
 
 ;;; `version-spec' class
 
 (defclass version-spec (named-mixin
                         specification-mixin
-                        conditional-mixin
                         parented-mixin
                         direct-variables-mixin
                         person-container-mixin)

@@ -44,7 +44,7 @@
                     (format stream "«no changes yet»~@:_")))
 
                ((list* (and kind (type changelog-level)) body)
-                (format stream "• ~A~:@_  " kind)
+                (format stream "• ~C[31m~A~C[0m~:@_  " #\Escape kind #\Escape)
                 (pprint-logical-block (stream body :per-line-prefix "")
                   (rec stream body)))
 
@@ -62,7 +62,9 @@
                ((list :verb (and content (type string)))
                 (when (find #\Newline content)
                   (pprint-newline :mandatory stream))
-                (write-string content stream))
+                (format stream "~C[35m" #\Escape)
+                (write-string content stream)
+                (format stream "~C[0m" #\Escape))
 
                ((list* (type symbol) body)
                 (map nil (curry #'rec stream) body))

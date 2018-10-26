@@ -1,5 +1,11 @@
 ((:release "0.25" nil
 
+  (:incompatible-change
+   "JSON syntax in recipes is no longer explicitly supported but note
+    that the current YAML syntax includes JSON as a subset. For
+    recipes which are syntactically valid JSON, differences in
+    behavior may arise around line breaks in quoted strings.")
+
   (:enhancement
    "Recipes describing persons can now contain
     a" (:verb "variables") "section.")

@@ -147,8 +147,7 @@
                               (:file     "util")
 
                               (:file     "builder")
-                              (:file     "yaml")
-                              (:file     "json")))
+                              (:file     "yaml")))
 
                 (:module     "model-aspects"
                  :pathname   "src/model/aspects"

@@ -7,6 +7,10 @@
     behavior may arise around line breaks in quoted strings.")
 
   (:enhancement
+   "When analyzing committers and commits in git repositories the
+    specified sub-directory, if any, is now considered.")
+
+  (:enhancement
    "Recipes describing persons can now contain
     a" (:verb "variables") "section.")
 

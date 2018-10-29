@@ -182,9 +182,11 @@
          (committers        (with-simple-restart
                                 (continue "~@<Do not analyze committers in ~A.~@:>"
                                           clone-directory)
-                              (analyze clone-directory :git/committers)))
+                              (analyze clone-directory :git/committers
+                                       :sub-directory sub-directory)))
          ((&values commit date)
-          (analyze clone-directory :git/most-recent-commit)))
+          (analyze clone-directory :git/most-recent-commit
+                   :sub-directory sub-directory)))
     (list* :scm              :git
            :branch-directory nil
            :committers       committers
@@ -299,27 +301,33 @@
            (list (analyze-version version))))
        versions))))
 
-(defmethod analyze ((directory pathname) (kind (eql :git/most-recent-commit)) &key)
+(defmethod analyze ((directory pathname) (kind (eql :git/most-recent-commit))
+                    &key
+                    sub-directory)
   (with-simple-restart (continue "Continue without determining the ~
                                   most recent commit in ~A"
                                  directory)
     (with-trivial-progress (:analyze/most-recent-commit "~A" directory)
-      (let+ (((id raw-date)
-              (split-sequence
-               #\Space (%run-git `("log" "--max-count=1" "--pretty=format:%H %ct")
-                                 directory :non-interactive t ; TODO non-interactive
-                                 ))))
-        (values id (local-time:unix-to-timestamp (parse-integer raw-date)))))))
+      (let+ ((output (%run-git `("log" "--max-count=1" "--pretty=format:%H %ct"
+                                       ,@(when sub-directory `("--" ,sub-directory)))
+                               directory :non-interactive t ; TODO non-interactive
+                               ))
+             ((&optional id raw-date) (unless (emptyp output)
+                                        (split-sequence #\Space output))))
+        (values id
+                (when raw-date
+                  (local-time:unix-to-timestamp (parse-integer raw-date))))))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/committers))
                     &key
+                    sub-directory
                     (max-committers 5))
   (with-trivial-progress (:analyze/log "~A" directory)
     (let* ((lines
              (apply #'inferior-shell:run/nil
-                    `("git" "--no-pager" ,(format nil "--git-dir=~A/.git" directory)
-                            "log" "--pretty=format:%an <%ae>")
-                    :directory directory ; TODO is directory even needed?
+                    `("git" "--no-pager" "log" "--pretty=format:%an <%ae>"
+                            ,@(when sub-directory `("--" ,sub-directory)))
+                    :directory directory
                     :output    :lines
                     (safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))

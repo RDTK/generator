@@ -1,6 +1,6 @@
 ;;;; graphviz.lisp --- Graph generation for projects and dependencies.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -107,17 +107,16 @@
                     (add-relation dependency provide))))
       ;; Resolve requirements using things provided by the platform.
       (mapc (lambda (requirement)
-              (cond
-                ((jenkins.model.project:find-provider/version
-                  requirement :if-does-not-exist nil))
-                ((jenkins.model.project:find-provider/version
-                  requirement
-                  :providers         (jenkins.model.project:platform-provides object)
-                  :if-does-not-exist nil)
-                 (when (eq object (jenkins-dependencies-root graph))
-                   (add-relation system requirement)))
-                (t
-                 (add-relation (make-unsatisfied) requirement))))
+              (cond ((jenkins.model.project:find-provider/version
+                      requirement :if-does-not-exist nil))
+                    ((jenkins.model.project:find-provider/version
+                      requirement
+                      :providers         (jenkins.model.project:platform-provides object)
+                      :if-does-not-exist nil)
+                     (when (eq object (jenkins-dependencies-root graph))
+                       (add-relation system requirement)))
+                    (t
+                     (add-relation (make-unsatisfied) requirement))))
             requires)
       ;; Make and return edge descriptions.
       (mapcar (lambda+ ((target . specs))

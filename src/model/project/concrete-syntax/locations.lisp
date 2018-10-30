@@ -6,8 +6,7 @@
 
 (cl:in-package #:jenkins.model.project)
 
-(declaim (special *locations*)
-         (type locations *locations*))
+(declaim (special *locations*))
 
 (defclass locations ()
   ((%parent           :initarg  :parent
@@ -21,6 +20,7 @@
                       :reader   %hook
                       :initform :inherit)))
 
+(declaim (type locations *locations*))
 (defvar *locations* (make-instance 'locations :parent nil))
 
 (defvar *locations-lock* (bt:make-lock "locations"))

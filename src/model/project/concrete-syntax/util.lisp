@@ -9,9 +9,10 @@
 ;;; Structure utilities
 
 (defun check-keys (object &optional expected (exhaustive? t))
-  (let+ ((expected (mapcar #'ensure-list expected))
-         (seen     '())
-         (extra    '())
+  (let+ ((schema  (mapcar #'ensure-list expected))
+         (missing (remove nil schema :key #'second))
+         (seen    '())
+         (extra   '())
          ((&flet invalid-keys (reason keys &optional cells)
             (object-error
              (if (length= 1 cells)
@@ -28,14 +29,25 @@
                                 (list* cell (remove key seen
                                                     :test-not #'eq
                                                     :key      #'car))))
-                 ((when-let ((info (find key expected :test #'eq :key #'first)))
-                    (when-let ((type  (third info)))
-                      (unless (typep value type)
+                 ((when-let ((info (find key schema :test #'eq :key #'first)))
+                    (let+ (((&ign &optional required? type &key conflicts) info))
+                      (when (and type (not (typep value type)))
                         (object-error
                          (list (list value "defined here" :error))
-                         "~@<Value of the ~A attribute must be of type ~A.~@:>"
-                         key type)))
-                    (removef expected key :test #'eq :key #'first)
+                         "~@<Value of the ~A attribute must be of type
+                          ~A.~@:>"
+                         key type))
+                      (when conflicts
+                        (when-let ((other (find conflicts seen
+                                                :test #'eq :key #'car)))
+                          (object-error
+                           (list (list cell  "defined here" :error)
+                                 (list other "defined here" :error))
+                           "~@<~A and ~A are mutually exclusive.~@:>"
+                           key conflicts)))
+                      (when (and required? conflicts)
+                        (removef missing conflicts :test #'eq :key #'first)))
+                    (removef missing key :test #'eq :key #'first)
                     t))
                  (t
                   (push cell extra)))
@@ -44,10 +56,18 @@
     (when (and exhaustive? extra)
       (invalid-keys "Unexpected" (map 'list #'first extra)
                     extra))
-    (when-let ((missing (remove nil expected :key #'second)))
+    (when missing
       (invalid-keys "Missing required" (map 'list #'first missing)
                     (list object))))
   object)
+
+(let ((spec '((:name    t string :conflicts :pattern)
+              (:pattern t string :conflicts :name))))
+  (assert (nth-value
+           1 (ignore-errors
+              (check-keys '((:name . "foo") (:pattern . "bar")) spec))))
+  (assert (equal '((:name . "foo")) (check-keys '((:name . "foo")) spec)))
+  (assert (equal '((:pattern . "bar")) (check-keys '((:pattern . "bar")) spec))))
 
 (defun check-generator-version (spec generator-version context)
   (when-let ((required-version (assoc-value spec :minimum-generator-version)))

@@ -251,22 +251,63 @@
 
 ;;; Project loading
 
+(defun compile-pattern (pattern)
+  (handler-case
+      (ppcre:create-scanner pattern)
+    (error (condition)
+      (object-error (list (list pattern "defined here" :error))
+                    "~@<Invalid version pattern: ~A~@:>" condition))))
+
+(let+ (((&flet make-match-variable (index)
+          (format-symbol :keyword "MATCH:~D" index)))
+       (match-variables (map 'vector #'make-match-variable (iota 10))))
+  (defun match-variable (index)
+    (if (< index (length match-variables))
+        (aref match-variables index)
+        (make-match-variable index))))
+
+(defun apply-version-pattern (requested-name pattern)
+  (let+ (((&values match groups) (ppcre:scan-to-strings
+                                  pattern requested-name)))
+    (list* (cons :|MATCH:0| match)
+           (loop :for group :across groups
+                 :for i :from 1
+                 :collect (cons (match-variable i) group)))))
+
+(assert (equal (apply-version-pattern "0.15-famula" "^([0-9]+\.[0-9]+)-(.*)$")
+               '((:|MATCH:0| . "0.15-famula")
+                 (:|MATCH:1| . "0.15")
+                 (:|MATCH:2| . "famula"))))
+
 (define-yaml-loader
     (project-spec ((:templates t list) (:variables t list) (:versions nil list) :catalog))
     (spec (name :pathname) version-test)
-  (let+ (((&flet make-version-spec (spec parent)
-            (check-keys spec '((:name      t   string)
+  (let+ (((&flet make-version-spec (spec parent requested-names)
+            (check-keys spec '((:name      t   string :conflicts :pattern)
+                               (:pattern   t   string :conflicts :name)
                                (:variables nil list)
                                :catalog))
-            (let ((catalog   (lookup :catalog spec))
-                  (variables (process-variables (lookup :variables spec))))
-              (make-instance 'version-spec
-                             :name      (lookup :name spec)
-                             :parent    parent
-                             :variables (if catalog
-                                            (value-acons :__catalog catalog
-                                                         variables)
-                                            variables)))))
+            (let* ((name      (lookup :name spec))
+                   (pattern   (lookup :pattern spec))
+                   (variables (process-variables (lookup :variables spec)))
+                   (catalog   (lookup :catalog spec))
+                   (variables (if catalog
+                                  (value-acons :__catalog catalog
+                                               variables)
+                                  variables)))
+              (if pattern
+                  (map 'list (lambda (requested-name)
+                               (make-instance 'version-spec
+                                              :name      requested-name
+                                              :parent    parent
+                                              :variables (nconc (apply-version-pattern
+                                                                 requested-name pattern)
+                                                                variables)))
+                       requested-names)
+                  (list (make-instance 'version-spec
+                                       :name      name
+                                       :parent    parent
+                                       :variables variables))))))
          (instance (make-instance 'project-spec :name name)))
     (reinitialize-instance
      instance
@@ -284,15 +325,24 @@
      :versions  (mappend (lambda (spec)
                            (with-simple-restart
                                (continue "~@<Ignore version entry.~@:>")
-                             (check-keys spec '((:name t string)) nil)
-                             (when (or (not version-test)
-                                       (let ((name (lookup :name spec)))
-                                         (funcall version-test name)))
-                               (let ((version-spec (make-version-spec
-                                                    spec instance)))
-                                 (setf (location-of version-spec)
-                                       (location-of spec))
-                                 (list version-spec)))))
+                             (check-keys
+                              spec
+                              '((:name    t string :conflicts :pattern)
+                                (:pattern t string :conflicts :name))
+                              nil)
+                             (let ((name    (lookup :name spec))
+                                   (pattern (when-let ((pattern (lookup :pattern spec)))
+                                              (compile-pattern pattern))))
+                               (when-let ((requested-versions
+                                           (or (not version-test)
+                                               (funcall version-test name pattern))))
+                                 (let ((version-specs (make-version-spec
+                                                       spec instance requested-versions)))
+                                   (map nil (lambda (version-spec)
+                                              (setf (location-of version-spec)
+                                                    (location-of spec)))
+                                        version-specs)
+                                   version-specs)))))
                          (lookup :versions)))))
 
 ;;; Distribution loading

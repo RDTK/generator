@@ -154,11 +154,11 @@
           (with-simple-restart (continue "~@<Skip adding dependency ~A.~@:>"
                                          dependency)
             (let ((dependency
-                   (or (find dependency-name (jobs dependency)
-                             :test #'string= :key #'name)
-                       (error "~@<Could not find ~S in the jobs of ~
+                    (or (find dependency-name (jobs dependency)
+                              :test #'string= :key #'name)
+                        (error "~@<Could not find ~S in the jobs of ~
                                ~A~@[ (~{~A~^, ~})~]~@:>"
-                              dependency-name dependency (jobs dependency)))))
+                               dependency-name dependency (jobs dependency)))))
               (pushnew dependency (%direct-dependencies thing)))))))
 
 (defmethod deploy ((thing job))

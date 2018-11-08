@@ -14,6 +14,10 @@
    "Return a plist of attributes for the node representing OBJECT in
     GRAPH."))
 
+(defgeneric object-filename (object)
+  (:documentation
+   "Return a suitable output filename for OBJECT."))
+
 ;;; jenkins.dependencies graph
 
 (defstruct jenkins-dependencies
@@ -130,6 +134,31 @@
       (when (eq object (jenkins-dependencies-root graph))
         (list (dependency provides (make-provided)))))))
 
+;;; File generation
+
+(defmethod object-filename ((object jenkins.model.project::distribution-spec))
+  (safe-name (name object)))
+
+(defmethod object-filename ((object jenkins.model.project::version))
+  (format nil "~A-~A"
+          (safe-name (name (parent (specification object))))
+          (safe-name (name object))))
+
+(defmethod report ((object t) (style (eql :graph)) (target pathname))
+  (ensure-directories-exist target)
+  (let+ ((graph    (cl-dot:generate-graph-from-roots
+                    (make-jenkins-dependencies :root object) (list object)))
+         (basename (object-filename object))
+         ((&flet filename (type)
+            (make-pathname :name     basename
+                           :type     type
+                           :defaults target))))
+    ;; Write dot output.
+    (with-output-to-file (stream (filename "dot") :if-exists :supersede)
+      (cl-dot:print-graph graph :stream stream))
+    ;; Write PNG output.
+    (cl-dot:dot-graph graph (filename "png") :format :png)))
+
 ;;; Entry points
 
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
@@ -155,35 +184,11 @@
   ;; One graph for the distribution OBJECT as a whole.
   (call-next-method)
   ;; One graph for each project-version in OBJECT.
-  (let ((directory (uiop:subpathname target (jenkins.model:name object)
+  (let ((directory (uiop:subpathname target (object-filename object)
                                      :type :directory)))
-    (report (jenkins.model.project:versions object) style directory)))
+    (report (versions object) style directory)))
 
 (defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :graph))
                    (target pathname))
-  (report (jenkins.model:implementation object) style target))
-
-(defmethod report ((object t)
-                   (style  (eql :graph))
-                   (target pathname))
-  (ensure-directories-exist target)
-  (let+ (((&flet safe-name (name)
-            (substitute #\_ #\/ name)))
-         (graph    (cl-dot:generate-graph-from-roots
-                    (make-jenkins-dependencies :root object) (list object)))
-         (basename (format nil "~@[~A-~]~A"
-                           (when-let ((parent (when (compute-applicable-methods
-                                                     #'jenkins.model:parent (list object))
-                                                (jenkins.model:parent object))))
-                             (safe-name (jenkins.model:name parent)))
-                           (safe-name (jenkins.model:name object))))
-         ((&flet filename (type)
-            (make-pathname :name     basename
-                           :type     type
-                           :defaults target))))
-    ;; Write dot output.
-    (with-output-to-file (stream (filename "dot") :if-exists :supersede)
-      (cl-dot:print-graph graph :stream stream))
-    ;; Write PNG output.
-    (cl-dot:dot-graph graph (filename "png") :format :png)))
+  (report (implementation object) style target))

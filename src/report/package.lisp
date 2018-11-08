@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the report module.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,6 +16,9 @@
 
    #:jenkins.model
    #:jenkins.model.project)
+
+  (:import-from #:jenkins.util
+   #:safe-name)
 
   (:shadowing-import-from #:jenkins.model.variables
    #:value #:value/cast

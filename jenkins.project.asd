@@ -46,7 +46,15 @@
 
                 (:version "jenkins.project.more-conditions-patch"        (:read-file-form "version-string.sexp")))
 
-  :components  ((:module     "version"
+  :components  ((:module     "util"
+                 :pathname   "src/util"
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "restarts")
+                              (:file     "strings")
+                              (:file     "files")))
+
+                (:module     "version"
                  :pathname   "src/version"
                  :serial     t
                  :components ((:file     "package")
@@ -54,7 +62,7 @@
 
                 (:module     "analysis"
                  :pathname   "src/analysis"
-                 :depends-on ("version")
+                 :depends-on ("util" "version")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "variables")
@@ -170,12 +178,11 @@
 
                 (:module     "report"
                  :pathname   "src/report"
-                 :depends-on ("model-project")
+                 :depends-on ("util" "model-project")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")
                               (:file     "protocol")
-                              (:file     "util")
 
                               (:file     "json")
                               (:file     "graphviz")

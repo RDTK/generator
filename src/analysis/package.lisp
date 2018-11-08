@@ -14,6 +14,7 @@
    #:more-conditions
    #:print-items
 
+   #:jenkins.util
    #:jenkins.version)
 
   ;; Conditions

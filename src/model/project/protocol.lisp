@@ -52,6 +52,18 @@
 
     i.e. the first element is NATURE."))
 
+(defgeneric direct-dependencies/reasons (thing)
+  (:documentation
+   "Return an alist of dependency target-reasons pairs.
+
+    That is, elements are of the form
+
+      (TARGET . REASONS)
+
+    where TARGET is the object upon which THING depends and REASONS is
+    a list of requirement specifications that are satisfied by things
+    TARGET provides."))
+
 ;;; Person container protocol
 
 (defgeneric persons (container)

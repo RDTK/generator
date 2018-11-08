@@ -61,14 +61,30 @@
                    parented-mixin
                    direct-variables-mixin)
   ((direct-dependencies :initarg  :direct-dependencies
-                        :type     list #| of version|#
-                        :reader   direct-dependencies
+                        :type     list #| of (version . reasons) |#
                         :accessor %direct-dependencies
                         :initform '()
                         :documentation
-                        "List of `version' instance representing
-                         project versions on which the project version
-                         depends.")
+                        "List of pairs of the form
+
+                           (VERSION . REASONS)
+
+                         where VERSION is either
+
+                         + `nil' indicating unresolved requirements
+
+                         + `:system' indicating requirements resolved
+                           via a system dependency.
+
+                         + or a `version' instance representing
+                           project versions on which the project
+                           version depends.
+
+                         REASONS is a list of requirements of the form
+
+                           (NATURE TARGET [VERSION])
+
+                         .")
    (jobs                :initarg  :jobs
                         :type     list
                         :reader   jobs
@@ -85,6 +101,15 @@
 (defmethod variables append ((thing version))
   (variables (specification thing)))
 
+(defmethod direct-dependencies/reasons ((thing version))
+  (%direct-dependencies thing))
+
+(defmethod direct-dependencies ((thing version))
+  (mapcan (lambda+ ((target . &ign))
+            (unless (member target '(nil :system) :test #'eq)
+              (list target)))
+          (%direct-dependencies thing)))
+
 (defmethod add-dependencies! ((thing version) (spec version-spec)
                               &key
                               (providers (missing-required-argument :providers)))
@@ -93,23 +118,36 @@
             (if platform-provides?
                 platform-provides
                 (setf platform-provides? t
-                      platform-provides  (platform-provides thing))))))
+                      platform-provides  (platform-provides thing)))))
+         ((&flet add-dependency (required provider)
+            (let ((cell (or (assoc provider (%direct-dependencies thing))
+                            (let ((new (cons provider '())))
+                              (push new (%direct-dependencies thing))
+                              new))))
+              (pushnew required (cdr cell) :test #'equal)))))
     (iter (for requires in (requires spec))
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
-          (with-simple-restart (continue "~@<Skip requirement ~S.~@:>" requires)
-            (cond ((when-let* ((match     (find-provider/version
-                                           requires
-                                           :if-does-not-exist nil
-                                           :providers         providers))
-                               (candidate (implementation match)))
-                     (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-                     (unless (eq candidate thing)
-                       (pushnew candidate (%direct-dependencies thing)))
-                     t))
-                  (t
-                   (find-provider/version
-                    requires :providers (platform-provides)))))))
+          (restart-case
+              (cond ((when-let* ((match     (find-provider/version
+                                             requires
+                                             :if-does-not-exist nil
+                                             :providers         providers))
+                                 (candidate (implementation match)))
+                       (log:trace "~@<Best candidate is ~S.~@:>" candidate)
+                       (unless (eq candidate thing)
+                         (add-dependency requires candidate))
+                       t))
+                    ((when (find-provider/version
+                            requires :providers (platform-provides))
+                       (add-dependency requires :system)
+                       t)))
+            (continue (&optional condition)
+              :report (lambda (stream)
+                        (format stream "~@<Skip requirement ~S.~@:>" requires))
+              (declare (ignore condition))
+              ;; Record unresolved requirement.
+              (add-dependency requires nil)))))
 
   (mapc #'add-dependencies! (jobs thing) (jobs spec)))
 

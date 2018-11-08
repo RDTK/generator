@@ -93,7 +93,9 @@
    #:requires
    #:requires-of-kind
    #:provides
-   #:provides-of-kind)
+   #:provides-of-kind
+
+   #:direct-dependencies/reasons)
 
   ;; Person container protocol
   (:export

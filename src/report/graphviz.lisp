@@ -90,9 +90,7 @@
 
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                             (object jenkins.model.project::version))
-    (let+ ((specification (jenkins.model:specification object))
-           (requires      (jenkins.model.project:requires specification))
-           (relations     '())
+    (let+ ((relations '())
            ((&flet add-relation (dependency provide)
               (push provide (cdr (or (assoc dependency relations :test #'eq)
                                      (let ((cell (cons dependency '())))
@@ -101,27 +99,14 @@
            (system (make-system)))
       ;; Resolve requirements using things provided by the
       ;; distribution.
-      (iter (for dependency in (remove-duplicates (jenkins.model:direct-dependencies object))) ; TODO how would there be duplicates?
-            (let ((provides (remove (jenkins.model:specification dependency) requires
-                                    :test-not #'eq
-                                    :key      (rcurry #'jenkins.model.project:find-provider/version
-                                                      :if-does-not-exist nil))))
-
-              (iter (for provide in (or provides '(nil)))
-                    (add-relation dependency provide))))
-      ;; Resolve requirements using things provided by the platform.
-      (mapc (lambda (requirement)
-              (cond ((jenkins.model.project:find-provider/version
-                      requirement :if-does-not-exist nil))
-                    ((jenkins.model.project:find-provider/version
-                      requirement
-                      :providers         (jenkins.model.project:platform-provides object)
-                      :if-does-not-exist nil)
-                     (when (eq object (jenkins-dependencies-root graph))
-                       (add-relation system requirement)))
-                    (t
-                     (add-relation (make-unsatisfied) requirement))))
-            requires)
+      (map nil (lambda+ ((target . reasons))
+                 (when-let ((target (case target
+                                      ((nil)   (make-unsatisfied))
+                                      (:system (when (eq object (jenkins-dependencies-root graph))
+                                                 system))
+                                      (t       target))))
+                   (map nil (curry #'add-relation target) reasons)))
+           (jenkins.model.project::direct-dependencies/reasons object))
       ;; Make and return edge descriptions.
       (mapcar (lambda+ ((target . specs))
                 (dependency specs target))

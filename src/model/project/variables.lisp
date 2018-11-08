@@ -49,34 +49,13 @@
 
 (define-repository provider)
 
-(defun provider-version (spec)
-  (third spec))
-
 (defun push-provider (new-value name)
   (bt:with-lock-held (*providers-lock*)
     (push new-value (gethash name *providers* '()))))
 
 (defun providers/alist ()
-  (expand-providers
-   (bt:with-lock-held (*providers-lock*)
-     (hash-table-alist *providers*))))
-
-(defun expand-providers (providers)
-  "Expand PROVIDERS from the form
-
-     ((VERSION1 . (PROVIDER11 PROVIDER12 …))
-      (VERSION2 . (PROVIDER21 PROVIDER22 …))
-      …)
-
-   to the form
-
-     ((VERSION1 . PROVIDER11) … (VERSION2 . PROVIDER21) …)
-
-   ."
-  (iter outer
-        (for (version . providers1) in providers)
-        (iter (for provider in providers1)
-              (in outer (collect (cons version provider))))))
+  (bt:with-lock-held (*providers-lock*)
+    (hash-table-alist *providers*)))
 
 (defun find-provider/version (spec
                               &key
@@ -103,8 +82,7 @@
          ((&flet provider-better (left right)
             ;; If ORDER is supplied, use it. If not (or ORDER returns
             ;; nil), use VERSION-BETTER.
-            (version-better (provider-version (car left))
-                            (provider-version (car right)))))
+            (version-better (third (car left)) (third (car right)))))
          ;; Find providers in PROVIDERS which can provide the required
          ;; NATURE, TARGET and VERSION of SPEC.
          (candidates (remove-if-not
@@ -114,7 +92,10 @@
          ;; use ORDER).
          (candidates (stable-sort candidates #'provider-better)))
     ;; Take the best candidate or act according to IF-DOES-NOT-EXIST.
-    (or (cdr (first candidates))
+    (or (when-let ((providers (cdr (first candidates))))
+          (if (eq providers :system-package)
+              providers
+              (first providers)))
         (error-behavior-restart-case
             (if-does-not-exist
              (jenkins.analysis:unfulfilled-project-dependency-error

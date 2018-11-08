@@ -16,9 +16,9 @@
             (when-let ((dist (find version distributions
                                    :test #'member
                                    :key  #'versions)))
-              (remove-if-not (rcurry #'member (versions dist))
-                             (providers/alist)
-                             :key #'cdr)))))
+              (remove-if-not (lambda (provider)
+                               (intersection (cdr provider) (versions dist)))
+                             (providers/alist))))))
     (iter (for project in projects)
           (for spec    in specs)
           (when project

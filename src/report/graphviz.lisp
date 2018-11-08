@@ -162,31 +162,32 @@
 ;;; Entry points
 
 (defmethod report ((object sequence) (style (eql :graph)) (target pathname))
-  (if (length= 1 object) ; TODO hack for progress reporting
-      (let ((element (first-elt object)))
-        (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
-                                       style element)
-          (list (report element style target))))
-      (with-sequence-progress (:report/graph object)
-        (lparallel:pmap
-         nil (lambda (element)
-               (progress "~/print-items:format-print-items/"
-                         (print-items:print-items element))
-               (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
-                                              style element)
-                 (more-conditions::without-progress
-                   (report element style target))))
-         object))))
-
-(defmethod report ((object jenkins.model.project::distribution-spec)
-                   (style  (eql :graph))
-                   (target pathname))
-  ;; One graph for the distribution OBJECT as a whole.
-  (call-next-method)
-  ;; One graph for each project-version in OBJECT.
-  (let ((directory (uiop:subpathname target (object-filename object)
-                                     :type :directory)))
-    (report (versions object) style directory)))
+  (let+ ((work '())
+         ((&flet add-project-version (directory version)
+            (push (cons directory version) work)))
+         ((&flet add-distribution (distribution)
+            (push (cons target distribution) work)
+            (let ((directory (uiop:subpathname
+                              target (object-filename distribution)
+                              :type :directory)))
+              (map nil (curry #'add-project-version directory)
+                   (versions distribution))))))
+    (cond ((emptyp object)
+           nil)
+          ((typep (first-elt object) 'jenkins.model.project::distribution-spec)
+           (map nil #'add-distribution object))
+          (t
+           (error "Not handled")))
+    (with-sequence-progress (:report/graph work)
+      (lparallel:pmap
+       nil (lambda+ ((directory . object))
+             (progress "~/print-items:format-print-items/"
+                       (print-items:print-items object))
+             (with-simple-restart (continue "~@<Skip ~A report for ~A.~:>"
+                                            style object)
+               (more-conditions::without-progress
+                 (report object style directory))))
+       work))))
 
 (defmethod report ((object jenkins.model.project::version-spec)
                    (style  (eql :graph))

@@ -50,8 +50,15 @@
 
 (defmethod lookup ((thing parented-mixin) (name t) &key if-undefined)
   (declare (ignore if-undefined))
-  (multiple-value-call #'merge-lookup-values
-    (call-next-method) (lookup (parent thing) name :if-undefined nil)))
+  (let ((next-method? (next-method-p))
+        (parent       (parent thing)))
+    (cond ((and next-method? parent)
+           (multiple-value-call #'merge-lookup-values
+             (call-next-method) (lookup parent name :if-undefined nil)))
+          (next-method?
+           (call-next-method))
+          (parent
+           (lookup parent name :if-undefined nil)))))
 
 ;;; `implementation-mixin'
 

@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -101,10 +101,9 @@
   (log:debug "~@<Checking whether to instantiate ~A with parent ~A~@:>"
              spec parent)
   (let+ (((&flet value (name)
-            (let+ ((key (make-keyword (string-upcase name)))
-                   ((&values value defaulted?) (value parent key nil)))
+            (let+ (((&values value defaulted?) (value parent name nil)))
               (if defaulted?
-                  (value spec key nil)
+                  (value spec name nil)
                   value))))
          ((&labels matches? (regex value)
             (etypecase value

@@ -38,6 +38,10 @@
     - -DBUILD_TESTS=false"))
 
   (:enhancement
+   "Jobs and aspects defined in the orchestration context can now pick
+    up variable overwrites specified on the commandline.")
+
+  (:enhancement
    "When analyzing committers and commits in git repositories the
     specified sub-directory, if any, is now considered.")
 

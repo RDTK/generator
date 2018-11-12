@@ -33,7 +33,8 @@
 
 (defclass distribution-spec (named-mixin
                              direct-variables-mixin
-                             person-container-mixin)
+                             person-container-mixin
+                             specification-mixin)
   ((versions :initarg  :versions
              :type     list ; of version-spec
              :reader   versions
@@ -167,12 +168,34 @@
            (distribution-versions thing))
       (return-value name (hash-table-alist counts)))))
 
+(defmethod instantiate ((spec distribution-spec) &key parent specification-parent)
+  (declare (ignore parent specification-parent))
+  (let+ ((version-specs (versions spec))
+         (providers     (remove-if-not (lambda (provider)
+                                         (intersection (cdr provider)
+                                                       version-specs))
+                                       (providers/alist)))
+         (distribution  (make-instance 'distribution
+                                       :name          (name spec)
+                                       :specification spec))
+         ((&flet make-version (version-spec)
+            (when-let ((version (instantiate version-spec
+                                             :parent distribution)))
+              (list version))))
+         (versions (mapcan #'make-version version-specs)))
+    ;; After all `version' instances have been made, resolve
+    ;; dependencies among them.
+    (map nil (lambda (version)
+               (add-dependencies! version (specification version)
+                                  :providers providers))
+         versions)
+    (reinitialize-instance distribution :versions versions)))
+
 ;;; `project-spec' class
 
 (defclass project-spec (named-mixin
                         specification-mixin
-                        direct-variables-mixin
-                        parented-mixin)
+                        direct-variables-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
               :reader   templates
@@ -206,30 +229,20 @@
           ;; templates. maybe variables should not have `append'
           ;; method combination?
           (direct-variables thing)
-          (mappend #'variables (templates thing))
-          ;; TODO this is a hack to not inherit the values of certain
-          ;; variables from parents like `distribution-spec'
-          ;; instances.
-          (when-let ((parent (parent thing)))
-            (remove-if-not #'variable-inheritable? (variables parent)
-                           :key #'car))))
+          (mappend #'variables (templates thing))))
 
 (defmethod lookup ((thing project-spec) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   ;; The next method is (modulo `named-mixin') the one specialized on
   ;; `direct-variables-mixin', meaning that variables defined in the
   ;; parent are not included in the initial value.
-  (multiple-value-call #'merge-lookup-values
-    (values-list
-     (reduce #'merge-lookup-results
-             (mapcar (lambda (template)
-                       (multiple-value-list
-                        (lookup template name :if-undefined nil)))
-                     (templates thing))
-             :initial-value (multiple-value-list (call-next-method))))
-    (if (and (parent thing) (variable-inheritable? name))
-        (lookup (parent thing) name :if-undefined nil)
-        (values nil '() nil))))
+  (values-list
+   (reduce #'merge-lookup-results
+           (mapcar (lambda (template)
+                     (multiple-value-list
+                      (lookup template name :if-undefined nil)))
+                   (templates thing))
+           :initial-value (multiple-value-list (call-next-method)))))
 
 (defmethod aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects (templates thing))
@@ -242,17 +255,6 @@
                      :test     #'string=
                      :key      #'name
                      :from-end t))
-
-(defmethod instantiate ((spec project-spec) &key parent specification-parent)
-  (declare (ignore parent specification-parent))
-  (let+ ((project (make-instance 'project
-                                 :name          (name spec)
-                                 :specification spec))
-         ((&flet make-version (spec)
-            (when-let ((version (instantiate spec :parent project)))
-              (list version)))))
-    (reinitialize-instance
-     project :versions (mapcan #'make-version (versions spec)))))
 
 ;;; `version-spec' class
 
@@ -363,9 +365,10 @@
                                            :specification-parent spec)))
                 (list job)))))
          (version (make-instance 'version
-                                 :name      (name spec)
-                                 :parent    parent
-                                 :variables (direct-variables spec))))
+                                 :name          (name spec)
+                                 :specification spec
+                                 :parent        parent
+                                 :variables     (direct-variables spec))))
     (reinitialize-instance
      version
      :jobs (mapcan (rcurry #'make-job version) (jobs spec)))))
@@ -387,9 +390,10 @@
               (when-let ((aspect (instantiate spec :parent parent)))
                 (list aspect)))))
          (job (make-instance 'job
-                             :name      (name spec)
-                             :parent    parent
-                             :variables (copy-list (direct-variables spec))))) ; TODO copy-list?
+                             :name          (name spec)
+                             :specification spec
+                             :parent        parent
+                             :variables     (copy-list (direct-variables spec))))) ; TODO copy-list?
     (reinitialize-instance
      job :aspects (mapcan (rcurry #'make-aspect job)
                           (aspects specification-parent)))))

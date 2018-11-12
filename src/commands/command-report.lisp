@@ -42,13 +42,17 @@
          ((&values distributions projects)
           (generate-load distributions mode overwrites
                          :generator-version (generator-version)))
-         ((&values distributions analyzed-projects)
+         (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
-                            :temp-directory    *temp-directory*)))
-    (as-phase (:instantiate/project)
-      (instantiate-projects analyzed-projects distributions))
+                            :temp-directory    *temp-directory*))
+         (distributions
+          (as-phase (:instantiate)
+            (mapcan (lambda (distribution-spec)
+                      (when-let ((distribution (instantiate distribution-spec)))
+                        (list distribution)))
+                    distributions))))
     (map nil (lambda (kind)
                (as-phase ((symbolicate '#:report/ kind))
                  (with-simple-restart (continue "Skip ~(~A~) report" kind)

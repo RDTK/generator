@@ -61,15 +61,19 @@
          ((&values distributions projects)
           (generate-load distributions mode overwrites
                          :generator-version (generator-version)))
-         ((&values distributions analyzed-projects)
+         (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
                             :temp-directory    *temp-directory*)))
     (generate-check distributions)
-    (let ((projects (as-phase (:instantiate/project)
-                      (instantiate-projects analyzed-projects distributions))))
-      (generate-deploy distributions projects
+    (let ((distributions
+            (as-phase (:instantiate)
+              (mapcan (lambda (distribution-spec)
+                        (when-let ((distribution (instantiate distribution-spec)))
+                          (list distribution)))
+                      distributions))))
+      (generate-deploy distributions
                        :delete-other?        delete-other?
                        :delete-other-pattern delete-other-pattern))))
 
@@ -149,11 +153,12 @@
 (defun generated? (job)
   (search "automatically generated" (jenkins.api:description job)))
 
-(defun generate-deploy (distributions projects
+(defun generate-deploy (distributions
                         &key
                         delete-other?
                         delete-other-pattern)
-  (let+ ((jobs/specs (as-phase (:deploy/project)
+  (let+ ((projects (mappend #'versions distributions))
+         (jobs/specs (as-phase (:deploy/project)
                        (let ((jobs (deploy-projects projects)))
                          (when (some (lambda (job)
                                        (not (eq (value/cast job :dependencies.mode) :none)))

@@ -40,7 +40,7 @@
                  :attributes (graph-object-attributes graph object)))
 
 (defmethod cl-dot:graph-object-node ((graph  jenkins-dependencies)
-                                     (object jenkins.model.project::distribution-spec))
+                                     (object jenkins.model.project::distribution))
   nil)
 
 (defstruct provided)
@@ -58,11 +58,7 @@
 (defstruct (system (:include unsatisfied)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.model.project::distribution-spec))
-  (mapcar #'jenkins.model:implementation (jenkins.model.project:versions object)))
-
-(defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.model.project::project))
+                                          (object jenkins.model.project::distribution))
   (jenkins.model.project:versions object))
 
 (flet ((dependency (spec target)
@@ -121,7 +117,7 @@
 
 ;;; File generation
 
-(defmethod object-filename ((object jenkins.model.project::distribution-spec))
+(defmethod object-filename ((object jenkins.model.project::distribution))
   (safe-name (name object)))
 
 (defmethod object-filename ((object jenkins.model.project::version))
@@ -159,7 +155,7 @@
                    (versions distribution))))))
     (cond ((emptyp object)
            nil)
-          ((typep (first-elt object) 'jenkins.model.project::distribution-spec)
+          ((typep (first-elt object) 'jenkins.model.project::distribution)
            (map nil #'add-distribution object))
           (t
            (error "Not handled")))
@@ -173,8 +169,3 @@
                (more-conditions::without-progress
                  (report object style directory))))
        work))))
-
-(defmethod report ((object jenkins.model.project::version-spec)
-                   (style  (eql :graph))
-                   (target pathname))
-  (report (implementation object) style target))

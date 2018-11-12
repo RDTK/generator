@@ -96,7 +96,7 @@
     (if (starts-with-subseq +opensource-schema+ description)
         (when-let* ((location (jenkins.model.project::location-of
                                (typecase object
-                                 (jenkins.model.project::distribution-spec
+                                 (jenkins.model.project::distribution
                                   object)
                                  (jenkins.model.project::version
                                   (specification object)))))
@@ -107,7 +107,7 @@
                                       (list
                                        filename
                                        (etypecase object
-                                         (jenkins.model.project::distribution-spec
+                                         (jenkins.model.project::distribution
                                           "distribution-descriptions/")
                                          (jenkins.model.project::version
                                           "project-descriptions/"))
@@ -136,7 +136,9 @@
      (ensure-list value))))
 
 (defun project-version-name (project-version)
-  (format nil "~A-~A" (name (parent project-version)) (name project-version)))
+  (format nil "~A-~A"
+          (name (parent (specification project-version)))
+          (name project-version)))
 
 (defun project-version-title (project-version)
   (or (catalog-value project-version :title)
@@ -270,7 +272,7 @@
 (defmethod report ((object sequence) (style catalog) (target pathname))
   (map nil (rcurry #'report style target) object))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object jenkins.model.project::distribution)
                    (style  catalog)
                    (target pathname))
   (let ((distribution-directory (merge-pathnames #P"distribution/" target)))
@@ -278,11 +280,9 @@
       (report object style stream)))
 
   (let ((project-directory (merge-pathnames #P"project/" target)))
-    (map nil (compose (rcurry #'report style project-directory)
-                      #'implementation)
-         (versions object))))
+    (map nil (rcurry #'report style project-directory) (versions object))))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object jenkins.model.project::distribution)
                    (style  catalog)
                    (target stream))
   (with-catalog-xml-output (target :indentation (indentation style)
@@ -442,7 +442,7 @@
   (let ((style  (make-instance 'catalog :gdpr? :opt-in))
         (object (if (and (typep object '(and sequence (not null)))
                          (typep (first-elt object)
-                                'jenkins.model.project::distribution-spec))
+                                'jenkins.model.project::distribution))
                     (make-instance 'distributions :distributions object)
                     object)))
     (report object style target)))

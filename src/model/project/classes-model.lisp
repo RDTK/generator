@@ -13,46 +13,25 @@
 
 (cl:in-package #:jenkins.model.project)
 
-;;; `project' class
+;;; `distribution' class
 
-(defclass project (named-mixin
-                   implementation-mixin
-                   direct-variables-mixin)
-  ((versions :initarg  :versions
-             :type     list
-             :reader   versions
-             :documentation
-             ""))
+(defclass distribution (named-mixin
+                        implementation-mixin)
+  ((versions :initarg :versions
+             :type    list #|of version|#
+             :reader  versions))
   (:documentation
-   "Instances of this class represent projects.
+   "Instances represent implementations of `distributions-spec's.
 
-    `project' instances are usually created from the specifications in
-    `project-spec' instances."))
+    Contained versions are `version' instance implementing
+    `version-spec's."))
 
-(defmethod direct-variables ((thing project))
-  (value-acons :project-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
-
-(defmethod variables append ((thing project))
-  (variables (specification thing)))
-
-(defmethod lookup ((thing project) (name t) &key if-undefined)
+(defmethod lookup ((thing distribution) (name t) &key if-undefined)
   (declare (ignore if-undefined))
-  (multiple-value-call #'merge-lookup-values
-    (call-next-method)
-    (lookup (specification thing) name :if-undefined nil)))
+  (lookup (specification thing) name :if-undefined nil))
 
-(defmethod add-dependencies! ((thing project) (spec project-spec)
-                              &key
-                              (providers (missing-required-argument :providers)))
-  (mapc (lambda (version version-spec)
-          (add-dependencies! version version-spec
-                             :providers (funcall providers version-spec)))
-        (versions thing) (versions spec)))
-
-(defmethod deploy ((thing project))
-  (mapcar #'deploy (versions thing)))
+(defmethod persons-in-role ((role t) (container distribution))
+  (persons-in-role role (specification container)))
 
 ;;; `version' class
 
@@ -93,10 +72,24 @@
   (:documentation
    "Instances of this class represent versions of `project's."))
 
+(defmethod print-items:print-items append ((object version))
+  (let ((ancestor-names (list (name (parent object))
+                              (name (parent (specification object)))
+                              (name object))))
+    `((:name ,ancestor-names "~{~A~^:~}"))))
+
 (defmethod direct-variables ((thing version))
   (value-acons :version-name (name thing)
                (when (next-method-p)
                  (call-next-method))))
+
+(defmethod lookup ((thing version) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  (multiple-value-call #'merge-lookup-values
+    (lookup (specification thing) name :if-undefined nil)
+    (if (variable-inheritable? name)
+        (call-next-method)
+        (values nil nil nil))))
 
 (defmethod variables append ((thing version))
   (variables (specification thing)))
@@ -182,6 +175,12 @@
   (value-acons :job-name (name thing)
                (when (next-method-p)
                  (call-next-method))))
+
+(defmethod lookup ((thing job) (name t) &key if-undefined)
+  (declare (ignore if-undefined))
+  (multiple-value-call #'merge-lookup-values
+    (lookup (specification thing) name :if-undefined nil)
+    (call-next-method)))
 
 (defmethod add-dependencies! ((thing job) (spec job-spec)
                               &key providers)

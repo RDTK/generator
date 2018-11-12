@@ -8,32 +8,15 @@
 
 ;;; Deployment
 
-(defun instantiate-projects (specs distributions)
-  (let+ ((projects (mapcar (lambda (spec)
-                             (instantiate spec :parent (parent spec)))
-                           specs))
-         ((&flet find-version (version)
-            (when-let ((dist (find version distributions
-                                   :test #'member
-                                   :key  #'versions)))
-              (remove-if-not (lambda (provider)
-                               (intersection (cdr provider) (versions dist)))
-                             (providers/alist))))))
-    (iter (for project in projects)
-          (for spec    in specs)
-          (when project
-            (add-dependencies! project spec :providers #'find-version)
-            (collect project)))))
-
-(defun deploy-projects (projects)
-  (with-sequence-progress (:deploy/project projects)
-    (iter (for project in projects)
+(defun deploy-projects (versions)
+  (with-sequence-progress (:deploy/project versions)
+    (iter (for version in versions)
           (progress "~/print-items:format-print-items/"
-                    (print-items:print-items project))
+                    (print-items:print-items version))
           (more-conditions::without-progress
             (with-simple-restart
-                (continue "~@<Skip deploying project ~S.~@:>" project)
-              (appending (flatten (deploy project))))))))
+                (continue "~@<Skip deploying project version ~S.~@:>" version)
+              (appending (flatten (deploy version))))))))
 
 (defun deploy-job-dependencies (jobs)
   (with-sequence-progress (:deploy/dependencies jobs)
@@ -46,16 +29,18 @@
 
 (defun configure-orchestration (distribution)
   (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-    (let* ((templates (list (find-template "orchestration")))
-           (spec      (make-instance 'jenkins.model.project::project-spec
-                                     :name      "orchestration"
-                                     :parent    distribution
-                                     :templates templates))
-           (version   (make-instance 'jenkins.model.project::version-spec
-                                     :name   "orchestration"
-                                     :parent spec)))
-      (reinitialize-instance spec :versions (list version))
-      (flatten (deploy (instantiate spec))))))
+    (let* ((templates    (list (find-template "orchestration")))
+           (project-spec (make-instance 'jenkins.model.project::project-spec
+                                        :name      "orchestration"
+                                        :templates templates))
+           (version-spec (make-instance 'jenkins.model.project::version-spec
+                                        :name   "orchestration"
+                                        :parent project-spec))
+           (version      (progn
+                           (reinitialize-instance project-spec
+                                                  :versions (list version-spec))
+                           (instantiate version-spec :parent distribution))))
+      (flatten (deploy version)))))
 
 (defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)
@@ -70,11 +55,7 @@
       view)))
 
 (defun configure-distribution (distribution)
-  (let* ((jobs               (mappend (lambda (version-spec)
-                                        (when-let ((version (implementation
-                                                             version-spec)))
-                                          (jobs version)))
-                                      (versions distribution)))
+  (let* ((jobs               (mappend #'jobs (versions distribution)))
          (orchestration-jobs (with-simple-restart
                                  (continue "~@<Continue without configuring orchestration jobs~@:>")
                                (configure-orchestration distribution)))

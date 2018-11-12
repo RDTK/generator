@@ -70,48 +70,36 @@
             (etypecase version
               (cons   (first version))
               (string version))))
-         ((&flet ensure-project (location versions distribution)
+         ((&flet ensure-project (location versions)
             (if-let ((project (gethash location projects)))
               (unionf (second project) versions
                       :test #'string= :key #'version-name)
               (setf (gethash location projects)
-                    (list location versions distribution))))))
+                    (list location versions))))))
     (map nil (lambda (distribution-pathname distribution)
                (map nil (lambda+ ((name &rest versions))
                           (when-let* ((pattern  (derive-project-pattern
                                                  distribution-pathname name))
                                       (location (first (locate-specifications
                                                         :project (list pattern)))))
-                            (ensure-project location versions distribution)))
+                            (ensure-project location versions)))
                     (jenkins.model.project:versions distribution)))
          distribution-pathnames distributions)
     (hash-table-values projects)))
 
-(defstruct project-spec-and-versions
-  (spec     nil :type jenkins.model.project::project-spec :read-only t)
-  (versions nil :type list                                :read-only t))
-
-(defmethod print-items:print-items append ((object project-spec-and-versions))
-  (let+ (((&structure-r/o project-spec-and-versions- spec versions) object)
-         (versions (map 'list #'name versions)))
-    (append (print-items:print-items spec)
-            `((:versions ,versions ":~{~A~^,~}" ((:after :name)))))))
-
-(defun load-project/versioned (file versions distribution &key generator-version)
+(defun load-project/versioned (file versions &key generator-version)
   (let+ ((version-names (mapcar #'first versions))
-         (project       (reinitialize-instance
-                         (load-project-spec/yaml
-                          file
-                          :version-test      (lambda (name pattern)
-                                               (cond
-                                                 (name
-                                                  (find name version-names
-                                                        :test #'string=))
-                                                 (pattern
-                                                  (remove pattern version-names
-                                                          :test-not #'ppcre:scan))))
-                          :generator-version generator-version)
-                         :parent distribution))
+         (project       (load-project-spec/yaml
+                         file
+                         :version-test      (lambda (name pattern)
+                                              (cond
+                                                (name
+                                                 (find name version-names
+                                                       :test #'string=))
+                                                (pattern
+                                                 (remove pattern version-names
+                                                         :test-not #'ppcre:scan))))
+                         :generator-version generator-version))
          (branches      (value/cast project :branches '()))
          (branches      (intersection version-names branches :test #'string=))
          (tags          (value/cast project :tags '()))
@@ -165,19 +153,17 @@
                                    tags)
                            (mapcan (rcurry #'process-version :version-required? t)
                                    versions1))))
-    (make-project-spec-and-versions
-     :spec     (reinitialize-instance project :versions versions)
-     :versions versions)))
+    (reinitialize-instance project :versions versions)))
 
 (defun load-projects/versioned (files-and-versions &key generator-version)
   (with-sequence-progress (:load/project files-and-versions)
     (lparallel:pmapcan
-     (lambda+ ((file versions distribution))
+     (lambda+ ((file versions))
        (progress "~A" file)
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
-         (list (load-project/versioned file versions distribution
-                                       :generator-version generator-version))))
+         (list (load-project/versioned
+                file versions :generator-version generator-version))))
      :parts most-positive-fixnum files-and-versions)))
 
 ;;; The values of these variables uniquely identify a "repository
@@ -193,7 +179,7 @@
     (:sub-directory . uiop:ensure-directory-pathname)))
 
 (defun group-project-versions-for-analysis (project)
-  (let+ (((&structure-r/o project-spec-and-versions- versions) project)
+  (let+ ((versions (versions project))
          ((&flet maybe-key-fragment (version variable-and-transform)
             (let+ (((variable . transform)
                     (ensure-list variable-and-transform)))
@@ -308,7 +294,7 @@
                       :versions (map 'list #'version-info versions)
                       (append other-info args)))))))
     (mapc #'analyze-group groups)
-    (project-spec-and-versions-spec project)))
+    project))
 
 (defun analyze-projects (projects
                          &rest args &key

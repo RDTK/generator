@@ -152,8 +152,7 @@
 (defclass job (named-mixin
                implementation-mixin
                specification-mixin ; TODO define another class for this
-               parented-mixin
-               direct-variables-mixin)
+               parented-mixin)
   ((direct-dependencies :initarg  :direct-dependencies ; TODO(jmoringe, 2013-03-06): dependencies-mixin?
                         :type     list ; of job
                         :reader   direct-dependencies
@@ -170,11 +169,6 @@
   (:documentation
    "Instances of this class represent build jobs which are associated
     to specific `version's of `project's."))
-
-(defmethod direct-variables ((thing job))
-  (value-acons :job-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
 
 (defmethod lookup ((thing job) (name t) &key if-undefined)
   (declare (ignore if-undefined))

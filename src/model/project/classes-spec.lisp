@@ -384,6 +384,11 @@
   (:documentation
    "Specification of a build job to be generated."))
 
+(defmethod direct-variables ((thing job-spec))
+  (value-acons :job-name (name thing)
+               (when (next-method-p)
+                 (call-next-method))))
+
 (defmethod instantiate ((spec job-spec) &key parent specification-parent)
   (let+ (((&flet make-aspect (spec parent)
             (when (instantiate? spec parent)
@@ -392,8 +397,7 @@
          (job (make-instance 'job
                              :name          (name spec)
                              :specification spec
-                             :parent        parent
-                             :variables     (copy-list (direct-variables spec))))) ; TODO copy-list?
+                             :parent        parent)))
     (reinitialize-instance
      job :aspects (mapcan (rcurry #'make-aspect job)
                           (aspects specification-parent)))))

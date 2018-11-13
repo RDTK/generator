@@ -251,14 +251,13 @@
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
           (restart-case
-              (cond ((when-let* ((match     (find-provider/version
-                                             requires
-                                             :if-does-not-exist nil
-                                             :providers         providers))
-                                 (candidate (implementation match)))
-                       (log:trace "~@<Best candidate is ~S.~@:>" candidate)
-                       (unless (eq candidate thing)
-                         (add-dependency requires candidate))
+              (cond ((when-let ((match (find-provider/version
+                                        requires
+                                        :if-does-not-exist nil
+                                        :providers         providers)))
+                       (log:trace "~@<Best candidate is ~S.~@:>" match)
+                       (unless (eq match thing)
+                         (add-dependency requires match))
                        t))
                     ((when (find-provider/version
                             requires :providers (platform-provides))

@@ -54,24 +54,27 @@
 (defmethod instantiate ((spec distribution-spec) &key parent specification-parent)
   (declare (ignore parent specification-parent))
   (let+ ((version-specs (versions spec))
-         (providers     (remove-if-not (lambda (provider)
-                                         (intersection (cdr provider)
-                                                       version-specs))
-                                       (providers/alist)))
          (distribution  (make-instance 'distribution
                                        :name          (name spec)
                                        :specification spec))
          ((&flet make-version (version-spec)
-            (when-let ((version (instantiate version-spec
-                                             :parent distribution)))
+            (when-let  ((version (instantiate version-spec :parent distribution)))
               (list version))))
-         (versions (mapcan #'make-version version-specs)))
+         (versions  (mapcan #'make-version version-specs))
+         (providers (make-hash-table :test #'equal)))
+    ;; Build a table of provided things and providers.
+    (map nil (lambda (version)
+               (map nil (lambda (provided)
+                          (push version (gethash provided providers '())))
+                    (provides (specification version))))
+         versions)
     ;; After all `version' instances have been made, resolve
     ;; dependencies among them.
-    (map nil (lambda (version)
-               (add-dependencies! version (specification version)
-                                  :providers providers))
-         versions)
+    (let ((providers (hash-table-alist providers)))
+      (map nil (lambda (version)
+                 (add-dependencies! version (specification version)
+                                    :providers providers))
+           versions))
     (reinitialize-instance distribution :versions versions)))
 
 ;;; `project-spec' class
@@ -173,16 +176,6 @@
 
     Consists of variables, additional requirements and provided things
     and instantiation conditions."))
-
-(defmethod shared-initialize :after ((instance   version-spec)
-                                     (slot-names t)
-                                     &key)
-  ;; TODO moved from dump.lisp; but is not the right place, either
-  (iter (for (mechanism name . version) in (provides instance))
-        (push-provider
-         instance
-         (list* mechanism name
-                (when (first version) (list (first version)))))))
 
 (defmethod direct-variables ((thing version-spec))
   (value-acons :version-name (name thing)

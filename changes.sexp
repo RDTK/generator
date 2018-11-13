@@ -42,6 +42,11 @@
     up variable overwrites specified on the commandline.")
 
   (:enhancement
+   "Most commands (notably " (:verb "generate") ") now work properly
+    when multiple distributions are specified in a single commandline
+    invocation of the program.")
+
+  (:enhancement
    "When analyzing committers and commits in git repositories the
     specified sub-directory, if any, is now considered.")
 

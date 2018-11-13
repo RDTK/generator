@@ -47,20 +47,7 @@
 
 (define-repository project)
 
-(define-repository provider)
-
-(defun push-provider (new-value name)
-  (bt:with-lock-held (*providers-lock*)
-    (push new-value (gethash name *providers* '()))))
-
-(defun providers/alist ()
-  (bt:with-lock-held (*providers-lock*)
-    (hash-table-alist *providers*)))
-
-(defun find-provider/version (spec
-                              &key
-                              (if-does-not-exist #'error)
-                              (providers         (providers/alist)))
+(defun find-provider/version (spec providers &key (if-does-not-exist #'error))
   (log:trace "~@<Trying to find provider of ~S~@:>" spec)
   (let+ (((&whole required &ign &ign &optional version) spec)
          ((&flet version-better (left right)

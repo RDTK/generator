@@ -90,21 +90,22 @@
           (make-variable/sh (string-upcase name))))
        ((&flet map-cmake-requirements (function aspect)
           (let* ((project-version   (parent (parent aspect)))
-                 (dependencies      (mapcar #'specification
-                                            (list* project-version
-                                                   (dependencies project-version))))
+                 (dependencies      (list* project-version
+                                           (dependencies project-version)))
                  (seen-requirements (make-hash-table :test #'equal)))
             (iter outer (for dependency in dependencies)
-                  (iter (for required in (uiop:symbol-call ; TODO hack
-                                          '#:jenkins.model.project '#:requires-of-kind
-                                          :cmake dependency))
-                        (when-let ((provider (uiop:symbol-call ; TODO hack
-                                              '#:jenkins.model.project '#:find-provider/version
-                                              required :if-does-not-exist nil))
-                                   (required (second required)))
-                          (unless (gethash required seen-requirements)
-                            (setf (gethash required seen-requirements) t)
-                            (in outer (collect (funcall function required))))))))))
+                  (for dependencies/alist
+                       = (remove-if
+                          (lambda (dependency)
+                            (member (car dependency) '(nil :system)))
+                          (uiop:symbol-call
+                           '#:jenkins.model.project '#:direct-dependencies/reasons
+                           dependency)))
+                  (iter (for (nature target version) in (mappend #'cdr dependencies/alist))
+                        (when (eq nature :cmake)
+                          (unless (gethash target seen-requirements)
+                            (setf (gethash target seen-requirements) t)
+                            (in outer (collect (funcall function target))))))))))
        ((&flet result (name raw)
           (values (cons name (value-parse raw)) '() t))))
 

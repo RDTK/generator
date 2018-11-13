@@ -83,10 +83,7 @@
 
   ;; Provider registry
   (:export
-   #:find-provider
-   #:find-provider/version
-   #:providers/alist)
-
+   #:find-provider/version)
 
   ;; Requires/provides protocol
   (:export

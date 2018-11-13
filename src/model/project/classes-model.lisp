@@ -252,15 +252,14 @@
                      requires thing)
           (restart-case
               (cond ((when-let ((match (find-provider/version
-                                        requires
-                                        :if-does-not-exist nil
-                                        :providers         providers)))
+                                        requires providers
+                                        :if-does-not-exist nil)))
                        (log:trace "~@<Best candidate is ~S.~@:>" match)
                        (unless (eq match thing)
                          (add-dependency requires match))
                        t))
                     ((when (find-provider/version
-                            requires :providers (platform-provides))
+                            requires (platform-provides))
                        (add-dependency requires :system)
                        t)))
             (continue (&optional condition)

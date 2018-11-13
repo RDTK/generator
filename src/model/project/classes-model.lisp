@@ -26,9 +26,121 @@
     Contained versions are `version' instance implementing
     `version-spec's."))
 
-(defmethod lookup ((thing distribution) (name t) &key if-undefined)
-  (declare (ignore if-undefined))
-  (lookup (specification thing) name :if-undefined nil))
+(labels ((distribution-jobs (distribution)
+           (remove-if-not (lambda (job)
+                            (value/cast job :build-job.orchestrate? t))
+                          (mappend #'jobs (versions distribution))))
+         (job-name (job)
+           (when-let ((job (implementation job)))
+             (list (jenkins.api:id job))))
+         (return-value (name value)
+           (values (cons name (value-parse value)) '() t)))
+
+  (defmethod lookup ((thing distribution) (name (eql :jobs.list))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (return-value name (mapcan #'job-name (distribution-jobs thing))))
+
+  (defmethod lookup ((thing distribution) (name (eql :jobs.dependencies))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let+ ((jobs (distribution-jobs thing))
+           ((&flet dependencies (job)
+              (let* ((dependency-name (value/cast thing :dependency-job-name
+                                                  (name job))))
+                (mappend (lambda (dependency)
+                           (when-let ((dependency-job
+                                       (find dependency-name (jobs dependency)
+                                             :test #'string= :key #'name)))
+                             (list dependency-job)))
+                         (direct-dependencies (parent job))))))
+           (value
+            (loop :for job :in jobs
+                  :collect (cons (first (job-name job))
+                                 (mapcan #'job-name (dependencies job))))))
+      (return-value name value)))
+
+  (defmethod lookup ((thing distribution) (name (eql :jobs.dependencies/groovy))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (return-value name (format nil "[~%~
+                                      ~:{~2@T~S: [~%~
+                                        ~@{~4@T~S,~%~}~
+                                      ~2T],~%~}~
+                                    ]"
+                               (value thing :jobs.dependencies))))
+
+  (defmethod lookup ((thing distribution) (name t)
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (if-let ((strategy (variable-aggregation name)))
+      (let+ (((&values raw raw/next-values) ; TODO duplicates much of `value'
+              (lookup (specification thing) name :if-undefined '())
+              #+no (call-next-method thing name :if-undefined '()))
+             ((&labels+ make-lookup ((&optional first-value &rest next-values))
+                (lambda (name1 &optional (default nil default-supplied?))
+                  (cond
+                    ((not (eq name1 :next-value))
+                     (if default-supplied?
+                         (value thing name1 default)
+                         (value thing name1)))
+                    (first-value
+                     (jenkins.model.variables::with-augmented-trace (name1 nil first-value)
+                       (expand (cdr first-value) (make-lookup next-values))))
+                    (default-supplied?
+                     (jenkins.model.variables::with-augmented-trace (name1 :default (cons :unused default))
+                       (if (functionp default) (funcall default) default)))
+                    (t
+                     (error "~@<No next value for ~A.~@:>"
+                            name))))))
+             (value           (jenkins.model.variables::with-augmented-trace (name thing raw)
+                                (jenkins.model.variables::with-expansion-stack (name thing)
+                                  (expand (cdr raw) (make-lookup raw/next-values)))))
+             (children        (versions thing))
+             (effective-value (aggregate-values value children name strategy)))
+        (return-value name effective-value))
+      (lookup (specification thing) name :if-undefined '()) #+no (call-next-method)))
+
+  (defmethod lookup ((thing distribution) (name (eql :licenses))
+                     &key if-undefined)
+    (declare (ignore if-undefined))
+    (let ((counts (make-hash-table :test #'eq)))
+      (map nil (lambda (version)
+                 (map nil (lambda (license)
+                            (incf (gethash (make-keyword license) counts 0)))
+                      (or (value version :licenses nil)
+                          (ensure-list (value version :license nil))
+                          (ensure-list (value version :analysis.license nil))
+                          (list nil))))
+           (versions thing))
+      (return-value name (hash-table-alist counts)))))
+
+(defmethod platform-requires ((object distribution) (platform t))
+  (remove-duplicates
+   (append (call-next-method)
+           (mappend (rcurry #'platform-requires platform)
+                    (versions object)))
+   :test #'string=))
+
+(defmethod check-access ((object distribution) (lower-bound t))
+  (and (call-next-method)
+       (if-let ((offenders (remove-if (rcurry #'check-access (access object))
+                                      (versions object))))
+         (let ((reasons (mapcar (lambda (version)
+                                  (let+ (((&values access? reason)
+                                          (check-access version (access object))))
+                                    (unless access?
+                                      (list version reason))))
+                                offenders)))
+           (values nil (make-condition
+                        'simple-error
+                        :format-control   "~@<~A declares ~A access but ~
+                                           uses the following projects ~
+                                           which do not: ~:@_~
+                                           ~{~{* ~A~@[: ~A~]~}~^~:@_~}.~@:>"
+                        :format-arguments (list object (access object)
+                                                reasons))))
+         t)))
 
 (defmethod persons-in-role ((role t) (container distribution))
   (persons-in-role role (specification container)))
@@ -93,6 +205,23 @@
 
 (defmethod variables append ((thing version))
   (variables (specification thing)))
+
+(defmethod check-access ((object version) (lower-bound t))
+  (let ((offender (or (when (value/cast object :scm.credentials nil)
+                        :scm.credentials)
+                      (when (value/cast object :scm.password nil)
+                        :scm.password))))
+    (cond ((not offender)
+           (call-next-method))
+          ((eq (access object) :public)
+           (values nil (make-condition
+                        'simple-error
+                        :format-control "~@<Project ~A has a ~S entry but ~
+                                         ~A access.~@:>"
+                        :format-arguments (list object offender
+                                                (access object)))))
+          (t
+           (call-next-method)))))
 
 (defmethod direct-dependencies/reasons ((thing version))
   (%direct-dependencies thing))

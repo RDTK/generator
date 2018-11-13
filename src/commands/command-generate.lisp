@@ -66,13 +66,13 @@
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
                             :temp-directory    *temp-directory*)))
-    (generate-check distributions)
     (let ((distributions
             (as-phase (:instantiate)
               (mapcan (lambda (distribution-spec)
                         (when-let ((distribution (instantiate distribution-spec)))
                           (list distribution)))
                       distributions))))
+      (generate-check distributions)
       (generate-deploy distributions
                        :delete-other?        delete-other?
                        :delete-other-pattern delete-other-pattern))))

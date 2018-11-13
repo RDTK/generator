@@ -1,6 +1,6 @@
 ;;;; aspect.lisp --- Basic infrastructure for job aspects.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2018 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -109,7 +109,7 @@
            (aspect-parameters aspect)))
 
 (defmethod check-access ((object aspect) (lower-bound t))
-  (check-access (specification (parent (parent object))) lower-bound))
+  (check-access (parent (parent object)) lower-bound))
 
 (defmethod aspect< ((left aspect) (right aspect))
   (let+ (((&accessors-r/o (constraints-left constraints))  left)

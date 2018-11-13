@@ -54,6 +54,12 @@
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
                             :temp-directory    *temp-directory*))
+         (distributions
+          (as-phase (:instantiate)
+            (mapcan (lambda (distribution-spec)
+                      (when-let ((distribution (instantiate distribution-spec)))
+                        (list distribution)))
+                    distributions)))
          (platform     (split-sequence:split-sequence #\Space platform))
          (requirements (as-phase (:check-platform-requirements)
                          (platform-requires distributions platform))))

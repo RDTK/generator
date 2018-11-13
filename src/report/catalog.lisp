@@ -136,13 +136,16 @@
      (ensure-list value))))
 
 (defun project-version-name (project-version)
+  (name (parent (specification project-version))))
+
+(defun project-version-name+version (project-version)
   (format nil "~A-~A"
-          (name (parent (specification project-version)))
+          (project-version-name project-version)
           (name project-version)))
 
 (defun project-version-title (project-version)
   (or (catalog-value project-version :title)
-      (name (parent project-version))))
+      (project-version-name project-version)))
 
 ;;;
 
@@ -242,7 +245,7 @@
   (let ((title   (project-version-title project-version))
         (version (name project-version)))
     (emit-direct-dependency
-     title version (project-version-name project-version))))
+     title version (project-version-name+version project-version))))
 
 ;;; Report class and methods
 
@@ -319,7 +322,7 @@
                    (style  catalog)
                    (target pathname))
   (with-output-to-catalog-file
-      (stream target (safe-name (project-version-name object)))
+      (stream target (safe-name (project-version-name+version object)))
     (report object style stream)))
 
 (defmethod report ((object jenkins.model.project::version)
@@ -330,8 +333,8 @@
     (cxml:with-element "project"
       ;; Generic metadata
       (let ((name          (name object))
-            (safe-name     (safe-name (project-version-name object)))
-            (fallback-name (name (parent object))))
+            (safe-name     (safe-name (project-version-name+version object)))
+            (fallback-name (project-version-name object)))
         (emit-generic-metadata object name safe-name fallback-name))
 
       ;; Description and keywords

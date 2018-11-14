@@ -7,6 +7,30 @@
 (cl:in-package #:jenkins.api)
 
 ;;; `build' class
+;;;
+;;; Aggregated classes:
+;;;
+;;; * `action' interface and its implementations
+
+(define-interface-implementations (action :class-location (xloc:val "@*[local-name() = '_class']"))
+  ((git-build-data "hudson.plugins.git.util.BuildData")
+   ((last-built-revision/sha1 :type  string
+                              :xpath "lastBuiltRevision/SHA1/text()"))))
+
+;; TODO define-interface-implementations should do this
+(macrolet ((define-of-type-methods (interface
+                                    &optional
+                                    (plural (symbolicate interface '#:s)))
+             (let ((name/list (symbolicate plural    '#:-of-type))
+                   (name/one  (symbolicate interface '#:-of-type)))
+               `(progn
+                  (defmethod ,name/list (type job)
+                    (remove-if-not (of-type type) (,plural job)))
+
+                  (defmethod ,name/one (type job)
+                    (find-if (of-type type) (,plural job)))))))
+
+  (define-of-type-methods action))
 
 (define-model-class build ()
   ((building?  :type  boolean
@@ -14,7 +38,10 @@
    (slave-name :type  string
                :xpath "builtOn/text()")
    (result     :type  keyword
-               :xpath "result/text()"))
+               :xpath "result/text()")
+   (actions    :type  action
+               :xpath ("action[@*[local-name() = '_class']]"
+                       :if-multiple-matches :all)))
   (:get-func (lambda (id) (build-config id))))
 
 (defmethod job ((build build) &key &allow-other-keys)

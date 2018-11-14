@@ -444,10 +444,12 @@
                      (list (list included-project "specified here" :error))
                      "~@<No project versions after expansion.~@:>"))
                   (map 'list (lambda+ ((version parameters))
-                               (make-instance 'project-include
-                                              :project   name
-                                              :version   version
-                                              :variables parameters))
+                               (copy-location
+                                included-project
+                                (make-instance 'project-include
+                                               :project   name
+                                               :version   version
+                                               :variables parameters)))
                        versions)))))))
     (make-instance
      'distribution-spec

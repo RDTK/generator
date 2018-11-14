@@ -65,17 +65,17 @@
           (generate-analyze distributions projects
                             :generator-version (generator-version)
                             :cache-directory   *cache-directory*
-                            :temp-directory    *temp-directory*)))
-    (let ((distributions
-            (as-phase (:instantiate)
-              (mapcan (lambda (distribution-spec)
-                        (when-let ((distribution (instantiate distribution-spec)))
-                          (list distribution)))
-                      distributions))))
-      (generate-check distributions)
-      (generate-deploy distributions
-                       :delete-other?        delete-other?
-                       :delete-other-pattern delete-other-pattern))))
+                            :temp-directory    *temp-directory*))
+         (distributions
+          (as-phase (:instantiate)
+            (mapcan (lambda (distribution-spec)
+                      (when-let ((distribution (instantiate distribution-spec)))
+                        (list distribution)))
+                    distributions))))
+    (generate-check distributions)
+    (generate-deploy distributions
+                     :delete-other?        delete-other?
+                     :delete-other-pattern delete-other-pattern)))
 
 ;;; Functions
 

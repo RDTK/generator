@@ -126,20 +126,24 @@
   (and (call-next-method)
        (if-let ((offenders (remove-if (rcurry #'check-access (access object))
                                       (versions object))))
-         (let ((reasons (mapcar (lambda (version)
+         (let ((value   (cdr (lookup object :access :if-undefined nil)))
+               (reasons (mapcar (lambda (version)
                                   (let+ (((&values access? reason)
                                           (check-access version (access object))))
                                     (unless access?
-                                      (list version reason))))
+                                      (list (print-items:print-items version)
+                                            reason))))
                                 offenders)))
-           (values nil (make-condition
-                        'simple-error
-                        :format-control   "~@<~A declares ~A access but ~
-                                           uses the following projects ~
-                                           which do not: ~:@_~
-                                           ~{~{* ~A~@[: ~A~]~}~^~:@_~}.~@:>"
-                        :format-arguments (list object (access object)
-                                                reasons))))
+           (values nil (make-object-error
+                        (when value
+                          (list (list value "distribution access declaration" :info)))
+                        "~@<~A declares ~A access but uses the ~
+                         following projects which do not:~:@_~
+                         ~{• ~<~@;~
+                           ~/print-items:format-print-items/~@[:~@:_~
+                           ~2@T~A~]~
+                         ~:>~^~:@_~}~@:>"
+                        object (access object) reasons)))
          t)))
 
 (defmethod persons-in-role ((role t) (container distribution))
@@ -207,19 +211,19 @@
   (variables (specification thing)))
 
 (defmethod check-access ((object version) (lower-bound t))
-  (let ((offender (or (when (value/cast object :scm.credentials nil)
-                        :scm.credentials)
-                      (when (value/cast object :scm.password nil)
-                        :scm.password))))
+  (let+ (((&flet check-variable (name)
+            (when (value/cast object name nil)
+              (list name (cdr (lookup object name))))))
+         ((&optional offender value)
+          (or (check-variable :scm.credentials)
+              (check-variable :scm.password))))
     (cond ((not offender)
            (call-next-method))
           ((eq (access object) :public)
-           (values nil (make-condition
-                        'simple-error
-                        :format-control "~@<Project ~A has a ~S entry but ~
-                                         ~A access.~@:>"
-                        :format-arguments (list object offender
-                                                (access object)))))
+           (values nil (make-object-error
+                        (list (list value "credential declaration" :error))
+                        "~@<Project ~A has a ~S entry but ~A access.~@:>"
+                        object offender (access object))))
           (t
            (call-next-method)))))
 

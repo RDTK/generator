@@ -12,15 +12,14 @@
                 (continue "~@<Skip distribution ~A.~@:>" distribution)
               (let+ (((&values access? problem)
                       (check-access distribution t)))
-                (cond
-                  (access?
-                   (list distribution))
-                  (problem
-                   (error problem))
-                  (t
-                   (error "~@<Unsuitable access declaration in ~
-                           distribution ~A.~@:>"
-                          distribution))))))
+                (cond (access?
+                       (list distribution))
+                      (problem
+                       (error problem))
+                      (t
+                       (error "~@<Unsuitable access declaration in ~
+                               distribution ~A.~@:>"
+                              distribution))))))
           distributions))
 
 (defun unresolved-platform-requirements

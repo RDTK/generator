@@ -26,19 +26,26 @@
                                        simple-condition)
   ())
 
-(defun object-error (annotated-objects
-                     &optional format-control &rest format-arguments)
+(defun make-object-error (annotated-objects
+                          &optional format-control &rest format-arguments)
   (if-let ((annotations
             (loop :for (object text kind) :in annotated-objects
                   :for location = (location-of object)
                   :when location
                   :collect (apply #'text.source-location:make-annotation
                                   location text (when kind (list :kind kind))))))
-    (error 'simple-object-error
-           :annotations      annotations
-           :format-control   format-control
-           :format-arguments format-arguments)
-    (apply #'error format-control format-arguments)))
+    (make-condition 'simple-object-error
+                    :annotations      annotations
+                    :format-control   format-control
+                    :format-arguments format-arguments)
+    (make-condition 'simple-error
+                    :format-control   format-control
+                    :format-arguments format-arguments)))
+
+(defun object-error (annotated-objects
+                     &optional format-control &rest format-arguments)
+  (error (apply #'make-object-error
+                annotated-objects format-control format-arguments)))
 
 ;;; YAML syntax
 

@@ -62,7 +62,11 @@
    "When analyzing CMake projects, the project version can now be
     determined when a" (:verb "PROJECT-NAMEConfigVersion.cmake.in")
    "or" (:verb "PROJECT-NAME-config-version.cmake.in") "file refers to
-    a variable containing the project version."))
+    a variable containing the project version.")
+
+  (:enhancement
+   "Error messages from access consistency checks display the
+    locations of the incompatible declarations, if possible."))
 
  (:release "0.24" "2018-09-17"
 

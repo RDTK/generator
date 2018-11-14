@@ -379,10 +379,12 @@
                                dependency-name dependency (jobs dependency)))))
               (pushnew dependency (%direct-dependencies thing)))))))
 
+(defun jenkins-job-id (job)
+  (substitute-if-not #\_ #'jenkins.api:job-name-character?
+                     (value/cast job :build-job-name)))
+
 (defmethod deploy ((thing job))
-  (let+ ((id        (substitute-if-not
-                     #\_ #'jenkins.api:job-name-character?
-                     (value/cast thing :build-job-name)))
+  (let+ ((id        (jenkins-job-id thing))
          (kind      (let+ (((kind &optional plugin)
                             (ensure-list (value thing :kind))))
                       (if plugin

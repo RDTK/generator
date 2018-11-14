@@ -1,4 +1,4 @@
-((:release "0.25" nil
+((:release "0.25" "2018-11-14"
 
   (:incompatible-change
    "JSON syntax in recipes is no longer explicitly supported but note

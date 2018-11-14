@@ -51,4 +51,6 @@
 
                               (:file       "command-validate")
                               (:file       "command-platform-requirements")
-                              (:file       "command-report")))))
+                              (:file       "command-report")
+
+                              (:file       "command-release-distribution")))))

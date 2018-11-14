@@ -44,6 +44,7 @@
                  :components ((:file     "model-class")
                               (:file     "interface")
 
+                              (:file     "build")
                               (:file     "job")
                               (:file     "job-publisher")
 

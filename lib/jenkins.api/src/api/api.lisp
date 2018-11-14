@@ -340,19 +340,23 @@
 ;;; build
 
 (define-operation/json (all-builds :path "/api/json")
-    (&optional regex)
+    (&optional filter &key count)
   (let* ((jobs (field (request/json :tree "jobs[name,builds[number]]") :jobs))
-         (names
-           (mapcan (lambda (job)
-                     (map-product (lambda (name number)
-                                    (format nil "~a/~a" name number))
-                                  (list (field job :name))
-                                  (mapcar (rcurry #'field :number) (field job :builds))))
+         (jobs (if filter
+                   (remove-if-not (lambda (job)
+                                    (cl-ppcre:scan filter (field job :name)))
+                                  jobs)
                    jobs)))
-    (mapcar #'build
-            (if regex
-                (remove-if (complement (curry #'cl-ppcre:scan regex)) names)
-                names))))
+    (mapcan (lambda (job)
+              (let* ((builds (field job :builds))
+                     (builds (if count
+                                 (subseq builds 0 (min (length builds) count))
+                                 builds)))
+                (map-product (lambda (name number)
+                               (build (format nil "~a/~a" name number)))
+                             (list (field job :name))
+                             (mapcar (rcurry #'field :number) builds))))
+            jobs)))
 
 #+no (define-operation/json (last-builds :path "/api/json")
     (&optional regex)

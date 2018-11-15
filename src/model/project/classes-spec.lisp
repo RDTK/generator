@@ -216,20 +216,18 @@
 
 (defmethod instantiate ((spec version-spec) &key parent specification-parent)
   (declare (ignore specification-parent))
-  (let+ (((&flet make-job (job-spec parent)
-            (when (instantiate? job-spec parent)
-              (when-let ((job (instantiate job-spec
-                                           :parent               parent
-                                           :specification-parent spec)))
-                (list job)))))
-         (version (make-instance 'version
+  (let+ ((version (make-instance 'version
                                  :name          (name spec)
                                  :specification spec
                                  :parent        parent
-                                 :variables     (direct-variables spec))))
-    (reinitialize-instance
-     version
-     :jobs (mapcan (rcurry #'make-job version) (jobs spec)))))
+                                 :variables     (direct-variables spec)))
+         ((&flet make-job (job-spec)
+            (when (instantiate? job-spec version)
+              (when-let ((job (instantiate job-spec
+                                           :parent               version
+                                           :specification-parent spec)))
+                (list job))))))
+    (reinitialize-instance version :jobs (mapcan #'make-job (jobs spec)))))
 
 ;;; `job-spec' class
 
@@ -248,17 +246,15 @@
                  (call-next-method))))
 
 (defmethod instantiate ((spec job-spec) &key parent specification-parent)
-  (let+ (((&flet make-aspect (spec parent)
-            (when (instantiate? spec parent)
-              (when-let ((aspect (instantiate spec :parent parent)))
-                (list aspect)))))
-         (job (make-instance 'job
-                             :name          (name spec)
-                             :specification spec
-                             :parent        parent)))
+  (let+ ((job (make-instance 'job :name          (name spec)
+                                  :specification spec
+                                  :parent        parent))
+         ((&flet make-aspect (spec)
+            (when (instantiate? spec job)
+              (when-let ((aspect (instantiate spec :parent job)))
+                (list aspect))))))
     (reinitialize-instance
-     job :aspects (mapcan (rcurry #'make-aspect job)
-                          (aspects specification-parent)))))
+     job :aspects (mapcan #'make-aspect (aspects specification-parent)))))
 
 ;;; `template' class
 

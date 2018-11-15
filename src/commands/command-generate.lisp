@@ -72,7 +72,9 @@
                       (when-let ((distribution (instantiate distribution-spec)))
                         (list distribution)))
                     distributions))))
-    (generate-check distributions)
+    (as-phase (:check-access ; :continuable? nil
+               )
+      (check-distribution-access distributions))
     (generate-deploy distributions
                      :delete-other?        delete-other?
                      :delete-other-pattern delete-other-pattern)))
@@ -144,11 +146,6 @@
                                                    (jenkins.model.project:versions distribution))))
                                      distributions))))
     (values distributions analyzed-projects)))
-
-(defun generate-check (distributions)
-  (as-phase (:check-access ; :continuable? nil
-             )
-    (check-distribution-access distributions)))
 
 (defun generated? (job)
   (search "automatically generated" (jenkins.api:description job)))

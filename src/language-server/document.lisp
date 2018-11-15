@@ -124,7 +124,13 @@
     (project::load-project-spec/yaml
      text
      :pathname          pathname
-     :generator-version "0.25.0")))
+     :generator-version "0.26.0"
+     :version-test      (lambda (name pattern)
+                          (cond (name
+                                 t)
+                                (pattern
+                                 (remove pattern '("foo")
+                                         :test-not #'ppcre:scan)))))))
 
 (defmethod contrib:make-context-contributors ((document project-document))
   (list* (make-instance 'template-name-context-contributor)
@@ -143,7 +149,7 @@
   (let* ((distribution (project::load-distribution/yaml
                         text
                         :pathname          pathname
-                        :generator-version "0.25.0"))
+                        :generator-version "0.26.0"))
          (projects-files+versions (uiop:symbol-call '#:jenkins.project.commands '#:locate-projects
                                                     (list pathname) (list distribution)))
          (project::*templates*        (lparallel:force (ensure-templates (workspace document))))
@@ -152,7 +158,7 @@
                                                                    :hook nil))
          (projects (uiop:symbol-call '#:jenkins.project.commands '#:load-projects/versioned
                                      projects-files+versions
-                                     :generator-version "0.25.0" ; generator-version
+                                     :generator-version "0.26.0" ; generator-version
                                      )))
     distribution))
 
@@ -180,7 +186,7 @@
       (project::load-one-template/yaml
        text
        :pathname          pathname
-       :generator-version "0.25.0"))))
+       :generator-version "0.26.0"))))
 
 (defmethod contrib:make-context-contributors ((document template-document))
   (list* (make-instance 'template-name-context-contributor)

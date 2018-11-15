@@ -65,8 +65,12 @@
 
    Entries are of one of the forms
 
-     [ \"NATURE\", \"NAME\"
-     [ \"NATURE\", \"NAME\", \"VERSION\" ]
+     nature: NATURE
+     target: NAME
+
+     nature: NATURE
+     target: NAME
+     version: VERSION
 
    where
 
@@ -82,7 +86,9 @@
 
    Examples:
 
-     [ \"program\", \"sbin/spread\", \"4.1\" ]
+     nature: program
+     target: sbin/spread
+     version: 4.1
 
        Version 4.1 of the program installed under the name
        \"sbin/spread\" is provided by the platform.")

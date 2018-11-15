@@ -21,9 +21,10 @@
             (proto:make-completion-item (string-downcase section)))))
     (log:error path)
     (cond ((and (<= 1 (length path) 2) (ends-with :versions path))
-           (map 'list #'make-item '(:name :variables)))
+           (map 'list #'make-item '(:name :pattern :variables)))
           ((length= 1 path)
-           (map 'list #'make-item '(:templates :catalog :variables :versions))))))
+           (map 'list #'make-item '(:minimum-generator-version
+                                    :templates :catalog :variables :versions))))))
 
 (defmethod contrib:completion-contributions
     ((workspace   t)
@@ -36,7 +37,8 @@
     (cond ((length= 1 path)
            (map 'list #'make-item '(:catalog :variables :versions)))
           ((and (length= 2 path) (ends-with :versions path))
-           (map 'list #'make-item '(:name :versions :variables))))))
+           (map 'list #'make-item '(:minimum-generator-version
+                                    :name :versions :variables))))))
 
 (defmethod contrib:completion-contributions
     ((workspace   t)
@@ -51,7 +53,8 @@
           ((and (length= 2 path) (ends-with :aspects path))
            (map 'list #'make-item '(:name :aspect :conditions :variables)))
           ((and (length= 2 path) (ends-with :jobs path))
-           (map 'list #'make-item '(:name :conditions :variables))))))
+           (map 'list #'make-item '(:minimum-generator-version
+                                    :name :conditions :variables))))))
 
 ;;;
 

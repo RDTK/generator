@@ -32,7 +32,7 @@
 (deftype yaml-project-include-spec ()
   '(cons string (satisfies yaml-list-of-version-include-specs)))
 
-(defun parse-include-spec (spec)
+(defun parse-project-include-spec (spec)
   (optima:match spec
 
     ;; Legacy syntax variants
@@ -391,7 +391,7 @@
             (with-simple-restart
                 (continue "~@<Continue without the project entry~@:>")
               (let+ (((&values name versions)
-                      (parse-include-spec included-project)))
+                      (parse-project-include-spec included-project)))
                 (funcall projects-seen name)
                 (let+ ((successful-expansions 0)
                        ((&flet note-success ()

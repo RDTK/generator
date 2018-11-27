@@ -37,7 +37,7 @@
                 (symbolicate '#:load/ kind))))
     (with-sequence-progress (name files)
       (mapcan (lambda (file)
-                (progress "~A" (enough-namestring file))
+                (progress "~A" (jenkins.util:safe-enough-namestring file))
                 (with-simple-restart
                     (continue "~@<Skip ~A specification ~S.~@:>" kind file)
                   (list (funcall loader file))))
@@ -159,7 +159,7 @@
   (with-sequence-progress (:load/project files-and-versions)
     (lparallel:pmapcan
      (lambda+ ((file versions))
-       (progress "~A" (enough-namestring file))
+       (progress "~A" (jenkins.util:safe-enough-namestring file))
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
          (list (load-project/versioned

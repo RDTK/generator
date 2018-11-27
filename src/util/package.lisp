@@ -25,6 +25,8 @@
 
   ;; Files
   (:export
+   #:safe-enough-namestring
+
    #:default-temporary-directory
    #:find-files
    #:make-file-generator

@@ -6,6 +6,16 @@
 
 (cl:in-package #:jenkins.util)
 
+;;; Namestrings
+
+(defun safe-enough-namestring (pathname)
+  (let* ((safe-directory (substitute :up :back (pathname-directory pathname)))
+         (safe-pathname  (make-pathname :directory safe-directory
+                                        :defaults  pathname)))
+    (enough-namestring safe-pathname)))
+
+;;;
+
 (defun default-temporary-directory (&key
                                     (base #P"/tmp/")
                                     (hint "build-generator"))

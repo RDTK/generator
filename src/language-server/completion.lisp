@@ -158,16 +158,18 @@
 (defclass project-name-completion-contributor () ())
 
 (defun describe-project (project)
-  (let ((natures     (var:value/cast
-                      project :natures '()))
-        (programming-languages     (var:value/cast
-                      project :programming-languages '()))
-        (licenses    (var:value/cast
-                       project :licenses '()))
-        (maintainers (ensure-list (var:value/cast
-                                   project :recipe.maintainer '())))
-        (description (var:value/cast
-                      project :description "«no description»")))
+  (let+ (((&flet attribute (name default)
+            (handler-case
+                (var:value/cast
+                 project name default)
+              (error (condition)
+                (format nil "Error: ~A" condition)))))
+         (natures               (attribute :natures '()))
+         (programming-languages (attribute :programming-languages '()))
+         (licenses              (attribute :licenses '()))
+         (maintainers           (ensure-list
+                                 (attribute :recipe.maintainer '())))
+         (description           (attribute :description "«no description»")))
     (format nil "Nature: ~A~%~
                  Programming Languages: ~A~%~
                  License: ~{~A~^ ~}~%~

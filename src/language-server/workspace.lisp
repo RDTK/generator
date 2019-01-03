@@ -1,6 +1,6 @@
 ;;;; workspace.lisp --- TODO.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -30,7 +30,7 @@
         :do (let ((promise (lparallel:promise)))
               (when (null (sb-ext:compare-and-swap
                            (slot-value container '%templates) nil promise))
-                (methods::log-message (proto:make-message :info "Background-loading templates"))
+                ;; (methods::log-message (proto:make-message :info "Background-loading templates"))
                 (lparallel:future (lparallel:fulfill promise
                                     (load-templates container)))))))
 
@@ -52,7 +52,8 @@
                                            )
         (jenkins.model.project::*projects-lock* (bt:make-lock))
         (pattern (merge-pathnames "projects/*.project" (lsp:root-directory container))))
-    (handler-bind ((error #'continue))
+    (handler-bind (((and error jenkins.util:continuable-error)
+                     (compose #'invoke-restart #'jenkins.util:find-continue-restart)))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")
                    (list (jenkins.model.project:load-project-spec/yaml filename))))
@@ -64,7 +65,7 @@
         :do (let ((promise (lparallel:promise)))
               (when (null (sb-ext:compare-and-swap
                            (slot-value container '%projects) nil promise))
-                (methods::log-message (proto::make-message :info "Background-loading projects"))
+                ; (methods::log-message (proto::make-message :info "Background-loading projects"))
                 (lparallel:future (lparallel:fulfill promise
                                     (load-projects container)))))))
 

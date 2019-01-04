@@ -1,6 +1,6 @@
 ;;;; phases.lisp --- Machinery for phases within commands.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -27,9 +27,11 @@
          ((&flet deferrable-error (condition)
             (restart-bind ((defer (lambda (condition &key debug?)
                                     (collect-error condition :debug? debug?)
-                                    (continue)
+                                    (invoke-restart
+                                     (jenkins.util:find-continue-restart
+                                      condition))
                                     (abort))
-                             :test-function (curry #'find-restart 'continue)))
+                             :test-function #'jenkins.util:find-continue-restart))
               (error condition)))))
     (lparallel:task-handler-bind
         ;; TODO workaround lparallel bug

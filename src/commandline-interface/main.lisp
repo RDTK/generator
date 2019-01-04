@@ -1,6 +1,6 @@
 ;;;; main.lisp --- Entry-point of commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -13,7 +13,7 @@
               (format *error-output* "~@<~A~@:>~2%" condition)
               (when debug?
                 #+sbcl (sb-debug:print-backtrace))
-              (continue condition))))
+              (invoke-restart (jenkins.util:find-continue-restart condition)))))
          ((&flet restart/condition (name &optional (condition? t) &rest args)
             (lambda (condition)
               (when-let ((restart (find-restart name condition)))

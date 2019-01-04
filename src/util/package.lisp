@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the util module.
 ;;;;
-;;;; Copyright (C) 2018 Jan Moringen
+;;;; Copyright (C) 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -13,6 +13,8 @@
 
   ;; Restarts
   (:export
+   #:find-continue-restart
+
    #:call-with-retry-restart
    #:with-retry-restart
    #:call-with-retries

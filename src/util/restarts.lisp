@@ -1,10 +1,28 @@
 ;;;; restarts.lisp --- String-related utilities.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2018 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.util)
+
+;;; Continuing
+
+(defun find-continue-restart (condition)
+  ;; Recent SBCL versions establish a `continue' restart in `open'
+  ;; that actually just retries the operation. Using this restart in
+  ;; an error policy causes an infinite loop. So ignore the
+  ;; problematic restart when looking for `continue' restarts.
+  #+sbcl (if (typep (more-conditions:root-cause condition) 'file-error)
+             (find-if (lambda (restart)
+                        (and (eq (restart-name restart) 'continue)
+                             (not (search "Retry opening"
+                                          (princ-to-string restart)))))
+                      (compute-restarts condition))
+             (find-restart 'continue condition))
+  #-sbcl (find-restart 'continue condition))
+
+;;; Retrying
 
 (defun call-with-retry-restart (thunk report)
   (tagbody

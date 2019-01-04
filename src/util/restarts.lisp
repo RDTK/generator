@@ -8,6 +8,13 @@
 
 ;;; Continuing
 
+(deftype continuable-error ()
+  ;; SBCL establishes `continue' restarts when signaling the following
+  ;; conditions. Using these restarts in an error policy causes an
+  ;; infinite loop (and potentially hides a programming error). So
+  ;; don't consider these errors continuable.
+  `(not (or unbound-variable undefined-function)))
+
 (defun find-continue-restart (condition)
   ;; Recent SBCL versions establish a `continue' restart in `open'
   ;; that actually just retries the operation. Using this restart in

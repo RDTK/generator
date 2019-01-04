@@ -13,6 +13,7 @@
 
   ;; Restarts
   (:export
+   #:continuable-error
    #:find-continue-restart
 
    #:call-with-retry-restart

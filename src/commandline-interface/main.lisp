@@ -8,8 +8,7 @@
 
 (defun make-error-policy (designator &key debug?)
   (let+ (((&flet continue/verbose (condition &key (debug? debug?))
-            (unless (typep condition '(or undefined-function
-                                          unbound-variable))
+            (when (typep condition 'jenkins.util:continuable-error)
               (format *error-output* "~@<~A~@:>~2%" condition)
               (when debug?
                 #+sbcl (sb-debug:print-backtrace))

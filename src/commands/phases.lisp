@@ -36,11 +36,10 @@
     (lparallel:task-handler-bind
         ;; TODO workaround lparallel bug
         ((error (lambda (condition)
-                  (unless (typep condition '(or unbound-variable
-                                                undefined-function))
+                  (when (typep condition 'jenkins.util:continuable-error)
                     (deferrable-error condition)))))
       (handler-bind
-          (((and error (not (or unbound-variable undefined-function)))
+          (((and error jenkins.util:continuable-error)
             #'deferrable-error))
         (funcall thunk (lambda () errors))))))
 

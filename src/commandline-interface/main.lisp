@@ -12,7 +12,8 @@
               (format *error-output* "~@<~A~@:>~2%" condition)
               (when debug?
                 #+sbcl (sb-debug:print-backtrace))
-              (invoke-restart (jenkins.util:find-continue-restart condition)))))
+              (when-let ((restart (jenkins.util:find-continue-restart condition)))
+                (invoke-restart restart)))))
          ((&flet restart/condition (name &optional (condition? t) &rest args)
             (lambda (condition)
               (when-let ((restart (find-restart name condition)))

@@ -1,6 +1,6 @@
 ;;;; command-release-distribution.lisp --- Write a distribution release into a recipe.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -58,38 +58,66 @@
 (defun release-distribution (distribution output-file)
   (let* ((location (jenkins.model.project::location-of (specification distribution)))
          (text     (text.source-location:content
-                    (text.source-location:source location))))
+                    (text.source-location:source location)))
+         (jobs     (mappend (lambda (version)
+                              (when-let ((job (find "main" (jobs version)
+                                                    :test #'string= :key #'name))) ; TODO otherwise error?
+                                (list (cons version job))))
+                            (versions distribution)))
+         (results  (inspect-jobs jenkins.api:*base-url*
+                                 jenkins.api:*username*
+                                 jenkins.api:*password*
+                                 jobs)))
 
-    (describe distribution)
-    (describe (specification distribution))
+    (format-distribution-build-status *standard-output* results)
 
-    (let ((jobs (mappend (lambda (version)
-                           (when-let ((job (find "main" (jobs version)
-                                                 :test #'string= :key #'name))) ; TODO otherwise error?
-                             (list (cons version job))))
-                         (versions distribution)))
+    (let* ((new-text (copy-seq text))
+           (changes  '()))
 
-          (base-url jenkins.api:*base-url*)
-          (username jenkins.api:*username*)
-          (password jenkins.api:*password*)
-          (results  (make-hash-table :test #'eq :synchronized t)))
-      (with-sequence-progress (:retrieve-build-data jobs)
-        (lparallel:pmapc
-         (lambda+ ((version . job))
-           (progress "~A" job)
-           (with-simple-restart (continue "Skip job ~A" job)
-             (let ((jenkins.api:*base-url* base-url)
-                   (jenkins.api:*username* username)
-                   (jenkins.api:*password* password))
-               (setf (gethash version results) (inspect-job job)))))
-         jobs))
+      (setf *jobs* jobs *results* results)
 
-      (loop :for (version . (job-id result data)) :in (sort (hash-table-alist results) #'string<
-                                                            :key (compose #'name #'parent #'specification #'car))
-            :do (format-build-data *standard-output* version job-id result data)))
+      (loop :for (version . job) :in jobs
+            :for spec            = (jenkins.model:specification version)
+            :for result          = (gethash version results)
+            :for location        = (jenkins.model.project::location-of
+                                    (specification version))
+            :do (log:info spec version location)
+            :do (push (cons (text.source-location:index
+                             (text.source-location:start location))
+                            (lambda (text)
+                              (let ((start (text.source-location:index
+                                            (text.source-location:start location)))
+                                    (end   (text.source-location:index
+                                            (text.source-location:end location))))
+                                (log:info text start end)
+                                (concatenate 'string
+                                             (subseq text 0 start)
+                                             (format nil "- foo~%")
+                                             (subseq text end)))))
+                      changes))
 
-    (let ((new-text ))
+      (reduce (lambda (text change)
+                (funcall (cdr change) text))
+              (sort changes #'> :key #'car) :initial-value text)
+
       (write-string-into-file text output-file :if-exists :supersede))))
+
+;;;
+
+(defun inspect-jobs (base-url username password jobs)
+  (let ((results (make-hash-table :test #'eq :synchronized t)))
+    (with-sequence-progress (:retrieve-build-data jobs)
+      (lparallel:pmapc
+       (lambda+ ((version . job))
+         (progress "~/print-items:format-print-items/"
+                   (print-items:print-items job))
+         (with-simple-restart (continue "Skip job ~A" job)
+           (let ((jenkins.api:*base-url* base-url)
+                 (jenkins.api:*username* username)
+                 (jenkins.api:*password* password))
+             (setf (gethash version results) (inspect-job job)))))
+       jobs))
+    results))
 
 (defun inspect-job (job)
   (let* ((id         (jenkins.model.project::jenkins-job-id job))
@@ -107,8 +135,9 @@
                            (build
                             :unsupported-scm)
                            (t
-                            nil))))
-    (list id (jenkins.api:result build) build-data)))
+                            nil)))
+         (result     (jenkins.api:result build)))
+    (list id result build-data)))
 
 ;;; Result display
 
@@ -122,12 +151,12 @@
 (defun format-result (stream result &optional colon? at?)
   (declare (ignore colon? at?))
   (let ((code (case result
-                (:success  32)
-                (:unstable 33)
-                (:failure  31)
-                (t         34))))
+                (:success       32)
+                (:unstable      33)
+                ((nil :failure) 31)
+                (t              34))))
     (call-with-sgr (lambda (stream)
-                     (format stream "~8<~A~;~>" result))
+                     (format stream "~8<~(~A~)~;~>" (or result "building")))
                    stream code)))
 
 (defun format-commit (stream commit &optional colon? at?)
@@ -143,8 +172,15 @@
                    stream code)))
 
 (defun format-build-data (stream version job-id result commit)
+  (declare (ignore job-id))
   (format stream "~32A ~32A ~
                   ~/jenkins.project.commands::format-result/ ~
                   ~/jenkins.project.commands::format-commit/ ~%"
           (name (parent (specification version))) (name version)
           result commit))
+
+(defun format-distribution-build-status (stream data)
+  (loop :with sorted = (sort (hash-table-alist data) #'string<
+                             :key (compose #'name #'parent #'specification #'car))
+        :for (version . (job-id result data)) :in sorted
+        :do (format-build-data stream version job-id result data)))

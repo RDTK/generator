@@ -86,7 +86,26 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
     discarded."
    "Note that the textual order of the" (:verb "include") "and"
    (:verb "versions") "sections in distribution recipes has no bearing
-    on the ordering described above."))
+    on the ordering described above.")
+
+  (:enhancement
+   "The new" (:verb "release-distribution") "command inspects the
+    Jenkins jobs generated for a given distribution, retrieves the
+    commit information for the respective most recent builds and
+    writes a new distribution file in which projects are pinned to the
+    retrieved commits."
+
+            "Note: this only works reliably if a mode and overwrites matching
+    the values used to generate the jobs are supplied since things
+    like Jenkins job names depend on this information. For example,
+    if Jenkins jobs were generated using the command:"
+            (:verb "build-generator generate \\
+  -m ci-deploy -D 'build-job-name=…' \\
+  my-distribution.distribution")
+            "the following command could be used to release the distribution:"
+            (:verb "build-generator release-distribution \\
+  -m ci-deploy -D 'build-job-name=…' \\
+  -o my-disitribution-1.0.distribution my-distribution.distribution")))
 
  (:release "0.25" "2018-11-14"
 

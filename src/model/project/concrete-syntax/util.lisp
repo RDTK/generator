@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for the recipe concrete syntax.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -101,3 +101,31 @@
                "~@<Multiple definitions of variable ~A.~@:>"
                key)
           :collect (value-cons key (cdr (first cells))))))
+
+;;; Uniqueness check
+
+(defun make-uniqueness-checker (format-control &key (test #'equal))
+  (let ((seen (make-hash-table :test test)))
+    (lambda (key &optional (value nil value-supplied?))
+      (cond (value-supplied?
+             (setf (gethash key seen) value))
+            (t
+             (when-let ((previous (gethash key seen)))
+               (object-error
+                (list (list previous "initial definition"   :note)
+                      (list key      "offending definition" :error))
+                format-control)))))))
+
+(defun call-with-uniqueness-check (thunk checker key
+                                   &key (value nil value-supplied?))
+  (funcall checker key)
+  (let ((result (funcall thunk)))
+    (funcall checker key (if value-supplied? value result))
+    result))
+
+(defmacro with-uniqueness-check ((checker key
+                                  &optional (value nil value-supplied?))
+                                 &body body)
+  `(call-with-uniqueness-check
+    (lambda () ,@body) ,checker ,key
+    ,@(when value-supplied? `(:value ,value))))

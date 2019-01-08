@@ -1,6 +1,6 @@
 ;;;; yaml.lisp --- YAML syntax for templates and projects.
 ;;;;
-;;;; Copyright (C) 2016-2018 Jan Moringen
+;;;; Copyright (C) 2016-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -229,15 +229,20 @@
                            :parent     parent
                            :variables  (process-variables (lookup :variables spec))
                            :conditions (lookup :conditions spec))))
+         ;; Inherit
+         (inherit-seen (make-uniqueness-checker
+                        "~@<Duplicate inherit specification.~@:>"))
+         ((&flet process-inherit (name)
+            (with-uniqueness-check (inherit-seen name name)
+              (resolve-template-dependency
+               name pathname :generator-version generator-version))))
          (template (make-instance 'template)))
     ;; Load required templates and finalize the object.
     (setf (find-template name)
           (reinitialize-instance
            template
            :name      name
-           :inherit   (mapcar (rcurry #'resolve-template-dependency
-                                      pathname :generator-version generator-version)
-                              (lookup :inherit))
+           :inherit   (mapcar #'process-inherit (lookup :inherit))
            :variables (process-variables (lookup :variables))
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
@@ -308,17 +313,20 @@
                                        :name      name
                                        :parent    parent
                                        :variables variables))))))
+         ;; Templates
+         (templates-seen (make-uniqueness-checker "~@<Duplicate template.~@:>"))
+         ((&flet process-template (name)
+            (with-uniqueness-check (templates-seen name name)
+              (handler-bind
+                  ((error (lambda (error)
+                            (object-error
+                             (list (list name "included here" :info))
+                             "~A" error))))
+                (find-template name)))))
          (instance (make-instance 'project-spec :name name)))
     (reinitialize-instance
      instance
-     :templates (mapcar (lambda (name)
-                          (handler-bind
-                              ((error (lambda (error)
-                                        (object-error
-                                         (list (list name "included here" :info))
-                                         "~A" error))))
-                            (find-template name)))
-                        (lookup :templates))
+     :templates (map 'list #'process-template (lookup :templates))
      :variables (value-acons
                  :__catalog (lookup :catalog)
                  (process-variables (lookup :variables)))
@@ -356,7 +364,11 @@
          ;; expressions.
          (context       (make-instance 'direct-variables-mixin
                                        :variables variables))
-         (projects-seen (make-hash-table :test #'equal))
+         (projects-seen (make-uniqueness-checker
+                         "~@<Project entry followed by another entry ~
+                          for same project. Multiple project versions ~
+                          have to be described in a single ~
+                          entry.~@:>"))
          ((&flet expand-version (expression note-success)
             (handler-case
                 (prog1
@@ -380,19 +392,13 @@
                 (continue "~@<Continue without the project entry~@:>")
               (let+ (((&values name versions)
                       (parse-include-spec included-project)))
-                (when-let ((previous (gethash name projects-seen)))
-                  (object-error
-                   (list (list previous         "initial definition"   :note)
-                         (list included-project "offending definition" :error))
-                   "~@<Project entry followed by another entry for ~
-                     same project. Multiple project versions have to ~
-                     be described in a single entry.~@:>"))
+                (funcall projects-seen name)
                 (let+ ((successful-expansions 0)
                        ((&flet note-success ()
                           (incf successful-expansions)))
                        ((&whole entry name &rest versions)
                         (expand-project name versions #'note-success)))
-                  (setf (gethash name projects-seen) included-project)
+                  (funcall projects-seen name included-project)
                   (when (and (plusp successful-expansions) (null versions))
                     (object-error
                      (list (list included-project "specified here" :error))

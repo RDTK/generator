@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the model.variables module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -48,7 +48,8 @@
    #:merge-lookup-results
    #:merge-lookup-values
 
-   #:lookup
+   #:direct-lookup
+   #:lookup                         ; also setf
    #:expand
    #:value
    #:evaluate

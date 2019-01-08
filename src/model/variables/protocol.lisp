@@ -1,12 +1,23 @@
 ;;;; Protocol.lisp --- Protocol provided by the model.variables module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.model.variables)
 
 ;;; Lookup protocol
+
+(defgeneric direct-lookup (thing name)
+  (:documentation
+   "Lookup binding for NAME in THING.
+
+    Return three values:
+
+    1. the \"raw\" cell (a cons with the variable name in the `car'
+       and the value in the `cdr') of the variable named NAME in THING
+    2. an empty list
+    3. a Boolean indicating whether THING has a value for NAME."))
 
 (defgeneric lookup (thing name &key if-undefined)
   (:documentation

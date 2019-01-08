@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -37,14 +37,17 @@
 (defmethod variables append ((thing direct-variables-mixin))
   (copy-list (direct-variables thing)))
 
-(defmethod lookup ((thing direct-variables-mixin) (name t)
-                   &key if-undefined)
-  (declare (ignore if-undefined))
+(defmethod direct-lookup ((thing direct-variables-mixin) (name t))
   (if-let ((cell (find name (direct-variables thing)
                        :test #'eq
                        :key  #'car)))
     (values cell '() t)
     (values nil  '() nil)))
+
+(defmethod lookup ((thing direct-variables-mixin) (name t)
+                   &key if-undefined)
+  (declare (ignore if-undefined))
+  (direct-lookup thing name))
 
 (defmethod (setf lookup) ((new-value t)
                           (thing     direct-variables-mixin)

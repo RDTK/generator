@@ -98,6 +98,32 @@
        string of the form NAME@VERSION nor a dictionary with keys ~
        \"name\" and \"version\" or \"versions\".~:@>"))))
 
+;;; Includes
+
+(defun call-with-loading-recipe (thunk stack-symbol name)
+  (symbol-macrolet ((stack (symbol-value stack-symbol)))
+    (flet ((error-objects ()
+             (map 'list (lambda (name)
+                          (list name "included here" :info))
+                  (list* name stack))))
+      (when (member name stack :test #'string=)
+        (object-error (error-objects)
+                      "~@<Cyclic includes~
+                       ~@:_~@:_~
+                       ~4@T~{~
+                         ~A~^~@:_~@T->~@T~
+                       ~}~@:>"
+                      (reverse (list* name stack))))
+      (progv (list stack-symbol) (list (list* name stack))
+        (handler-bind
+            (((and error (not annotation-condition))
+               (lambda (condition)
+                 (object-error (error-objects) "~A" condition))))
+          (funcall thunk))))))
+
+(defmacro loading-recipe ((stack-var name) &body body)
+  `(call-with-loading-recipe (lambda () ,@body) ',stack-var ,name))
+
 ;;; Loader definition macro
 
 (defmacro define-yaml-loader ((concept keys) (spec-var name &rest args)
@@ -166,46 +192,6 @@
 
 ;;; Template loading
 
-(defvar *template-load-stack* '())
-
-(defun call-with-loading-template (thunk name)
-  (when (member name *template-load-stack* :test #'string=)
-    (object-error
-     (map 'list (lambda (name)
-                  (list name "included here" :info))
-          (list* name *template-load-stack*))
-     "~@<Cyclic template inheritance~
-      ~@:_~@:_~
-      ~4@T~{~
-        ~A~^~@:_~@T->~@T~
-      ~}~@:>"
-     (reverse (list* name *template-load-stack*))))
-  (let ((*template-load-stack* (list* name *template-load-stack*)))
-    (handler-bind
-        (((and error (not annotation-condition))
-          (lambda (condition)
-            (let* ((condition (make-condition 'simple-object-error
-                                              :format-control   "~A"
-                                              :format-arguments (list condition)))
-                   (annotations
-                     (mappend (lambda (name)
-                                (when-let ((location (location-of name)))
-                                  (list (text.source-location:make-annotation
-                                         location "included here" :kind :info))))
-                              *template-load-stack*)))
-              (appendf (annotations condition) annotations)
-              (error condition)))))
-      (funcall thunk))))
-
-(defmacro loading-template ((name) &body body)
-  `(call-with-loading-template (lambda () ,@body) ,name))
-
-(defun resolve-template-dependency (name context &key generator-version)
-  (or (find-template name :if-does-not-exist nil)
-      (loading-template (name)
-        (load-one-template/yaml (make-pathname :name name :defaults context)
-                                :generator-version generator-version))))
-
 (define-yaml-loader (one-template ((:inherit nil list) (:variables nil list)
                                    (:aspects nil list) (:jobs nil list)))
     (spec (name :pathname) pathname generator-version)
@@ -247,12 +233,21 @@
            :aspects   (mapcar (rcurry #'make-aspect-spec template) (lookup :aspects))
            :jobs      (mapcar (rcurry #'make-job-spec template) (lookup :jobs))))))
 
+(defvar *template-load-stack* '())
+
+(defun find-or-load-template (name pathname generator-version)
+  (or (find-template name :if-does-not-exist nil)
+      (loading-recipe (*template-load-stack* name)
+        (load-one-template/yaml
+         pathname :generator-version generator-version))))
+
+(defun resolve-template-dependency (name context &key generator-version)
+  (let ((pathname (make-pathname :name name :defaults context)))
+    (find-or-load-template name pathname generator-version)))
+
 (defun load-template/yaml (pathname &key generator-version)
   (let ((name (pathname-name pathname)))
-    (or (find-template name :if-does-not-exist nil)
-        (loading-template (name)
-          (load-one-template/yaml
-           pathname :generator-version generator-version)))))
+    (find-or-load-template name pathname generator-version)))
 
 ;;; Project loading
 

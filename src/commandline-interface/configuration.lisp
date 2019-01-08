@@ -1,6 +1,6 @@
 ;;;; configuration.lisp --- Configuration for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -139,3 +139,19 @@
                     :raw? (not (typep value 'boolean))))))
     (jenkins.project.commandline-options:map-commandline-options
      #'set-value "global" arguments :stop-at-positional? t)))
+
+(defun (setf default-progress-style) (new-value)
+  (reinitialize-instance (configuration.options:find-option
+                          '("global" "progress-style") *schema*)
+                         :default new-value))
+
+(defun choose-default-progress-style (&key
+                                      (standard-output *standard-output*)
+                                      (error-output    *error-output*)
+                                      (terminal-type   (uiop:getenv "TERM")))
+  ;; Default to "one-line" progress style when apparently running
+  ;; interactively.
+  (when (and (interactive-stream-p standard-output)
+             (interactive-stream-p error-output)
+             (not (equal terminal-type "dumb")))
+    (setf (default-progress-style) :one-line)))

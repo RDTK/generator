@@ -39,15 +39,7 @@
 
 (defun main ()
   (log:config :thread :warn)
-
-  ;; Default to "one-line" progress style when apparently running
-  ;; interactively.
-  (when (and (interactive-stream-p *standard-output*)
-             (interactive-stream-p *error-output*)
-             (not (equal (uiop:getenv "TERM") "dumb")))
-    (reinitialize-instance (configuration.options:find-option
-                            '("global" "progress-style") *schema*)
-                           :default :one-line))
+  (choose-default-progress-style)
 
   (let+ ((arguments (uiop:command-line-arguments))
          ((&flet execute-command-and-quit (code command &rest args)

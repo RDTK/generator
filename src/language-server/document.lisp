@@ -62,13 +62,13 @@
                                                             :hook (lambda (object location)
                                                                     (declare (ignore object))
                                                                     (text.source-location.lookup:add! location index)))))
-    (handler-bind ((error (lambda (condition)
-                            (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
-                            (push condition errors)
-                            (unless (typep condition '(or undefined-function
-                                                          unbound-variable))
-                              (continue))
-                            (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
+    (handler-bind (((and error jenkins.util:continuable-error)
+                     (lambda (condition)
+                       (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
+                       (push condition errors)
+                       (when-let ((restart (jenkins.util:find-continue-restart condition))) ; TODO doesn't work with simple-object-error since it doesn't have a cause
+                         (invoke-restart restart))
+                       (log:error "~@<Unrecoverable error during parsing:~:@_~A~@:>" condition))))
       (with-simple-restart (continue "Abort parse")
 
         (setf result (parse document (lsp:text document) pathname))))
@@ -191,7 +191,7 @@
 (defmethod parse ((document template-document) (text string) (pathname t))
   (let ((name (pathname-name pathname))
         (project::*templates* (make-hash-table :test #'equal)))
-    (project::loading-template (name)
+    (project::loading-recipe (project::*template-load-stack* name)
       (project::load-one-template/yaml
        text
        :pathname          pathname

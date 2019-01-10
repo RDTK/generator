@@ -35,10 +35,10 @@
          ((&flet make-item (section)
             (proto:make-completion-item (string-downcase section)))))
     (cond ((length= 1 path)
-           (map 'list #'make-item '(:catalog :variables :versions)))
-          ((and (length= 2 path) (ends-with :versions path))
            (map 'list #'make-item '(:minimum-generator-version
-                                    :name :versions :variables))))))
+                                    :catalog :variables :include :versions)))
+          ((and (length= 2 path) (ends-with :versions path))
+           (map 'list #'make-item '(:name :versions :variables))))))
 
 (defmethod contrib:completion-contributions
     ((workspace   t)

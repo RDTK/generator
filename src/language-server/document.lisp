@@ -152,10 +152,13 @@
   ())
 
 (defmethod parse ((document distribution-document) (text string) (pathname t))
-  (let* ((distribution (project::load-distribution/yaml
-                        text
-                        :pathname          pathname
-                        :generator-version "0.26.0"))
+  (let* ((name (pathname-name pathname))
+         (project::*distributions* (make-hash-table :test #'equal))
+         (distribution (project::loading-recipe (project::*distribution-load-stack* name)
+                         (project::load-one-distribution/yaml
+                          text
+                          :pathname          pathname
+                          :generator-version "0.26.0")))
          (projects-files+versions (uiop:symbol-call '#:build-generator.commands '#:locate-projects
                                                     (list pathname) (list distribution)))
          (project::*templates*        (lparallel:force (ensure-templates (workspace document))))

@@ -98,22 +98,43 @@
        string of the form NAME@VERSION nor a dictionary with keys ~
        \"name\" and \"version\" or \"versions\".~:@>"))))
 
+(defun parse-distribution-include-spec (spec)
+  (optima:match spec
+
+    ((type string)
+     (values spec '()))
+
+    ((type list)
+     (check-keys spec '((:name       t   string)
+                        (:parameters nil list)))
+     (let ((name       (assoc-value spec :name))
+           (parameters (assoc-value spec :parameters)))
+       (values name (process-variables parameters))))
+
+    (otherwise
+     (object-error
+      (list (list spec "specified here" :error))
+      "~@<Include specification is neither a distribution name nor a ~
+       dictionary with keys \"name\" and optionally ~
+       \"parameters\"."))))
+
 ;;; Includes
 
 (defun call-with-loading-recipe (thunk stack-symbol name)
   (symbol-macrolet ((stack (symbol-value stack-symbol)))
-    (flet ((error-objects ()
+    (flet ((error-objects (&optional (stack stack))
              (map 'list (lambda (name)
                           (list name "included here" :info))
-                  (list* name stack))))
+                  stack)))
       (when (member name stack :test #'string=)
-        (object-error (error-objects)
-                      "~@<Cyclic includes~
-                       ~@:_~@:_~
-                       ~4@T~{~
-                         ~A~^~@:_~@T->~@T~
-                       ~}~@:>"
-                      (reverse (list* name stack))))
+        (let ((augmented-stack (list* name stack)))
+          (object-error (error-objects augmented-stack)
+                        "~@<Cyclic includes~
+                         ~@:_~@:_~
+                         ~4@T~{~
+                           ~A~^~@:_~@T->~@T~
+                         ~}~@:>"
+                        (reverse augmented-stack))))
       (progv (list stack-symbol) (list (list* name stack))
         (handler-bind
             (((and error (not annotation-condition))
@@ -350,34 +371,56 @@
 
 ;;; Distribution loading
 
-(define-yaml-loader (distribution ((:variables nil list) (:versions t list) :catalog))
-    (spec (name :pathname))
-  (let+ ((variables     (value-acons :__catalog (lookup :catalog)
-                                     (process-variables (lookup :variables))))
+(define-yaml-loader (one-distribution ((:include   nil list)
+                                       (:variables nil list)
+                                       (:versions  t   list)
+                                       :catalog))
+    (spec (name :pathname) pathname generator-version)
+  (let+ ((variables (value-acons :__catalog (lookup :catalog)
+                                 (process-variables (lookup :variables))))
          ;; We allow using variables defined directly in the
          ;; distribution recipe to be used in project version
          ;; expressions.
-         (context       (make-instance 'direct-variables-mixin
-                                       :variables variables))
+         (context   (make-instance 'direct-variables-mixin
+                                   :variables variables))
+         ((&flet expand-expression (expression &optional note-success)
+            (handler-case
+                (prog1
+                    (evaluate context (value-parse expression))
+                  (when note-success (funcall note-success)))
+              (error (condition)
+                (object-error
+                 (list (list expression "specified here" :error))
+                 "~@<Failed to evaluate include expression: ~A~@:>"
+                 condition)))))
+         ;; Distribution includes
+         (includes-seen (make-uniqueness-checker
+                         "~@<Duplicate distribution include.~@:>"))
+         ((&flet process-include (spec)
+            (with-simple-restart
+                (continue "~@<Continue without including the ~
+                           distribution~@:>")
+              (let+ (((&values name parameters)
+                      (parse-distribution-include-spec spec))
+                     (name         (expand-expression name))
+                     (distribution (with-uniqueness-check
+                                       (includes-seen name spec)
+                                     (resolve-distribution-dependency
+                                      name (merge-pathnames name pathname)
+                                      :generator-version generator-version))))
+                (list (make-instance 'distribution-include
+                                     :distribution distribution
+                                     :variables    parameters))))))
+         ;; Project includes
          (projects-seen (make-uniqueness-checker
                          "~@<Project entry followed by another entry ~
                           for same project. Multiple project versions ~
                           have to be described in a single ~
                           entry.~@:>"))
-         ((&flet expand-version (expression note-success)
-            (handler-case
-                (prog1
-                    (evaluate context (value-parse expression))
-                  (funcall note-success))
-              (error (condition)
-                (object-error
-                 (list (list expression "specified here" :error))
-                 "~@<Failed to evaluate version of included project: ~A~@:>"
-                 condition)))))
          ((&flet+ process-version ((name . parameters) note-success)
             (with-simple-restart
                 (continue "~@<Continue without the project version~@:>")
-              (list (list (expand-version name note-success)
+              (list (list (expand-expression name note-success)
                           (when parameters (process-variables parameters)))))))
          ((&flet expand-project (name versions note-success)
             (list* name (mapcan (rcurry #'process-version note-success)
@@ -391,15 +434,47 @@
                 (let+ ((successful-expansions 0)
                        ((&flet note-success ()
                           (incf successful-expansions)))
-                       ((&whole entry name &rest versions)
+                       ((name &rest versions)
                         (expand-project name versions #'note-success)))
                   (funcall projects-seen name included-project)
                   (when (and (plusp successful-expansions) (null versions))
                     (object-error
                      (list (list included-project "specified here" :error))
                      "~@<No project versions after expansion.~@:>"))
-                  (list entry)))))))
-    (make-instance 'distribution-spec
-                   :name      name
-                   :variables variables
-                   :versions  (mapcan #'process-project (lookup :versions)))))
+                  (map 'list (lambda+ ((version parameters))
+                               (make-instance 'project-include
+                                              :project   name
+                                              :version   version
+                                              :variables parameters))
+                       versions)))))))
+    (make-instance
+     'distribution-spec
+     :name            name
+     :direct-includes (mapcan #'process-include (lookup :include))
+     :variables       variables
+     :direct-versions (mapcan #'process-project (lookup :versions)))))
+
+(defvar *distributions* (make-hash-table :test #'equal))
+
+(defun find-distribution (name)
+  (gethash name *distributions*))
+
+(defun ensure-distribution (name thunk)
+  (ensure-gethash name *distributions* (funcall thunk)))
+
+(defvar *distribution-load-stack* '())
+
+(defun find-or-load-distribution (name pathname generator-version)
+  (ensure-distribution
+   name (lambda ()
+          (loading-recipe (*distribution-load-stack* name)
+            (load-one-distribution/yaml
+             pathname :generator-version generator-version)))))
+
+(defun resolve-distribution-dependency (name context &key generator-version)
+  (let ((pathname (make-pathname :name name :defaults context)))
+    (find-or-load-distribution name pathname generator-version)))
+
+(defun load-distribution/yaml (pathname &key generator-version)
+  (let ((name (pathname-name pathname)))
+    (find-or-load-distribution name pathname generator-version)))

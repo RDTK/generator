@@ -1,6 +1,6 @@
 ;;;; classes-model.lisp --- Classes modeling projects, versions and jobs.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -149,13 +149,30 @@
 (defmethod persons-in-role ((role t) (container distribution))
   (persons-in-role role (specification container)))
 
+;;; `include-context' class
+
+(defclass include-context (direct-variables-mixin)
+  ((distribution :initarg :distribution
+                 :reader  distribution)))
+
 ;;; `version' class
 
 (defclass version (named-mixin
                    implementation-mixin
                    parented-mixin
                    direct-variables-mixin)
-  ((direct-dependencies :initarg  :direct-dependencies
+  ((context             :initarg  :context
+                        :type     (or null include-context)
+                        :reader   context
+                        :initform nil
+                        :documentation
+                        "Stores the `include-context' instance for the version.
+
+                         This context stores the distribution in which
+                         this project version was originally included
+                         as well parameters specified at the point of
+                         inclusion.")
+   (direct-dependencies :initarg  :direct-dependencies
                         :type     list #| of (version . reasons) |#
                         :accessor %direct-dependencies
                         :initform '()
@@ -201,11 +218,34 @@
 
 (defmethod lookup ((thing version) (name t) &key if-undefined)
   (declare (ignore if-undefined))
-  (multiple-value-call #'merge-lookup-values
-    (lookup (specification thing) name :if-undefined nil)
-    (if (variable-inheritable? name)
-        (call-next-method)
-        (values nil nil nil))))
+  (let ((inheritable? (variable-inheritable? name))
+        (context      (context thing)))
+   (values-list
+    (reduce #'merge-lookup-results
+            (list (multiple-value-list
+                   (lookup (specification thing) name :if-undefined nil))
+
+                  (if context
+                      (multiple-value-list
+                       (lookup context name :if-undefined nil))
+                      '(nil nil nil))
+
+                  (if inheritable?
+                      (when-let ((parent (parent thing)))
+                        (multiple-value-list
+                         (lookup parent name :if-undefined nil)))
+                      '(nil nil nil))
+
+                  (if (and inheritable? context (distribution context))
+                      (multiple-value-list
+                       (lookup (distribution context) name :if-undefined nil))
+                      '(nil nil nil))
+
+                  (if inheritable?
+                      (multiple-value-list (call-next-method))
+                      '(nil nil nil)))
+
+            :initial-value (multiple-value-list (direct-lookup thing name))))))
 
 (defmethod variables append ((thing version))
   (variables (specification thing)))

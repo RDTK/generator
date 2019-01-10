@@ -1,6 +1,6 @@
 ;;;; command-generate.lisp --- Generate Jenkins jobs for a distribution.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -132,19 +132,23 @@
                          generator-version
                          cache-directory
                          temp-directory)
-  (let ((analyzed-projects (as-phase (:analyze)
-                             (analyze-projects
-                              projects
-                              :generator-version generator-version
-                              :cache-directory   cache-directory
-                              :temp-directory    temp-directory)))
-        (distributions     (as-phase (:resolve/distribution)
-                             (mapcar (lambda (distribution)
-                                       (reinitialize-instance
-                                        distribution
-                                        :versions (resolve-project-versions
-                                                   (jenkins.model.project:versions distribution))))
-                                     distributions))))
+  (let+ ((analyzed-projects (as-phase (:analyze)
+                              (analyze-projects
+                               projects
+                               :generator-version generator-version
+                               :cache-directory   cache-directory
+                               :temp-directory    temp-directory)))
+         (seen (make-hash-table :test #'eq))
+         ((&labels resolve-versions (distribution)
+            (ensure-gethash
+             distribution seen
+             (let ((includes (direct-includes distribution))
+                   (versions (direct-versions distribution)))
+               (map nil (compose #'resolve-versions #'distribution) includes)
+               (reinitialize-instance
+                distribution :direct-versions (resolve-project-versions versions))))))
+         (distributions (as-phase (:resolve/distribution)
+                          (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
 
 (defun generated? (job)

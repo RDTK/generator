@@ -1,6 +1,6 @@
 ;;;; functions-input.lisp --- Functions for loading recipes.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -66,29 +66,27 @@
 
 (defun locate-projects (distribution-pathnames distributions)
   (let+ ((projects (make-hash-table :test #'equalp))
-         ((&flet version-name (version)
-            (etypecase version
-              (cons   (first version))
-              (string version))))
-         ((&flet ensure-project (location versions)
+         ((&flet ensure-project (location project-include)
             (if-let ((project (gethash location projects)))
-              (unionf (second project) versions
-                      :test #'string= :key #'version-name)
+              (pushnew project-include (second project)
+                       :test #'string= :key #'jenkins.model.project:version) ; TODO should consider parameters as part of the key
               (setf (gethash location projects)
-                    (list location versions))))))
+                    (list location (list project-include)))))))
     (map nil (lambda (distribution-pathname distribution)
-               (map nil (lambda+ ((name &rest versions))
-                          (when-let* ((pattern  (derive-project-pattern
-                                                 distribution-pathname name))
-                                      (location (first (locate-specifications
-                                                        :project (list pattern)))))
-                            (ensure-project location versions)))
-                    (jenkins.model.project:versions distribution)))
+               (map nil (lambda (project-include)
+                          (let ((name (project project-include)))
+                            (when-let* ((pattern  (derive-project-pattern
+                                                   distribution-pathname name))
+                                        (location (first (locate-specifications
+                                                          :project (list pattern)))))
+                              (ensure-project location project-include))))
+                    (versions distribution)))
          distribution-pathnames distributions)
     (hash-table-values projects)))
 
-(defun load-project/versioned (file versions &key generator-version)
-  (let+ ((version-names (mapcar #'first versions))
+(defun load-project/versioned (file project-includes &key generator-version)
+  (let+ ((version-names (map 'list #'jenkins.model.project:version
+                             project-includes))
          (project       (load-project-spec/yaml
                          file
                          :version-test      (lambda (name pattern)
@@ -110,9 +108,10 @@
                                         :test #'string=))
          ((&flet process-version (name &key version-required? branch? tag?)
             (with-simple-restart (continue "~@<Skip version ~S.~@:>" name)
-              (let* ((parameters    (second (find name versions
-                                                  :test #'string=
-                                                  :key  #'first)))
+              (let* ((project-include (find name project-includes
+                                            :test #'string=
+                                            :key  #'jenkins.model.project:version))
+                     (parameters    (direct-variables project-include))
                      (version       (cond
                                       ((find name (versions project)
                                              :test #'string= :key #'name))
@@ -155,16 +154,16 @@
                                    versions1))))
     (reinitialize-instance project :versions versions)))
 
-(defun load-projects/versioned (files-and-versions &key generator-version)
-  (with-sequence-progress (:load/project files-and-versions)
+(defun load-projects/versioned (files-and-includes &key generator-version)
+  (with-sequence-progress (:load/project files-and-includes)
     (lparallel:pmapcan
-     (lambda+ ((file versions))
+     (lambda+ ((file project-includes))
        (progress "~A" (jenkins.util:safe-enough-namestring file))
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
          (list (load-project/versioned
-                file versions :generator-version generator-version))))
-     :parts most-positive-fixnum files-and-versions)))
+                file project-includes :generator-version generator-version))))
+     :parts most-positive-fixnum files-and-includes)))
 
 ;;; The values of these variables uniquely identify a "repository
 ;;; access".
@@ -328,13 +327,18 @@
                version (print-items:print-items project)))))
 
 (defun resolve-project-versions (versions)
-  (mapcan (lambda+ ((project &rest versions))
-            (mapcan (lambda+ ((version &optional &ign))
-                      (with-simple-restart
-                          (continue "~@<Skip version ~A of project ~A.~@:>"
-                                    version project)
-                        (list (resolve-project-version project version))))
-                    versions))
+  (mapcan (lambda (project-include)
+            (let ((project    (project project-include))
+                  (version    (jenkins.model.project:version project-include))
+                  (parameters (direct-variables project-include)))
+              (with-simple-restart
+                  (continue "~@<Skip version ~A of project ~A.~@:>"
+                            version project)
+                (list (make-instance 'resolved-project-include
+                                     :specification project-include
+                                     :version       (resolve-project-version
+                                                     project version)
+                                     :variables     parameters)))))
           versions))
 
 ;;; Distributions

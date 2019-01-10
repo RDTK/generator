@@ -1,6 +1,6 @@
 ;;;; spec-classes.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -29,17 +29,60 @@
   (when-let ((info (find-variable name :if-does-not-exist nil)))
     (aggregation info)))
 
+;;; `distribution-include'
+
+(defclass distribution-include (direct-variables-mixin
+                                print-items:print-items-mixin)
+  ((distribution :initarg :distribution
+                 :type    distribution-spec
+                 :reader  distribution)))
+
+(defmethod print-items:print-items append ((object distribution-include))
+  (let ((distribution (name (distribution object))))
+    `((:distribution ,distribution "~A"))))
+
+;;; `project-include'
+
+(defclass project-include (direct-variables-mixin
+                           print-items:print-items-mixin)
+  ((project :initarg :project
+            :type    string
+            :reader  project)
+   (version :initarg :version
+            :type    string
+            :reader  version)))
+
+(defmethod print-items:print-items append ((object project-include))
+  `((:project ,(project object) "~A")
+    (:version ,(version object) "@~A" ((:after :project)))))
+
+;;; `resolved-project-include'
+
+(defclass resolved-project-include (direct-variables-mixin
+                                    implementation-mixin
+                                    print-items:print-items-mixin)
+  ((version :initarg :version
+            :reader  version)))
+
+(defmethod print-items:print-items append ((object resolved-project-include))
+  (let ((version (print-items:print-items (version object))))
+    `((:version ,version "~/print-items:format-print-items/"))))
+
 ;;; `distribution-spec' class
 
 (defclass distribution-spec (named-mixin
                              direct-variables-mixin
                              person-container-mixin
                              specification-mixin)
-  ((versions :initarg  :versions
-             :type     list ; of version-spec
-             :reader   versions
-             :documentation
-             "Stores a list of project version specifications."))
+  ((direct-includes :initarg  :direct-includes
+                    :type     list      ; of `distribution-include'
+                    :reader   direct-includes
+                    :initform '())
+   (direct-versions :initarg  :direct-versions
+                    :type     list      ; of version-spec
+                    :reader   direct-versions
+                    :documentation
+                    "Stores a list of project version specifications."))
   (:documentation
    "Instances represent specifications of distributions.
 
@@ -51,23 +94,57 @@
                (when (next-method-p)
                  (call-next-method))))
 
+(defmethod versions ((object distribution-spec))
+  (append (direct-versions object)
+          (mappend (compose #'versions #'distribution)
+                   (direct-includes object))))
+
 (defmethod instantiate ((spec distribution-spec) &key parent specification-parent)
   (declare (ignore parent specification-parent))
-  (let+ ((version-specs (versions spec))
-         (distribution  (make-instance 'distribution
-                                       :name          (name spec)
-                                       :specification spec))
-         ((&flet make-version (version-spec)
-            (when-let  ((version (instantiate version-spec :parent distribution)))
-              (list version))))
-         (versions  (mapcan #'make-version version-specs))
+  (let+ ((distribution (make-instance 'distribution
+                                      :name          (name spec)
+                                      :specification spec))
+         (seen-versions (make-hash-table :test #'eq))
+         ((&flet make-version (project-include &key context)
+            (let+ (((&accessors-r/o version (parameters direct-variables))
+                    project-include))
+              (unless (gethash version seen-versions)
+                (setf (gethash version seen-versions) t)
+                (when-let ((version (instantiate version
+                                                 :parent    distribution
+                                                 :context   context
+                                                 :variables parameters)))
+                  (list version))))))
+         ;; Process one included distribution, making
+         ;; `include-context' instances for the direct versions. This
+         ;; results in self-contained `version' instances. The include
+         ;; relations between distributions are not represented in the
+         ;; final `distribution' instance and its `version' instances.
+         ((&labels one-distribution-include (distribution-include)
+            (let+ (((&accessors-r/o distribution (parameters direct-variables))
+                    distribution-include)
+                   (context (make-instance 'include-context
+                                           :distribution distribution
+                                           :variables    parameters)))
+              (append (mapcan (rcurry #'make-version :context context)
+                              (direct-versions distribution))
+                      (mappend #'one-distribution-include
+                               (direct-includes distribution))))))
+         ;; Process SPEC's direct versions without making include
+         ;; contexts. Process SPEC's included distributions (direct
+         ;; and transitive) with include contexts.
+         (versions  (append (mapcan #'make-version (direct-versions spec))
+                            (mappend #'one-distribution-include
+                                     (direct-includes spec))))
          (providers (make-hash-table :test #'equal)))
+
     ;; Build a table of provided things and providers.
     (map nil (lambda (version)
                (map nil (lambda (provided)
                           (push version (gethash provided providers '())))
                     (provides (specification version))))
          versions)
+
     ;; After all `version' instances have been made, resolve
     ;; dependencies among them.
     (let ((providers (hash-table-alist providers)))
@@ -214,12 +291,13 @@
           :test (complement #'eq)
           :key  #'first))
 
-(defmethod instantiate ((spec version-spec) &key parent specification-parent)
+(defmethod instantiate ((spec version-spec) &key parent context specification-parent)
   (declare (ignore specification-parent))
   (let+ ((version (make-instance 'version
                                  :name          (name spec)
                                  :specification spec
                                  :parent        parent
+                                 :context       context
                                  :variables     (direct-variables spec)))
          ((&flet make-job (job-spec)
             (when (instantiate? job-spec version)

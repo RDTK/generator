@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for project module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -57,6 +57,31 @@
    #:find-template
    )
 
+  ;; Distribution specification protocol
+  (:export
+   #:direct-includes
+   #:direct-versions
+   #:versions)
+
+  ;; Project include protocol and class
+  (:export
+   #:distribution-include
+
+   #:distribution)
+
+  ;; Project include protocol and class
+  (:export
+   #:project-include
+
+   #:project
+   #:version)
+
+  ;; Resolved project include protocol and class
+  (:export
+   #:resolved-project-include
+
+   #:version)
+
   ;; Project specification protocol
   (:export
    #:templates
@@ -80,6 +105,14 @@
   ;; Project protocol
   (:export
    #:find-project)
+
+  ;; Version protocol
+  (:export
+   #:context)
+
+  ;; Include context protocol
+  (:export
+   #:distribution)
 
   ;; Provider registry
   (:export

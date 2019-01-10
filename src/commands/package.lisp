@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commands module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -17,10 +17,10 @@
    #:jenkins.model.project)
 
   (:shadow
+   #:generate
    #:phase
-
    #:value
-   #:generate)
+   #:version)
 
   (:shadowing-import-from #:jenkins.model.variables
    #:as)

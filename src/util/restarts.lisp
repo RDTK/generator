@@ -20,13 +20,11 @@
   ;; that actually just retries the operation. Using this restart in
   ;; an error policy causes an infinite loop. So ignore the
   ;; problematic restart when looking for `continue' restarts.
-  #+sbcl (if (typep (more-conditions:root-cause condition) 'file-error)
-             (find-if (lambda (restart)
-                        (and (eq (restart-name restart) 'continue)
-                             (not (search "Retry opening"
-                                          (princ-to-string restart)))))
-                      (compute-restarts condition))
-             (find-restart 'continue condition))
+  #+sbcl (find-if (lambda (restart)
+                    (and (eq (restart-name restart) 'continue)
+                         (not (search "Retry opening"
+                                      (princ-to-string restart)))))
+                  (compute-restarts condition))
   #-sbcl (find-restart 'continue condition))
 
 ;;; Retrying

@@ -1,7 +1,42 @@
 ((:release "0.26" nil
 
   (:enhancement
-   "The HTML report publisher plugin for Jenkins is now supported."))
+   "The HTML report publisher plugin for Jenkins is now supported.")
+
+  (:enhancement
+   "Distribution recipes can now include other distribution recipes in
+    a new" (:verb "include") "section."
+   "Distribution includes can be written in two forms, either"
+   (:verb "include:
+- NAME")
+   "or"
+   (:verb "- name: NAME
+  parameters:
+    PARAMETER₁: VALUE₁
+    PARAMETER₂: VALUE₂
+    ⋮")
+   "where" (:verb "NAME") "is the name of a distribution (without file
+    extension) and PARAMTERₖ: VALUEₖ are variable bindings that should
+    overwrite bindings in the included distribution. Included
+    distributions can in turn include other distributions."
+   "Variables referenced in projects (and jobs and aspects) are now
+    looked up in the following order (most specific, highest priority
+    first):"
+   (:ul
+    "Specified as a parameter when (directly) including the project
+     version in a distribution"
+    "Specified as a variable in the project recipe"
+    "Specified as a parameter when including the distribution which in
+     turn directly includes the project version"
+    "Specified as a variable in the distribution which directly
+     includes the project version"
+    "Specified a as variable in the \"outermost\" (that is, given on
+     the commandline) distribution")
+   "If a given project version is included in multiple distributions,
+    the instance (and in particular the parameters of that instance)
+    closest to the \"outermost\" distribution in terms of a
+    depth-first traversal of " (:verb "include") "relations is used
+    while all others are discarded."))
 
  (:release "0.25" "2018-11-14"
 

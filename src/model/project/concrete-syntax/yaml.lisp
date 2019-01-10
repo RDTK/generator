@@ -14,12 +14,12 @@
         (language.yaml:load file :builder builder)
       (esrap:esrap-parse-error (condition)
         (let ((start (esrap:esrap-error-position condition)))
-         (error 'yaml-syntax-error
-                :cause       condition
-                :annotations (list (text.source-location:make-annotation
-                                    (text.source-location:make-location
-                                     source start (1+ start))
-                                    "here" :kind :error))))))))
+          (error 'yaml-syntax-error
+                 :cause       condition
+                 :annotations (list (text.source-location:make-annotation
+                                     (text.source-location:make-location
+                                      source start (1+ start))
+                                     "here" :kind :error))))))))
 
 ;;; Structure utilities
 

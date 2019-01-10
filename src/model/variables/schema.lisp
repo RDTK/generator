@@ -1,6 +1,6 @@
 ;;;; schema.lisp --- Meta-data and checks for defined variables..
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -9,7 +9,7 @@
 ;;; Variable schema machinery
 
 (deftype inheritance-mode ()
-  'boolean)
+  '(member nil :outermost-only t))
 
 (deftype aggregation-mode ()
   '(member nil :append :merge :histogram))

@@ -225,20 +225,26 @@
             (list (multiple-value-list
                    (lookup (specification thing) name :if-undefined nil))
 
+                  ;; Parameters specified at point of inclusion.
                   (if context
                       (multiple-value-list
                        (lookup context name :if-undefined nil))
+                      '(nil nil nil))
+
+                  ;; Variables in the distribution in which this
+                  ;; project version was originally included.
+                  ;;
+                  ;; `inheritable?' can be `:outermost-only' in which
+                  ;; case we don't look in the context distribution.
+                  (if (and (eq inheritable? t) context (distribution context))
+                      (multiple-value-list
+                       (lookup (distribution context) name :if-undefined nil))
                       '(nil nil nil))
 
                   (if inheritable?
                       (when-let ((parent (parent thing)))
                         (multiple-value-list
                          (lookup parent name :if-undefined nil)))
-                      '(nil nil nil))
-
-                  (if (and inheritable? context (distribution context))
-                      (multiple-value-list
-                       (lookup (distribution context) name :if-undefined nil))
                       '(nil nil nil))
 
                   (if inheritable?

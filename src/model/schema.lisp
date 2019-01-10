@@ -1,6 +1,6 @@
 ;;;; schema.lisp --- Schema for non-aspect variables.
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -14,6 +14,13 @@
 
 (defun every-dependency (thing)
   (and (listp thing) (every (of-type 'dependency) thing) ))
+
+;;;
+
+(define-variable :distribution-name string
+  :inheritance :outermost-only
+  :documentation
+  "Name of the distribution.")
 
 ;;; General variables
 

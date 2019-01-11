@@ -21,9 +21,16 @@
       ;; TODO removing duplicates should not be necessary
       (values (remove-duplicates path :test #'equal) locations))))
 
+;;; `context'
+
+(defclass context ()
+  ((%word :initarg :word
+          :reader  word)))
+
 ;;; `structure-context'
 
-(defclass structure-context (print-items:print-items-mixin)
+(defclass structure-context (context
+                             print-items:print-items-mixin)
   ((%path :initarg :path
           :reader  path)))
 
@@ -38,7 +45,9 @@
      (position    t)
      (contributor structure-context-contributor))
   (when-let* ((path (structure-path position document)))
-    (list (make-instance 'structure-context :path path))))
+    (list (make-instance 'structure-context
+                         :word (first (lookup:lookup position (index document))) ; TODO repeated work in `structure-path'
+                         :path path))))
 
 ;;;
 

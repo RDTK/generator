@@ -334,11 +334,13 @@
               (with-simple-restart
                   (continue "~@<Skip version ~A of project ~A.~@:>"
                             version project)
-                (list (make-instance 'resolved-project-include
-                                     :specification project-include
-                                     :version       (resolve-project-version
-                                                     project version)
-                                     :variables     parameters)))))
+                (list (jenkins.model.project::copy-location
+                       project-include
+                       (make-instance 'resolved-project-include
+                                      :specification project-include
+                                      :version       (resolve-project-version
+                                                      project version)
+                                      :variables     parameters))))))
           versions))
 
 ;;; Distributions

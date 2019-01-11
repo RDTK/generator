@@ -178,7 +178,9 @@
         :for include            = (find spec (jenkins.model.project:versions
                                               (jenkins.model:specification distribution))
                                         :test #'eq :key #'jenkins.model.project:version)
-        :for parameters         = (jenkins.model.variables:direct-variables include)
+        :for parameters         = (remove-if (rcurry #'member '(:branch :tag :commit))
+                                             (jenkins.model.variables:direct-variables include)
+                                             :key #'car)
         :for (nil nil revision) = (gethash version results)
         :for location           = (jenkins.model.project::location-of include)
         :if (not (eq (text.source-location:source location) source))

@@ -80,7 +80,7 @@
     (format-distribution-build-status *standard-output* results)
     ;; Output new distribution file.
     (with-output-to-file (stream output-file :if-exists :supersede)
-      (format-new-content stream command jobs results source))))
+      (format-new-content stream command distribution jobs results source))))
 
 ;;; Inspecting jobs
 
@@ -100,11 +100,19 @@
     results))
 
 (defun inspect-job (job)
-  (let* ((id         (jenkins.model.project::jenkins-job-id job))
+  (let+ ((id         (jenkins.model.project::jenkins-job-id job))
          (scm        (value/cast job :scm ""))
          (build-id   (format nil "~A/lastBuild" id))
-         (build      (jenkins.api::build build-id))
-         (build-data (cond ((eq scm :git)
+         ((&values build result) (handler-case
+                                     (let ((build (jenkins.api:build build-id)))
+                                       (values build (if (jenkins.api:building? build)
+                                                         :building
+                                                         (jenkins.api:result build))))
+                                   (error ()
+                                     (values nil nil))))
+         (build-data (cond ((not build)
+                            nil)
+                           ((eq scm :git)
                             (when-let ((data (jenkins.api::action-of-type
                                               'jenkins.api::action/git-build-data build)))
                               (jenkins.api::last-built-revision/sha1 data)))
@@ -112,11 +120,8 @@
                             (when-let ((data (jenkins.api::action-of-type
                                               'jenkins.api::action/subversion-change-log-set build)))
                               (jenkins.api::revision data)))
-                           (build
-                            :unsupported-scm)
                            (t
-                            nil)))
-         (result     (jenkins.api:result build)))
+                            :unsupported-scm))))
     (list id result build-data)))
 
 ;;; Result display
@@ -131,12 +136,12 @@
 (defun format-result (stream result &optional colon? at?)
   (declare (ignore colon? at?))
   (let ((code (case result
-                (:success       32)
-                (:unstable      33)
-                ((nil :failure) 31)
-                (t              34))))
+                (:success                 32)
+                (:unstable                33)
+                ((nil :building :failure) 31)
+                (t                        34))))
     (call-with-sgr (lambda (stream)
-                     (format stream "~8<~(~A~)~;~>" (or result "building")))
+                     (format stream "~8<~(~A~)~;~>" (or result "no build")))
                    stream code)))
 
 (defun format-commit (stream commit &optional colon? at?)
@@ -167,12 +172,15 @@
 
 ;;; Output
 
-(defun compute-changes (jobs results source)
+(defun compute-changes (distribution jobs results source)
   (loop :for (version . job)    :in jobs
         :for spec               = (jenkins.model:specification version)
+        :for include            = (find spec (jenkins.model.project:versions
+                                              (jenkins.model:specification distribution))
+                                        :test #'eq :key #'jenkins.model.project:version)
+        :for parameters         = (jenkins.model.variables:direct-variables include)
         :for (nil nil revision) = (gethash version results)
-        :for location           = (jenkins.model.project::location-of
-                                   (specification version))
+        :for location           = (jenkins.model.project::location-of include)
         :if (not (eq (text.source-location:source location) source))
           :do (log:warn "Skipping ~A" location)
         :else
@@ -183,11 +191,19 @@
                          (format nil "name: ~A~@
                                         ~2@Tversion: ~A~@
                                         ~2@Tparameters:~@
-                                        ~4@Tcommit: ~A"
-                                 (name (parent spec)) (name spec) revision))))
+                                          ~4@Tcommit: ~A~
+                                          ~@[~@
+                                            ~{~4@T~(~A~): ~A~^~%~}~
+                                          ~]"
+                                 (name (parent spec))
+                                 (name spec)
+                                 revision
+                                 (alist-plist parameters)))))
 
 (defun apply-changes (text changes)
   (reduce (lambda+ (text (start end string))
+            (when (char= (aref text (1- end)) #\Newline)
+              (decf end))
             (concatenate 'string
                          (subseq text 0 start)
                          string
@@ -195,34 +211,35 @@
           (sort changes #'> :key #'first) :initial-value text))
 
 (defun format-header (stream command)
-  (format stream "# This file has been automatically generated:~@
-                  #~@
-                  #  User        ~A~@
-                  #  Host        ~A~@
-                  #  Date        ~A~@
-                  #  Generator   ~A~@
-                  #  Commandline ~{'~A'~^ ~}~@
-                  #~@
-                  #  Jenkins URL ~A~@
-                  #  Input file~P  ~{~A~^ ~}~@
-                  #  Mode        ~A~%~@[~
-                  #  Overwrites~@
-                  ~{#    ~(~36A~) → ~:A~%~}~
-                  ~]"
-          (sb-unix:uid-username (sb-posix:getuid))
-          (machine-instance)
-          (local-time:now)
-          (generator-version)
-          (uiop:command-line-arguments)
+  (let ((*print-right-margin* 80))
+    (format stream "# This file has been generated automatically:~@
+                    #~@
+                    #  User        ~A~@
+                    #  Host        ~A~@
+                    #  Date        ~A~@
+                    #  Generator   ~A~@
+                    #  Commandline ~{'~A'~^ ~}~@
+                    #~@
+                    #  Jenkins URL ~A~@
+                    #  Input file~P  ~{~A~^ ~}~@
+                    #  Mode        ~A~%~@[~
+                    #  Overwrites~@
+                    ~{#    ~(~36A~) → ~:A~%~}~
+                    ~]"
+            (sb-unix:uid-username (sb-posix:getuid))
+            (machine-instance)
+            (local-time:now)
+            (generator-version)
+            (uiop:command-line-arguments)
 
-          (base-uri command)
-          (length (distributions command)) (distributions command)
-          (mode command)
-          (alist-plist (overwrites command))))
+            (base-uri command)
+            (length (distributions command)) (distributions command)
+            (mode command)
+            (alist-plist (overwrites command)))))
 
-(defun format-new-content (stream command jobs results source)
+(defun format-new-content (stream command distribution jobs results source)
   (let* ((text    (text.source-location:content source))
-         (changes (compute-changes jobs results source))
+         (changes (compute-changes distribution jobs results source))
          (body    (apply-changes text changes)))
     (format-header stream command)
     (format stream "~2%")

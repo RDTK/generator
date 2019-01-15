@@ -1,6 +1,6 @@
 ;;;; command-language-server.lisp --- Command for starting a language server.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -46,9 +46,8 @@
       (loop :with connection = (setf jenkins.language-server::*connection*
                                      (protocol.language-server.connection:make-connection
                                       *standard-input* *standard-output*))
-            :with context = (make-instance 'protocol.language-server::context
-                                           :connection      connection
-                                           :workspace-class 'jenkins.language-server::workspace)
+            :with context = (protocol.language-server::make-context
+                             connection :workspace-class 'jenkins.language-server::workspace)
             :do (handler-bind
                     ((error (lambda (condition)
                               (format *error-output* "Unhandled error processing request~%")

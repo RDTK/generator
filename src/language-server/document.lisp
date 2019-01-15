@@ -10,7 +10,8 @@
                                     contrib:diagnostics-contributors-mixin
                                     contrib:context-contributors-mixin
                                     contrib:completion-contributors-mixin
-                                    contrib:hover-contributors-mixin)
+                                    contrib:hover-contributors-mixin
+                                    contrib:definition-contributors-mixin)
   ((%workspace :initarg  :workspace
                :reader   workspace) ; TODO do this in protocol.language-server?
    (%object    :accessor object
@@ -23,25 +24,25 @@
                :initform nil)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
-                                      (aspect   (eql 'contrib::diagnostics)))
+                                      (aspect   (eql 'contrib:diagnostics)))
   (list (make-instance 'tabs-diagnostics-contributor)
         (make-instance 'variable-diagnostics-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
-                                      (aspect   (eql 'contrib::context)))
+                                      (aspect   (eql 'contrib:context)))
   (list (make-instance 'structure-context-contributor)
         (make-instance 'variable-name-context-contributor)
         (make-instance 'variable-value-context-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
-                                      (aspect   (eql 'contrib::completion)))
+                                      (aspect   (eql 'contrib:hover)))
+  (list (make-instance 'variable-hover-contributor)))
+
+(defmethod contrib:make-contributors ((document build-generator-document)
+                                      (aspect   (eql 'contrib:completion)))
   (list (make-instance 'structure-completion-contributor)
         (make-instance 'variable-name-completion-contributor)
         (make-instance 'variable-value-completion-contributor)))
-
-(defmethod contrib:make-contributors ((document build-generator-document)
-                                      (aspect   (eql 'contrib::hover)))
-  (list (make-instance 'variable-hover-contributor)))
 
 (defmethod (setf lsp:text) :after ((new-value string)
                                    (document  build-generator-document))
@@ -55,13 +56,15 @@
          (errors    '())
          (result    nil)
          (locations nil)
-         (source    nil)
          (index     (make-instance 'text.source-location.lookup::range-index))
 
          (project::*locations* (make-instance 'project::locations
                                                             :hook (lambda (object location)
                                                                     (declare (ignore object))
-                                                                    (text.source-location.lookup:add! location index)))))
+                                                                    ;; TODO the sources should be eq
+                                                                    (when (equalp (sloc:name (sloc:source location)) (sloc:name source
+                                                                                                                                ))
+                                                                      (text.source-location.lookup:add! location index))))))
     (handler-bind (((and error jenkins.util:continuable-error)
                      (lambda (condition)
                        (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
@@ -95,15 +98,6 @@
   (reinitialize-instance position :column (max 0 (1- (sloc:column position))))
   (call-next-method))
 
-(defmethod methods:definition ((workspace t)
-                               (document  build-generator-document)
-                               (position  t))
-  (when-let* ((locations (lookup:lookup position (index document)))
-              (name      (project::object-at (first locations) (locations document)))
-              (template  (project:find-template name :if-does-not-exist nil))
-              (location  (project::location-of template (locations document))))
-    (list (proto:unparse location))))
-
 (defmethod methods:highlight-in-document ((workspace t)
                                           (document  build-generator-document)
                                           (version   t)
@@ -116,6 +110,11 @@
                                  (document  build-generator-document)
                                  (range     t)
                                  (context   t))
+  nil)
+
+(defmethod methods:signature-help ((workspace t)
+                                   (document  t)
+                                   (position  t))
   nil)
 
 ;;; `project-document'
@@ -137,14 +136,18 @@
                                          :test-not #'ppcre:scan)))))))
 
 (defmethod contrib:make-contributors ((document project-document)
-                                      (aspect   (eql 'contrib::context)))
+                                      (aspect   (eql 'contrib:context)))
   (list* (make-instance 'template-name-context-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-contributors ((document project-document)
-                                      (aspect   (eql 'contrib::completion)))
+                                      (aspect   (eql 'contrib:completion)))
   (list* (make-instance 'template-name-completion-contributor)
          (call-next-method)))
+
+(defmethod contrib:make-contributors ((document project-document)
+                                      (aspect   (eql 'contrib:definition)))
+  (list (make-instance 'template-definition-contributor)))
 
 ;;; `distribution-document'
 
@@ -172,19 +175,23 @@
     distribution))
 
 (defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib::context)))
+                                      (aspect   (eql 'contrib:context)))
   (list* (make-instance 'project-version-reference-context-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib::completion)))
+                                      (aspect   (eql 'contrib:hover)))
+  (list* (make-instance 'project-version-hover-contributor)
+         (call-next-method)))
+
+(defmethod contrib:make-contributors ((document distribution-document)
+                                      (aspect   (eql 'contrib:completion)))
   (list* (make-instance 'project-name-completion-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib::hover)))
-  (list* (make-instance 'project-version-hover-contributor)
-         (call-next-method)))
+                                      (aspect   (eql 'contrib:definition)))
+  (list (make-instance 'project-definition-contributor)))
 
 ;;; `template-document'
 
@@ -201,13 +208,17 @@
        :generator-version "0.26.0"))))
 
 (defmethod contrib:make-contributors ((document template-document)
-                                      (aspect   (eql 'contrib::context)))
+                                      (aspect   (eql 'contrib:context)))
   (list* (make-instance 'template-name-context-contributor)
          (make-instance 'aspect-class-context-contributor)
          (call-next-method)))
 
 (defmethod contrib:make-contributors ((document template-document)
-                                      (aspect   (eql 'contrib::completion)))
+                                      (aspect   (eql 'contrib:completion)))
   (list* (make-instance 'template-name-completion-contributor)
          (make-instance 'aspect-class-completion-contributor)
          (call-next-method)))
+
+(defmethod contrib:make-contributors ((document template-document)
+                                      (aspect   (eql 'contrib:definition)))
+  (list (make-instance 'template-definition-contributor)))

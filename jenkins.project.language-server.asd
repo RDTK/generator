@@ -1,6 +1,6 @@
 ;;;; jenkins.project.language-server.asd --- System definition for generator binary.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -37,6 +37,7 @@
                               (:file       "context")
                               (:file       "hover")
                               (:file       "completion")
+                              (:file       "definition")
 
                               ; TODO later (:file       "parser")
                               ))))

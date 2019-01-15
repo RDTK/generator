@@ -45,7 +45,9 @@
 
 ;;;
 
-(defclass template-name-context () ())
+(defclass template-name-context ()
+  ((%word :initarg :word
+          :reader  word)))
 
 (defclass template-name-context-contributor () ())
 
@@ -57,7 +59,8 @@
   (when-let* ((path  (structure-path position document))
               (depth (position :templates path)))
     (when (eql depth 0)
-      (list (make-instance 'template-name-context)))))
+      (let ((word (sloc:content (first (lookup:lookup position (index document))))))
+        (list (make-instance 'template-name-context :word word))))))
 
 (defmethod contrib:context-contributions
     ((workspace   t)
@@ -67,7 +70,8 @@
   (when-let* ((path  (structure-path position document))
               (depth (position :inherit path)))
     (when (eql depth 0)
-      (list (make-instance 'template-name-context)))))
+      (let ((word (sloc:content (first (lookup:lookup position (index document))))))
+        (list (make-instance 'template-name-context :word word))))))
 
 ;;;
 
@@ -155,13 +159,20 @@
      (document    t)
      (position    t)
      (contributor project-version-reference-context-contributor))
-  (let+ (((&values path (&optional location &rest &ign))
+  (let+ (((&values path locations)
           (structure-path position document))
-         (thing (jenkins.model.project::object-at location (locations document))))
-    (log:error path location thing)
+         (thing (loop :for location :in locations
+                      :for thing = (jenkins.model.project::object-at location (locations document))
+
+                      :when (stringp thing)
+                      :do (log:error location thing)
+                      :and :return thing)))
     (when-let ((position (position :versions path)))
       (cond ((and (= position 0) (stringp thing) (not (find #\@ thing)))
-             (list (make-instance 'project-name-context :prefix thing)))))))
+             (list (make-instance 'project-name-context :prefix thing)))
+            ((and (= position 0) (stringp thing) (find #\@ thing))
+             (list (make-instance 'project-name-context
+                                  :prefix (string-trim " " (subseq thing 0 (position #\@ thing))))))))))
 
 ;;; Aspect name context
 

@@ -1,4 +1,4 @@
-;;;; completion.lisp --- TODO.
+;;;; completion.lisp --- Completion contributors for different recipe types.
 ;;;;
 ;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;

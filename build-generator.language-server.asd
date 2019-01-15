@@ -37,6 +37,7 @@
                               (:file       "context")
                               (:file       "hover")
                               (:file       "completion")
+                              (:file       "definition")
 
                               ; TODO later (:file       "parser")
                               ))))

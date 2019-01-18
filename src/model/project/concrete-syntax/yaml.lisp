@@ -406,7 +406,9 @@
                      (distribution (with-uniqueness-check
                                        (includes-seen name spec)
                                      (resolve-distribution-dependency
-                                      name (merge-pathnames name pathname)
+                                      name (merge-pathnames
+                                            (make-pathname :name name)
+                                            pathname)
                                       :generator-version generator-version))))
                 (list (make-instance 'distribution-include
                                      :distribution distribution

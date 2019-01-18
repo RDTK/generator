@@ -89,11 +89,11 @@
                                                  (method    t)
                                                  &key
                                                  text-document)
-  (if (member method '(:didopen :didclose))
-      (call-next-method)
-      (let* ((*uri*     (assoc-value text-document :uri))
-             (*version* (lsp:version (lsp:find-document *uri* object))))
-        (call-next-method))))
+  (let ((*uri* (assoc-value text-document :uri)))
+    (if (member method '(:didopen :didclose))
+        (call-next-method)
+        (let ((*version* (lsp:version (lsp:find-document *uri* object))))
+          (call-next-method)))))
 
 (defmethod lsp:make-document ((container workspace)
                               (language  t)

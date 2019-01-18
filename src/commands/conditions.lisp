@@ -28,8 +28,15 @@
   ()
   (:report
    (lambda (condition stream)
-     (format stream "~@<\"~A\" is not a known command.~@:>"
-             (command condition))))
+     (let* ((command  (command condition))
+            (commands (service-provider:service-providers/alist
+                       (service-provider:find-service 'command)))
+            (names    (map 'list (compose #'string-downcase #'car) commands))
+            (matches  (jenkins.util:closest-matches
+                       command names :limit 3)))
+       (format stream "~@<\"~A\" is not a known command.~@[ Closest ~
+                      match~[~;~:;es~]: ~{~A~^, ~}.~]~@:>"
+               command (when matches (length matches)) matches))))
   (:documentation
    "Signaled when a specified command cannot be bound."))
 

@@ -13,15 +13,25 @@
          (missing (remove nil schema :key #'second))
          (seen    '())
          (extra   '())
-         ((&flet invalid-keys (reason keys &optional cells)
-            (object-error
-             (if (length= 1 cells)
-                 (list (list (first cells) "defined here" :error))
-                 (loop :for cell :in cells
-                       :for i :downfrom (length cells)
-                       :collect (list cell (format nil "~:R definition" i) :error)))
-             "~@<~A key~P: ~{~A~^, ~}.~@:>"
-             reason (length keys) keys))))
+         ((&flet closest-matches (invalid-keys)
+            (reduce (rcurry #'nunion :test #'string-equal)
+                    (map 'list #'string invalid-keys)
+                    :key (rcurry #'jenkins.util:closest-matches
+                                 (map 'list (compose #'first #'ensure-list)
+                                      expected)
+                                 :key #'string))))
+         ((&flet invalid-keys (reason keys &optional cells suggest?)
+            (let ((candidates (when suggest? (closest-matches keys))))
+              (object-error
+               (if (length= 1 cells)
+                   (list (list (first cells) "defined here" :error))
+                   (loop :for cell :in cells
+                         :for i :downfrom (length cells)
+                         :collect (list cell (format nil "~:R definition" i) :error)))
+               "~@<~A key~P: ~{~A~^, ~}.~@[ Closest match~[~;~:;es~]: ~
+               ~{~A~^, ~}.~]~@:>"
+               reason (length keys) keys
+               (when candidates (length candidates)) candidates)))))
     (map nil (lambda+ ((&whole cell key . value))
                (cond
                  ((member key seen :test #'eq :key #'car)
@@ -55,7 +65,7 @@
          object)
     (when (and exhaustive? extra)
       (invalid-keys "Unexpected" (map 'list #'first extra)
-                    extra))
+                    extra t))
     (when missing
       (invalid-keys "Missing required" (map 'list #'first missing)
                     (list object))))

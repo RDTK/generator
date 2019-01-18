@@ -12,8 +12,8 @@
                                     contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin
                                     contrib:definition-contributors-mixin)
-  ((%workspace :initarg  :workspace
-               :reader   workspace) ; TODO do this in protocol.language-server?
+  ((lsp::%workspace :initarg  :workspace
+               :reader   workspace)
    (%object    :accessor object
                :initform nil)
    (%locations :accessor locations

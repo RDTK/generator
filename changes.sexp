@@ -4,6 +4,29 @@
    "The HTML report publisher plugin for Jenkins is now supported.")
 
   (:enhancement
+   "The behavior in case of errors can now be controlled at a finer
+    level of granularity. To this end, the" (:verb "on-error")
+   "commandline option, in addition to the previous values, now
+    accepts a policy specification adhering to the following grammar:"
+   (:verb "error-policy ::= rule* default
+rule         ::= error \"=>\" action \":\"
+error        ::= \"object-error\" | \"simple-object-error\"
+                 | \"syntax-error\" | \"analysis-error\"
+                 | \"dependency-error\" | \"instantiation-error\"
+                 | \"report-error\"
+default      ::= action
+action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
+   ("Example:")
+   (:verb "
+  dependency-error=>continue:analysis-error=>fail:abort
+")
+   ("The above continues the run with exit code zero in case")
+   (:verb "dependency-error") "s are encountered, continues and
+    returns a non-zero exit code for" (:verb "analysis-error") ("s and
+    immediately aborts with non-zero exit code for all other
+    errors."))
+
+  (:enhancement
    "Distribution recipes can now include other distribution recipes in
     a new" (:verb "include") "section."
    "Distribution includes can be written in two forms, either"

@@ -1,13 +1,19 @@
 ;;;; command-help.lisp --- Command for printing help.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.project.commands)
 
 (defclass help ()
-  ((command :initarg  :command
+  ((brief?  :initarg  :brief?
+            :type     boolean
+            :reader   brief?
+            :initform nil
+            :documentation
+            "Controls whether produced output should be kept brief.")
+   (command :initarg  :command
             :type     (or null string)
             :reader   command
             :initform nil
@@ -24,8 +30,9 @@
   (0 "command" "COMMAND-NAME"))
 
 (defmethod command-execute ((command help))
-  (let+ ((stream       *standard-output*)
-         (program-name "build-generator")
+  (let+ ((stream          *standard-output*)
+         (program-name    "build-generator")
+         (paragraph-limit (if (brief? command) 1 nil))
          ((&flet command-list ()
             (let* ((providers (service-provider:service-providers 'command))
                    (name      (compose #'string-downcase
@@ -46,7 +53,7 @@
                               ~@[~@
                                 Global Options:~@
                                 ~@
-                                ~<  ~@:;~/jenkins.project.commandline-options:print-options/~@:>~@
+                                ~<  ~@:;~V/jenkins.project.commandline-options:print-options/~@:>~@
                                 ~@
                               ~@]~
                               Supported commands:~@
@@ -54,7 +61,7 @@
                               ~:{~2@T~VA  ~:[<not documented>~;~:*~A~]~%~}~
                               ~@
                               "
-                      program-name (list options) (command-list)))))
+                      program-name (list paragraph-limit options) (command-list)))))
          ((&flet command-help/provider (command-name provider)
             (let ((options  (jenkins.project.commandline-options:find-options
                              command-name)))
@@ -67,18 +74,21 @@
                                 ~:*~<~/jenkins.project.commandline-options::print-documentation/~:>~
                               ~]~
                               ~@
-                              ~2:*~@[~
-                              ~@
-                              Options:~@
-                                ~@
-                                ~@<  ~@:;~/jenkins.project.commandline-options:print-options/~@:>~
-                                ~@
-                              ~@]~
-                              ~@
                               "
-                      program-name command-name options
+                      program-name command-name
+                      options
                       (when-let ((documentation (documentation provider t)))
-                        (list documentation))))))
+                        (list documentation)))
+              (when options
+                (format stream "~@
+                                Options:~@
+                                  ~@
+                                  ~@<  ~@:;~V/jenkins.project.commandline-options:print-options/~@:>~
+                                  ~@
+                                ~@
+                                "
+                        paragraph-limit options))
+              (format stream "~%"))))
          ((&flet command-help/name (command-name)
             (let* ((provider-name (make-keyword (string-upcase command-name)))
                    (provider      (service-provider:find-provider

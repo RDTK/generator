@@ -54,7 +54,7 @@
               #+sbcl (sb-debug:print-backtrace))
             (if usage?
                 (apply #'execute-command-and-quit
-                       1 :help
+                       1 :help :brief? t
                        (when (and context (not (equal context "global")))
                          (list :command context)))
                 (uiop:quit 1))))
@@ -68,10 +68,9 @@
             (process-configuration-and-commandline-arguments arguments))) ; TODO this calls configure-command but reported conditions are not right. e.g. report -D foo.distribution produces "The "-D" option requires a VARIABLE-NAME=VALUE argument." and the generic help. does not mention the command and does not print the command-specific help
          ((&flet option-value (&rest args)
             (apply option-value args))))
-    (cond
-      (version? (execute-command-and-quit 0 :version))
-      (help?    (execute-command-and-quit 0 :help))
-      (debug?   (setf debugging? t)))
+    (cond (version? (execute-command-and-quit 0 :version))
+          (help?    (execute-command-and-quit 0 :help))
+          (debug?   (setf debugging? t)))
     (handler-bind
         ((jenkins.project.commands:command-not-found-error
           (rcurry #'die t "global"))

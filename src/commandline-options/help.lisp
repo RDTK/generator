@@ -1,34 +1,40 @@
 ;;;; help.lisp --- Help text generation for the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.project.commandline-options)
 
-(defun print-option (stream info colon? at?)
+(defvar *paragraph-limit* nil)
+
+(defun print-option (stream info
+                     &optional colon? at? (paragraph-limit *paragraph-limit*))
   (option-synopsis info stream :long? colon?)
   (when at?
     (format stream "~%~
                     ~2@T~:[~
                       <not documented>~
                     ~;~
-                      ~:*~<~/jenkins.project.commandline-options::print-documentation/~:>~
+                      ~:*~<~V/jenkins.project.commandline-options::print-documentation/~:>~
                     ~]"
             (when-let* ((option        (option info))
                         (documentation (documentation option t)))
               (list
+               paragraph-limit
                (case (option-multiplicity info)
                  (* (format nil "~A~2%This option can be supplied multiple times."
                             documentation))
                  (t documentation)))))))
 
-(defun print-options (stream options colon? at?)
+(defun print-options (stream options
+                      &optional colon? at? (paragraph-limit *paragraph-limit*))
   (declare (ignore colon? at?))
-  (format stream "~{~@:/jenkins.project.commandline-options::print-option/~^~2%~}"
-          (sort (copy-list options)
-                (rcurry #'designators< :positional-first? t)
-                :key (compose #'designators))))
+  (let ((*paragraph-limit* paragraph-limit))
+    (format stream "~{~@:/jenkins.project.commandline-options::print-option/~^~2%~}"
+            (sort (copy-list options)
+                  (rcurry #'designators< :positional-first? t)
+                  :key (compose #'designators)))))
 
 (defun print-usage (stream options colon? at?)
   (declare (ignore colon? at?))
@@ -89,12 +95,15 @@ baz fez"
                  "whoop di
 do")))
 
-(defun print-documentation (stream documentation &optional colon? at?)
+(defun print-documentation (stream documentation
+                            &optional colon? at? (paragraph-limit *paragraph-limit*))
   "`pprint-fill' the words in DOCUMENTATION onto STREAM."
   (declare (ignore colon? at?))
   (loop :with *print-escape* = nil
         :with first? = t
+        :for i :from 1
         :for paragraph :in (split-into-paragraphs documentation)
+        :when (and paragraph-limit (> i paragraph-limit)) :do (return)
         :unless first? :do
            (pprint-newline :mandatory stream)
            (pprint-newline :mandatory stream)

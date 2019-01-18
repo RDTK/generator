@@ -111,7 +111,14 @@
 
       ;; Process local (i.e. consumed by command) commandline options.
       (jenkins.project.commands:configure-command
-       synchronizer command local-arguments))
+       synchronizer command local-arguments)
+      ;; If the help command will be executed because no command has
+      ;; been supplied, enable brief output.
+      (unless command-index
+        (setf (configuration.options:option-value
+               (configuration.options:find-option
+                '("commands" "help" "brief?") configuration))
+              t)))
 
     (when config-debug?
       (configuration.options.debug:output

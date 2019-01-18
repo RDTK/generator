@@ -21,7 +21,7 @@
       (jenkins.report::report-error                   . nil)))
 
   (defvar *error-handling-actions*
-    '(:abort :fail :continue)))
+    '(:abort :fail :continue :debug)))
 
 (deftype error-handling-action ()
   `(member ,@*error-handling-actions*))

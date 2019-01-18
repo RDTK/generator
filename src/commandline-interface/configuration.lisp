@@ -38,6 +38,9 @@
                          ~2@T\"continue\" to continue without ~
                                           indicating failure for all ~
                                           errors~@
+
+                         ~2@T\"debug\"    to enter the debug for all ~
+                                          errors~@
                          ~@
                          To choose specific actions for particular ~@
                          errors, rules can be written according to the ~@

@@ -24,9 +24,44 @@
                       :documentation
                       "Enable debug mode.")
   ;; Execution mode and feedback
-  ("on-error"         :type '(member :abort :continue) :default :continue
+  ("on-error"         :type 'error-policy
+                      :default '((caused-by-unfulfilled-project-dependency-error . :continue)
+                                 (t                                              . :fail))
                       :documentation
-                      "Abort when encountering errors? Either \"abort\" or \"continue\".")
+                      #.(format nil "Continue when encountering errors?~@
+                         ~@
+                         Can be simply~@
+                         ~2@T\"abort\"    to abort immediately for any ~
+                                          error~@
+                         ~2@T\"fail\"     to continue but indicate failure ~
+                                          for all errors~@
+                         ~2@T\"continue\" to continue without ~
+                                          indicating failure for all ~
+                                          errors~@
+                         ~@
+                         To choose specific actions for particular ~@
+                         errors, rules can be written according to the ~@
+                         following grammar:~@
+                         ~2@Terror-policy ::= rule* default~@
+                         ~2@Trule         ::= error \"=>\" action \":\"~@
+                         ~2@Terror        ::= ~{\"~A\"~^ | ~}~@
+                         ~2@Tdefault      ::= action~@
+                         ~2@Taction       ::= ~{\"~(~A~)\"~^ | ~}~@
+                         ~@
+                         Example:~@
+                         ~@
+                         ~2@Tdependency-error=>continue:analysis-error=>fail:abort~@
+                         ~@
+                         The above continues the run with exit code ~
+                         zero in case dependency-errors are ~
+                         encountered, continues and returns a non-zero ~
+                         exit code for analysis-errors and immediately ~
+                         aborts with non-zero exit code for all other ~
+                         errors."
+                                (map 'list (lambda+ ((name . alias))
+                                             (or alias (string-downcase name)))
+                                     *condition-types*)
+                                *error-handling-actions*))
   ("non-interactive"  :type 'boolean :default nil
                       :documentation
                       "Avoid any user interaction.")

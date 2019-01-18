@@ -6,36 +6,41 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
-(defun make-error-policy (designator &key debug?)
-  (let+ (((&flet continue/verbose (condition &key (debug? debug?))
+(defun make-error-policy (policy &key debug? fail)
+  (let+ (((&flet flame (condition &key (debug? debug?))
+            (format *error-output* "~@<~A~@:>~2%" condition)
+            (when debug?
+              #+sbcl (sb-debug:print-backtrace))))
+         ;; Specific actions.
+         ((&flet do-continue (condition)
+            (when-let ((restart (find-restart 'jenkins.project.commands::defer condition))) ; TODO should just call defer
+              (invoke-restart restart condition :debug? debug?))
+            (flame condition :debug? debug?)
             (when (typep condition 'jenkins.util:continuable-error)
-              (format *error-output* "~@<~A~@:>~2%" condition)
-              (when debug?
-                #+sbcl (sb-debug:print-backtrace))
               (when-let ((restart (jenkins.util:find-continue-restart condition)))
                 (invoke-restart restart)))))
-         ((&flet restart/condition (name &optional (condition? t) &rest args)
-            (lambda (condition)
-              (when-let ((restart (find-restart name condition)))
-                (apply #'invoke-restart restart
-                       (if condition?
-                           (list* condition args)
-                           args)))))))
-    (case designator
-      (:continue (lambda (condition)
-                   (funcall (restart/condition 'jenkins.project.commands::defer
-                                               t :debug? debug?)
-                            condition)
-                   (continue/verbose condition :debug? nil)))
-      (t         (restart/condition 'abort nil)))))
-
-(defun noting-serious-errors (error-policy function)
-  (lambda (condition)
-    (when (and (typep condition
-                      '(and error
-                            (not jenkins.project.commands::unfulfilled-project-dependency-error))))
-      (funcall function condition))
-    (funcall error-policy condition)))
+         ((&flet do-fail (condition)
+            (when fail
+              (funcall fail condition))
+            (do-continue condition)))
+         ((&flet do-abort (condition)
+            (flame condition :debug? debug?)
+            (when-let ((restart (find-restart 'abort condition)))
+              (invoke-restart restart)))))
+    (lambda (condition)
+      (when (typep condition 'jenkins.project.commands::deferred-phase-error)
+        (format t "~A~2%" condition)
+        (continue))
+      (log:info "Handling ~A: ~A" (type-of condition) condition)
+      (loop :for (condition-type . action) :in policy
+            :do (log:debug "Considering rule: ~S → ~S" condition-type action)
+            :when (typep condition condition-type)
+              :do (log:info "Applying rule: ~S → ~S" condition-type action)
+                  (ecase action
+                    (:continue (do-continue condition))
+                    (:fail     (do-fail     condition))
+                    (:abort    (do-abort    condition)))
+                  (return)))))
 
 (defun main ()
   (log:config :thread :warn)
@@ -79,26 +84,25 @@
             (die condition t (jenkins.project.commands:command condition))))
          (error #'die)
          #+sbcl (sb-sys:interactive-interrupt #'die))
-      (let* ((configuration   (configuration.options:sub-configuration
-                               "commands.**" configuration))
-             (command         (jenkins.project.commands:make-command
-                               configuration))
-             (serious-errors? nil))
+      (let* ((configuration (configuration.options:sub-configuration
+                             "commands.**" configuration))
+             (command       (jenkins.project.commands:make-command
+                             configuration))
+             (fail?         nil))
         (jenkins.project.commands:execute-command
          command
          :num-processes   (option-value "global" "num-processes")
-         :error-policy    (noting-serious-errors
-                           (make-error-policy
-                            (option-value "global" "on-error")
-                            :debug? debugging?)
-                           (lambda (condition)
-                             (declare (ignore condition))
-                             (setf serious-errors? t)))
+         :error-policy    (make-error-policy
+                           (option-value "global" "on-error")
+                           :debug? debugging?
+                           :fail   (lambda (condition)
+                                     (declare (ignore condition))
+                                     (setf fail? t)))
          :progress-style  (option-value "global" "progress-style")
          :cache-directory (option-value "global" "cache-directory")
          :temp-directory  (option-value "global" "temp-directory")
          :trace-variables (option-value "global" "trace-variable"))
-        (uiop:quit (if serious-errors? 1 0))))))
+        (uiop:quit (if fail? 1 0))))))
 
 (eval-when (:load-toplevel)
   (check-variable-liveness))

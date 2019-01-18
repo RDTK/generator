@@ -24,7 +24,9 @@
   ;; Strings
   (:export
    #:safe-name
-   #:edit-distance)
+
+   #:edit-distance
+   #:closest-matches)
 
   ;; Files
   (:export

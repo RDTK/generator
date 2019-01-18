@@ -1,6 +1,6 @@
 ;;;; strings.lisp --- String-related utilities.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2018 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -67,3 +67,30 @@
                    :start (min (+ i window 1) (1+ m)) :end (1+ m))
              (rotatef col prev-col))
            (aref prev-col (min m (+ n window -1)))))))))
+
+(defun closest-matches (thing sequence &key count (limit 2) key)
+  "Return a list of the COUNT most similar to THING elements of SEQUENCE.
+
+   LIMIT controls the maximum number of differences compared to THING
+   an element in SEQUENCE can have to still be potentially (since
+   COUNT) included in the returned list.
+
+   COUNT, if supplied, limits the number of returned elements.
+
+   KEY, if supplied, has to be a designator of a function that is
+   applied to each element of SEQUENCE to obtain a value that is
+   compared to THING instead of the respective element."
+  (let* ((string1    thing)
+         (candidates (loop :for element :in sequence
+                           :for string2 = (if key
+                                              (funcall key element)
+                                              element)
+                           :for distance = (edit-distance
+                                            string1 string2
+                                            :upper-bound (+ limit 2))
+                           :when (<= distance limit)
+                             :collect (cons distance element)))
+         (sorted     (sort candidates #'< :key #'car)))
+    (when (and count (< count (length sorted)))
+      (setf (cdr (nthcdr (1- count) sorted)) '()))
+    (map 'list #'cdr sorted)))

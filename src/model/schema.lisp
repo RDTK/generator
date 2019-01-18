@@ -174,6 +174,14 @@
   :documentation
   "The name of a specific tag to process.")
 
+(define-variable :directory string
+  :documentation
+  "Directory within a subversion repository.
+
+   This variable is intended for subversion repositories that do not
+   conform to the standard layout and thus cannot use the branch and
+   tag variables.")
+
 (define-variable :commit string
   :documentation
   "A specific commit to process.")

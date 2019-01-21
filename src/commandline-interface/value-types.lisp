@@ -2,6 +2,13 @@
 
 ;;; `error-policy'
 
+(defun caused-by-minor-analysis-error? (thing)
+  (and (typep thing 'jenkins.analysis:analysis-error)
+       (typep (root-cause thing) 'jenkins.analysis::minor-error)))
+
+(deftype caused-by-minor-analysis-error ()
+  `(satisfies caused-by-minor-analysis-error?))
+
 (defun caused-by-unfulfilled-project-dependency-error? (thing)
   (and (typep thing 'condition)
        (typep (root-cause thing)
@@ -16,6 +23,7 @@
       (jenkins.model.project::simple-object-error     . nil)
       (jenkins.model.project::yaml-syntax-error       . "syntax-error")
       (jenkins.analysis:analysis-error                . nil)
+      (caused-by-minor-analysis-error                 . "minor-analysis-error")
       (caused-by-unfulfilled-project-dependency-error . "dependency-error")
       (jenkins.model:instantiation-error              . nil)
       (jenkins.report::report-error                   . nil)))

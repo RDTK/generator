@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -311,8 +311,9 @@
                   string2 environment :if-unresolved (rcurry #'%resolution-error ""))))))
 
 (defun %resolution-error (thing context)
-  (error "~@<Could not resolve ~S in ~A.~@:>"
-         thing context))
+  (error 'jenkins.analysis::simple-minor-error
+         :format-control   "~@<Could not resolve ~S in ~A.~@:>"
+         :format-arguments (list thing context)))
 
 (defun %continuable-resolution-error (context report)
   (lambda (expression)

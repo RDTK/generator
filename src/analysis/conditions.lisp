@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the analysis module.
 ;;;;
-;;;; Copyright (C) 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -67,3 +67,12 @@
   (:documentation
    "This error is signaled if an unfulfilled dependency of a project
     on a platform package is detected."))
+
+;;;
+
+(define-condition minor-error (error)
+  ())
+
+(define-condition simple-minor-error (minor-error
+                                      simple-error)
+  ())

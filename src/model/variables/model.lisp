@@ -1,6 +1,6 @@
 ;;;; model.lisp --- Model for value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,6 +39,9 @@
   (and (listp thing)
        (every (of-type 'variable-expression-value-alist-element) thing)))
 
+(deftype variable-expression-value-alist ()
+  `(satisfies variable-expression-value-alist?))
+
 ;;; Unevaluated Expressions
 ;;;
 ;;; In addition to atomic values (of type `string', `real' or
@@ -59,6 +62,9 @@
 ;;; variable-reference ::= (:ref      expression [:default expression])
 ;;;                        (:ref/list expression [:default expression])
 ;;;
+;;; function-call      ::= (:call      expression*)
+;;;                        (:call/list expression*)
+;;;
 ;;; concatenation      ::= (expression*)
 ;;;
 ;;; list               ::= (:list expression*)
@@ -69,10 +75,14 @@
 
 (deftype variable-expression ()
   `(or atomic-variable-expression-value
+
+       function
+
        variable-expression-concatenation
        variable-expression-list
        variable-expression-alist
-       variable-reference))
+       variable-reference
+       function-call))
 
 (defun variable-expression? (thing)
   (typep thing 'variable-expression))
@@ -85,11 +95,16 @@
                          (cons (satisfies variable-expression?) ; = variable-expression
                                null))))))
 
+(deftype function-call ()
+  `(cons (member :call :call/list)
+         (satisfies variable-expression-list-element-list?)))
+
 (defun variable-expression-concatenation? (thing)
   (and (consp thing)
        (every (of-type '(or atomic-variable-expression-value
                             variable-expression-concatenation
-                            variable-reference))
+                            variable-reference
+                            function-call))
               thing)))
 
 (deftype variable-expression-concatenation ()
@@ -136,12 +151,10 @@
 (defun value-parse (raw)
   (labels ((rec (thing)
              (cond
-               ((typep thing '(or real boolean))
+               ((typep thing '(or real boolean function))
                 thing)
-               ((and (stringp thing) (emptyp thing))
-                nil)
-               ((and (stringp thing)
-                     (not (position #\{ thing))
+               ((and (stringp thing) ; fast path
+                     (not (ppcre:scan "(:?(:?\\$|@)(:?{|\\()|\\\\)" thing))
                      (not (position #\\ thing)))
                 thing)
                ((stringp thing)
@@ -177,8 +190,8 @@
         (rest  (lastcar args)))
     (check-type rest variable-expression-alist-element-list)
     (append (loop :for (name value) :on cells :by #'cddr
-               :do (check-type name keyword)
-               :collect (cons name (value-parse value)))
+                  :do (check-type name keyword)
+                  :collect (cons name (value-parse value)))
             rest)))
 
 (defun to-value (thing)

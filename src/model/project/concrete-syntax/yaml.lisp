@@ -21,6 +21,20 @@
                                       source start (1+ start))
                                      "here" :kind :error))))))))
 
+(defun %read-yaml (string)
+  (let* ((source  (text.source-location:make-source string))
+         (builder (make-builder source)))
+    (handler-case
+        (language.yaml:load string :builder builder)
+      (esrap:esrap-parse-error (condition)
+        (let ((start (esrap:esrap-error-position condition)))
+          (error 'yaml-syntax-error
+                 :cause       condition
+                 :annotations (list (text.source-location:make-annotation
+                                     (text.source-location:make-location
+                                      source start (1+ start))
+                                     "here" :kind :error))))))))
+
 ;;; Structure utilities
 
 (deftype yaml-version-include-spec ()

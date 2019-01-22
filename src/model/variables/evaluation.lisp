@@ -137,6 +137,8 @@
   (check-type pattern variable-expression)
   (let+ (((&flet lookup (fun)
             (lambda (name &optional (default nil default-supplied?))
+              (unless (stringp name)
+                (error "Function or variable name is not a string: ~S" name))
               (let ((name (make-keyword (string-upcase name))))
                 (if default-supplied?
                     (funcall fun name default)

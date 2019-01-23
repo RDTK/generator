@@ -186,4 +186,20 @@
 
                               (:file     "json")
                               (:file     "graphviz")
-                              (:file     "catalog")))))
+                              (:file     "catalog"))))
+
+  :in-order-to ((test-op (test-op "jenkins.project/test"))))
+
+(defsystem "jenkins.project/test"
+  :description "Unit tests for the jenkins.project system"
+
+  :version     (:read-file-form "version-string.sexp")
+  :depends-on  ((:version "fiveam"          "1.4")
+
+                (:version "jenkins.project" (:read-file-form "version-string.sexp")))
+
+  :components  ((:module     "test"
+                 :components ((:file     "package"))))
+
+  :perform     (test-op (operation component)
+                 (uiop:symbol-call '#:jenkins.project.test '#:run-tests)))

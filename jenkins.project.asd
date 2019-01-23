@@ -199,7 +199,14 @@
                 (:version "jenkins.project" (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "test"
-                 :components ((:file     "package"))))
+                 :components ((:file     "package")))
+
+                (:module     "model-variables"
+                 :pathname   "test/model/variables"
+                 :depends-on ("test")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "grammar"))))
 
   :perform     (test-op (operation component)
                  (uiop:symbol-call '#:jenkins.project.test '#:run-tests)))

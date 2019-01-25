@@ -68,6 +68,14 @@
                          (:a . (5 6))
                          (:c . ((:e . (9 11))))))))))
 
+;;; Evaluate
+
+(test evaluate.smoke
+
+  (finishes
+    (let ((container (make-instance 'direct-variables-mixin)))
+      (evaluate container (esrap:parse 'jenkins.model.variables::expr "$(if ${a|$(upcase \"foo\")} 1 2)")))))
+
 ;;; Casts
 
 (test as.smoke

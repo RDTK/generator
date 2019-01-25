@@ -112,6 +112,20 @@
           (progn (skip) (next t)))
     (done)))
 
+(setf (builtin-operator :fn)
+      (lambda (arguments next skip)
+        (declare (ignore next skip))
+        (destructuring-bind (operator (keyword . lambda-list) &rest body) arguments
+          (declare (ignore operator keyword))
+          (lambda (arguments next skip)
+            (declare (ignore arguments skip))
+            (let ((environment (make-instance 'direct-variables-mixin
+                                              :variables (loop :for name  :in lambda-list
+                                                               :for value =   (funcall next)
+                                                               :collect (cons (make-keyword (string-upcase name)) value)))))
+              (describe environment *trace-output*)
+              (evaluate environment body))))))
+
 ;;; Ordinary functions
 
 (define-builtin-function :equal (left right)

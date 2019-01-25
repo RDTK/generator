@@ -70,7 +70,41 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
     the instance (and in particular the parameters of that instance)
     closest to the \"outermost\" distribution in terms of a
     depth-first traversal of " (:verb "include") "relations is used
-    while all others are discarded."))
+    while all others are discarded.")
+
+  (:enhancement
+   "The expression language now supports a limited form of operator
+    calls. Call are written as"
+   (:verb "$(NAME-AND-ARGUMENTS)
+@(NAME-AND-ARGUMENTS)")
+   "where the first form performs a scalar insertion of the evaluation
+    result while the second form splices the evaluation result which
+    must be a list."
+
+   "Operator names and arguments are evaluated at the operator's
+    discretion. Arguments can be spliced. For example"
+   (:verb "name-and-arguments:
+- and
+- false
+- ${undefined}
+result: $(@{name-and-arguments})")
+   "applies the operator" (:verb "and") "to the two
+    arguments" (:verb "false") "and" (:verb "${undefined}") ". This
+    does not result in a error since the second argument is not
+    evaluated."
+   "Written in a more conventional style, the above looks like this:"
+   (:verb "$(and false ${undefined})")
+   "The following operators and functions are available:"
+   (:ul
+    (:verb "not")
+    (:verb "and")
+    (:verb "or")
+    (:verb "if")
+    (:verb "equal")
+    (:verb "upcase")
+    (:verb "downcase")
+    (:verb "capitalize")
+    (:verb "map"))))
 
  (:release "0.25" "2018-11-14"
 

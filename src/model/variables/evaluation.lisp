@@ -128,6 +128,11 @@
                 (values nil             nil)))))
     (values #'argument #'skip)))
 
+(defun list-arguments (next)
+  (loop :for (argument argument?) = (multiple-value-list (funcall next))
+        :while argument?
+        :collect argument))
+
 (defun expand (pattern lookup)
   (check-type pattern variable-expression)
   (let+ (((&flet lookup (fun)
@@ -174,14 +179,22 @@
                         (designator (with-augmented-trace (:callable nil (list :callable))
                                       (funcall next)))
                         (callable   (etypecase designator
-                                      (string   (with-augmented-trace
-                                                    (:callable/2 nil (list designator))
-                                                  (funcall lookup designator)))
+                                      (string (with-augmented-trace (:callable/2 nil (list designator))
+                                                (funcall lookup designator)))
                                       (function designator)))
-                        (result     (funcall callable arguments next skip)))
+                        ((&values result/raw path)
+                         (etypecase callable
+                           (function
+                            (values (funcall callable arguments next skip) '()))
+                           (variable-expression-alist
+                            (let ((path (reverse (mapcar (compose #'make-keyword
+                                                                  #'string-upcase)
+                                                         (list-arguments next)))))
+                              (values (drill-down/raw path callable)
+                                      path))))))
                    (ecase which
-                     (:call      (list result))
-                     (:call/list result)))))
+                     (:call      (list result/raw))
+                     (:call/list result/raw)))))
 
               ;; Atomic value.
               ((optima:guard pattern (atom pattern)) ; TODO tighten

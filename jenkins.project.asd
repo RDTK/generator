@@ -1,6 +1,6 @@
 ;;;; jenkins.project.asd ---
 ;;;;
-;;;; Copyright (C) 2011-2018 Jan Moringen
+;;;; Copyright (C) 2011-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -206,7 +206,8 @@
                  :depends-on ("test")
                  :serial     t
                  :components ((:file     "package")
-                              (:file     "grammar"))))
+                              (:file     "grammar")
+                              (:file     "evaluation"))))
 
   :perform     (test-op (operation component)
                  (uiop:symbol-call '#:jenkins.project.test '#:run-tests)))

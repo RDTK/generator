@@ -7,9 +7,15 @@
 (cl:defpackage #:jenkins.model.variables.test
   (:use
    #:cl
+   #:alexandria
    #:let-plus
 
-   #:fiveam))
+   #:fiveam
+
+   #:jenkins.model.variables)
+
+  (:import-from #:jenkins.model.variables
+   #:merge-alists))
 
 (cl:in-package #:jenkins.model.variables.test)
 

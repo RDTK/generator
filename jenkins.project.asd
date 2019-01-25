@@ -115,7 +115,9 @@
                               (:file     "evaluation")
                               (:file     "aggregation")
 
-                              (:file     "mixins")))
+                              (:file     "mixins")
+
+                              (:file     "builtin")))
 
                 (:module     "model"
                  :pathname   "src/model"

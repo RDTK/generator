@@ -98,36 +98,30 @@
             (optima:ematch pattern
               ;; Make the current path available.
               ((list (or :ref :ref/list) "structure-path")
-               (list
-                (with-augmented-trace (:structure-path nil)
-                  (nreverse (mapcar #'string-downcase (rest path))))))
+               (list (with-augmented-trace (:structure-path nil)
+                       (nreverse (mapcar #'string-downcase (rest path))))))
 
               ;; Variable reference with already-evaluated variable
-              ;; name and with default.
-              ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern))
-                     :default default)
-               (let ((result (lookup pattern (lambda () (first (recur default path))))))
-                 (list (if (string= pattern "next-value")
+              ;; name and with or without default.
+              ((list* (or :ref :ref/list) (and name (type string))
+                      (or '() (list (and :default default?) default)))
+               (let ((result (if default?
+                                 (lookup name (lambda ()
+                                                (first (recur default path))))
+                                 (lookup name))))
+                 (list (if (string= name "next-value")
                            (drill-down path result)
                            result))))
 
-              ;; Variable reference with already-evaluated variable
-              ;; name and without default.
-              ((list (or :ref :ref/list) (optima:guard pattern (stringp pattern)))
-               (let ((result (lookup pattern)))
-                 (list (if (string= pattern "next-value")
-                           (drill-down path result)
-                           result))))
-
-              ;; Scalar variable reference with to-be-evaluated
+              ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
-              ((list* :ref pattern rest)
-               (recur (list* :ref (first (recur pattern path)) rest) path))
-
-              ;; List variable reference with to-be-evaluated variable
-              ;; name (with or without default.
-              ((list* :ref/list pattern rest)
-               (first (recur (list* :ref/list (first (recur pattern path)) rest) path)))
+              ((list* (and (or :ref :ref/list) which) pattern rest)
+               (let* ((name     (first (recur pattern path)))
+                      (resolved (list* which name rest))
+                      (result   (recur resolved path)))
+                 (ecase which
+                   (:ref      result)
+                   (:ref/list (first result)))))
 
               ;; Atomic value.
               ((optima:guard pattern (atom pattern)) ; TODO tighten

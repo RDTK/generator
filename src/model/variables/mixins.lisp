@@ -30,9 +30,10 @@
                                       (slot-names t)
                                       &key)
   (call-next-method)
+  (appendf (%direct-variables instance) *builtin-operators*)
   (loop :for cell :in (%direct-variables instance) :do
-     (unless (gethash cell *variable-locations*)
-       (setf (gethash cell *variable-locations*) instance))))
+           (unless (gethash cell *variable-locations*)
+             (setf (gethash cell *variable-locations*) instance))))
 
 (defmethod variables append ((thing direct-variables-mixin))
   (copy-list (direct-variables thing)))

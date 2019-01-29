@@ -1,6 +1,6 @@
 ;;;; job.lisp --- Job model class.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -478,6 +478,112 @@
                                  :if-multiple-matches :all)
                      :optional? nil
                      :initform '()))
+   (:name-slot nil))
+
+  ((issues-recorder "io.jenkins.plugins.analysis.core.steps.IssuesRecorder"
+                    :plugin "warnings-ng@2.0.0")
+   ((analysis-tools                  :type      analysis-tool
+                                     :xpath     ("analysisTools/*"
+                                                 :if-multiple-matches :all)
+                                     :initform  '())
+    (filters                         :type      string
+                                     :xpath     ("filters/text()"
+                                                 :if-multiple-matches :all)
+                                     :optional? nil
+                                     :initform  '())
+    ;;
+    (ignore-quality-gate?            :type      boolean
+                                     :xpath     "ignoreQualityGate/text()"
+                                     :optional? nil
+                                     :initform  nil)
+    (ignore-failed-builds?           :type      boolean
+                                     :xpath     "ignoreFailedBuilds/text()"
+                                     :optional? nil
+                                     :initform  nil)
+    ;; Assessment
+    (healthy-threshold               :type      non-negative-integer
+                                     :xpath     "healthy/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (unhealthy-threshold             :type      non-negative-integer
+                                     :xpath     "unhealthy/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (minimum-severity                :type      string
+                                     :xpath     (:version
+                                                 ("warnings-ng@2.0.0" "minimumSeverity[@plugin='analysis-model-api@2.0.1']/name/text()")
+                                                 (t                   "minimumSeverity[@plugin='analysis-model-api@2.0.1']/name/text()"))
+                                     :optional? nil
+                                     :initform  "HIGH")
+    (threshold-unstable-total-all    :type      non-negative-integer
+                                     :xpath     "thresholds/unstableTotalAll/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-total-high   :type      non-negative-integer
+                                     :xpath     "thresholds/unstableTotalHigh/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-total-normal :type      non-negative-integer
+                                     :xpath     "thresholds/unstableTotalNormal/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-total-low    :type      non-negative-integer
+                                     :xpath     "thresholds/unstableTotalLow/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-new-all      :type      non-negative-integer
+                                     :xpath     "thresholds/unstableNewAll/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-new-high     :type      non-negative-integer
+                                     :xpath     "thresholds/unstableNewHigh/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-new-normal   :type      non-negative-integer
+                                     :xpath     "thresholds/unstableNewNormal/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-unstable-new-low      :type      non-negative-integer
+                                     :xpath     "thresholds/unstableNewLow/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-total-all      :type      non-negative-integer
+                                     :xpath     "thresholds/failedTotalAll/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-total-high     :type      non-negative-integer
+                                     :xpath     "thresholds/failedTotalHigh/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-total-normal   :type      non-negative-integer
+                                     :xpath     "thresholds/failedTotalNormal/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-total-low      :type      non-negative-integer
+                                     :xpath     "thresholds/failedTotalLow/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-new-all        :type      non-negative-integer
+                                     :xpath     "thresholds/failedNewAll/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-new-high       :type      non-negative-integer
+                                     :xpath     "thresholds/failedNewHigh/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-new-normal     :type      non-negative-integer
+                                     :xpath     "thresholds/failedNewNormal/text()"
+                                     :optional? nil
+                                     :initform  0)
+    (threshold-failed-new-low        :type      non-negative-integer
+                                     :xpath     "thresholds/failedNewLow/text()"
+                                     :optional? nil
+                                     :initform  0)
+    ;; Blame
+    (blame-disabled?                 :type      boolean
+                                     :xpath     "isBlameDisabled/text()"
+                                     :optional? nil
+                                     :initform  nil))
    (:name-slot nil))
 
   ((checkstyle "hudson.plugins.checkstyle.CheckStylePublisher"

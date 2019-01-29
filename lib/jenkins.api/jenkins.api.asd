@@ -1,6 +1,6 @@
 ;;;; jenkins.api.asd --- System definition for the jenkins.api system.
 ;;;;
-;;;; Copyright (C) 2011-2018 Jan Moringen
+;;;; Copyright (C) 2011-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -45,6 +45,8 @@
                               (:file     "interface")
 
                               (:file     "job")
+                              (:file     "job-publisher")
+
                               (:file     "view")))
 
                 (:module     "api-late"

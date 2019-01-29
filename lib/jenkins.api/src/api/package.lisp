@@ -260,7 +260,25 @@
    #:pattern
    #:keep-long-stdio?
    #:health-scale-factor
-   #:allow-empty-results?)
+   #:allow-empty-results?
+
+   #:publisher/issues-recorder
+   #:analysis-tools
+
+   #:analysis-tool/open-tasks
+
+   #:analysis-tool/gcc4
+
+   #:analysis-tool/java
+
+   #:analysis-tool/maven
+
+   #:analysis-tool/checkstyle
+
+   #:analysis-tool/pmd
+
+   #:analysis-tool/groovy
+   #:parser)
 
   ;; Build
   (:export

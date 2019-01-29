@@ -4,6 +4,17 @@
    "The HTML report publisher plugin for Jenkins is now supported.")
 
   (:enhancement
+   "The \"Jenkins Warnings Plugin - Next Generation\" plugin is now
+    supported. However, generated job configurations continue to
+    select the legacy warnings and tasks plugins by default."
+   "The following commandline options can be used to generate job
+    configurations which select the new plugin:"
+   (:verb "-D aspect.checkstyle.implementation=ng
+-D aspect.pmd.implementation=ng
+-D aspect.tasks.implementation=ng
+-D aspect.warnings.implementation=ng"))
+
+  (:enhancement
    "The behavior in case of errors can now be controlled at a finer
     level of granularity. To this end, the" (:verb "on-error")
    "commandline option, in addition to the previous values, now

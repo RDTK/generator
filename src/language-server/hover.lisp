@@ -19,7 +19,7 @@
      (list (format nil "Type: ~A" (var:variable-info-type variable-node))
            (or (var:variable-info-documentation variable-node)
                "«undocumented variable»"))
-     (text.source-location:range variable-location) )))
+     (sloc:range variable-location) )))
 
 ;;; Project version
 

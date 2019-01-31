@@ -11,6 +11,7 @@
                                     contrib:context-contributors-mixin
                                     contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin
+                                    contrib::signature-contributors-mixin
                                     contrib:definition-contributors-mixin)
   ((lsp::%workspace :initarg  :workspace
                :reader   workspace)
@@ -37,6 +38,10 @@
 (defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:hover)))
   (list (make-instance 'variable-hover-contributor)))
+
+(defmethod contrib:make-contributors ((document build-generator-document)
+                                      (aspect   (eql 'contrib:signature)))
+  (list (make-instance 'variable-signature-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:completion)))

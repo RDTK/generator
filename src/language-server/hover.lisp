@@ -1,6 +1,6 @@
-;;;; hover.lisp --- TODO.
+;;;; hover.lisp --- Hover contributors for different contexts.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -19,7 +19,7 @@
      (list (format nil "Type: ~A" (jenkins.model.variables:variable-info-type variable-node))
            (or (jenkins.model.variables:variable-info-documentation variable-node)
                "«undocumented variable»"))
-     (text.source-location:range variable-location) )))
+     (sloc:range variable-location) )))
 
 ;;; Project version
 

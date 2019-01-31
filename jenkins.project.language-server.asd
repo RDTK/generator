@@ -36,6 +36,7 @@
                               (:file       "diagnostics")
                               (:file       "context")
                               (:file       "hover")
+                              (:file       "signature-help")
                               (:file       "completion")
                               (:file       "definition")
 

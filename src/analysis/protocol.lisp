@@ -32,10 +32,24 @@
         made to guess the version control system from SOURCE and the
         project kind from the content of SOURCE."))
 
-(defmethod analyze :around ((source t) (kind t) &key &allow-other-keys)
-  (with-condition-translation (((error analysis-error)
-                                :specification source))
-    (let ((result (multiple-value-list (call-next-method))))
-      (log:debug "~@<Analysis result for ~A ~A: ~S~@:>"
-                 source kind result)
-      (apply #'values result))))
+(defvar *outermost?* t)
+
+(defmethod analyze :around ((source t) (kind t) &key project &allow-other-keys)
+  (labels ((do-it ()
+             (let ((result (multiple-value-list (call-next-method))))
+               (log:debug "~@<Analysis result for ~A ~A: ~S~@:>"
+                          source kind result)
+               (apply #'values result)))
+           (do-it/generic-translation ()
+             (with-condition-translation (((error analysis-error)
+                                           :specification source))
+               (let ((*outermost?* nil))
+                 (do-it)))))
+    (cond ((not *outermost?*)
+           (do-it))
+          ((not project)
+           (do-it/generic-translation))
+          (t
+           (with-condition-translation (((error project-analysis-error)
+                                         :specification project))
+             (do-it/generic-translation))))))

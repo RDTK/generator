@@ -16,10 +16,12 @@
 
 (defun subversion-checkout (repository directory commit temp-directory
                             &key username password)
-  (%run-svn `("co" ,@(when commit `("-r" ,commit))
-                   ,(princ-to-string repository)
-                   ,directory)
-            temp-directory username password))
+  (with-condition-translation (((error repository-access-error)
+                                :specification repository))
+    (%run-svn `("co" ,@(when commit `("-r" ,commit))
+                     ,(princ-to-string repository)
+                     ,directory)
+              temp-directory username password)))
 
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
                     &rest args &key

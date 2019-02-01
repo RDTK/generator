@@ -1,6 +1,6 @@
 ;;;; archive.lisp --- Access project that are distributed as archives.
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -61,37 +61,46 @@
                  (ironclad:produce-digest digest)))
              url args))))
 
+(defun download-and-extract (source temp-directory
+                             &key username password sub-directory)
+  (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
+         (temp-file    (merge-pathnames archive-name temp-directory))
+         (content-hash ;; Download into temporary archive file inside
+                       ;; temporary directory.
+                       (with-trivial-progress (:download "~A" source)
+                         (download-file source temp-file
+                                        :username username
+                                        :password password))))
+    (log:info "~@<Downloaded ~A into ~A, content hash ~
+               ~(~{~2,'0X~}~).~@:>"
+              source temp-file (coerce content-hash 'list))
+    ;; Extract temporary file, producing a single directory if all
+    ;; goes well. Delete temporary archive file afterwards.
+    (with-trivial-progress (:extract "~A" temp-file)
+      (inferior-shell:run/nil `("unp" "-U" ,temp-file)
+                              :directory temp-directory)
+      (delete-file temp-file))
+    ;; Locate the expected singleton directory and run analysis on it.
+    (let* ((directory (or (first (directory (merge-pathnames
+                                             "*.*" temp-directory)))
+                          (error "~@<Cannot locate directory ~
+                                  extracted from ~A in ~A.~@:>"
+                                 archive-name temp-directory)))
+           (directory     (if sub-directory
+                              (merge-pathnames sub-directory directory)
+                              directory)))
+      (values directory content-hash))))
+
 (defun call-with-extracted-archive (thunk source temp-directory
+                                    &rest args
                                     &key username password sub-directory)
+  (declare (ignore username password sub-directory))
   (unwind-protect
-       (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
-              (temp-file    (merge-pathnames archive-name temp-directory))
-              (content-hash ;; Download into temporary archive file
-                            ;; inside temporary directory.
-                            (with-trivial-progress (:download "~A" source)
-                              (download-file source temp-file
-                                             :username username
-                                             :password password))))
-         (log:info "~@<Downloaded ~A into ~A, content hash ~
-                    ~(~{~2,'0X~}~).~@:>"
-                   source temp-file (coerce content-hash 'list))
-         ;; Extract temporary file, producing a single directory if
-         ;; all goes well. Delete temporary archive file afterwards.
-         (with-trivial-progress (:extract "~A" temp-file)
-           (inferior-shell:run/nil `("unp" "-U" ,temp-file)
-                                   :directory temp-directory)
-           (delete-file temp-file))
-         ;; Locate the expected singleton directory and run analysis
-         ;; on it.
-         (let* ((directory (or (first (directory (merge-pathnames
-                                                  "*.*" temp-directory)))
-                               (error "~@<Cannot locate directory ~
-                                       extracted from ~A in ~A.~@:>"
-                                      archive-name temp-directory)))
-                (directory     (if sub-directory
-                                   (merge-pathnames sub-directory directory)
-                                   directory)))
-           (funcall thunk directory content-hash)))
+       (let+ (((&values directory content-hash)
+               (with-condition-translation (((error repository-access-error)
+                                             :specification source))
+                 (apply #'download-and-extract source temp-directory args))))
+         (funcall thunk directory content-hash))
     ;; Delete everything when done or if something goes wrong.
     (uiop:delete-directory-tree
      temp-directory :if-does-not-exist :ignore :validate (constantly t))))

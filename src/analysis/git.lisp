@@ -1,6 +1,6 @@
 ;;;; git.lisp --- Analysis of git repositories.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -224,32 +224,37 @@
                                      &allow-other-keys)
   ;; If we already have analysis results for the commit that is
   ;; current in the remote repository, return right away.
-  (with-simple-restart (continue "~@<Do not try to use cached analysis ~
-                                  results.~@:>")
-    (when cache-directory
-      (log:info "~@<Determining current remote commit in ~A~@:>" source)
-      (when-let* ((commitish  (or commit branch))
-                  (commit-key (git-remote-commit-key
-                               source commitish
-                               :username        username
-                               :password        password
-                               :non-interactive non-interactive))
-                  (key        (natures->key
-                               natures (sub-directory->key
-                                        sub-directory commit-key)))
-                  (results    (cache-restore cache-directory key)))
-        (return-from clone-and-analyze-git-branch results))))
+  (with-condition-translation (((error repository-access-error)
+                                :specification source))
+    (with-simple-restart (continue "~@<Do not try to use cached analysis ~
+                                    results.~@:>")
+      (when cache-directory
+        (log:info "~@<Determining current remote commit in ~A~@:>" source)
+        (when-let* ((commitish  (or commit branch))
+                    (commit-key (git-remote-commit-key
+                                 source commitish
+                                 :username        username
+                                 :password        password
+                                 :non-interactive non-interactive))
+                    (key        (natures->key
+                                 natures (sub-directory->key
+                                          sub-directory commit-key)))
+                    (results    (cache-restore cache-directory key)))
+          (return-from clone-and-analyze-git-branch results)))))
 
   ;; Clone the repository, then analyze the requested
   ;; branches/tags/commits, potentially caching the results.
-  (let* ((commit-key (clone-git-repository/maybe-cached
-                      source clone-directory
-                      :commit          commit
-                      :branch          branch
-                      :username        username
-                      :password        password
-                      :cache-directory cache-directory
-                      :non-interactive non-interactive))
+  (let* ((commit-key (with-condition-translation
+                         (((error repository-access-error)
+                           :specification source))
+                       (clone-git-repository/maybe-cached
+                        source clone-directory
+                        :commit          commit
+                        :branch          branch
+                        :username        username
+                        :password        password
+                        :cache-directory cache-directory
+                        :non-interactive non-interactive)))
          (key        (natures->key
                       natures (sub-directory->key
                                sub-directory commit-key))))

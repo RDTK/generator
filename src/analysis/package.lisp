@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -23,6 +23,12 @@
    #:analysis-condition-specification
 
    #:analysis-error
+
+   #:repository-access-error
+
+   #:repository-analysis-error
+
+   #:project-analysis-error
 
    #:dependency-condition
    #:dependency-condition-dependency

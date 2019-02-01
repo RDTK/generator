@@ -52,6 +52,10 @@
           (t                            (error "~@<Cannot handle URI ~A.~@:>"
                                                url)))))
 
+(defmethod analyze ((source string) (kind (eql :auto)) &rest args &key)
+  (with-condition-translation (((error repository-access-error)
+                                :specification source))
+    (apply #'analyze (puri:uri source) kind args)))
 
 (defmethod analyze ((source puri:uri) (kind (eql :auto))
                     &rest args

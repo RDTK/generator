@@ -282,14 +282,14 @@
                       *analysis-variables*))))
          ((&flet+ analyze-group ((info . versions))
             (let+ (((&plist-r/o (repository :repository)) info)
-                   (uri        (when repository (puri:uri repository)))
                    (other-info (remove-from-plist info :repository)))
               (mapcan
                (lambda (version results)
                  (when results
                    (list (analyze-version version results))))
                versions
-               (apply #'jenkins.analysis:analyze uri :auto
+               (apply #'jenkins.analysis:analyze repository :auto
+                      :project  project
                       :versions (map 'list #'version-info versions)
                       (append other-info args)))))))
     (mapc #'analyze-group groups)

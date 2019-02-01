@@ -12,23 +12,25 @@
        directory))
 
 (defun mercurial-clone (repository directory temp-directory &key disable-bundles?)
-  (restart-case
-      (%run-mercurial
-       `("clone" ,@(when disable-bundles? '(:config "ui.clonebundles=false"))
-                 ,repository ,directory)
-       temp-directory)
-    (continue (&optional condition)
-      :test (lambda (condition)
-              (declare (ignore condition))
-              (not disable-bundles?))
-      :report "Retry cloning with bundles disabled"
-      (declare (ignore condition))
-      ;; Mercurial deletes the directory if the clone operation
-      ;; fails. Restore it before retrying. Race conditions? Security
-      ;; considerations? Look! Over there, a three-headed monkey!
-      (ensure-directories-exist temp-directory)
-      (mercurial-clone repository directory temp-directory
-                       :disable-bundles? t))))
+  (with-condition-translation (((error repository-access-error)
+                                :specification repository))
+    (restart-case
+        (%run-mercurial
+         `("clone" ,@(when disable-bundles? '(:config "ui.clonebundles=false"))
+                   ,repository ,directory)
+         temp-directory)
+      (continue (&optional condition)
+        :test (lambda (condition)
+                (declare (ignore condition))
+                (not disable-bundles?))
+        :report "Retry cloning with bundles disabled"
+        (declare (ignore condition))
+        ;; Mercurial deletes the directory if the clone operation
+        ;; fails. Restore it before retrying. Race conditions? Security
+        ;; considerations? Look! Over there, a three-headed monkey!
+        (ensure-directories-exist temp-directory)
+        (mercurial-clone repository directory temp-directory
+                         :disable-bundles? t)))))
 
 (defmethod analyze ((source puri:uri) (schema (eql :mercurial))
                     &rest args &key

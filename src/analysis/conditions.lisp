@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the analysis module.
 ;;;;
-;;;; Copyright (C) 2014, 2015 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -30,6 +30,43 @@
   (:documentation
    "This error is signaled when an error is encountered during the
     analysis of a specification."))
+
+(define-condition repository-access-error (analysis-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Error accessing repository \"~A\".~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (analysis-condition-specification condition)
+             condition)))
+  (:documentation
+   "Signaled when a repository cannot be accessed."))
+
+(define-condition repository-analysis-error (analysis-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Error during analysis of repository \"~A\".~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (analysis-condition-specification condition)
+             condition)))
+  (:documentation
+   "Signaled when an error is encountered while analyzing a
+    repository."))
+
+(define-condition project-analysis-error (analysis-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Error during analysis of project ~
+                     ~/print-items:format-print-items/.~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (print-items:print-items
+              (analysis-condition-specification condition))
+             condition)))
+  (:documentation
+   "Signaled when an error is encountered while analyzing a
+    project."))
 
 ;;; Dependency conditions
 

@@ -26,7 +26,9 @@
    (:verb "error-policy ::= rule* default
 rule         ::= error \"=>\" action \":\"
 error        ::= \"object-error\" | \"simple-object-error\"
-                 | \"syntax-error\" | \"analysis-error\"
+                 | \"syntax-error\" | \"repository-access-error\"
+                 | \"repository-analysis-error\"
+                 | \"project-analysis-error\" | \"analysis-error\"
                  | \"dependency-error\" | \"instantiation-error\"
                  | \"report-error\"
 default      ::= action

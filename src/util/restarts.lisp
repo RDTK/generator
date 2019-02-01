@@ -6,6 +6,18 @@
 
 (cl:in-package #:jenkins.util)
 
+;;; Conditions
+
+(defun some-cause (predicate condition)
+  (labels ((rec (condition)
+             (cond ((funcall predicate condition)
+                    t)
+                   ((when-let ((cause (more-conditions:cause condition)))
+                      (rec cause)))
+                   (t
+                    nil))))
+    (rec condition)))
+
 ;;; Continuing
 
 (deftype continuable-error ()

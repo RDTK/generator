@@ -11,8 +11,10 @@
    #:let-plus
    #:iterate)
 
-  ;; Restarts
+  ;; Conditions and Restarts
   (:export
+   #:some-cause
+
    #:continuable-error
    #:find-continue-restart
 

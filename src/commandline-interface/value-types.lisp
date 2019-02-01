@@ -2,22 +2,36 @@
 
 ;;; `error-policy'
 
-(defun caused-by-unfulfilled-project-dependency-error? (thing)
-  (and (typep thing 'condition)
-       (typep (root-cause thing)
-              'jenkins.analysis:unfulfilled-project-dependency-error)))
+(macrolet
+    ((define-cause-predicate (condition-name)
+       (let* ((type-name      (symbolicate '#:caused-by- condition-name))
+              (predicate-name (symbolicate type-name '#:?)))
+         `(progn
+            (defun ,predicate-name (thing)
+              (and (typep thing 'condition)
+                   (jenkins.util:some-cause (of-type ',condition-name) thing)))
+            (deftype ,type-name ()
+              '(satisfies ,predicate-name))))))
 
-(deftype caused-by-unfulfilled-project-dependency-error ()
-  `(satisfies caused-by-unfulfilled-project-dependency-error?))
+  (define-cause-predicate jenkins.analysis:repository-access-error)
+  (define-cause-predicate jenkins.analysis:repository-analysis-error)
+  (define-cause-predicate jenkins.analysis:project-analysis-error)
+  (define-cause-predicate jenkins.analysis:unfulfilled-project-dependency-error))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *condition-types*
     '((jenkins.model.project::object-error            . nil)
       (jenkins.model.project::simple-object-error     . nil)
       (jenkins.model.project::yaml-syntax-error       . "syntax-error")
+
+      (caused-by-repository-access-error              . "repository-access-error")
+      (caused-by-repository-analysis-error            . "repository-analysis-error")
+      (caused-by-project-analysis-error               . "project-analysis-error")
       (jenkins.analysis:analysis-error                . nil)
+
       (caused-by-unfulfilled-project-dependency-error . "dependency-error")
       (jenkins.model:instantiation-error              . nil)
+
       (jenkins.report::report-error                   . nil)))
 
   (defvar *error-handling-actions*

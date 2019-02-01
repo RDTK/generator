@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -28,9 +28,9 @@
 
       .
 
-      * If SOURCE is a `puri:uri', an attempt is made to guess the
-        version control system from SOURCE and the project kind from
-        the content of SOURCE."))
+      * If SOURCE is a `puri:uri' and KIND is `:guess', an attempt is
+        made to guess the version control system from SOURCE and the
+        project kind from the content of SOURCE."))
 
 (defmethod analyze :around ((source t) (kind t) &key &allow-other-keys)
   (with-condition-translation (((error analysis-error)

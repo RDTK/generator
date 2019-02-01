@@ -1,6 +1,6 @@
 ;;;; mercurial.lisp --- Support for the mercurial DVCS.
 ;;;;
-;;;; Copyright (C) 2014, 2015, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2014-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,6 +10,25 @@
   (run `("hg" :noninteractive ; :color "never" :pager "never"
               ,@spec)
        directory))
+
+(defun mercurial-clone (repository directory temp-directory &key disable-bundles?)
+  (restart-case
+      (%run-mercurial
+       `("clone" ,@(when disable-bundles? '(:config "ui.clonebundles=false"))
+                 ,repository ,directory)
+       temp-directory)
+    (continue (&optional condition)
+      :test (lambda (condition)
+              (declare (ignore condition))
+              (not disable-bundles?))
+      :report "Retry cloning with bundles disabled"
+      (declare (ignore condition))
+      ;; Mercurial deletes the directory if the clone operation
+      ;; fails. Restore it before retrying. Race conditions? Security
+      ;; considerations? Look! Over there, a three-headed monkey!
+      (ensure-directories-exist temp-directory)
+      (mercurial-clone repository directory temp-directory
+                       :disable-bundles? t))))
 
 (defmethod analyze ((source puri:uri) (schema (eql :mercurial))
                     &rest args &key
@@ -37,9 +56,8 @@
     (unwind-protect
          (progn
            (with-trivial-progress (:clone "~A" repository/string)
-             (%run-mercurial
-              `("clone" ,repository/string ,clone-directory)
-              temp-directory))
+             (mercurial-clone
+              repository/string clone-directory temp-directory))
 
            (with-sequence-progress (:analyze/version versions)
              (iter (for version in versions)
@@ -67,7 +85,6 @@
                                            :branch-directory nil
                                            :committers       committers
                                            result))))))))
-
       (when (probe-file clone-directory)
         (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))
 

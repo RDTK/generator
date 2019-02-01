@@ -4,6 +4,10 @@
    "The HTML report publisher plugin for Jenkins is now supported.")
 
   (:enhancement
+   "When the first attempt at cloning a mercurial repository fails, a
+    second attempt without using \"bundles\" is made.")
+
+  (:enhancement
    "The \"Jenkins Warnings Plugin - Next Generation\" plugin is now
     supported. However, generated job configurations continue to
     select the legacy warnings and tasks plugins by default."

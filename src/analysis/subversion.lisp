@@ -1,6 +1,6 @@
 ;;;; subversion.lisp --- Analyze subversion repositories.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -13,6 +13,13 @@
 
 (defun %run-svn (spec directory &optional username password)
   (run `(,@(%svn-and-global-options username password) ,@spec) directory))
+
+(defun subversion-checkout (repository directory commit temp-directory
+                            &key username password)
+  (%run-svn `("co" ,@(when commit `("-r" ,commit))
+                   ,(princ-to-string repository)
+                   ,directory)
+            temp-directory username password))
 
 (defmethod analyze ((source puri:uri) (schema (eql :svn))
                     &rest args &key
@@ -70,11 +77,9 @@
               (unwind-protect
                    (progn
                      (with-trivial-progress (:checkout "~A" source)
-                       (%run-svn `("co" ,@(when commit `("-r" ,commit))
-                                        ,(princ-to-string repository-url)
-                                        ,clone-directory)
-                                 temp-directory username password))
-
+                       (subversion-checkout
+                        repository-url clone-directory commit temp-directory
+                        :username username :password password))
                      (let ((committers (analyze clone-directory :svn/committers
                                                 :username username
                                                 :password password))

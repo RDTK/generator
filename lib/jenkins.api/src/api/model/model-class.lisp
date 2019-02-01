@@ -1,6 +1,6 @@
 ;;;; model-class.lisp --- Superclass for model classes.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -85,7 +85,8 @@
             `(,name
               :initarg  ,initarg
               :type     ,(cond
-                           ((eq (getf (rest (ensure-list xpath)) :if-multiple-matches) :all)
+                           ((and (not (typep xpath '(cons (eql :version))))
+                                 (eq (getf (rest (ensure-list xpath)) :if-multiple-matches) :all))
                             'list)
                            ((and (listp type) (starts-with-subseq "LIST" (string (first type))))
                             'list)

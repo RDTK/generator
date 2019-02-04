@@ -1,6 +1,6 @@
 ;;;; files.lisp --- String-related utilities.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2018 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,11 +8,13 @@
 
 ;;; Namestrings
 
-(defun safe-enough-namestring (pathname)
+(defun safe-enough-namestring (pathname &optional defaults)
   (let* ((safe-directory (substitute :up :back (pathname-directory pathname)))
          (safe-pathname  (make-pathname :directory safe-directory
                                         :defaults  pathname)))
-    (enough-namestring safe-pathname)))
+    (if defaults
+        (enough-namestring safe-pathname defaults)
+        (enough-namestring safe-pathname))))
 
 ;;;
 

@@ -43,13 +43,20 @@
    "Signaled when a repository cannot be accessed."))
 
 (define-condition repository-analysis-error (analysis-error)
-  ()
+  ((context-directory :initarg :context-directory
+                      :reader  context-directory))
+  (:default-initargs
+   :context-directory (missing-required-initarg
+                       'repository-analysis-error :context-directory))
   (:report
    (lambda (condition stream)
-     (format stream "~@<Error during analysis of repository \"~A\".~
-                     ~/more-conditions:maybe-print-cause/~@:>"
-             (analysis-condition-specification condition)
-             condition)))
+     (let* ((context-directory (context-directory condition))
+            (pathname          (analysis-condition-specification condition))
+            (enough-namestring (jenkins.util:safe-enough-namestring
+                                pathname context-directory)))
+       (format stream "~@<Error during analysis of repository path ~
+                       \"~A\".~/more-conditions:maybe-print-cause/~@:>"
+                       enough-namestring condition))))
   (:documentation
    "Signaled when an error is encountered while analyzing a
     repository."))

@@ -53,3 +53,12 @@
            (with-condition-translation (((error project-analysis-error)
                                          :specification project))
              (do-it/generic-translation))))))
+
+(defvar *outermost-pathname* nil)
+
+(defmethod analyze :around ((source pathname) (kind t) &key)
+  (let ((*outermost-pathname* (or *outermost-pathname* source)))
+    (with-condition-translation (((error repository-analysis-error)
+                                  :specification     source
+                                  :context-directory *outermost-pathname*))
+      (call-next-method))))

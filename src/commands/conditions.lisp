@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions signaled by the commands module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -134,6 +134,18 @@
                     ~}~^~@:_~@:_~}~:>"
             (hash-table-alist table))))
 
+(defun condition-category (condition)
+  (cond ((jenkins.util:some-cause
+          (of-type 'jenkins.analysis:repository-access-error)
+          condition)
+         'jenkins.analysis:repository-access-error)
+        ((jenkins.util:some-cause
+          (of-type 'jenkins.analysis:repository-analysis-error)
+          condition)
+         'jenkins.analysis:repository-analysis-error)
+        (t
+         (type-of condition))))
+
 (define-condition deferred-phase-error (phase-error
                                         deferred-problem-condition)
   ()
@@ -158,7 +170,7 @@
                (length conditions) phase
                dependency-conditions
                (mapcar (lambda (condition)
-                         (list (type-of condition) condition))
+                         (list (condition-category condition) condition))
                        other-conditions)))))
   (:documentation
    "Signaled when deferred errors have accumulated at the end of a

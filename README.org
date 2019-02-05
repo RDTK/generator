@@ -4,6 +4,38 @@
 
 * TODO Introduction
 
-  The build generator is a program for generating [[https://jenkins.io/][Jenkins]] jobs (and
-  other things) from declarative recipes describing software projects,
-  software systems (and other things).
+  The build generator is a program for generating [[https://jenkins.io/][Jenkins]] jobs (and other things) from declarative recipes describing software projects, software systems (and other things).
+
+* Dependencies
+
+  At the moment, the code is almost but not quite portable and can only be used with the [[http://sbcl.org][SBCL]] implementation of Common Lisp.
+
+  Dependencies not available via [[https://www.quicklisp.org/beta/][Quicklisp]]:
+
+  + The [[https://github.com/scymtym/language.yaml][language.yaml]] project
+
+  + The [[https://github.com/scymtym/text.source-location][text.source-location]] project
+
+  + The [[https://code.cor-lab.org/projects/rosetta][rosetta]] project
+
+    + The [[https://code.cor-lab.org/projects/rosetta][rosetta-project]] project
+
+* TODO Building
+
+* Contributing
+
+  If you want to contribute to this project, please
+
+  + Submit your intended changes as coherent pull requests.
+
+  + Rebase onto the master branch and squash any fixups and corrections.
+
+  + Make sure the unit tests pass.
+
+* Acknowledgments
+
+  The development of this software has been supported as follows:
+
+  + The development of this software was supported by CoR-Lab, Research Institute for Cognition and Robotics Bielefeld University.
+
+  + This work was supported by the Cluster of Excellence Cognitive Interaction Technology ‘CITEC’ (EXC 277) at Bielefeld University, which is funded by the German Research Foundation (DFG).

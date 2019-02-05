@@ -36,6 +36,8 @@
   (or (%word object)
       (setf (%word object) (sloc:content (location object)))))
 
+;; TODO print-items for context
+
 ;;; `structure-context'
 
 (defclass structure-context (context
@@ -55,7 +57,7 @@
      (contributor structure-context-contributor))
   (when-let* ((path (structure-path position document)))
     (list (make-instance 'structure-context
-                         :location (lookup:lookup position (index document)) ; TODO repeated work in `structure-path'
+                         :location (first (lookup:lookup position (index document))) ; TODO repeated work in `structure-path'
                          :path     path))))
 
 ;;;
@@ -186,11 +188,11 @@
       (cond ((and (= position 0) (stringp thing) (not (find #\@ thing)))
              (list (make-instance 'project-name-context
                                   :location (first locations)
-                                  :word     (sloc:content (first locations)) ; TODO context should do this on-demand
                                   :prefix   thing)))
             ((and (= position 0) (stringp thing) (find #\@ thing))
              (list (make-instance 'project-name-context
-                                  :prefix (string-trim " " (subseq thing 0 (position #\@ thing))))))))))
+                                  :location (first locations)
+                                  :prefix   (string-trim " " (subseq thing 0 (position #\@ thing))))))))))
 
 ;;; Aspect class context
 

@@ -27,7 +27,7 @@
                    ~%~
                    ~{  * ~A~^~%~}~
                  ~]~
-                 ~2%~A"
+                 ~2%~:[*no description available*~;~:*~A~]"
             (length natures)               natures
             (length programming-languages) programming-languages
             (length licenses)              licenses

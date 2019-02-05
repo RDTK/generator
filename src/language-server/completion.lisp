@@ -176,7 +176,7 @@
                            name
                            :kind          :file
                            :detail        "project"
-                           :documentation (describe-project project)
+                           :documentation (proto:make-markup-content (describe-project project) :markdown) ; TODO directly describe as markup-content
                            :range         (sloc:range (location context)))))))
               (lparallel:force projects)))))
 

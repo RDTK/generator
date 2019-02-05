@@ -16,10 +16,10 @@
      (document    project-document)
      (context     structure-context)
      (contributor structure-completion-contributor))
-  (let+ ((path (path context))
+  (let+ (((&accessors-r/o location path)  context)
          ((&flet make-item (section)
-            (proto:make-completion-item (string-downcase section)))))
-    (log:error path)
+            (proto:make-completion-item (string-downcase section)
+                                        :range (sloc:range location)))))
     (cond ((and (<= 1 (length path) 2) (ends-with :versions path))
            (map 'list #'make-item '(:name :pattern :variables)))
           ((length= 1 path)
@@ -31,9 +31,10 @@
      (document    distribution-document)
      (context     structure-context)
      (contributor structure-completion-contributor))
-  (let+ ((path (path context))
+  (let+ (((&accessors-r/o location path) context)
          ((&flet make-item (section)
-            (proto:make-completion-item (string-downcase section)))))
+            (proto:make-completion-item (string-downcase section)
+                                        :range (sloc:range location)))))
     (cond ((length= 1 path)
            (map 'list #'make-item '(:minimum-generator-version
                                     :catalog :variables :include :versions)))
@@ -45,10 +46,10 @@
      (document    template-document)
      (context     structure-context)
      (contributor structure-completion-contributor))
-  (let+ ((path (path context))
+  (let+ (((&accessors-r/o location path) context)
          ((&flet make-item (section)
             (proto:make-completion-item (string-downcase section)
-                                        :range (sloc:range (word context))))))
+                                        :range (sloc:range location)))))
     (cond ((length= 1 path)
            (map 'list #'make-item '(:inherit :variables :aspects :jobs)))
           ((and (length= 2 path) (ends-with :aspects path))
@@ -66,12 +67,14 @@
      (document    t)
      (context     template-name-context)
      (contributor template-name-completion-contributor))
-  (let+ ((templates (templates workspace))
+  (let+ (((&accessors-r/o location word) context)
+         (templates (templates workspace))
          ((&flet make-item (template)
-            (proto:make-completion-item (model:name template)))))
+            (proto:make-completion-item (model:name template)
+                                        :range (sloc:range location)))))
     (when (lparallel:fulfilledp templates)
       (loop :for template :in (lparallel:force templates)
-            ;; when
+            :when (starts-with-subseq word (model:name template ))
             :collect (make-item template)))))
 
 ;;;
@@ -158,48 +161,24 @@
 
 (defclass project-name-completion-contributor () ())
 
-(defun describe-project (project)
-  (let+ (((&flet attribute (name default)
-            (handler-case
-                (var:value/cast
-                 project name default)
-              (error (condition)
-                (format nil "Error: ~A" condition)))))
-         (natures               (attribute :natures '()))
-         (programming-languages (attribute :programming-languages '()))
-         (licenses              (attribute :licenses '()))
-         (maintainers           (ensure-list
-                                 (attribute :recipe.maintainer '())))
-         (description           (attribute :description "«no description»")))
-    (format nil "Nature: ~A~%~
-                 Programming Languages: ~A~%~
-                 License: ~{~A~^ ~}~%~
-                 Maintainer~P:~%~
-                 ~{* ~A~^~%~}~
-                 ~2%~A"
-            natures
-            programming-languages
-            licenses
-            (length maintainers) maintainers
-            description)))
-
 (defmethod contrib:completion-contributions
     ((workspace   t)
      (document    t)
      (context     project-name-context)
      (contributor project-name-completion-contributor))
   (let ((prefix   (prefix context))
-        (projects (projects (workspace document))))
+        (projects (projects (workspace document)))) ; TODO we should get the workspace directly
     (when (lparallel:fulfilledp projects)
-     (mapcan (lambda (project)
-               (let ((name (model:name project)))
-                 (when (starts-with-subseq prefix name)
-                   (list (proto:make-completion-item
-                          name
-                          :kind          :file
-                          :detail        "project"
-                          :documentation (describe-project project))))))
-             (lparallel:force projects)))))
+      (mapcan (lambda (project)
+                (let ((name (model:name project)))
+                  (when (starts-with-subseq prefix name)
+                    (list (proto:make-completion-item
+                           name
+                           :kind          :file
+                           :detail        "project"
+                           :documentation (describe-project project)
+                           :range         (sloc:range (location context)))))))
+              (lparallel:force projects)))))
 
 ;;;
 
@@ -211,18 +190,20 @@
      (context     aspect-class-context)
      (contributor aspect-class-completion-contributor))
   (protocol.language-server::debug1 context)
-  (let ((prefix ""                      ;(prefix context)
-                ))
+  (let ((prefix (prefix context)))
     (mappend (lambda (provider)
                (let ((name (string-downcase (service-provider:provider-name provider))))
                  (when (starts-with-subseq prefix name)
                    (list (proto:make-completion-item
-                          name :kind :class :detail "aspect")))))
+                          name
+                          :kind   :class
+                          :detail "aspect"
+                          :range  (sloc:range (location context)))))))
              (service-provider:service-providers 'build-generator.model.aspects::aspect))))
 
 ;;;
 
-(defclass document ()
+#+no (defclass document ()
   ((index :initarg :index
           :reader  index)))
 

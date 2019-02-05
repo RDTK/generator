@@ -13,6 +13,8 @@
   ((%templates :accessor %templates
                :initform nil)
    (%projects  :accessor %projects
+               :initform nil)
+   (%persons   :accessor %persons
                :initform nil)))
 
 (defmethod load-templates ((container workspace))

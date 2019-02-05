@@ -19,7 +19,7 @@
      (list (format nil "Type: ~A" (jenkins.model.variables:variable-info-type variable-node))
            (or (jenkins.model.variables:variable-info-documentation variable-node)
                "«undocumented variable»"))
-     (sloc:range variable-location) )))
+     (sloc:range variable-location))))
 
 ;;; Project version
 
@@ -37,5 +37,6 @@
                  (let ((name (jenkins.model:name project)))
                    (when (starts-with-subseq prefix name)
                      (return-from contrib:hover-contribution
-                       (values (describe-project project))))))
+                       (values (describe-project project)
+                               (sloc:range (location context)))))))
            (lparallel:force projects)))))

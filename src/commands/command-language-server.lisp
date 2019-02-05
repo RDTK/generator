@@ -1,4 +1,4 @@
-;;;; command-language-server.lisp --- Command for starting a language server.
+;;;; command-language-server.lisp --- Command for running a language server.
 ;;;;
 ;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
@@ -41,17 +41,15 @@
   (uiop:symbol-call '#:swank '#:start-server "/tmp/port.txt" :dont-close t)
 
   ;; TODO (lsp:language-server *standard-input* *standard-output*)
-  (catch 'exit ; TODO gotta be wrong
-    (with-output-to-file (*trace-output* "/tmp/trace" :if-exists :supersede)
-      (loop :with connection = (setf jenkins.language-server::*connection*
-                                     (protocol.language-server.connection:make-connection
-                                      *standard-input* *standard-output*))
-            :with context = (protocol.language-server::make-context
-                             connection :workspace-class 'jenkins.language-server::workspace)
-            :do (handler-bind
-                    ((error (lambda (condition)
-                              (format *error-output* "Unhandled error processing request~%")
-                              (ignore-errors (format *error-output* "~A" condition))
-                              (ignore-errors (sb-debug:print-backtrace :stream *error-output*))
-                              (continue))))
-                  (protocol.language-server::process-request connection context))))))
+  (let* ((connection (setf jenkins.language-server::*connection*
+                           (protocol.language-server.connection:make-connection
+                            *standard-input* *standard-output*)))
+
+         (context    (protocol.language-server::make-context
+                      connection :workspace-class 'jenkins.language-server::workspace)))
+    (handler-bind ((error (lambda (condition)
+                            (format *error-output* "Unhandled error processing request~%")
+                            (ignore-errors (format *error-output* "~A" condition))
+                            (ignore-errors (sb-debug:print-backtrace :stream *error-output*))
+                            (continue))))
+      (protocol.language-server::process-requests connection context))))

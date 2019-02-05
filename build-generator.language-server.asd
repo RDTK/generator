@@ -33,6 +33,8 @@
                               (:file       "workspace")
                               (:file       "document")
 
+                              (:file       "describe")
+
                               (:file       "diagnostics")
                               (:file       "context")
                               (:file       "hover")

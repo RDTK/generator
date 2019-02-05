@@ -52,14 +52,16 @@
 
 (defun archive-remote-hash (url &rest args &key username password)
   (declare (ignore username password))
-  (with-retries (usocket:ns-try-again-condition :limit 3)
-    (with-retry-restart ("Retry obtaining hash for ~A" url)
-      (apply #'call-with-download-stream
-             (lambda (stream)
-               (let ((digest (ironclad:make-digesting-stream :sha512)))
-                 (copy-stream stream digest :end +archive-hash-length-limit+)
-                 (ironclad:produce-digest digest)))
-             url args))))
+  (with-condition-translation (((error repository-access-error)
+                                :specification url))
+    (with-retries (usocket:ns-try-again-condition :limit 3)
+      (with-retry-restart ("Retry obtaining hash for ~A" url)
+        (apply #'call-with-download-stream
+               (lambda (stream)
+                 (let ((digest (ironclad:make-digesting-stream :sha512)))
+                   (copy-stream stream digest :end +archive-hash-length-limit+)
+                   (ironclad:produce-digest digest)))
+               url args)))))
 
 (defun download-and-extract (source temp-directory
                              &key username password sub-directory)

@@ -74,9 +74,9 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
      the commandline) distribution")
    "If a given project version is included in multiple distributions,
     the instance (and in particular the parameters of that instance)
-    closest to the \"outermost\" distribution in terms of a
-    depth-first traversal of " (:verb "include") "relations is used
-    while all others are discarded."))
+    that appears first in terms of a depth-first traversal
+    of" (:verb "include") "relations is used while all others are
+    discarded."))
 
  (:release "0.25" "2018-11-14"
 

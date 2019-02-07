@@ -76,7 +76,10 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
     the instance (and in particular the parameters of that instance)
     that appears first in terms of a depth-first traversal
     of" (:verb "include") "relations is used while all others are
-    discarded."))
+    discarded."
+   "Note that the textual order of the" (:verb "include") "and"
+   (:verb "versions") "sections in distribution recipes has no bearing
+    on the ordering described above."))
 
  (:release "0.25" "2018-11-14"
 

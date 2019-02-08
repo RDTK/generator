@@ -30,7 +30,10 @@
       (jenkins.analysis:analysis-error                . nil)
 
       (caused-by-unfulfilled-project-dependency-error . "dependency-error")
+
       (jenkins.model:instantiation-error              . nil)
+
+      (jenkins.model:deployment-error                 . nil)
 
       (jenkins.report::report-error                   . nil)))
 

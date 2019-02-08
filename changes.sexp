@@ -30,7 +30,7 @@ error        ::= \"object-error\" | \"simple-object-error\"
                  | \"repository-analysis-error\"
                  | \"project-analysis-error\" | \"analysis-error\"
                  | \"dependency-error\" | \"instantiation-error\"
-                 | \"report-error\"
+                 | \"deployment-error\" | \"report-error\"
 default      ::= action
 action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
    ("Example:")

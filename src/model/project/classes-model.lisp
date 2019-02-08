@@ -321,7 +321,18 @@
   (mapc #'add-dependencies! (jobs thing) (jobs spec)))
 
 (defmethod deploy ((thing version))
-  (mapcar #'deploy (jobs thing)))
+  (with-sequence-progress (:deploy/job (jobs thing))
+    (mapcar #'deploy (jobs thing))))
+
+(defvar *outermost-version?* t)
+
+(defmethod deploy :around ((thing version))
+  (if *outermost-version?*
+      (with-condition-translation (((error project-deployment-error)
+                                    :thing thing))
+        (let ((*outermost-version?* nil))
+          (call-next-method)))
+      (call-next-method)))
 
 ;;; `job' class
 

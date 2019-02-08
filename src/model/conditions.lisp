@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used by the project module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -53,9 +53,19 @@
   (:report
    (lambda (condition stream)
      (format stream "~@<Error during deployment of ~
-                     ~A~/more-conditions:maybe-print-cause/~@:>"
+                     ~A.~/more-conditions:maybe-print-cause/~@:>"
              (deployment-condition-thing condition)
              condition)))
   (:documentation
    "This error is signaled when an error is encountered during
     deployment of a thing."))
+
+(define-condition project-deployment-error (deployment-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Error during deployment of project version ~
+                     ~/print-items:format-print-items/.~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (print-items:print-items (deployment-condition-thing condition))
+             condition))))

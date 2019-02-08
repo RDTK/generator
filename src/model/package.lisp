@@ -28,7 +28,9 @@
    #:deployment-condition
    #:deployment-condition-thing
 
-   #:deployment-error)
+   #:deployment-error
+
+   #:project-deployment-error)
 
   ;; Name protocol and mixin class
   (:export

@@ -205,11 +205,10 @@
   (:documentation
    "Instances of this class represent versions of `project's."))
 
-(defmethod print-items:print-items append ((object version))
-  (let ((ancestor-names (list (name (parent object))
-                              (name (parent (specification object)))
-                              (name object))))
-    `((:name ,ancestor-names "~{~A~^:~}"))))
+(defmethod ancestor-names ((thing version))
+  (list (name thing)
+        (name (parent (specification thing)))
+        (name (parent thing))))
 
 (defmethod direct-variables ((thing version))
   (value-acons :version-name (name thing)

@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for aspects module.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -42,6 +42,10 @@
    #:ancestors
 
    #:parented-mixin)
+
+  ;; Named and ancestors protocol
+  (:export
+   #:ancestor-names)
 
   ;; Dependency protocol
   (:export

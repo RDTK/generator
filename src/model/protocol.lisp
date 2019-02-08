@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -24,6 +24,28 @@
                                   #'parent (list thing))
                                  (parent thing))))
            (ancestors parent))))
+
+;;; Named and ancestors protocol
+
+(defgeneric ancestor-names (thing)
+  (:documentation
+   "Return a list of the names of the ancestors of THING.
+
+    The firsts element of the returned list is the name of THING, the
+    second element (if any) is the name of the parent of THING,
+    etc."))
+
+;;; Default behavior
+
+(defmethod ancestor-names ((thing t))
+  (list* (let ((name (name thing)))
+           (if (emptyp name)
+               "<empty>"
+               name))
+         (when-let ((parent (and (compute-applicable-methods
+                                  #'parent (list thing))
+                                 (parent thing))))
+           (ancestor-names parent))))
 
 ;;; Dependencies protocol
 

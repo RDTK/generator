@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -23,15 +23,7 @@
                  (call-next-method))))
 
 (defmethod print-items:print-items append ((object named-mixin))
-  (let+ (((&labels ancestor-names (object)
-            (append (when (compute-applicable-methods #'parent (list object))
-                      (when-let ((parent (parent object)))
-                        (ancestor-names parent)))
-                    (list (let ((name (name object)))
-                            (if (emptyp name)
-                                "<empty>"
-                                name)))))))
-    `((:name ,(ancestor-names object) "~{~A~^:~}"))))
+  `((:name ,(reverse (ancestor-names object)) "~{~A~^:~}")))
 
 ;;; `parented-mixin'
 

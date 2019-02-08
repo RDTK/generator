@@ -8,6 +8,10 @@
     second attempt without using \"bundles\" is made.")
 
   (:enhancement
+   "Error reports printed during the analysis and deployment phases
+    now always include the project and/or project version name.")
+
+  (:enhancement
    "The \"Jenkins Warnings Plugin - Next Generation\" plugin is now
     supported. However, generated job configurations continue to
     select the legacy warnings and tasks plugins by default."

@@ -65,7 +65,10 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
    (:ul
     "Specified as a parameter when (directly) including the project
      version in a distribution"
-    "Specified as a variable in the project recipe"
+    ("Specified as a variable in an entry in the" (:verb "versions") "
+      section of the project recipe")
+    ("Specified as a variable in the global" (:verb "variables") "
+      section of the project recipe")
     "Specified as a parameter when including the distribution which in
      turn directly includes the project version"
     "Specified as a variable in the distribution which directly

@@ -291,14 +291,16 @@
           :test (complement #'eq)
           :key  #'first))
 
-(defmethod instantiate ((spec version-spec) &key parent context specification-parent)
+(defmethod instantiate ((spec version-spec) &key parent context specification-parent variables
+                                                 )
   (declare (ignore specification-parent))
   (let+ ((version (make-instance 'version
                                  :name          (name spec)
                                  :specification spec
                                  :parent        parent
                                  :context       context
-                                 :variables     (direct-variables spec)))
+                                 :variables     variables
+                                 ))
          ((&flet make-job (job-spec)
             (when (instantiate? job-spec version)
               (when-let ((job (instantiate job-spec

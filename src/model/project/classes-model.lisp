@@ -246,7 +246,7 @@
                          (lookup parent name :if-undefined nil)))
                       '(nil nil nil))
 
-                  (if inheritable?
+                  #+no (if inheritable?
                       (multiple-value-list (call-next-method))
                       '(nil nil nil)))
 

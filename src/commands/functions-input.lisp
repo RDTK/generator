@@ -111,7 +111,6 @@
               (let* ((project-include (find name project-includes
                                             :test #'string=
                                             :key  #'jenkins.model.project:version))
-                     (parameters    (direct-variables project-include))
                      (version       (cond
                                       ((find name (versions project)
                                              :test #'string= :key #'name))
@@ -136,16 +135,12 @@
                                          version-spec))))
                      (name-variable (cond
                                       (branch? :branch)
-                                      (tag?    :tag)))
-                     (variables     (append
-                                     parameters
-                                     (when (and name-variable
-                                                (not (jenkins.model.variables:value
-                                                      version name-variable nil)))
-                                       (list (value-cons name-variable name)))
-                                     (jenkins.model.variables::%direct-variables
-                                      version))))
-                (list (reinitialize-instance version :variables variables))))))
+                                      (tag?    :tag))))
+                (when (and name-variable
+                           (not (jenkins.model.variables:value
+                                 version name-variable nil)))
+                  (setf (jenkins.model.variables:lookup version name-variable) name))
+                (list version)))))
          (versions (append (mapcan (rcurry #'process-version :branch? t)
                                    branches)
                            (mapcan (rcurry #'process-version :tag? t)

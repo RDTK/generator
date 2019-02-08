@@ -172,16 +172,14 @@
 ;; Default behavior
 
 (defmethod deploy :around ((thing t))
-  (with-condition-translation
-      (((error deployment-error)
-        :thing thing))
+  (with-condition-translation (((error deployment-error)
+                                :thing thing))
     (with-simple-restart (continue "~@<Skip deployment of ~A.~@:>" thing)
       (call-next-method))))
 
 (defmethod deploy-dependencies :around ((thing t))
-  (with-condition-translation
-      (((error deployment-error)
-        :thing thing))
+  (with-condition-translation (((error deployment-error)
+                                :thing thing))
     (with-simple-restart (continue "~@<Skip deploying dependencies of ~
                                     ~A.~@:>"
                                    thing)

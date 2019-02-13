@@ -300,7 +300,7 @@
        (lambda (version)
          (progress "~A" version)
          (with-simple-restart
-             (continue "~<Ignore ~A and continue with the next ~
+             (continue "~@<Ignore ~A and continue with the next ~
                         version.~@:>"
                        version)
            (list (analyze-version version))))

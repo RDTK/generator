@@ -160,7 +160,7 @@
               (progressing
                (lambda (version)
                  (with-simple-restart
-                     (continue "~<Ignore ~A and continue with the next ~
+                     (continue "~@<Ignore ~A and continue with the next ~
                                 version.~@:>"
                                version)
                    (list (archive-analyze-version/maybe-cached

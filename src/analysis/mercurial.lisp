@@ -65,7 +65,7 @@
              (iter (for version in versions)
                    (progress "~A" version)
                    (with-simple-restart
-                       (continue "~<Ignore ~A and continue with the ~
+                       (continue "~@<Ignore ~A and continue with the ~
                                   next version.~@:>"
                                  version)
                        (let ((commit (or (getf version :commit)

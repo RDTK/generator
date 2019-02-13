@@ -99,7 +99,7 @@
       (iter (for (version directory commit) in locations)
             (progress "~A" version)
             (with-simple-restart
-                (continue "~<Ignore ~A and continue with the next ~
+                (continue "~@<Ignore ~A and continue with the next ~
                            branch.~@:>"
                           version)
               (collect (analyze-location version directory commit)))))))

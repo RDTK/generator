@@ -1,4 +1,4 @@
-;;;; grammar.lisp --- Unit tests for the variable grammar.
+;;;; evaluation.lisp --- Unit tests for variable evaluation.
 ;;;;
 ;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;

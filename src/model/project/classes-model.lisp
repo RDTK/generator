@@ -244,10 +244,6 @@
                       (when-let ((parent (parent thing)))
                         (multiple-value-list
                          (lookup parent name :if-undefined nil)))
-                      '(nil nil nil))
-
-                  (if inheritable?
-                      (multiple-value-list (call-next-method))
                       '(nil nil nil)))
 
             :initial-value (multiple-value-list (direct-lookup thing name))))))

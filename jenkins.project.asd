@@ -6,7 +6,7 @@
 
 (defsystem "jenkins.project"
   :description "Generates Jenkins jobs from different kinds of recipes."
-  :license     "LLGPLv3" ; see COPYING file for details.
+  :license     "GPLv3" ; see COPYING file for details.
 
   :author      "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :maintainer  "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"

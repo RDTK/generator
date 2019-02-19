@@ -6,7 +6,7 @@
 
 (defsystem "jenkins.api"
   :description "Bindings for Jenkins' REST API."
-  :license     "LLGPLv3" ; see COPYING file for details.
+  :license     "GPLv3" ; see COPYING file for details.
 
   :author      "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
   :maintainer  "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"

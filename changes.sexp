@@ -1,4 +1,6 @@
-((:release "0.26" "2019-02-19"
+((:release "0.27" nil)
+
+ (:release "0.26" "2019-02-19"
 
   (:enhancement
    "The HTML report publisher plugin for Jenkins is now supported.")

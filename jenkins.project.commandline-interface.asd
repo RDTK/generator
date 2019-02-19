@@ -1,6 +1,6 @@
 ;;;; jenkins.project.commandline-interface.asd --- System definition for generator binary.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -33,4 +33,6 @@
                               (:file       "configuration")
                               (:file       "main"))))
 
-  :entry-point "JENKINS.PROJECT.COMMANDLINE-INTERFACE:MAIN")
+  :build-operation program-op
+  :build-pathname  "build-generator"
+  :entry-point     "JENKINS.PROJECT.COMMANDLINE-INTERFACE:MAIN")

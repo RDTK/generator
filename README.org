@@ -20,7 +20,21 @@
 
     + The [[https://code.cor-lab.org/projects/rosetta][rosetta-project]] project
 
-* TODO Building
+* Building
+
+  + Within SBCL ::
+
+    #+BEGIN_SRC lisp
+      (asdf:make :jenkins.project.commandline-interface)
+    #+END_SRC
+
+  + On the commandline ::
+
+    #+BEGIN_SRC bash
+      sbcl --no-userinit --load quicklisp/setup.lisp --eval '(asdf:make :jenkins.project.commandline-interface)'
+    #+END_SRC
+
+  Both variants should produce a binary named =build-generator= in the project root directory.
 
 * Contributing
 

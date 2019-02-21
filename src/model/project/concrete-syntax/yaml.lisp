@@ -187,7 +187,9 @@
                          (lambda (condition)
                            (error "~@<Error when loading ~(~A~) ~
                                    description from ~S: ~A~@:>"
-                                  ',concept pathname condition))))
+                                  ',concept
+                                  (jenkins.util:safe-enough-namestring pathname)
+                                  condition))))
            (let+ (((&values spec name pathname)
                    (apply #',read-name pathname args))
                   (result (apply #',parse-name spec name :pathname pathname

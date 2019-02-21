@@ -8,12 +8,28 @@
 
 ;;; `named-mixin'
 
+(declaim (inline name-character?))
+(defun name-character? (character)
+  (or (alphanumericp character)
+      (find character "._-+/!")))
+
+(defun name? (thing)
+  (and (stringp thing)
+       (not (emptyp thing))
+       (every #'name-character? thing)))
+
+(deftype name ()
+  `(and string (satisfies name?)))
+
 (defclass named-mixin (print-items:print-items-mixin)
   ((name :initarg  :name
-         :type     string
+         :type     name
          :reader   name
          :documentation
-         ""))
+         "The name of the model object.
+
+          Should be unique within the object's associated
+          namespace."))
   (:documentation
    "Intended to be mixed into classes representing named model objects."))
 

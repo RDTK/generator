@@ -10,12 +10,17 @@
                      lsp:document-container-mixin
                      lsp:root-uri-mixin
                      print-items:print-items-mixin)
-  ((%templates :accessor %templates
-               :initform nil)
-   (%projects  :accessor %projects
-               :initform nil)
-   (%persons   :accessor %persons
-               :initform nil)))
+  ((%templates         :accessor %templates
+                       :initform nil)
+   (%projects          :accessor %projects
+                       :initform nil)
+   (%persons           :accessor %persons
+                       :initform nil)
+   ;; Platform
+   (%platform-packages :accessor %platform-packages
+                       :initform nil)))
+
+;;; Templates
 
 (defmethod load-templates ((container workspace))
   (let ((project::*templates* (make-hash-table :test #'equal))
@@ -48,6 +53,8 @@
         (gethash name (lparallel:force templates))
         (lparallel:future (gethash name (lparallel:force templates))))))
 
+;;; Projects
+
 (defmethod load-projects ((container workspace))
   (let ((project::*templates* (lparallel:force (ensure-templates container)))
         (project::*projects* nil ; (make-hash-table :test #'equal)
@@ -73,6 +80,23 @@
 
 (defmethod projects ((container workspace))
   (ensure-projects container))
+
+;;; Platform packages
+
+(defmethod load-platform-packages ((container workspace))
+  (jenkins.analysis:installed-packages))
+
+(defmethod ensure-platform-packages ((container workspace))
+  (loop :for platform-packages = (%platform-packages container)
+        :when platform-packages :do (return platform-packages)
+        :do (let ((promise (lparallel:promise)))
+              (when (null (sb-ext:compare-and-swap
+                           (slot-value container '%platform-packages) nil promise))
+                                        ; (methods::log-message (proto::make-message :info "Background-loading platform-packages"))
+                (lparallel:future (lparallel:fulfill promise
+                                    (load-platform-packages container)))))))
+
+;;;
 
 #+no (defun all-keywords ()
   (remove-duplicates

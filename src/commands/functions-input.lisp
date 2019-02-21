@@ -84,10 +84,8 @@
          distribution-pathnames distributions)
     (hash-table-values projects)))
 
-(defun load-project/versioned (file project-includes &key generator-version)
-  (let+ ((version-names (map 'list #'jenkins.model.project:version
-                             project-includes))
-         (project       (load-project-spec/yaml
+(defun load-project/versioned (file version-names &key generator-version)
+  (let+ ((project       (load-project-spec/yaml
                          file
                          :version-test      (lambda (name pattern)
                                               (cond
@@ -108,10 +106,7 @@
                                         :test #'string=))
          ((&flet process-version (name &key version-required? branch? tag?)
             (with-simple-restart (continue "~@<Skip version ~S.~@:>" name)
-              (let* ((project-include (find name project-includes
-                                            :test #'string=
-                                            :key  #'jenkins.model.project:version))
-                     (version       (cond
+              (let* ((version       (cond
                                       ((find name (versions project)
                                              :test #'string= :key #'name))
                                       (version-required?
@@ -156,8 +151,10 @@
        (progress "~A" (jenkins.util:safe-enough-namestring file))
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
-         (list (load-project/versioned
-                file project-includes :generator-version generator-version))))
+         (let ((version-names (map 'list #'jenkins.model.project:version
+                                   project-includes)))
+          (list (load-project/versioned
+                 file version-names :generator-version generator-version)))))
      :parts most-positive-fixnum files-and-includes)))
 
 ;;; The values of these variables uniquely identify a "repository

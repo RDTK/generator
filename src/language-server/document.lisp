@@ -11,7 +11,6 @@
                                     contrib:context-contributors-mixin
                                     contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin
-                                    contrib::signature-contributors-mixin
                                     contrib:definition-contributors-mixin)
   ((lsp::%workspace :initarg  :workspace
                :reader   workspace)
@@ -33,21 +32,21 @@
                                       (aspect   (eql 'contrib:context)))
   (list (make-instance 'structure-context-contributor)
         (make-instance 'variable-name-context-contributor)
-        (make-instance 'variable-value-context-contributor)))
+        (make-instance 'variable-value-context-contributor)
+        (make-instance 'system-package-name-context-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:hover)))
-  (list (make-instance 'variable-hover-contributor)))
-
-(defmethod contrib:make-contributors ((document build-generator-document)
-                                      (aspect   (eql 'contrib:signature)))
-  (list (make-instance 'variable-signature-contributor)))
+  (list (make-instance 'variable-hover-contributor)
+        (make-instance 'effective-value-hover-contributor)
+        (make-instance 'system-package-name-hover-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:completion)))
   (list (make-instance 'structure-completion-contributor)
         (make-instance 'variable-name-completion-contributor)
-        (make-instance 'variable-value-completion-contributor)))
+        (make-instance 'variable-value-completion-contributor)
+        (make-instance 'system-package-name-completion-contributor)))
 
 (defmethod (setf lsp:text) :after ((new-value string)
                                    (document  build-generator-document))

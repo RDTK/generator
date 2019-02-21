@@ -6,20 +6,45 @@
 
 (cl:in-package #:jenkins.language-server)
 
-;;; Variable
+;;; Variable information
 
 (defclass variable-hover-contributor () ())
 
-(defmethod contrib:hover-contribution ((workspace   t)
-                                       (document    t)
-                                       (context     variable-value-context)
-                                       (contributor variable-hover-contributor))
+(defmethod contrib:hover-contribution
+    ((workspace   t)
+     (document    t)
+     (context     known-variable-value-context)
+     (contributor variable-hover-contributor))
   (let+ (((&accessors-r/o variable-location variable-node) context))
     (values
      (list (format nil "Type: ~A" (jenkins.model.variables:variable-info-type variable-node))
            (or (jenkins.model.variables:variable-info-documentation variable-node)
                "«undocumented variable»"))
-     (sloc:range variable-location))))
+     (sloc:range variable-location)
+     "Variable Information")))
+
+;;; Effective value
+
+(defclass effective-value-hover-contributor () ())
+
+(defmethod contrib:hover-contribution
+    ((workspace   t)
+     (document    t)
+     (context     variable-value-context)
+     (contributor effective-value-hover-contributor))
+  (let+ (((&accessors-r/o object) document)
+         ((&accessors-r/o variable-name variable-location) context))
+    (when object
+      (values (format nil "Effective value:~@
+                         ```yaml~@
+                         ~A~@
+                         ```"
+                      (handler-case
+                          (jenkins.model.variables:value object variable-name)
+                        (error (condition)
+                          condition)))
+              (sloc:range variable-location)
+              "Effective Value"))))
 
 ;;; Project version
 
@@ -40,3 +65,19 @@
                        (values (describe-project project)
                                (sloc:range (location context)))))))
            (lparallel:force projects)))))
+
+;;; System package name
+
+(defclass system-package-name-hover-contributor () ())
+
+(defmethod contrib:hover-contribution
+    ((workspace   t)
+     (document    t)
+     (context     system-package-name-context )
+     (contributor system-package-name-hover-contributor))
+  (when-let* ((packages (lparallel:force (ensure-platform-packages workspace)))
+              (package  (find (word context) packages :test #'string= :key #'first)))
+    (log:error (word context) package)
+    (values (format nil "name: ~A~%version: ~A" (first package) (second package))
+            (sloc:range (location context))
+            "Package Information")))

@@ -6,7 +6,7 @@
 
 (cl:in-package #:jenkins.language-server)
 
-;;;
+;;; Structure completion for different document kinds
 
 (defclass structure-completion-contributor ()
   ())
@@ -77,7 +77,7 @@
             :when (starts-with-subseq word (jenkins.model:name template ))
             :collect (make-item template)))))
 
-;;;
+;;; Variable name completion
 
 (defclass variable-name-completion-contributor ()
   ())
@@ -101,9 +101,11 @@
                :range         (prefix-range context)
                :new-text      new-text)))))
     (loop :for variable :in (jenkins.model.variables:all-variables)
-             #+no :when #+no (starts-with-subseq
-                              prefix (string-downcase (jenkins.model.variables:variable-info-name variable)))
-          :collect (make-item variable))))
+          #+todo :when #+todo (starts-with-subseq
+                 prefix (string-downcase (jenkins.model.variables:variable-info-name variable)))
+            :collect (make-item variable))))
+
+;;; Variable value completion
 
 (defclass variable-value-completion-contributor ()
   ())
@@ -145,7 +147,7 @@
 (defmethod contrib:completion-contributions
     ((workspace    t)
      (document     t)
-     (context      variable-value-context)
+     (context      known-variable-value-context)
      (contriubutor variable-value-completion-contributor))
   (let ((variable (variable-node context)))
     (cond ((member (jenkins.model.variables:variable-info-name variable) '(:branches :branch))
@@ -154,7 +156,9 @@
            (remote-refs (object document) :tag))
           (t
            (map 'list (lambda (value)
-                        (proto:make-completion-item value :kind :constant))
+                        (proto:make-completion-item value
+                                                    :kind  :constant
+                                                    :range (sloc:range (location context))))
                 (possible-values (jenkins.model.variables:variable-info-type variable)))))))
 
 ;;;
@@ -200,6 +204,25 @@
                           :detail "aspect"
                           :range  (sloc:range (location context)))))))
              (service-provider:service-providers 'jenkins.model.aspects::aspect))))
+
+;;; System package name completion
+
+(defclass system-package-name-completion-contributor () ())
+
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     system-package-name-context)
+     (contributor system-package-name-completion-contributor))
+  (let ((prefix (word context))
+        (range  (sloc:range (location context))))
+   (loop :for package :in (lparallel:force (ensure-platform-packages workspace))
+         :for name = (first package)
+         :when (starts-with-subseq prefix name)
+           :collect (proto:make-completion-item name
+                                                :kind   :module
+                                                :detail "package"
+                                                :range  range))))
 
 ;;;
 

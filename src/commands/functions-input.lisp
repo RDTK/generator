@@ -55,14 +55,12 @@
 ;;; Projects
 
 (defun derive-project-pattern (distribution name)
-  (let ((pattern (merge-pathnames (make-pathname
-                                   :name      name
-                                   :type      "project"
-                                   :directory '(:relative :back "projects"))
-                                  distribution)))
-    (setf (jenkins.model.project::location-of pattern)
-          (jenkins.model.project::location-of name))
-    pattern))
+  (jenkins.model.project::copy-location
+   name (merge-pathnames (make-pathname
+                          :name      name
+                          :type      "project"
+                          :directory '(:relative :back "projects"))
+                         distribution)))
 
 (defun locate-projects (distribution-pathnames distributions)
   (let+ ((projects (make-hash-table :test #'equalp))
@@ -123,11 +121,8 @@
                                                               :name      name
                                                               :parent    project
                                                               :variables '())))
-                                         (setf (jenkins.model.project::location-of
-                                                version-spec)
-                                               (jenkins.model.project::location-of
-                                                name))
-                                         version-spec))))
+                                         (jenkins.model.project::copy-location
+                                          name version-spec)))))
                      (name-variable (cond
                                       (branch? :branch)
                                       (tag?    :tag))))

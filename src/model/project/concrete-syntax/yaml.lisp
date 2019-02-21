@@ -191,11 +191,10 @@
                                   (jenkins.util:safe-enough-namestring pathname)
                                   condition))))
            (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname args))
-                  (result (apply #',parse-name spec name :pathname pathname
-                                 args)))
-             (setf (location-of result) (location-of spec))
-             result))))))
+                   (apply #',read-name pathname args)))
+             (copy-location
+              spec (apply #',parse-name spec name :pathname pathname
+                          args))))))))
 
 ;;; Person loading
 
@@ -364,9 +363,7 @@
                                                (funcall version-test name pattern))))
                                  (let ((version-specs (make-version-spec
                                                        spec instance requested-versions)))
-                                   (map nil (lambda (version-spec)
-                                              (setf (location-of version-spec)
-                                                    (location-of spec)))
+                                   (map nil (curry #'copy-location spec)
                                         version-specs)
                                    version-specs)))))
                          (lookup :versions)))))

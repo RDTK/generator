@@ -127,10 +127,12 @@
   ())
 
 (defmethod parse ((document project-document) (text string) (pathname t))
-  (let ((project::*templates* (lparallel:force (ensure-templates (workspace document)))))
+  (let* ((workspace            (workspace document))
+         (project::*templates* (lparallel:force (ensure-templates workspace))))
     (project::load-project-spec/yaml
      text
      :pathname          pathname
+     :repository        (repository workspace)
      :generator-version "0.26.0"
      :version-test      (lambda (name pattern)
                           (cond (name

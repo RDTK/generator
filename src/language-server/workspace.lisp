@@ -10,7 +10,11 @@
                      lsp:document-container-mixin
                      lsp:root-uri-mixin
                      print-items:print-items-mixin)
-  ((%templates         :accessor %templates
+  ((%repository        :initarg  :repository
+                       :reader   repository
+                       :writer   (setf %repository))
+   ;;
+   (%templates         :accessor %templates
                        :initform nil)
    (%projects          :accessor %projects
                        :initform nil)
@@ -20,13 +24,26 @@
    (%platform-packages :accessor %platform-packages
                        :initform nil)))
 
+(defmethod shared-initialize :after ((instance   workspace)
+                                     (slot-names t)
+                                     &key
+                                     (root-uri   nil root-uri-supplied?)
+                                     (root-path  nil root-path-supplied?)
+                                     (repository nil repository-supplied?))
+  (declare (ignore root-uri root-path repository))
+  (when (and (or root-uri-supplied? root-path-supplied?)
+             (not repository-supplied?))
+    (setf (%repository instance)
+          (jenkins.model.project:make-populated-recipe-repository
+           (lsp:root-directory instance) "toolkit"))))
+
 ;;; Templates
 
 (defmethod load-templates ((container workspace))
   (let ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
         (jenkins.model.project::*templates-lock* (bt:make-lock))
-        (pattern (merge-pathnames "templates/toolkit/*.template"
-                                  (lsp:root-directory container))))
+        (pattern (jenkins.model.project:recipe-path
+                  (repository container) :template :wild)))
     (log:error "Background-loading templates from ~A" pattern)
     (map nil #'jenkins.model.project:load-template/yaml (directory pattern))
     jenkins.model.project::*templates*))
@@ -60,7 +77,8 @@
         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
                                            )
         (jenkins.model.project::*projects-lock* (bt:make-lock))
-        (pattern (merge-pathnames "projects/*.project" (lsp:root-directory container))))
+        (pattern (jenkins.model.project:recipe-path
+                  (repository container) :project :wild)))
     (handler-bind (((and error jenkins.util:continuable-error)
                      (compose #'invoke-restart #'jenkins.util:find-continue-restart)))
       (mappend (lambda (filename)

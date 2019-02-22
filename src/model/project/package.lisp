@@ -138,6 +138,17 @@
    #:platform-requires
    #:platform-provides)
 
+  ;; Recipe repository protocol
+  (:export
+   #:root-directory
+   #:recipe-directory
+   #:recipe-path
+
+   #:populate-recipe-repository!
+
+   #:make-recipe-repository
+   #:make-populated-recipe-repository)
+
   ;; YAML stuff
   (:export
    #:load-person/yaml

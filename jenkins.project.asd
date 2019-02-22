@@ -154,6 +154,8 @@
 
                               (:file     "util")
 
+                              (:file     "recipe-repository")
+
                               (:file     "builder")
                               (:file     "yaml")))
 
@@ -207,7 +209,16 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "grammar")
-                              (:file     "evaluation"))))
+                              (:file     "evaluation")))
+
+                (:module     "model-project"
+                 :pathname   "test/model/project"
+                 :depends-on ("test")
+                 :serial     t
+                 :components ((:file     "package")
+
+                              (:file     "recipe-repository"
+                               :pathname "concrete-syntax/recipe-repository"))))
 
   :perform     (test-op (operation component)
                  (uiop:symbol-call '#:jenkins.project.test '#:run-tests)))

@@ -32,7 +32,7 @@
                           :format-arguments (list kind patterns))
                          :warning-condition simple-warning)))))
 
-(defun load-specifications (kind files loader)
+(defun load-specifications (kind files loader repository)
   (let ((name (let ((*package* (find-package :keyword)))
                 (symbolicate '#:load/ kind))))
     (with-sequence-progress (name files)
@@ -40,29 +40,18 @@
                 (progress "~A" (jenkins.util:safe-enough-namestring file))
                 (with-simple-restart
                     (continue "~@<Skip ~A specification ~S.~@:>" kind file)
-                  (list (funcall loader file))))
+                  (list (funcall loader file :repository repository))))
               files))))
 
-;;; Templates
-
-(defun derive-template-pattern (distribution mode)
-  (merge-pathnames (make-pathname
-                    :name      :wild
-                    :type      "template"
-                    :directory `(:relative :back "templates" ,mode))
-                   distribution))
+(defun derive-root-repository (distribution-pathname mode)
+  (let ((root-directory (merge-pathnames
+                         (make-pathname :directory '(:relative :back))
+                         (uiop:pathname-directory-pathname distribution-pathname))))
+    (make-populated-recipe-repository root-directory mode)))
 
 ;;; Projects
 
-(defun derive-project-pattern (distribution name)
-  (jenkins.model.project::copy-location
-   name (merge-pathnames (make-pathname
-                          :name      name
-                          :type      "project"
-                          :directory '(:relative :back "projects"))
-                         distribution)))
-
-(defun locate-projects (distribution-pathnames distributions)
+(defun locate-projects (distributions repository)
   (let+ ((projects (make-hash-table :test #'equalp))
          ((&flet ensure-project (location project-include)
             (if-let ((project (gethash location projects)))
@@ -70,21 +59,23 @@
                        :test #'string= :key #'jenkins.model.project:version) ; TODO should consider parameters as part of the key
               (setf (gethash location projects)
                     (list location (list project-include)))))))
-    (map nil (lambda (distribution-pathname distribution)
+    (map nil (lambda (distribution)
                (map nil (lambda (project-include)
                           (let ((name (project project-include)))
-                            (when-let* ((pattern  (derive-project-pattern
-                                                   distribution-pathname name))
+                            (when-let* ((pattern  (jenkins.model.project::copy-location
+                                                   name (recipe-path repository :project name)))
                                         (location (first (locate-specifications
                                                           :project (list pattern)))))
                               (ensure-project location project-include))))
                     (versions distribution)))
-         distribution-pathnames distributions)
+         distributions)
     (hash-table-values projects)))
 
-(defun load-project/versioned (file version-names &key generator-version)
+(defun load-project/versioned (file version-names repository
+                               &key generator-version)
   (let+ ((project       (load-project-spec/yaml
                          file
+                         :repository        repository
                          :version-test      (lambda (name pattern)
                                               (cond
                                                 (name
@@ -139,7 +130,7 @@
                                    versions1))))
     (reinitialize-instance project :versions versions)))
 
-(defun load-projects/versioned (files-and-includes &key generator-version)
+(defun load-projects/versioned (files-and-includes repository &key generator-version)
   (with-sequence-progress (:load/project files-and-includes)
     (lparallel:pmapcan
      (lambda+ ((file project-includes))
@@ -149,7 +140,8 @@
          (let ((version-names (map 'list #'jenkins.model.project:version
                                    project-includes)))
           (list (load-project/versioned
-                 file version-names :generator-version generator-version)))))
+                 file version-names repository
+                 :generator-version generator-version)))))
      :parts most-positive-fixnum files-and-includes)))
 
 ;;; The values of these variables uniquely identify a "repository

@@ -152,9 +152,11 @@
   (check-type spec-var symbol)
   (check-type name (cons symbol (cons (member :data :pathname) null)))
   (let+ (((&optional name-var name-kind) name)
-         (other-args (set-difference args '(pathname generator-version)
-                                     :test #'eq))
-         (all-args   (list* 'pathname 'generator-version other-args))
+         (other-args (set-difference
+                      args '(repository pathname generator-version)
+                      :test #'eq))
+         (all-args   (list* 'repository 'pathname 'generator-version
+                            other-args))
          (read-name  (symbolicate '#:read-  concept '#:/yaml))
          (parse-name (symbolicate '#:parse- concept '#:/yaml))
          (load-name  (symbolicate '#:load-  concept '#:/yaml))
@@ -169,10 +171,8 @@
                               ,@keys))
            (check-generator-version spec generator-version ,context)
            (let ((name ,@(ecase name-kind
-                           (:data
-                            `((assoc-value spec :name)))
-                           (:pathname
-                            `((pathname-name pathname))))))
+                           (:data     `((assoc-value spec :name)))
+                           (:pathname `((pathname-name pathname))))))
              (values spec name pathname))))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
@@ -181,7 +181,11 @@
                    (cdr (assoc name where)))))
            ,@body))
 
-       (defun ,load-name (pathname &rest args &key generator-version ,@other-args)
+       (defun ,load-name (pathname
+                          &rest args
+                          &key (repository (missing-required-argument :repository))
+                               generator-version
+                               ,@other-args)
          (declare (ignore generator-version ,@other-args))
          (handler-bind (((and error (not annotation-condition))
                          (lambda (condition)
@@ -191,9 +195,12 @@
                                   (jenkins.util:safe-enough-namestring pathname)
                                   condition))))
            (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname args)))
+                   (apply #',read-name pathname
+                          (remove-from-plist args :repository))))
              (copy-location
-              spec (apply #',parse-name spec name :pathname pathname
+              spec (apply #',parse-name spec name
+                          :repository repository
+                          :pathname   pathname
                           args))))))))
 
 ;;; Person loading
@@ -216,7 +223,7 @@
 
 (define-yaml-loader (one-template ((:inherit nil list) (:variables nil list)
                                    (:aspects nil list) (:jobs nil list)))
-    (spec (name :pathname) pathname generator-version)
+    (spec (name :pathname) repository generator-version)
   (let+ (((&flet make-aspect-spec (spec parent)
             (check-keys spec '((:name       t   string)
                                (:aspect     t   string)
@@ -243,7 +250,7 @@
          ((&flet process-inherit (name)
             (with-uniqueness-check (inherit-seen name name)
               (resolve-template-dependency
-               name pathname :generator-version generator-version))))
+               name repository :generator-version generator-version))))
          (template (make-instance 'template)))
     ;; Load required templates and finalize the object.
     (setf (find-template name)
@@ -257,19 +264,21 @@
 
 (defvar *template-load-stack* '())
 
-(defun find-or-load-template (name pathname generator-version)
+(defun find-or-load-template (name pathname repository generator-version)
   (or (find-template name :if-does-not-exist nil)
       (loading-recipe (*template-load-stack* name)
         (load-one-template/yaml
-         pathname :generator-version generator-version))))
+         pathname
+         :repository        repository
+         :generator-version generator-version))))
 
-(defun resolve-template-dependency (name context &key generator-version)
-  (let ((pathname (make-pathname :name name :defaults context)))
-    (find-or-load-template name pathname generator-version)))
+(defun resolve-template-dependency (name repository &key generator-version)
+  (let ((pathname (recipe-path repository :template name)))
+    (find-or-load-template name pathname repository generator-version)))
 
-(defun load-template/yaml (pathname &key generator-version)
+(defun load-template/yaml (pathname &key repository generator-version)
   (let ((name (pathname-name pathname)))
-    (find-or-load-template name pathname generator-version)))
+    (find-or-load-template name pathname repository generator-version)))
 
 ;;; Project loading
 
@@ -374,7 +383,7 @@
                                        (:variables nil list)
                                        (:versions  t   list)
                                        :catalog))
-    (spec (name :pathname) pathname generator-version)
+    (spec (name :pathname) repository generator-version)
   (let+ ((variables (value-acons :__catalog (lookup :catalog)
                                  (process-variables (lookup :variables))))
          ;; We allow using variables defined directly in the
@@ -405,9 +414,7 @@
                      (distribution (with-uniqueness-check
                                        (includes-seen name spec)
                                      (resolve-distribution-dependency
-                                      name (merge-pathnames
-                                            (make-pathname :name name)
-                                            pathname)
+                                      name repository
                                       :generator-version generator-version))))
                 (list (make-instance 'distribution-include
                                      :distribution distribution
@@ -465,17 +472,22 @@
 
 (defvar *distribution-load-stack* '())
 
-(defun find-or-load-distribution (name pathname generator-version)
+(defun find-or-load-distribution (name pathname repository generator-version)
   (ensure-distribution
    name (lambda ()
           (loading-recipe (*distribution-load-stack* name)
             (load-one-distribution/yaml
-             pathname :generator-version generator-version)))))
+             pathname
+             :repository        repository
+             :generator-version generator-version)))))
 
-(defun resolve-distribution-dependency (name context &key generator-version)
-  (let ((pathname (make-pathname :name name :defaults context)))
-    (find-or-load-distribution name pathname generator-version)))
+(defun resolve-distribution-dependency (name repository &key generator-version)
+  (let ((pathname (recipe-path repository :distribution name)))
+    (find-or-load-distribution name pathname repository generator-version)))
 
-(defun load-distribution/yaml (pathname &key generator-version)
+(defun load-distribution/yaml (pathname
+                               &key
+                               (repository (missing-required-argument :repository))
+                               generator-version)
   (let ((name (pathname-name pathname)))
-    (find-or-load-distribution name pathname generator-version)))
+    (find-or-load-distribution name pathname repository generator-version)))

@@ -56,6 +56,8 @@
      (typecase right
        ((and positional-option-designator (not (eql &rest)))
         (< left right))
+       ((eql &rest)
+        t)
        (t
         positional-first?)))
     ((eql &rest)

@@ -12,6 +12,8 @@
 
   Dependencies not available via [[https://www.quicklisp.org/beta/][Quicklisp]]:
 
+  + The [[https://github.com/scymtym/model.transform.trace][model.transform.trace]] project
+
   + The [[https://github.com/scymtym/language.yaml][language.yaml]] project
 
   + The [[https://github.com/scymtym/text.source-location][text.source-location]] project

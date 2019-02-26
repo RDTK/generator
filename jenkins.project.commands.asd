@@ -1,6 +1,6 @@
 ;;;; jenkins.project.commands.asd --- System definition for generator commands.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -42,6 +42,7 @@
 
                               (:file       "command-version")
                               (:file       "command-help")
+                              (:file       "command-config")
 
                               (:file       "command-info-variables")
                               (:file       "command-info-aspects")

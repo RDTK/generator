@@ -1,4 +1,8 @@
-((:release "0.27" nil)
+((:release "0.27" nil
+
+  (:enhancement
+   "The new" (:verb "config") "command allows inspecting configuration
+    sources and the current configuration."))
 
  (:release "0.26" "2019-02-19"
 

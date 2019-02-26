@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the commands module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -72,11 +72,13 @@
                            :cause   condition))))
      name arguments)))
 
+(defvar *configuration*)
 (defvar *cache-directory*)
 (defvar *temp-directory*)
 
 (defun execute-command (command
                         &key
+                        configuration
                         (num-processes  1)
                         (error-policy   #'error)
                         (progress-style :cmake)
@@ -104,7 +106,8 @@
                                   (sb-sys:without-interrupts
                                     (bt:with-lock-held (lock)
                                       (signal condition))))))))
-             (let ((*cache-directory* cache-directory)
+             (let ((*configuration*   configuration)
+                   (*cache-directory* cache-directory)
                    (*temp-directory*  temp-directory))
                (command-execute command))))
       (:normal

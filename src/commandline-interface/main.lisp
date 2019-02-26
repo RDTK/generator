@@ -93,13 +93,14 @@
             (die condition t (jenkins.project.commands:command condition))))
          (error #'die)
          #+sbcl (sb-sys:interactive-interrupt #'die))
-      (let* ((configuration (configuration.options:sub-configuration
-                             "commands.**" configuration))
-             (command       (jenkins.project.commands:make-command
-                             configuration))
-             (fail?         nil))
+      (let* ((command-configuration (configuration.options:sub-configuration
+                                     "commands.**" configuration))
+             (command               (jenkins.project.commands:make-command
+                                     command-configuration))
+             (fail?                 nil))
         (jenkins.project.commands:execute-command
          command
+         :configuration   configuration
          :num-processes   (option-value "global" "num-processes")
          :error-policy    (make-error-policy
                            (option-value "global" "on-error")

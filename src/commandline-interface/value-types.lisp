@@ -66,7 +66,7 @@
                   (esrap:defrule condition-type
                       (or ,@rule-names)))))
 
-           (define-action-rules (&rest names)
+           (define-action-rules ()
              (let+ ((rule-names '())
                     ((&flet+ action-rule (name)
                        (let ((rule-name (symbolicate '#:action- name)))

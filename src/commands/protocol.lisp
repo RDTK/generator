@@ -73,8 +73,9 @@
      name arguments)))
 
 (defvar *configuration*)
-(defvar *cache-directory*)
 (defvar *temp-directory*)
+(defvar *cache-directory*)
+(defvar *age-limit*)
 
 (defun execute-command (command
                         &key
@@ -82,8 +83,9 @@
                         (num-processes  1)
                         (error-policy   #'error)
                         (progress-style :cmake)
-                        cache-directory
                         temp-directory
+                        cache-directory
+                        age-limit
                         trace-variables)
   ;; We modify the global value so that all threads pick up the value
   ;; without additional work.
@@ -94,22 +96,23 @@
         (lock        (bt:make-lock)))
     (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
     (unwind-protect-case ()
-         (handler-bind ((error error-policy)
-                        (more-conditions:progress-condition
+        (handler-bind ((error error-policy)
+                       (more-conditions:progress-condition
                          (make-progress-handler progress-style)))
-           (lparallel:task-handler-bind
-               ((error error-policy)
-                (more-conditions:progress-condition
-                 (lambda (condition)
-                   (bt:interrupt-thread
-                    main-thread (lambda ()
-                                  (sb-sys:without-interrupts
-                                    (bt:with-lock-held (lock)
-                                      (signal condition))))))))
-             (let ((*configuration*   configuration)
-                   (*cache-directory* cache-directory)
-                   (*temp-directory*  temp-directory))
-               (command-execute command))))
+          (lparallel:task-handler-bind
+              ((error error-policy)
+               (more-conditions:progress-condition
+                (lambda (condition)
+                  (bt:interrupt-thread
+                   main-thread (lambda ()
+                                 (sb-sys:without-interrupts
+                                   (bt:with-lock-held (lock)
+                                     (signal condition))))))))
+            (let ((*configuration*   configuration)
+                  (*temp-directory*  temp-directory)
+                  (*cache-directory* cache-directory)
+                  (*age-limit*       age-limit))
+              (command-execute command))))
       (:normal
        (lparallel:end-kernel :wait t))
       (:abort

@@ -245,7 +245,11 @@
                                        #'string-upcase)
                         natures)))))
 
-(defun analyze-project (project &rest args &key cache-directory temp-directory non-interactive)
+(defun analyze-project (project &rest args
+                                &key non-interactive
+                                     temp-directory
+                                     cache-directory
+                                     age-limit)
   (declare (ignore cache-directory temp-directory non-interactive))
   (let+ ((groups (group-project-versions-for-analysis project))
          ((&flet version-info (version)
@@ -274,12 +278,12 @@
     (mapc #'analyze-group groups)
     project))
 
-(defun analyze-projects (projects
-                         &rest args &key
-                         generator-version
-                         cache-directory
-                         temp-directory)
-  (declare (ignore cache-directory temp-directory))
+(defun analyze-projects (projects &rest args
+                                  &key generator-version
+                                       temp-directory
+                                       cache-directory
+                                       age-limit)
+  (declare (ignore temp-directory cache-directory age-limit))
   (jenkins.analysis::with-git-cache ()
     (let ((other-args (remove-from-plist args :generator-version))
           (cache      jenkins.analysis::*git-cache*))

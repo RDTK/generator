@@ -1,6 +1,6 @@
 ;;;; command-platform-requirements.lisp --- Compute requirements for a given platform.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -52,8 +52,9 @@
          (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)
+                            :temp-directory    *temp-directory*
                             :cache-directory   *cache-directory*
-                            :temp-directory    *temp-directory*))
+                            :age-limit         *age-limit*))
          (distributions
           (as-phase (:instantiate)
             (mapcan (lambda (distribution-spec)

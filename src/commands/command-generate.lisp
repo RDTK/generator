@@ -64,8 +64,9 @@
          (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)
+                            :temp-directory    *temp-directory*
                             :cache-directory   *cache-directory*
-                            :temp-directory    *temp-directory*))
+                            :age-limit         *age-limit*))
          (distributions
           (as-phase (:instantiate)
             (mapcan (lambda (distribution-spec)
@@ -125,14 +126,16 @@
 (defun generate-analyze (distributions projects
                          &key
                          generator-version
+                         temp-directory
                          cache-directory
-                         temp-directory)
+                         age-limit)
   (let+ ((analyzed-projects (as-phase (:analyze)
                               (analyze-projects
                                projects
                                :generator-version generator-version
+                               :temp-directory    temp-directory
                                :cache-directory   cache-directory
-                               :temp-directory    temp-directory)))
+                               :age-limit         age-limit)))
          (seen (make-hash-table :test #'eq))
          ((&labels resolve-versions (distribution)
             (ensure-gethash

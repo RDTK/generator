@@ -83,6 +83,15 @@
                       :default #P"/tmp/"
                       :documentation
                       "Directory into which temporary files should be written.")
+  ("cache-age-limit"  :type '(or null non-negative-integer)
+                      :default 1800
+                      :documentation
+                      #.(format nil "Acceptable age of cached ~
+                         information in seconds.~@
+                         ~@
+                         Older cached information will not be used and ~
+                         will be replaced by newly computed ~
+                         information."))
   ;; Application-level debugging
   ("trace-variable"   :type '(list string :inherit? t)
                       :documentation
@@ -105,9 +114,10 @@
   ("--non-interactive"      "non-interactive")
   (("-j" "--num-processes") "num-processes"   "NUMBER-OF-PROCESSES")
   ("--progress-style"       "progress-style"  "STYLE")
-  ;; Directories
-  ("--cache-directory"      "cache-directory" "DIRECTORY")
+  ;; Directories and cache
   ("--temp-directory"       "temp-directory"  "DIRECTORY")
+  ("--cache-directory"      "cache-directory" "DIRECTORY")
+  ("--cache-age-limit"      "cache-age-limit" "AGE-IN-SECONDS")
   ;; Application-level debugging
   ("--trace-variable"       "trace-variable"  "VARIABLE-NAME"))
 

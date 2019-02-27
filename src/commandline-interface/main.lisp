@@ -109,8 +109,9 @@
                                      (declare (ignore condition))
                                      (setf fail? t)))
          :progress-style  (option-value "global" "progress-style")
-         :cache-directory (option-value "global" "cache-directory")
          :temp-directory  (option-value "global" "temp-directory")
+         :cache-directory (option-value "global" "cache-directory")
+         :age-limit       (option-value "global" "cache-age-limit")
          :trace-variables (option-value "global" "trace-variable"))
         (uiop:quit (if fail? 1 0))))))
 

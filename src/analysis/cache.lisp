@@ -1,6 +1,6 @@
 ;;;; cache.lisp --- Caching of analysis results.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,36 +26,52 @@
 
 ;;; Cache
 
-(defun cache-restore (cache-directory key)
+(defun cache-restore (cache-directory key &key age-limit)
   (with-simple-restart (continue "~@<Do not use cache results.~@:>")
     (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Maybe restoring analysis results in ~A~@:>" file)
       (when (probe-file file)
         (log:info "~@<Restoring analysis results in ~A~@:>" file)
-        (let+ (((version . data) (cl-store:restore file)))
-          (cond
-            ((string= version *cache-version*)
-             data)
-            (t
-             (log:warn "~@<Stored results have been produced by version ~
-                        ~A while this is version ~A.~@:>"
-                       version *cache-version*)
-             nil)))))))
+        (let+ (((version timestamp data) (let ((entry (cl-store:restore file)))
+                                           (typecase entry
+                                             ((cons string (cons integer (cons t null)))
+                                              entry)
+                                             ((cons string t)
+                                              (list (car entry) nil (cdr entry))))))
+               (age))
+          (cond ((not (string= version *cache-version*))
+                 (log:warn "~@<Stored results have been produced by ~
+                            version ~A while this is version ~A.~@:>"
+                           version *cache-version*)
+                 nil)
+                ((and age-limit
+                      (or (not timestamp)
+                          (> (setf age (- (get-universal-time) timestamp))
+                             age-limit)))
+                 (log:info "~@<Stored analysis results have timestamp ~
+                            ~D (~:D second~:P old) which is older ~
+                            than ~:D second~:P; not using~@:>"
+                           timestamp age age-limit)
+                 nil)
+                (t
+                 data)))))))
 
 (defun cache-store (cache-directory key results)
   (with-simple-restart (continue "~@<Do not cache results.~@:>")
     (unless (probe-file cache-directory)
-      (log:info "~@<Creating non-existent cache directory ~S.~@:>"
+      (log:info "~@<Creating non-existent cache directory ~S~@:>"
                 cache-directory)
       (ensure-directories-exist cache-directory))
     (let ((file (merge-pathnames key cache-directory)))
       (log:info "~@<Storing analysis results in ~A~@:>" file)
-      (cl-store:store (cons *cache-version* results) file))))
+      (let ((entry (list *cache-version* (get-universal-time) results)))
+        (cl-store:store entry file)))))
 
-(defun cache-or-compute (cache-directory key thunk)
-  (or (when (and cache-directory key)
-        (cache-restore cache-directory key))
-      (let ((results (funcall thunk)))
-        (when (and cache-directory key)
-          (cache-store cache-directory key results))
-        results)))
+(defun cache-or-compute (cache-directory key thunk &key age-limit)
+  (let ((cachable? (and cache-directory key)))
+    (or (when cachable?
+          (cache-restore cache-directory key :age-limit age-limit))
+        (let ((results (funcall thunk)))
+          (when cachable?
+            (cache-store cache-directory key results))
+          results))))

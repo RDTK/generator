@@ -140,10 +140,7 @@
     ;; immediately and parallel forcing is not a problem.
     (lparallel:force
      (bt:with-lock-held (lock)
-       (unless (probe-file cache-directory)
-         (log:info "~@<Creating non-existent cache directory ~S.~@:>"
-                   cache-directory)
-         (ensure-directories-exist cache-directory))
+       (ensure-cache-directory cache-directory)
        (ensure-gethash cache-sub-directory table
                        (lparallel:delay
                          (ensure-updated-git-repository

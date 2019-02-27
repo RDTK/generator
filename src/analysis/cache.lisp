@@ -26,6 +26,12 @@
 
 ;;; Cache
 
+(defun ensure-cache-directory (cache-directory)
+  (unless (probe-file cache-directory)
+    (log:info "~@<Creating non-existent cache directory ~S.~@:>"
+              cache-directory)
+    (ensure-directories-exist cache-directory)))
+
 (defun cache-restore (cache-directory key &key age-limit)
   (with-simple-restart (continue "~@<Do not use cache results.~@:>")
     (let ((file (merge-pathnames key cache-directory)))

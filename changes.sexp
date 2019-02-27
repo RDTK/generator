@@ -1,6 +1,17 @@
 ((:release "0.27" nil
 
   (:enhancement
+   "When analyzing Git repositories, the" (:verb "git ls-remote")
+   "invocation is no longer mandatory in all cases. Instead, results
+    of these invocations are stored in a timestamped cached and reused
+    while still recent enough."
+   "The new configuration
+    option" (:verb "global.cache-age-limit") "and the corresponding
+    commandline option" (:verb "cache-age-limit") "control how long
+    after their creation cached results are still considered recent
+    enough. The default value is" (:verb "1800") "seconds.")
+
+  (:enhancement
    "The new" (:verb "config") "command allows inspecting configuration
     sources and the current configuration."))
 

@@ -107,6 +107,15 @@
 (defmacro with-git-cache (() &body body)
   `(call-with-git-cache (lambda () ,@body)))
 
+(defmacro ensure-git-cache-entry ((key cache-directory) &body body)
+  (with-gensyms (lock table)
+    `(let+ (((&structure-r/o git-cache- (,lock lock) (,table table))
+             *git-cache*))
+       (lparallel:force
+        (bt:with-lock-held (,lock)
+          (ensure-cache-directory ,cache-directory)
+          (ensure-gethash ,key ,table (lparallel:delay ,@body)))))))
+
 (defun make-git-cache-directory (source username cache-directory)
   (let* ((repository/string   (format-git-url source username))
          (sub-directory       (drakma:url-encode repository/string :utf-8))
@@ -132,22 +141,16 @@
                                     cache-directory
                                     non-interactive)
   (let+ (((&values cache-sub-directory cache-url)
-          (make-git-cache-directory source username cache-directory))
-         ((&structure-r/o git-cache- lock table) *git-cache*))
+          (make-git-cache-directory source username cache-directory)))
     ;; Clone into/pull in cache. Under the lock, probe/create the
     ;; directory and make an entry in the cache. The actual repository
     ;; update happens in a delay so that the lock can be released
     ;; immediately and parallel forcing is not a problem.
-    (lparallel:force
-     (bt:with-lock-held (lock)
-       (ensure-cache-directory cache-directory)
-       (ensure-gethash cache-sub-directory table
-                       (lparallel:delay
-                         (ensure-updated-git-repository
-                          source cache-sub-directory
-                          :username        username
-                          :password        password
-                          :non-interactive non-interactive)))))
+    (ensure-git-cache-entry (cache-sub-directory cache-directory)
+      (ensure-updated-git-repository source cache-sub-directory
+                                     :username        username
+                                     :password        password
+                                     :non-interactive non-interactive))
     ;; Clone from cache. We rely on git to handle parallel clones from
     ;; one cached mirror repository.
     (clone-git-repository cache-url clone-directory

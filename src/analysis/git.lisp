@@ -116,9 +116,14 @@
           (ensure-cache-directory ,cache-directory)
           (ensure-gethash ,key ,table (lparallel:delay ,@body)))))))
 
+(defun make-git-source-key (source username &key suffix)
+  (let* ((repository/string  (format-git-url source username))
+         (repository/encoded (drakma:url-encode repository/string :utf-8)))
+    (apply #'concatenate 'string "git:" repository/encoded
+           (when suffix (list ":" suffix)))))
+
 (defun make-git-cache-directory (source username cache-directory)
-  (let* ((repository/string   (format-git-url source username))
-         (sub-directory       (drakma:url-encode repository/string :utf-8))
+  (let* ((sub-directory       (make-git-source-key source username))
          (cache-sub-directory (make-pathname
                                :directory (append (pathname-directory
                                                    cache-directory)
@@ -217,9 +222,10 @@
                                      branch
                                      username
                                      password
+                                     non-interactive
                                      sub-directory
                                      cache-directory
-                                     non-interactive
+                                     age-limit
                                      (natures        '(:auto))
                                      &allow-other-keys)
   ;; If we already have analysis results for the commit that is
@@ -235,7 +241,9 @@
                                  source commitish
                                  :username        username
                                  :password        password
-                                 :non-interactive non-interactive))
+                                 :non-interactive non-interactive
+                                 :cache-directory cache-directory
+                                 :age-limit       age-limit))
                     (key        (natures->key
                                  natures (sub-directory->key
                                           sub-directory commit-key)))
@@ -344,28 +352,72 @@
 
 ;;; Utilities
 
-(defun git-remote-commit-key (source branch
-                              &key
-                              username
-                              password
-                              non-interactive)
+(defun git-remote-refs (source &key username password non-interactive)
   (let* ((url    (format-git-url source username password))
-         (deref  (format nil "~A^{}" branch))
-         (output (%run-git `("ls-remote" ,url ,branch ,deref) "/"
+         (output (%run-git `("ls-remote" ,url) "/"
                            :non-interactive non-interactive))
          (result))
     (ppcre:do-register-groups (commit ref deref?)
         ((ppcre:create-scanner "^([a-z0-9]+)\\t(.*?)(\\^\\{\\})?$"
                                :multi-line-mode t)
          output)
-      (let+ (((&optional result-commit result-tag? result-deref?) result)
-             (tag? (starts-with-subseq "refs/tags/" ref)))
-       (when (or (not result-commit)               ; anything > nothing
-                 (and result-tag? (not tag?))      ; not tag  > tag
-                 (and result-tag? tag?             ; when both tags:
-                      (not result-deref?) deref?)) ; deref    > not deref
-         (setf result (list commit tag? deref?)))))
-    (when result
+      (push (list commit ref (when deref? t)) result))
+    result))
+
+(defun git-remote-refs/maybe-cached (source key
+                                     &key
+                                     username
+                                     password
+                                     non-interactive
+                                     cache-directory
+                                     age-limit)
+  (cache-or-compute cache-directory key
+                    (lambda ()
+                      (git-remote-refs source
+                                       :username        username
+                                       :password        password
+                                       :non-interactive non-interactive))
+                    :age-limit age-limit))
+
+(defun git-remote-refs/cached (source
+                               &key
+                               username
+                               password
+                               non-interactive
+                               cache-directory
+                               age-limit)
+  (let ((key (make-git-source-key source username :suffix "refs")))
+    (ensure-git-cache-entry (key cache-directory)
+      (git-remote-refs/maybe-cached source key
+                                    :username        username
+                                    :password        password
+                                    :non-interactive non-interactive
+                                    :cache-directory cache-directory
+                                    :age-limit       age-limit))))
+
+(defun git-remote-commit-key (source branch
+                              &key
+                              username
+                              password
+                              non-interactive
+                              cache-directory
+                              age-limit)
+  (let+ (((&flet+ select ((&whole result &optional result-commit result-tag? result-deref?)
+                          (commit ref deref?))
+            (or (when (search branch ref)
+                  (let ((tag? (starts-with-subseq "refs/tags/" ref)))
+                    (when (or (not result-commit)               ; anything > nothing
+                              (and result-tag? (not tag?))      ; not tag  > tag
+                              (and result-tag? tag?             ; when both tags:
+                                   (not result-deref?) deref?)) ; deref    > not deref
+                      (list commit tag? deref?))))
+                result)))
+         (refs (git-remote-refs/cached source :username        username
+                                              :password        password
+                                              :non-interactive non-interactive
+                                              :cache-directory cache-directory
+                                              :age-limit       age-limit)))
+    (when-let ((result (reduce #'select refs :initial-value nil)))
       (%git-commit->key (first result)))))
 
 (defun git-directory-commit-key (directory)

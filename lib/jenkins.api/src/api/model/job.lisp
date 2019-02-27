@@ -520,67 +520,67 @@
                                      :initform  "HIGH")
     (threshold-unstable-total-all    :type      non-negative-integer
                                      :xpath     "thresholds/unstableTotalAll/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-total-high   :type      non-negative-integer
                                      :xpath     "thresholds/unstableTotalHigh/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-total-normal :type      non-negative-integer
                                      :xpath     "thresholds/unstableTotalNormal/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-total-low    :type      non-negative-integer
                                      :xpath     "thresholds/unstableTotalLow/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-new-all      :type      non-negative-integer
                                      :xpath     "thresholds/unstableNewAll/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-new-high     :type      non-negative-integer
                                      :xpath     "thresholds/unstableNewHigh/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-new-normal   :type      non-negative-integer
                                      :xpath     "thresholds/unstableNewNormal/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-unstable-new-low      :type      non-negative-integer
                                      :xpath     "thresholds/unstableNewLow/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-total-all      :type      non-negative-integer
                                      :xpath     "thresholds/failedTotalAll/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-total-high     :type      non-negative-integer
                                      :xpath     "thresholds/failedTotalHigh/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-total-normal   :type      non-negative-integer
                                      :xpath     "thresholds/failedTotalNormal/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-total-low      :type      non-negative-integer
                                      :xpath     "thresholds/failedTotalLow/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-new-all        :type      non-negative-integer
                                      :xpath     "thresholds/failedNewAll/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-new-high       :type      non-negative-integer
                                      :xpath     "thresholds/failedNewHigh/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-new-normal     :type      non-negative-integer
                                      :xpath     "thresholds/failedNewNormal/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     (threshold-failed-new-low        :type      non-negative-integer
                                      :xpath     "thresholds/failedNewLow/text()"
-                                     :optional? nil
+                                     :optional? t
                                      :initform  0)
     ;; Blame
     (blame-disabled?                 :type      boolean

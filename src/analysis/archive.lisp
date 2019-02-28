@@ -7,7 +7,7 @@
 (cl:in-package #:jenkins.analysis)
 
 (defun open-download-stream (url &key username password)
-  (let+ (((&values stream code &ign &ign &ign close-stream? reason)
+  (let+ (((&values stream code headers &ign &ign close-stream? reason)
           (apply #'drakma:http-request url
                  :want-stream  t
                  :force-binary t
@@ -17,14 +17,16 @@
     (unless (<= 200 code 299)
       (error "~@<Download from ~A failed with code ~D: ~A.~@:>"
              url code reason))
-    (values stream close-stream?)))
+    (let ((length (when-let ((length (assoc-value headers :content-length)))
+                    (parse-integer length))))
+      (values stream close-stream? length))))
 
 (defun call-with-download-stream (thunk url &rest args &key username password)
   (declare (ignore username password))
-  (let+ (((&values stream close-stream?)
+  (let+ (((&values stream close-stream? content-length)
           (apply #'open-download-stream url args)))
     (unwind-protect
-         (funcall thunk stream)
+         (funcall thunk stream content-length)
       (when close-stream?
         (close stream)))))
 
@@ -36,7 +38,8 @@
                 (with-retries (usocket:ns-try-again-condition :limit 3)
                   (with-retry-restart ("Retry downloading ~A" url)
                     (apply #'call-with-download-stream
-                           (lambda (stream)
+                           (lambda (stream content-length)
+                             (declare (ignore content-length))
                              ,@body)
                            url args))))))
 

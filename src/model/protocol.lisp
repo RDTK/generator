@@ -120,7 +120,7 @@
     Signal `instantiation-condition's such as `instantiation-error'
     when conditions such as errors are encountered."))
 
-(defgeneric add-dependencies! (thing spec &key providers)
+(defgeneric add-dependencies! (thing &key providers)
   (:documentation
    "TODO(jmoringe): document"))
 
@@ -142,15 +142,13 @@
         (assert implementation)
         implementation))))
 
-(defmethod add-dependencies! :around ((thing t) (spec t)
-                                      &key providers)
+(defmethod add-dependencies! :around ((thing t) &key providers)
   (declare (ignore providers))
   (with-condition-translation
       (((error instantiation-error)
-        :specification spec))
-    (with-simple-restart (continue "~@<Skip adding dependencies to ~A ~
-                                    according to ~A.~@:>"
-                                   thing spec)
+        :specification (specification thing)))
+    (with-simple-restart (continue "~@<Skip adding dependencies to ~A.~@:>"
+                                   thing)
       (call-next-method))))
 
 ;;; Deployment protocol

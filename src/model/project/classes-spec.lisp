@@ -148,10 +148,7 @@
     ;; After all `version' instances have been made, resolve
     ;; dependencies among them.
     (let ((providers (hash-table-alist providers)))
-      (map nil (lambda (version)
-                 (add-dependencies! version (specification version)
-                                    :providers providers))
-           versions))
+      (map nil (rcurry #'add-dependencies! :providers providers) versions))
     (reinitialize-instance distribution :versions versions)))
 
 ;;; `project-spec' class

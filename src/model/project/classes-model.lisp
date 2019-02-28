@@ -277,7 +277,7 @@
               (list target)))
           (%direct-dependencies thing)))
 
-(defmethod add-dependencies! ((thing version) (spec version-spec)
+(defmethod add-dependencies! ((thing version)
                               &key
                               (providers (missing-required-argument :providers)))
   (let+ (platform-provides (platform-provides? nil)
@@ -292,7 +292,7 @@
                               (push new (%direct-dependencies thing))
                               new))))
               (pushnew required (cdr cell) :test #'equal)))))
-    (iter (for requires in (requires spec))
+    (iter (for requires in (requires (specification thing)))
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
           (restart-case
@@ -314,7 +314,7 @@
               ;; Record unresolved requirement.
               (add-dependency requires nil)))))
 
-  (mapc #'add-dependencies! (jobs thing) (jobs spec)))
+  (mapc #'add-dependencies! (jobs thing)))
 
 (defmethod deploy ((thing version))
   (with-sequence-progress (:deploy/job (jobs thing))
@@ -359,8 +359,7 @@
     (lookup (specification thing) name :if-undefined nil)
     (call-next-method)))
 
-(defmethod add-dependencies! ((thing job) (spec job-spec)
-                              &key providers)
+(defmethod add-dependencies! ((thing job) &key providers)
   (declare (ignore providers))
   (let ((dependency-name (value/cast thing :dependency-job-name (name thing))))
     (iter (for dependency in (direct-dependencies (parent thing)))

@@ -250,7 +250,7 @@
                                      temp-directory
                                      cache-directory
                                      age-limit)
-  (declare (ignore cache-directory temp-directory non-interactive))
+  (declare (ignore cache-directory temp-directory non-interactive age-limit))
   (let+ ((groups (group-project-versions-for-analysis project))
          ((&flet version-info (version)
             (let+ (((&flet maybe-key-fragment (version variable-and-transform)

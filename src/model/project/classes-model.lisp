@@ -268,6 +268,16 @@
           (t
            (call-next-method)))))
 
+(defmethod requires ((spec version))
+  (append (mapcar #'parse-dependency-spec
+                  (value/cast spec :extra-requires '()))
+          (%requires (specification spec))))
+
+(defmethod provides ((spec version))
+  (append (mapcar #'parse-dependency-spec
+                  (value/cast spec :extra-provides '()))
+          (%provides (specification spec))))
+
 (defmethod direct-dependencies/reasons ((thing version))
   (%direct-dependencies thing))
 

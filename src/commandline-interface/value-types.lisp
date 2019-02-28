@@ -1,3 +1,9 @@
+;;;; value-types.lisp --- Additional value types used by the commandline interface.
+;;;;
+;;;; Copyright (C) 2019 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:jenkins.project.commandline-interface)
 
 ;;; `error-policy'

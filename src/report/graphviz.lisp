@@ -111,8 +111,7 @@
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
                                                 (object jenkins.model.project::version))
     (when (eq object (jenkins-dependencies-root graph))
-      (let* ((specification (jenkins.model:specification object))
-             (provides      (jenkins.model.project:provides specification)))
+      (let ((provides (jenkins.model.project:provides object)))
         (list (dependency provides (make-provided)))))))
 
 ;;; File generation

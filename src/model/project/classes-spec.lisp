@@ -142,7 +142,7 @@
     (map nil (lambda (version)
                (map nil (lambda (provided)
                           (push version (gethash provided providers '())))
-                    (provides (specification version))))
+                    (provides version)))
          versions)
 
     ;; After all `version' instances have been made, resolve

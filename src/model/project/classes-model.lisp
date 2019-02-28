@@ -302,7 +302,7 @@
                               (push new (%direct-dependencies thing))
                               new))))
               (pushnew required (cdr cell) :test #'equal)))))
-    (iter (for requires in (requires (specification thing)))
+    (iter (for requires in (requires thing))
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
           (restart-case

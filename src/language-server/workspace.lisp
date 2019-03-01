@@ -40,12 +40,17 @@
 ;;; Templates
 
 (defmethod load-templates ((container workspace))
-  (let ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
-        (jenkins.model.project::*templates-lock* (bt:make-lock))
-        (pattern (jenkins.model.project:recipe-path
-                  (repository container) :template :wild)))
+  (let* ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
+         (jenkins.model.project::*templates-lock* (bt:make-lock))
+         (repository (repository container))
+         (pattern    (jenkins.model.project:recipe-path
+                      repository :template :wild)))
     (log:error "Background-loading templates from ~A" pattern)
-    (map nil #'jenkins.model.project:load-template/yaml (directory pattern))
+    (mappend (lambda (filename)
+               (with-simple-restart (continue "Skip")
+                 (list (jenkins.model.project:load-template/yaml
+                        filename :repository repository))))
+         (directory pattern))
     jenkins.model.project::*templates*))
 
 (defmethod ensure-templates ((container workspace))
@@ -73,17 +78,19 @@
 ;;; Projects
 
 (defmethod load-projects ((container workspace))
-  (let ((jenkins.model.project::*templates* (lparallel:force (ensure-templates container)))
-        (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
-                                           )
-        (jenkins.model.project::*projects-lock* (bt:make-lock))
-        (pattern (jenkins.model.project:recipe-path
-                  (repository container) :project :wild)))
+  (let* ((jenkins.model.project::*templates* (lparallel:force (ensure-templates container)))
+         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
+                                            )
+         (jenkins.model.project::*projects-lock* (bt:make-lock))
+         (repository (repository container))
+         (pattern    (jenkins.model.project:recipe-path
+                      repository :project :wild)))
     (handler-bind (((and error jenkins.util:continuable-error)
                      (compose #'invoke-restart #'jenkins.util:find-continue-restart)))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")
-                   (list (jenkins.model.project:load-project-spec/yaml filename))))
+                   (list (jenkins.model.project:load-project-spec/yaml
+                          filename :repository repository))))
                (directory pattern)))))
 
 (defmethod ensure-projects ((container workspace))

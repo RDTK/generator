@@ -60,7 +60,7 @@
          (errors    '())
          (result    nil)
          (locations nil)
-         (index     (make-instance 'text.source-location.lookup::range-index))
+         (index     (make-instance 'lookup::range-index))
 
          (project::*locations* (make-instance 'project::locations
                                                             :hook (lambda (object location)
@@ -68,7 +68,7 @@
                                                                     ;; TODO the sources should be eq
                                                                     (when (equalp (sloc:name (sloc:source location)) (sloc:name source
                                                                                                                                 ))
-                                                                      (text.source-location.lookup:add! location index))))))
+                                                                      (lookup:add! location index))))))
     (handler-bind (((and error jenkins.util:continuable-error)
                      (lambda (condition)
                        (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
@@ -161,21 +161,24 @@
   ())
 
 (defmethod parse ((document distribution-document) (text string) (pathname t))
-  (let* ((name (pathname-name pathname))
+  (let* ((workspace    (workspace document))
+         (repository   (repository workspace))
+         (name         (pathname-name pathname))
          (project::*distributions* (make-hash-table :test #'equal))
          (distribution (project::loading-recipe (project::*distribution-load-stack* name)
                          (project::load-one-distribution/yaml
                           text
                           :pathname          pathname
+                          :repository        (repository workspace)
                           :generator-version "0.26.0")))
          (projects-files+versions (uiop:symbol-call '#:jenkins.project.commands '#:locate-projects
-                                                    (list pathname) (list distribution)))
+                                                    (list distribution) repository))
          (project::*templates*        (lparallel:force (ensure-templates (workspace document))))
          (project::*projects*         (make-hash-table :test #'equal))
          (project::*locations*        (make-instance 'project::locations
                                                                    :hook nil))
          (projects (uiop:symbol-call '#:jenkins.project.commands '#:load-projects/versioned
-                                     projects-files+versions
+                                     projects-files+versions repository
                                      :generator-version "0.26.0" ; generator-version
                                      )))
     distribution))
@@ -205,12 +208,14 @@
   ())
 
 (defmethod parse ((document template-document) (text string) (pathname t))
-  (let ((name (pathname-name pathname))
+  (let ((workspace (workspace document))
+        (name      (pathname-name pathname))
         (project::*templates* (make-hash-table :test #'equal)))
     (project::loading-recipe (project::*template-load-stack* name)
       (project::load-one-template/yaml
        text
        :pathname          pathname
+       :repository        (repository workspace)
        :generator-version "0.26.0"))))
 
 (defmethod contrib:make-contributors ((document template-document)

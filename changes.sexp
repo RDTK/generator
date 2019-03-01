@@ -1,6 +1,11 @@
 ((:release "0.27" nil
 
   (:enhancement
+   "The new" (:verb "install-jenkins") "command downloads, installs
+    and configures a Jenkins instance into a given directory. To avoid
+    Jenkins' initial setup wizard, a user account is also created.")
+
+  (:enhancement
    "When analyzing Git repositories, the" (:verb "git ls-remote")
    "invocation is no longer mandatory in all cases. Instead, results
     of these invocations are stored in a timestamped cached and reused

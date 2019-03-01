@@ -1,0 +1,31 @@
+#!/bin/bash
+
+trap "kill $$" SIGINT
+
+# Define the home directory for Jenkins.
+root="$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
+export JENKINS_HOME="${root}"
+
+# Create self-signed certificate, if necessary.
+secrets_directory="${root}/secrets/"
+keystore="${secrets_directory}/jenkins.jks"
+dname="CN=toolkit-jenkins,OU=citec,O=uni-bielefeld,L=Bielefeld,S=NRW,C=DE"
+
+if [ ! -f "${keystore}" ] ; then
+    echo "Keystore not found. Generating new self-signed certificate..."
+    mkdir -p "${secrets_directory}"
+    keytool -genkey                      \
+            -keystore      "${keystore}" \
+            -deststoretype pkcs12        \
+            -alias         toolkit       \
+            -keyalg        RSA           \
+            -keysize       2048          \
+            -dname         "${dname}"    \
+            -storepass     keystore      \
+            -keypass       keystore
+fi
+
+# Execute the process
+exec java -jar "${root}/jenkins.war"                                  \
+       --httpsPort=8080 --httpPort=-1                                 \
+       --httpsKeyStore="${keystore}" --httpsKeyStorePassword=keystore

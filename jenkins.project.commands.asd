@@ -20,6 +20,8 @@
                 (:version "configuration.options-and-service-provider" "0.10")
                 (:version "configuration.options-and-puri"             "0.10")
 
+                "zip"
+
                 (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))
 
@@ -28,7 +30,9 @@
                  :serial     t
                  :components ((:file       "package")
                               (:file       "protocol")
-                              (:file       "macros")))
+                              (:file       "macros")
+
+                              (:file       "jenkins-install")))
 
                 (:module     "commands"
                  :pathname   "src/commands"

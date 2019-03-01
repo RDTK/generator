@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration plugin="warnings-ng@1.0.1">
+  <parsers>
+    <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+      <id>build-generator</id>
+      <name>Build Generator</name>
+      <regexp>^  (.*)-ERROR:((?:\n    .*)+)(?:\n\n    In (.*):\n      ([0-9]+))?</regexp>
+      <script>import edu.hm.hafner.analysis.Severity
+
+String fileName = &quot;unknown file&quot;
+int lineNumber = 0
+if (matcher.group(3) &amp;&amp; matcher.group(4)) {
+  fileName = matcher.group(3)
+  lineNumber = (matcher.group(4) as Integer) + 2
+}
+
+String category = matcher.group(1)
+String message = matcher.group(2)
+
+builder.setFileName(fileName)
+        .setLineStart(lineNumber)
+        .setSeverity(Severity.WARNING_NORMAL)
+        .setCategory(category)
+        .setMessage(message)
+
+return builder.buildOptional();</script>
+      <example>  ANALYSIS-ERROR:
+    Error during analysis of #&lt;PROJECT-SPEC cogimon-lwr-nightly:ocl {10060645E3}&gt; Caused by:
+    &gt; Error during analysis of /media/local_data/jmoringe/tmp/project.DRJqnk/branch-toolchain-2.8/CMakeLists.txt Caused by:
+    &gt; &gt; Could not resolve &quot;${OCL_VERSION_MAJOR}.${OCL_VERSION_MINOR}&quot; in find_package(…) expression.
+
+    In /media/local_data/jmoringe/jenkins/jobs/validate-recipes/workspace/distributions/roman16-humotion-nightly.distribution:
+      77 │ …  [ &quot;ros-catkin&quot;,                   &quot;0.5.65&quot; ],</example>
+    </io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+    <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+      <id>build-generator-dependencies</id>
+      <name>Build Generator Dependencies</name>
+      <regexp>No provider for ([^ ]+) ([^&quot;]+)$</regexp>
+      <script>import edu.hm.hafner.analysis.Severity
+
+String fileName = &quot;file&quot;
+int lineNumber = 1
+String nature = matcher.group(1)
+String name = matcher.group(2)
+String category = &quot;DEPENDENCY-&quot; + nature
+String message = &quot;No provider for ${nature} ${name}&quot;
+
+builder.setFileName(fileName)
+        .setLineStart(lineNumber)
+        .setSeverity(Severity.WARNING_NORMAL)
+        .setType(&quot;Build Generator Dependency&quot;)
+        .setCategory(category)
+        .setMessage(message)
+
+return builder.buildOptional();</script>
+      <example>No provider for CMAKE RST</example>
+    </io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+    <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+      <id>cmake</id>
+      <name>CMake</name>
+      <regexp>^CMake (Deprecation Warning|Warning|Warning \(dev\)|Error) at(?: )+(.+):(\d+) \((.+)\):\n(  .+\n)?(.+\n(  .+\n)*)?</regexp>
+      <script>import edu.hm.hafner.analysis.Severity
+
+String messageType = matcher.group(1)
+String fileName = matcher.group(2)
+String lineNumber = Integer.parseInt(matcher.group(3))
+String scope = matcher.group(4)
+String cmakeMessage = matcher.group(5)
+String callStack = matcher.group(6)
+
+String message = &quot;&quot;
+if (cmakeMessage) {
+     message += cmakeMessage + &quot;&lt;br /&gt;&quot;
+}
+if (callStack) {
+     message += &quot;&lt;pre&gt;&quot; + callStack + &quot;&lt;/pre&gt;&quot;
+}
+
+Severity priority = Severity.WARNING_NORMAL
+if (messageType == &quot;Deprecation Warning&quot;) {
+     priority = Severity.WARNING_LOW
+} else if (messageType == &quot;Error&quot;) {
+     priority = Severity.WARNING_HIGH
+}
+
+builder.setFileName(fileName)
+        .setLineStart(lineNumber)
+        .setSeverity(priority)
+        .setType(&quot;CMake&quot;)
+        .setCategory(scope)
+        .setMessage(message)
+
+return builder.buildOptional();</script>
+      <example>CMake Warning at /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:166 (message):
+  catkin_package() DEPENDS on &apos;openrave&apos; but neither &apos;openrave_INCLUDE_DIRS&apos;
+  nor &apos;openrave_LIBRARIES&apos; is defined.
+Call Stack (most recent call first):
+  /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:102 (_catkin_package)
+  openrave_tools/openrave_catkin/CMakeLists.txt:7 (catkin_package)</example>
+    </io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
+  </parsers>
+</io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration>

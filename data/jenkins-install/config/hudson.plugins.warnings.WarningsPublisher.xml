@@ -1,0 +1,83 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson.plugins.warnings.WarningsDescriptor plugin="warnings@4.68">
+  <groovyParsers>
+    <hudson.plugins.warnings.GroovyParser>
+      <name>Build Generator</name>
+      <regexp>^  (.*)-ERROR:((?:\n    .*)+)(?:\n\n    In (.*):\n      ([0-9]+))?</regexp>
+      <script>import hudson.plugins.warnings.parser.Warning
+
+String fileName = &quot;unknown file&quot;
+int lineNumber = 0
+if (matcher.group(3) &amp;&amp; matcher.group(4)) {
+  fileName = matcher.group(3)
+  lineNumber = (matcher.group(4) as Integer) + 2
+}
+
+String category = matcher.group(1)
+String message = matcher.group(2)
+
+return new Warning(fileName, lineNumber, &quot;Build Generator Error Parser&quot;, category, message);</script>
+      <example>  ANALYSIS-ERROR:
+    Error during analysis of #&lt;PROJECT-SPEC cogimon-lwr-nightly:ocl {10060645E3}&gt; Caused by:
+    &gt; Error during analysis of /media/local_data/jmoringe/tmp/project.DRJqnk/branch-toolchain-2.8/CMakeLists.txt Caused by:
+    &gt; &gt; Could not resolve &quot;${OCL_VERSION_MAJOR}.${OCL_VERSION_MINOR}&quot; in find_package(…) expression.
+
+    In /media/local_data/jmoringe/jenkins/jobs/validate-recipes/workspace/distributions/roman16-humotion-nightly.distribution:
+      77 │ …  [ &quot;ros-catkin&quot;,                   &quot;0.5.65&quot; ],</example>
+      <linkName>Build Generator Error Report</linkName>
+      <trendName>Build Generator Errors</trendName>
+    </hudson.plugins.warnings.GroovyParser>
+    <hudson.plugins.warnings.GroovyParser>
+      <name>Cmake</name>
+      <regexp>^CMake (Deprecation Warning|Warning|Warning \(dev\)|Error) at(?: )+(.+):(\d+) \((.+)\):\n(  .+\n)?(.+\n(  .+\n)*)?</regexp>
+      <script>import hudson.plugins.analysis.util.model.Priority
+import hudson.plugins.warnings.parser.Warning
+
+String messageType = matcher.group(1)
+String fileName = matcher.group(2)
+String lineNumber = matcher.group(3)
+String scope = matcher.group(4)
+String cmakeMessage = matcher.group(5)
+String callStack = matcher.group(6)
+
+String message = &quot;&quot;
+if (cmakeMessage) {
+     message += cmakeMessage + &quot;&lt;br /&gt;&quot;
+}
+if (callStack) {
+     message += &quot;&lt;pre&gt;&quot; + callStack + &quot;&lt;/pre&gt;&quot;
+}
+
+Priority priority = Priority.NORMAL
+if (messageType == &quot;Deprecation Warning&quot;) {
+     priority = Priority.LOW
+} else if (messageType == &quot;Error&quot;) {
+     priority = Priority.HIGH
+}
+return new Warning(fileName, Integer.parseInt(lineNumber), &quot;CMake&quot;, scope, message, priority);</script>
+      <example>CMake Warning at /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:166 (message):
+  catkin_package() DEPENDS on &apos;openrave&apos; but neither &apos;openrave_INCLUDE_DIRS&apos;
+  nor &apos;openrave_LIBRARIES&apos; is defined.
+Call Stack (most recent call first):
+  /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:102 (_catkin_package)
+  openrave_tools/openrave_catkin/CMakeLists.txt:7 (catkin_package)</example>
+      <linkName>CMake Warnings Report</linkName>
+      <trendName>CMake Warnings</trendName>
+    </hudson.plugins.warnings.GroovyParser>
+    <hudson.plugins.warnings.GroovyParser>
+      <name>Build Generator Dependencies</name>
+      <regexp>No provider for ([^ ]+) ([^&quot;]+)$</regexp>
+      <script>import hudson.plugins.warnings.parser.Warning
+
+String fileName = &quot;file&quot;
+int lineNumber = 1
+String nature = matcher.group(1)
+String name = matcher.group(2)
+
+return new Warning(fileName, lineNumber, &quot;Build Generator Dependency Parser&quot;, &quot;DEPENDENCY-&quot; + nature, &quot;No provider for ${nature} ${name}&quot;);</script>
+      <example>No provider for CMAKE RST</example>
+      <linkName>Build Generator Dependency Report</linkName>
+      <trendName>Build Generator Dependencies</trendName>
+    </hudson.plugins.warnings.GroovyParser>
+  </groovyParsers>
+</hudson.plugins.warnings.WarningsDescriptor>

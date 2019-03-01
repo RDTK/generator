@@ -23,7 +23,14 @@
                 (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))
 
-  :components  ((:module     "commands"
+  :components  ((:module     "steps"
+                 :pathname   "src/steps"
+                 :serial     t
+                 :components ((:file       "package")
+                              (:file       "protocol")
+                              (:file       "macros")))
+
+                (:module     "commands"
                  :pathname   "src/commands"
                  :serial     t
                  :components ((:file       "package")

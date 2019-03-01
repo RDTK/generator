@@ -137,3 +137,54 @@
       (write-byte-vector-into-file content destination-file
                                    :if-exists :supersede)
       #+unix (sb-posix:chmod destination-file mode))))
+
+;;; `jenkins/create-user' step
+
+(defparameter *jenkins-user-config-file-template*
+  #.(let ((filename (merge-pathnames
+                     "../../data/jenkins-install/user-config.xml.in"
+                     (or *compile-file-truename* *load-truename*))))
+      (read-file-into-byte-vector filename)))
+
+(macrolet ((define-xpath-constant (name xpath)
+             `(define-constant ,name
+                  `(xpath:xpath ,(xpath:parse-xpath ,xpath))
+                :test #'equal)))
+
+  (define-xpath-constant +jenkins-user-config-full-name-path+
+    "/user/fullName/text()")
+
+  (define-xpath-constant +jenkins-user-config-password-hash-path+
+    "/user/properties/hudson.security.HudsonPrivateSecurityRealm_-Details/passwordHash/text()")
+
+  (define-xpath-constant +jenkins-user-config-email-path+
+    "/user/properties/hudson.tasks.Mailer_-UserProperty/emailAddress/text()"))
+
+(define-step (jenkins/create-user)
+    (destination-directory config-file-template
+     username email password)
+  "Create a user in an existing Jenkins installation."
+  (with-trivial-progress (:install/user "~A" username)
+   (let* ((destination-file (merge-pathnames
+                             (make-pathname :name      "config"
+                                            :type      "xml"
+                                            :directory `(:relative "users" ,username))
+                             destination-directory))
+          (hash             (jenkins.project.bcrypt:hash-password password))
+          (hash             (format nil "#jbcrypt:~A" hash))
+          (document         (cxml:parse config-file-template
+                                        (stp:make-builder))))
+     ;; Populate template.
+     (mapc (lambda+ ((path . value))
+             (xpath:do-node-set (node (xpath:evaluate path document))
+               (setf (stp:data node) value)))
+           `((,+jenkins-user-config-full-name-path+     . ,username)
+             (,+jenkins-user-config-password-hash-path+ . ,hash)
+             (,+jenkins-user-config-email-path+         . ,email)))
+     ;; Serialize modified document into the user configuration file
+     ;; for USERNAME.
+     (ensure-directories-exist destination-file)
+     (with-output-to-file (stream destination-file
+                                  :element-type '(unsigned-byte 8)
+                                  :if-exists    :supersede)
+       (stp:serialize document (cxml:make-octet-stream-sink stream))))))

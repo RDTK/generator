@@ -20,14 +20,24 @@
                 (:version "configuration.options-and-service-provider" "0.10")
                 (:version "configuration.options-and-puri"             "0.10")
 
+                (:version "cl-ppcre"                                   "2.0.11") ; for bcrypt
+                (:version "nibbles"                                    "0.13")   ; for bcrypt
                 "zip"
 
                 (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
                 (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))
 
-  :components  ((:module     "steps"
+  :components  ((:module     "bcrypt"
+                 :pathname   "src/bcrypt"
+                 :serial     t
+                 :components ((:file       "package")
+                              (:file       "base64")
+                              (:file       "bcrypt")))
+
+                (:module     "steps"
                  :pathname   "src/steps"
                  :serial     t
+                 :depends-on ("bcrypt")
                  :components ((:file       "package")
                               (:file       "protocol")
                               (:file       "macros")

@@ -40,12 +40,16 @@
 ;;; Templates
 
 (defmethod load-templates ((container workspace))
-  (let ((project::*templates* (make-hash-table :test #'equal))
-        (project::*templates-lock* (bt:make-lock))
-        (pattern (project:recipe-path
-                  (repository container) :template :wild)))
+  (let* ((project::*templates* (make-hash-table :test #'equal))
+         (project::*templates-lock* (bt:make-lock))
+         (repository (repository container))
+         (pattern    (project:recipe-path repository :template :wild)))
     (log:error "Background-loading templates from ~A" pattern)
-    (map nil #'project:load-template/yaml (directory pattern))
+    (mappend (lambda (filename)
+               (with-simple-restart (continue "Skip")
+                 (list (project:load-template/yaml
+                        filename :repository repository))))
+         (directory pattern))
     project::*templates*))
 
 (defmethod ensure-templates ((container workspace))
@@ -73,17 +77,18 @@
 ;;; Projects
 
 (defmethod load-projects ((container workspace))
-  (let ((project::*templates* (lparallel:force (ensure-templates container)))
-        (project::*projects* nil ; (make-hash-table :test #'equal)
-                                           )
-        (project::*projects-lock* (bt:make-lock))
-        (pattern (project:recipe-path
-                  (repository container) :project :wild)))
+  (let* ((project::*templates* (lparallel:force (ensure-templates container)))
+         (project::*projects* nil ; (make-hash-table :test #'equal)
+                                            )
+         (project::*projects-lock* (bt:make-lock))
+         (repository (repository container))
+         (pattern    (project:recipe-path repository :project :wild)))
     (handler-bind (((and error build-generator.util:continuable-error)
                      (compose #'invoke-restart #'build-generator.util:find-continue-restart)))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")
-                   (list (project:load-project-spec/yaml filename))))
+                   (list (project:load-project-spec/yaml
+                          filename :repository repository))))
                (directory pattern)))))
 
 (defmethod ensure-projects ((container workspace))

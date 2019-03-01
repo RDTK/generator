@@ -200,10 +200,11 @@
 
        (defun ,load-name (source
                           &rest args
-                          &key (repository (missing-required-argument :repository))
+                          &key pathname
+                               (repository       (missing-required-argument :repository))
                                generator-version
                                ,@other-args)
-         (declare (ignore generator-version ,@other-args))
+         (declare (ignore pathname generator-version ,@other-args))
          (handler-bind (((and error (not annotation-condition))
                           (lambda (condition)
                             (error "~@<Error when loading ~(~A~) ~

@@ -37,6 +37,7 @@
                 (:module     "commands"
                  :pathname   "src/commands"
                  :serial     t
+                 :depends-on ("steps")
                  :components ((:file       "package")
                               (:file       "conditions")
                               (:file       "protocol")
@@ -63,4 +64,6 @@
 
                               (:file       "command-validate")
                               (:file       "command-platform-requirements")
-                              (:file       "command-report")))))
+                              (:file       "command-report")
+
+                              (:file       "command-install-jenkins")))))

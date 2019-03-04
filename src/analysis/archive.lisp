@@ -69,8 +69,20 @@
       (with-retry-restart ("Retry obtaining hash for ~A" url)
         (apply #'call-with-download-stream
                (lambda (stream content-length)
-                 (let ((digest (ironclad:make-digesting-stream :sha512)))
-                   (copy-stream stream digest :end +archive-hash-length-limit+)
+                 (let ((digest (ironclad:make-digesting-stream :sha512))
+                       (end    (if content-length
+                                   (min content-length +archive-hash-length-limit+)
+                                   +archive-hash-length-limit+)))
+                   ;; If known, feed content length to digest.
+                   (log:debug "~@<Content length for ~A is ~:[not ~
+                               known~;~:*~:D~]~@:>"
+                              url content-length)
+                   (when content-length
+                     (loop :for i :below (integer-length content-length) :by 8
+                           :for octet = (ldb (byte 8 i) content-length)
+                           :do (write-byte octet digest)))
+                   ;; Feed beginning of content to digest.
+                   (copy-stream stream digest :end end)
                    (ironclad:produce-digest digest)))
                url args)))))
 

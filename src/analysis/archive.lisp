@@ -68,7 +68,7 @@
     (with-retries (usocket:ns-try-again-condition :limit 3)
       (with-retry-restart ("Retry obtaining hash for ~A" url)
         (apply #'call-with-download-stream
-               (lambda (stream)
+               (lambda (stream content-length)
                  (let ((digest (ironclad:make-digesting-stream :sha512)))
                    (copy-stream stream digest :end +archive-hash-length-limit+)
                    (ironclad:produce-digest digest)))

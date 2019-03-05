@@ -1,6 +1,6 @@
 ;;;; setuptools.lisp ---
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -126,14 +126,15 @@
 
 (defun process-dependency (spec globals)
   (or (ppcre:register-groups-bind (name relation version)
-          ("^([^ \\t<>=]+)[ \\t]*([<>=]+)[ \\t]*([^ \\t]+)$" spec)
-        (list* :setuptools name
-               (cond
-                 ((not (string= relation ">="))
-                  nil)
-                 ((when-let (version (process-version version globals))
-                    (list version))))))
-      (list :setuptools spec)))
+          ("^([^ \\t\"'{}<>=]+)[ \\t]*([<>=]+)[ \\t]*([^ \\t]+)$" spec)
+        (list (list* :setuptools name
+                     (cond
+                       ((not (string= relation ">="))
+                        nil)
+                       ((when-let (version (process-version version globals))
+                          (list version)))))))
+      (ppcre:register-groups-bind (name) ("^([^ \\t\"'{}<>=]+)" spec)
+        (list (list :setuptools name)))))
 
 (defmethod analyze ((directory pathname)
                     (kind      (eql :setuptools))
@@ -158,10 +159,9 @@
          (authors     (parse-name-and-email
                        (argument "author") (argument "author_email")))
          (license     (argument "license"))
-         (requires    (mapcar (rcurry #'process-dependency globals)
-                              (append
-                               (argument "setup_requires" t)
-                               (argument "install_requires" t)))))
+         (requires    (mapcan (rcurry #'process-dependency globals)
+                              (append (argument "setup_requires" t)
+                                      (argument "install_requires" t)))))
     `(:natures               (,kind)
       :provides              ((:setuptools ,name ,version))
       :requires              ,requires

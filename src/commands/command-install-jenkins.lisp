@@ -6,19 +6,28 @@
 
 (cl:in-package #:jenkins.project.commands)
 
-(defparameter *default-plugins*
-  '("git" "subversion" "mercurial"
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; TODO should be defined in aspects module
+  (defmethod jenkins.model.project:requires ((thing jenkins.model.aspects::aspect))
+    (map 'list (curry #'list :jenkins-plugin)
+         (jenkins.model.aspects::required-plugins thing)))
 
-    "redmine" "github"
+  (defun required-jenkins-plugins ()
+    (let ((aspect-classes (map 'list #'service-provider:provider-class
+                               (service-provider:service-providers
+                                'jenkins.model.aspects::aspect))))
+      (remove-duplicates
+       (mappend (lambda (aspect-class)
+                  (let* ((prototype    (c2mop:class-prototype
+                                        (c2mop:ensure-finalized aspect-class)))
+                         (requirements (jenkins.model.project:requires-of-kind
+                                        :jenkins-plugin prototype)))
+                    (map 'list #'second requirements)))
+                aspect-classes)
+       :test #'string=))))
 
-    "build-timeout"
-
-    "groovy" "copyartifact"
-
-    "publish-over-ssh" "sloccount" "tasks"
-    "warnings" "xunit" "htmlpublisher"
-
-    "extra-columns"))
+(defparameter *default-extra-plugins*
+  '("extra-columns"))
 
 (defclass install-jenkins (output-directory-mixin)
   (;; Output
@@ -36,9 +45,16 @@
    (plugins              :initarg  :plugins
                          :type     (or null (cons string list))
                          :reader   plugins
-                         :initform *default-plugins*
+                         :initform *default-extra-plugins*
                          :documentation
-                         "List of plugins to install.")
+                         #.(format nil "List of plugins to install in ~
+                            addition to the required ones.~@
+                            ~@
+                            The following plugins are required and ~
+                            will be installed in any case:~%~{• ~
+                            ~A~^~%~}"
+                                   (sort (copy-list (required-jenkins-plugins))
+                                         #'string<)))
    ;; User creation
    (username             :initarg  :username
                          :type     (or null string)
@@ -90,7 +106,10 @@
   (let+ (((&accessors-r/o output-directory
                           jenkins-download-url plugins
                           username email password)
-          command))
+          command)
+         (all-plugins (remove-duplicates
+                       (append (required-jenkins-plugins) plugins)
+                       :test #'string=)))
     (as-phase (:install)
       (with-trivial-progress (:install/core)
         (jenkins.project.steps:execute
@@ -101,7 +120,7 @@
       (jenkins.project.steps:execute
        (jenkins.project.steps:make-step :jenkins/install-plugins-with-dependencies) nil
        :destination-directory output-directory
-       :plugins               plugins))
+       :plugins               all-plugins))
 
     (as-phase (:configure)
       (jenkins.project.steps:execute

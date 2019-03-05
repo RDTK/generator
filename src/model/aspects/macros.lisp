@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macros provided by the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -78,6 +78,7 @@
                          (aspect-var (when body
                                        (required-argument :aspect-var)))
                          constraints
+                         (plugins    '())
                          declarations
                          documentation)
   (let+ (((&flet name->class-name (name)
@@ -100,7 +101,10 @@
        ;; Define and register the aspect.
        (defclass ,class-name (,@(mapcar #'name->class-name super-aspects)
                               aspect)
-         ((parameters :type     list
+         (,@(when plugins
+              `((required-plugins :allocation :class
+                                  :initform (list ,@plugins))))
+          (parameters :type     list
                       :allocation :class
                       :reader   aspect-parameters
                       :initform (list ,@(mapcar #'make-aspect-parameter-form
@@ -141,7 +145,8 @@
 (defmacro define-aspect ((name &key (job-var    'job)
                                     (aspect-var 'aspect)
                                     (spec-var   'spec)
-                                    constraints)
+                                    constraints
+                                    (plugins    '()))
                           super-aspects
                           parameters
                          &body body)
@@ -153,5 +158,6 @@
                       :aspect-var    aspect-var
                       :spec-var      spec-var
                       :constraints   constraints
+                      :plugins       plugins
                       :declarations  declarations
                       :documentation documentation)))

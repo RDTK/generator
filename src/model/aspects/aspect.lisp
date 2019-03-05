@@ -57,20 +57,27 @@
                   implementation-mixin
                   parented-mixin
                   direct-variables-mixin)
-  ((constraints :initarg  :constraints
-                :type     list
-                :reader   constraints
-                :initform '()
-                :documentation
-                "Constraints regarding the ordering of aspect
-                 execution imposed by this aspect. Entries are of one
-                 of the forms:
+  ((required-plugins :allocation :class
+                     :accessor required-plugins
+                     :initform '()
+                     :documentation
+                     "Stores a list of names of plugin required by the
+                      aspect.")
+   (constraints      :initarg  :constraints
+                     :type     list
+                     :reader   constraints
+                     :initform '()
+                     :documentation
+                     "Constraints regarding the ordering of aspect
+                      execution imposed by this aspect. Entries are of
+                      one of the forms:
 
-                   (:after  ASPECT-NAME)
-                   (:before ASPECT-NAME)
+                        (:after  ASPECT-NAME)
+                        (:before ASPECT-NAME)
 
-                 where ASPECT-NAME designates the aspect to which this
-                 aspect is related by the ordering constraint."))
+                      where ASPECT-NAME designates the aspect to which
+                      this aspect is related by the ordering
+                      constraint."))
   (:documentation
    "Instances of this class correspond to particular aspect of a
     generated build job such as checking out source code from a

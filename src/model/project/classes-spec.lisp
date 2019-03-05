@@ -278,16 +278,6 @@
                   (value/cast spec :extra-provides '()))
           (%provides spec)))
 
-(defmethod requires-of-kind ((nature t) (spec version-spec))
-  (remove nature (requires spec)
-          :test (complement #'eq)
-          :key  #'first))
-
-(defmethod provides-of-kind ((nature t) (spec version-spec))
-  (remove nature (provides spec)
-          :test (complement #'eq)
-          :key  #'first))
-
 (defmethod instantiate ((spec version-spec) &key parent specification-parent
                                                  context variables)
   (declare (ignore specification-parent))

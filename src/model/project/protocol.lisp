@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the project module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -63,6 +63,14 @@
     where TARGET is the object upon which THING depends and REASONS is
     a list of requirement specifications that are satisfied by things
     TARGET provides."))
+
+;;; Default behavior
+
+(defmethod requires-of-kind ((nature t) (spec t))
+  (remove nature (requires spec) :test-not #'eq :key #'first))
+
+(defmethod provides-of-kind ((nature t) (spec t))
+  (remove nature (provides spec) :test-not #'eq :key #'first))
 
 ;;; Person container protocol
 

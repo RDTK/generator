@@ -1,6 +1,6 @@
 ;;;; aspects.lisp --- Aspect definitions
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -187,7 +187,9 @@
 
 ;;; Github aspect
 
-(define-aspect (github :job-var job) ()
+(define-aspect (github :job-var job
+                       :plugins ("github"))
+    ()
     (((project-url  nil) :type (or null string)
       :documentation
       "The URL of the GitHub page of the project.")
@@ -207,7 +209,9 @@
 
 ;;; Redmine aspects
 
-(define-aspect (redmine :job-var job) ()
+(define-aspect (redmine :job-var job
+                        :plugins ("redmine"))
+    ()
     (((instance nil) :type (or null string)
       :documentation
       "Redmine instance in which the project associated to the
@@ -234,7 +238,8 @@
 
 (define-aspect (redmine-and-git
                 :job-var     job
-                :constraints ((:after aspect-git)))
+                :constraints ((:after aspect-git))
+                :plugins     ("git" "redmine"))
     ()
     (((instance      (bail)) :type string
       :documentation
@@ -327,7 +332,8 @@
 
 ;;; Timeout aspect
 
-(define-aspect (timeout) ()
+(define-aspect (timeout :plugins ("build-timeout"))
+    ()
     ((timeout/minutes :type positive-integer
       :documentation
       "Number of minutes a build of the generated job can run before
@@ -338,7 +344,8 @@
 
 ;;; sonar cube scanner aspect
 
-(define-aspect (sonar-cube-scanner) ()
+(define-aspect (sonar-cube-scanner :plugins ("sonar"))
+    ()
     ((mode :type (or (eql :inject) (eql :explicit))
       :documentation
       "How should the SonarCube Scanner be invoked?

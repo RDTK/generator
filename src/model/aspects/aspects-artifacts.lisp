@@ -1,6 +1,6 @@
 ;;;; aspects-artifacts.lisp --- Definitions of artifact-related aspects
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -31,7 +31,8 @@
 ;;; Dependency download aspect
 
 (define-aspect (dependency-download :job-var  job
-                                    :spec-var spec)
+                                    :spec-var spec
+                                    :plugins  ("copyartifact"))
     (builder-defining-mixin)
     ((((:upstream-dir upstream-dir)) :type string))
   "Configures artifact downloads for the generated job.

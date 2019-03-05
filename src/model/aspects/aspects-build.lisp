@@ -1,6 +1,6 @@
 ;;;; aspects-build.lisp --- Definitions of builder-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -255,7 +255,9 @@
 
 ;;; groovy script aspects
 
-(define-aspect (groovy :job-var job) (builder-defining-mixin)
+(define-aspect (groovy :job-var job
+                       :plugins ("groovy"))
+    (builder-defining-mixin)
     (((kind :system) :type (or (eql :system) (eql :normal))
       :documentation
       "The execution environment of the build step.

@@ -8,7 +8,8 @@
 
 ;;; Tasks aspect
 
-(define-aspect (tasks) (publisher-defining-mixin)
+(define-aspect (tasks :plugins ("tasks" "warnings-ng"))
+    (publisher-defining-mixin)
     ((pattern               :type (list-of string)
       :documentation
       "Filename patterns specifying which workspace files to scan for
@@ -58,8 +59,8 @@
 
 ;;; SLOCcount aspect
 
-(define-aspect (sloccount) (builder-defining-mixin
-                            publisher-defining-mixin)
+(define-aspect (sloccount :plugins ("sloccount"))
+    (builder-defining-mixin publisher-defining-mixin)
     ((directories :type list))
   "Adds a sloccount publisher to the generated job."
   (let ((command (format nil "DATA_DIR=$(mktemp -d /tmp/build-generator.sloccount.data.XXXXXXXXXX)~@
@@ -104,7 +105,9 @@
          :parser parser)
         (analysis-tools issues-recorder)))
 
-(define-aspect (warnings :job-var job) (publisher-defining-mixin)
+(define-aspect (warnings :job-var job
+                         :plugins ("warnings"))
+    (publisher-defining-mixin)
     ((parsers                  :type (list-of string)
       :documentation
       "Names of parsers to apply to the output of the generated job.
@@ -161,8 +164,11 @@
 
 (macrolet
     ((define (name (tool-name      id)
-                   (publisher-name display-name))
-       `(define-aspect (,name :job-var job) (publisher-defining-mixin)
+                   (publisher-name display-name)
+                   plugins)
+       `(define-aspect (,name :job-var job
+                              :plugins ,plugins)
+            (publisher-defining-mixin)
             ((pattern                  :type list
               :documentation
               "Analysis results should be read from files matching the
@@ -190,13 +196,17 @@
                        (make-instance ',publisher-name :pattern pattern))
                      (publishers job))))))))
   (define checkstyle (analysis-tool/checkstyle "checkstyle")
-                     (publisher/checkstyle     "CheckStyle"))
+                     (publisher/checkstyle     "CheckStyle")
+                     ("warnings-ng" "checkstyle"))
   (define pmd        (analysis-tool/pmd        "pmd")
-                     (publisher/pmd            "PMD")))
+                     (publisher/pmd            "PMD")
+                     ("warnings-ng" "pmd")))
 
 ;;; Test result aspects
 
-(define-aspect (xunit :job-var job) (publisher-defining-mixin)
+(define-aspect (xunit :job-var job
+                      :plugins ("xunit"))
+    (publisher-defining-mixin)
     ((kind                      :type string)
      (pattern                   :type (or null string))
      (skip-if-no-test-files?    :type boolean)
@@ -217,7 +227,9 @@
              :stop-processing-if-error? stop-processing-if-error?)
             (types publisher)))))
 
-(define-aspect (junit :job-var job) (publisher-defining-mixin)
+(define-aspect (junit :job-var job
+                      :plugins ("junit"))
+    (publisher-defining-mixin)
     ((pattern              :type (or null string)
       :documentation
       "Test results should be read from files matching the pattern.")
@@ -248,7 +260,9 @@
 
 ;;; Email notification
 
-(define-aspect (email-notification :job-var job) (publisher-defining-mixin)
+(define-aspect (email-notification :job-var job
+                                   :plugins ("mailer"))
+    (publisher-defining-mixin)
     ((recipients           :type (list-of string)
       :documentation
       "A list of email addresses to which notifications in case of a
@@ -268,7 +282,9 @@
 
 ;;; Upload aspect
 
-(define-aspect (upload :job-var job) (publisher-defining-mixin)
+(define-aspect (upload :job-var job
+                       :plugins ("publish-over-ssh"))
+    (publisher-defining-mixin)
     ((target             :type string
       :documentation
       "The name of the machine to which artifacts should be uploaded.")
@@ -301,7 +317,9 @@
 
 ;;; HTML report aspect
 
-(define-aspect (html-report :job-var job) (publisher-defining-mixin)
+(define-aspect (html-report :job-var job
+                            :plugins ("htmlpublisher"))
+    (publisher-defining-mixin)
     ((name           :type string
       :documentation
       "Name of the report.")

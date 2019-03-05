@@ -1,6 +1,6 @@
 ;;;; aspects-scm.lisp --- Definitions of SCM-related aspects
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -60,7 +60,10 @@
     (push (constraint! (build ((:before t))) (shell (:command command)))
           (builders job))))
 
-(define-aspect (git :job-var job :aspect-var aspect) (builder-defining-mixin)
+(define-aspect (git :job-var    job
+                    :aspect-var aspect
+                    :plugins    ("git"))
+    (builder-defining-mixin)
     ((url                                   :type string
       :documentation
       "URL of the remote git repository from which the project source
@@ -151,7 +154,8 @@
 
 (define-aspect (git-repository-browser
                 :job-var     job
-                :constraints ((:after aspect-git)))
+                :constraints ((:after aspect-git))
+                :plugins     ("git"))
     ()
     (((kind (bail)) :type keyword)
      ((url  (bail)) :type string))
@@ -162,7 +166,10 @@
     (setf (browser-kind repository) kind
           (browser-url  repository) url)))
 
-(define-aspect (subversion :job-var job :aspect-var aspect) ()
+(define-aspect (subversion :job-var    job
+                           :aspect-var aspect
+                           :plugins    ("subversion"))
+    ()
     ((url                             :type string
      :documentation
      "URL from which the checkout should be performed including,
@@ -215,7 +222,9 @@
                 :local-directory   local-dir
                 :checkout-strategy checkout-strategy)))))
 
-(define-aspect (mercurial :job-var job :aspect-var aspect)
+(define-aspect (mercurial :job-var    job
+                          :aspect-var aspect
+                          :plugins    ("mercurial"))
     (builder-defining-mixin)
     ((url                                  :type string
       :documentation

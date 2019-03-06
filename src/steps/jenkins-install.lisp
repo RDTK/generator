@@ -6,6 +6,45 @@
 
 (cl:in-package #:jenkins.project.steps)
 
+;;; Utilities
+
+(deftype jenkins-directory-state ()
+  "Possible states of a Jenkins installation."
+  '(member :not-present :fresh :stopped :running))
+
+(declaim (ftype (function ((or string pathname))
+                          (values jenkins-directory-state &optional))
+                jenkins-directory-state))
+(defun jenkins-directory-state (directory)
+  "Determine and return the state of the Jenkins installation in DIRECTORY."
+  (let ((queue?        (probe-file (merge-pathnames "queue.xml" directory)))
+        (queue-backup? (probe-file (merge-pathnames "queue.xml.bak" directory))))
+    (cond ((not (probe-file directory))
+           :not-present)
+          ((and (not queue?) (not queue-backup?))
+           :fresh)
+          ((and queue? queue-backup?)
+           :stopped)
+          ((and queue-backup? (not queue?))
+           :running))))
+
+(defun ensure-jenkins-directory-state (expected directory)
+  "Ensure that Jenkins installation in DIRECTORY is in EXPECTED state.
+
+   EXPECTED is either a `jenkins-directory-state' or a list of those.
+
+   An error is signaled if DIRECTORY is in none of the states listed
+   in EXPECTED."
+  (let ((actual (jenkins-directory-state directory)))
+    (cond ((and (consp expected) (member actual expected :test #'eq))
+           t)
+          ((eq actual expected)
+           t)
+          (t
+           (error "~@<Jenkins installation in ~A appears to be in ~
+                   state ~A instead of ~{~A~^ or ~}.~@:>"
+                  directory actual (ensure-list expected))))))
+
 ;;; `jenkins/install-core' step
 
 (define-constant +default-jenkins-download-url+
@@ -16,6 +55,7 @@
     ((url                  +default-jenkins-download-url+)
      destination-directory)
   "Download the Jenkins archive into a specified directory."
+  (ensure-jenkins-directory-state :not-present destination-directory)
   (let ((pathname (merge-pathnames "jenkins.war" destination-directory)))
     (ensure-directories-exist pathname)
     (when (not (probe-file pathname))
@@ -164,6 +204,7 @@
     (destination-directory config-file-template
      username email password)
   "Create a user in an existing Jenkins installation."
+  (ensure-jenkins-directory-state '(:fresh stopped) destination-directory)
   (with-trivial-progress (:install/user "~A" username)
    (let* ((destination-file (merge-pathnames
                              (make-pathname :name      "config"

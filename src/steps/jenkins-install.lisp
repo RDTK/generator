@@ -23,9 +23,9 @@
            :not-present)
           ((and (not queue?) (not queue-backup?))
            :fresh)
-          ((and queue? queue-backup?)
+          (queue?
            :stopped)
-          ((and queue-backup? (not queue?))
+          ((and (not queue?) queue-backup?)
            :running))))
 
 (defun ensure-jenkins-directory-state (expected directory)
@@ -237,7 +237,7 @@
      (config-file-template *jenkins-user-config-file-template*)
      username email password)
   "Create a user in an existing Jenkins installation."
-  (ensure-jenkins-directory-state '(:fresh stopped) destination-directory)
+  (ensure-jenkins-directory-state '(:fresh :stopped) destination-directory)
   (with-trivial-progress (:install/user "~A" username)
     (let ((destination-file (jenkins-user-configuration-file
                              username destination-directory))

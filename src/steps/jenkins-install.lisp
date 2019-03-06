@@ -200,6 +200,38 @@
   (define-xpath-constant +jenkins-user-config-email-path+
     "/user/properties/hudson.tasks.Mailer_-UserProperty/emailAddress/text()"))
 
+(defun jenkins-user-configuration-file (name destination-directory)
+  (merge-pathnames (make-pathname :name      "config"
+                                  :type      "xml"
+                                  :directory `(:relative "users" ,name))
+                   destination-directory))
+
+(define-constant +jenkins-users-index-file+
+  #P"users/users.xml"
+  :test #'equalp)
+
+(deftype user-id-map-entry/cons ()
+  '(cons string string))
+
+(defmethod xloc:xml-> ((value stp:element)
+                       (type  (eql 'user-id-map-entry/cons))
+                       &key inner-types)
+  (declare (ignore inner-types))
+  (xloc:with-locations-r/o ((name      "string[1]/text()")
+                            (directory "string[2]/text()"))
+      value
+    (cons name directory)))
+
+(defmethod xloc:->xml ((value cons)
+                       (dest  stp:element)
+                       (type  (eql 'user-id-map-entry/cons))
+                       &key inner-types)
+  (declare (ignore inner-types))
+  (xloc:with-locations ((name      "string[1]/text()")
+                        (directory "string[2]/text()"))
+      dest
+    (setf name (car value) directory (cdr value))))
+
 (define-step (jenkins/create-user)
     (destination-directory
      (config-file-template *jenkins-user-config-file-template*)
@@ -207,26 +239,53 @@
   "Create a user in an existing Jenkins installation."
   (ensure-jenkins-directory-state '(:fresh stopped) destination-directory)
   (with-trivial-progress (:install/user "~A" username)
-   (let* ((destination-file (merge-pathnames
-                             (make-pathname :name      "config"
-                                            :type      "xml"
-                                            :directory `(:relative "users" ,username))
-                             destination-directory))
-          (hash             (jenkins.project.bcrypt:hash-password password))
-          (hash             (format nil "#jbcrypt:~A" hash))
-          (document         (cxml:parse config-file-template
-                                        (stp:make-builder))))
-     ;; Populate template.
-     (mapc (lambda+ ((path . value))
-             (xpath:do-node-set (node (xpath:evaluate path document))
-               (setf (stp:data node) value)))
-           `((,+jenkins-user-config-full-name-path+     . ,username)
-             (,+jenkins-user-config-password-hash-path+ . ,hash)
-             (,+jenkins-user-config-email-path+         . ,email)))
-     ;; Serialize modified document into the user configuration file
-     ;; for USERNAME.
-     (ensure-directories-exist destination-file)
-     (with-output-to-file (stream destination-file
-                                  :element-type '(unsigned-byte 8)
-                                  :if-exists    :supersede)
-       (stp:serialize document (cxml:make-octet-stream-sink stream))))))
+    (let ((destination-file (jenkins-user-configuration-file
+                             username destination-directory))
+          (index-file       (merge-pathnames +jenkins-users-index-file+
+                                             destination-directory)))
+
+      ;; Add an entry for USERNAME in users.xml if it exists.
+      (let ((document))
+        (with-open-file (stream index-file
+                                :element-type      '(unsigned-byte 8)
+                                :direction         :input
+                                :if-does-not-exist nil)
+          (when stream
+            (setf document (cxml:parse stream (stp:make-builder)))))
+        (when document
+          (xloc:with-locations (((:val entries :type 'user-id-map-entry/cons)
+                                 "hudson.model.UserIdMapper/idToDirectoryNameMap/entry"
+                                 :if-multiple-matches :all))
+              document
+            (let ((entry (find username entries :test #'string= :key #'car)))
+              (cond ((not entry)
+                     (appendf entries `((,username . ,username))))
+                    (t
+                     (error "~@<A user named \"~A\" already exists.~@:>" username)
+                     (setf destination-file (jenkins-user-configuration-file
+                                             (cdr entry) destination-directory))
+                     (log:info "~@<New destination file ~S.~@:>"
+                               destination-file)))))
+          (with-output-to-file (stream index-file :element-type '(unsigned-byte 8)
+                                                  :if-exists    :supersede)
+            (cxml-stp:serialize document (cxml:make-octet-stream-sink stream)))))
+
+      ;; Write user configuration file.
+      (let* ((hash     (jenkins.project.bcrypt:hash-password password))
+             (hash     (format nil "#jbcrypt:~A" hash))
+             (document (cxml:parse config-file-template (stp:make-builder))))
+        ;; Populate template.
+        (mapc (lambda+ ((path . value))
+                (xpath:do-node-set (node (xpath:evaluate path document))
+                  (setf (stp:data node) value)))
+              `((,+jenkins-user-config-full-name-path+     . ,username)
+                (,+jenkins-user-config-password-hash-path+ . ,hash)
+                (,+jenkins-user-config-email-path+         . ,email)))
+
+        ;; Serialize modified document into the user configuration
+        ;; file for USERNAME.
+        (ensure-directories-exist destination-file)
+        (with-output-to-file (stream destination-file
+                                     :element-type '(unsigned-byte 8)
+                                     :if-exists    :supersede)
+          (stp:serialize document (cxml:make-octet-stream-sink stream)))))))

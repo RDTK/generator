@@ -1,6 +1,11 @@
 ((:release "0.27" nil
 
   (:enhancement
+   "The new" (:verb "create-jenkins-user") "command creates a user
+    account in a Jenkins installation to which filesystem-level access
+    is available.")
+
+  (:enhancement
    "The new" (:verb "install-jenkins") "command downloads, installs
     and configures a Jenkins instance into a given directory. To avoid
     Jenkins' initial setup wizard, a user account is also created.")

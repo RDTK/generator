@@ -76,4 +76,5 @@
                               (:file       "command-platform-requirements")
                               (:file       "command-report")
 
-                              (:file       "command-install-jenkins")))))
+                              (:file       "command-install-jenkins")
+                              (:file       "command-create-jenkins-user")))))

@@ -201,7 +201,8 @@
     "/user/properties/hudson.tasks.Mailer_-UserProperty/emailAddress/text()"))
 
 (define-step (jenkins/create-user)
-    (destination-directory config-file-template
+    (destination-directory
+     (config-file-template *jenkins-user-config-file-template*)
      username email password)
   "Create a user in an existing Jenkins installation."
   (ensure-jenkins-directory-state '(:fresh stopped) destination-directory)

@@ -132,7 +132,6 @@
         (jenkins.project.steps:execute
          (jenkins.project.steps:make-step :jenkins/create-user) nil
          :destination-directory output-directory
-         :config-file-template  jenkins.project.steps::*jenkins-user-config-file-template*
          :username              username
          :email                 email
          :password              password)))))

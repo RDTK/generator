@@ -85,7 +85,7 @@
       • Install Jenkins configuration files that make the instance ~
         work well with the build-generator.~@
       ~@
-      • Set up a user account.")))
+      • Optionally set up a user account.")))
 
 (service-provider:register-provider/class
  'command :install-jenkins :class 'install-jenkins)

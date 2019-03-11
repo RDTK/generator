@@ -21,6 +21,8 @@
     ((nil)   t)
     ((t)     nil)))
 
+(defvar *output-files*)
+
 (defun call-with-output-to-catalog-file (thunk directory name)
   (ensure-directories-exist directory)
   (let ((filename (make-pathname :name     name
@@ -30,7 +32,8 @@
         (with-output-to-file (stream filename #+sbcl :external-format #+sbcl :utf-8
                                               :if-exists :supersede)
           (funcall thunk stream))
-      (:abort (ignore-errors (delete-file filename))))))
+      (:normal (pushnew filename *output-files* :test #'equalp))
+      (:abort  (ignore-errors (delete-file filename))))))
 
 (defmacro with-output-to-catalog-file ((stream directory name) &body body)
   `(call-with-output-to-catalog-file
@@ -459,6 +462,12 @@
   ((distributions :initarg :distributions
                   :reader  distributions)))
 
+(defmethod report :around ((object distributions)
+                           (style  catalog)
+                           (target pathname))
+  (let ((*output-files* '()))
+    (call-next-method)))
+
 (defmethod report ((object distributions)
                    (style  catalog)
                    (target t))
@@ -469,7 +478,20 @@
                           (target pathname))
   (let ((person-directory (merge-pathnames #P"person/" target)))
     (map nil (rcurry #'report style person-directory)
-         (persons style))))
+         (persons style)))
+
+  ;; Write names (relative to TARGET, without type component) of
+  ;; output files into index.json.
+  (with-output-to-file (stream (merge-pathnames #P"index.json" target)
+                               #+sbcl :external-format #+sbcl :utf-8
+                               :if-exists :supersede)
+    (json:encode-json
+     (map 'vector (lambda (filename)
+                    (enough-namestring (make-pathname :type     nil
+                                                      :defaults filename)
+                                       target))
+          *output-files*)
+     stream)))
 
 ;;; Utilities
 

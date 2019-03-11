@@ -1,6 +1,6 @@
 ;;;; catalog.lisp --- Write XML catalog describing recipes.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -23,12 +23,14 @@
 
 (defun call-with-output-to-catalog-file (thunk directory name)
   (ensure-directories-exist directory)
-  (with-output-to-file (stream (make-pathname :name     name
-                                              :type     "xml"
-                                              :defaults directory)
-                               #+sbcl :external-format #+sbcl :utf-8
-                               :if-exists :supersede)
-    (funcall thunk stream)))
+  (let ((filename (make-pathname :name     name
+                                 :type     "xml"
+                                 :defaults directory)))
+    (unwind-protect-case ()
+        (with-output-to-file (stream filename #+sbcl :external-format #+sbcl :utf-8
+                                              :if-exists :supersede)
+          (funcall thunk stream))
+      (:abort (ignore-errors (delete-file filename))))))
 
 (defmacro with-output-to-catalog-file ((stream directory name) &body body)
   `(call-with-output-to-catalog-file
@@ -273,7 +275,10 @@
     (call-next-method)))
 
 (defmethod report ((object sequence) (style catalog) (target pathname))
-  (map nil (rcurry #'report style target) object))
+  (map nil (lambda (element)
+             (with-simple-restart (continue "~@<Skip ~A~@:>" element)
+               (report element style target)))
+       object))
 
 (defmethod report ((object jenkins.model.project::distribution)
                    (style  catalog)
@@ -283,7 +288,7 @@
       (report object style stream)))
 
   (let ((project-directory (merge-pathnames #P"project/" target)))
-    (map nil (rcurry #'report style project-directory) (versions object))))
+    (report (versions object) style project-directory)))
 
 (defmethod report ((object jenkins.model.project::distribution)
                    (style  catalog)

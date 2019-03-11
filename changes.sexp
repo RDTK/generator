@@ -1,4 +1,4 @@
-((:release "0.27" nil
+((:release "0.27" "2019-03-11"
 
   (:enhancement
    "The new" (:verb "create-jenkins-user") "command creates a user

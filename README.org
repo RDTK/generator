@@ -116,6 +116,20 @@
 
   This should produce a binary named =build-generator= in the project root directory.
 
+* Running Tests
+
+  Assuming the steps in [[Building]] have been completed, the following runs the unit tests of the project
+
+  #+BEGIN_SRC bash
+    SBCL_HOME="$(pwd)/build/sbcl/lib/sbcl"                \
+    ASDF_OUTPUT_TRANSLATIONS="/:$(pwd)/build/fasl-cache/" \
+    CL_SOURCE_REGISTRY="$(pwd)//:"                        \
+      build/sbcl/bin/sbcl --noinform --non-interactive    \
+        --load build/quicklisp/setup.lisp                 \
+        --eval '(ql:quickload :jenkins.project/test)'     \
+        --eval '(asdf:test-system :jenkins.project)'
+  #+END_SRC
+
 * Contributing
 
   If you want to contribute to this project, please

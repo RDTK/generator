@@ -34,19 +34,87 @@
 
 * Building
 
-  + Within SBCL ::
+  The following steps are intended to achieve the following
 
-    #+BEGIN_SRC lisp
-      (asdf:make :jenkins.project.commandline-interface)
-    #+END_SRC
+  + building the master version of the build generator
 
-  + On the commandline ::
+  + without elevated privileges
 
-    #+BEGIN_SRC bash
-      sbcl --no-userinit --load quicklisp/setup.lisp --eval '(asdf:make :jenkins.project.commandline-interface)'
-    #+END_SRC
+  + without polluting system or user directories outside of a =build= sub-directory within the project directory
 
-  Both variants should produce a binary named =build-generator= in the project root directory.
+  The last two points make things a little more complicated but hopefully more useful overall.
+
+  1. Start in the project directory
+
+     #+BEGIN_SRC bash
+       git clone https://github.com/RDTK/generator
+       cd generator
+       mkdir -p build
+     #+END_SRC
+
+  2. Installing SBCL
+
+     Not all Debian-like systems provide a reasonably recent version of the [[sbcl][SBCL]] implementation of Common Lisp.
+     It is therefore better to install a binary release from the project website:
+
+     #+BEGIN_SRC bash
+       (
+         cd build
+         curl -L "https://prdownloads.sourceforge.net/sbcl/sbcl-1.5.0-x86-64-linux-binary.tar.bz2" | tar -xj
+         cd sbcl-*
+         INSTALL_ROOT="$(pwd)/../sbcl" sh install.sh
+       )
+     #+END_SRC
+
+  3. Installing Quicklisp
+
+     [[quicklisp][Quicklisp]] is a package manager and installer for Common Lisp.
+     See [[quicklisp]] for detailed instructions including cryptographic verification of the downloaded file.
+
+     A quick way to install Quicklisp is:
+
+     #+BEGIN_SRC bash
+       (
+         cd build
+         curl -o quicklisp.lisp "https://beta.quicklisp.org/quicklisp.lisp"
+         SBCL_HOME="$(pwd)/sbcl/lib/sbcl"                               \
+           sbcl/bin/sbcl --noinform --non-interactive                   \
+             --load quicklisp.lisp                                      \
+             --eval '(quicklisp-quickstart:install :path "quicklisp")'
+       )
+     #+END_SRC
+
+     This creates the directory =build/quicklisp=.
+     Dependencies will be downloaded into sub-directories of this directory.
+
+  4. Installing non-Quicklisp dependencies
+
+     A quick way to install the [[Dependencies][non-Quicklisp dependencies]] is
+
+     #+BEGIN_SRC bash
+       (
+         cd build/quicklisp/local-projects                                         \
+           && git clone -b future https://github.com/scymtym/model.transform.trace \
+           && git clone -b future https://github.com/scymtym/language.yaml         \
+           && git clone -b future https://github.com/scymtym/text.source-location  \
+           && git clone https://code.cor-lab.de/git/rosetta.git.cl                 \
+           && git clone https://code.cor-lab.de/git/rosetta.git.project-cl
+       )
+     #+END_SRC
+
+  5. Building the executable
+
+     #+BEGIN_SRC bash
+       SBCL_HOME="$(pwd)/build/sbcl/lib/sbcl"                             \
+       ASDF_OUTPUT_TRANSLATIONS="/:$(pwd)/build/fasl-cache/"              \
+       CL_SOURCE_REGISTRY="$(pwd)//:"                                     \
+         build/sbcl/bin/sbcl --noinform --non-interactive                 \
+           --load build/quicklisp/setup.lisp                              \
+           --eval '(ql:quickload :jenkins.project.commandline-interface)' \
+           --eval '(asdf:make :jenkins.project.commandline-interface)'
+     #+END_SRC
+
+  This should produce a binary named =build-generator= in the project root directory.
 
 * Contributing
 

@@ -15,19 +15,22 @@
 
 * Dependencies
 
-  At the moment, the code is almost but not quite portable and can only be used with the [[sbcl][SBCL]] implementation of Common Lisp.
+  + Common Lisp Implementation :: At the moment, the code is almost but not quite portable and can only be used with the [[sbcl][SBCL]] implementation of Common Lisp.
 
-  Dependencies not available via [[quicklisp][Quicklisp]]:
+  + System Libraries :: For secure communication with the Jenkins server as well as archive retrieval via HTTPS, the build generator relies on the OpenSSL library, specifically =libssl.so.*=.
+       In Debian-derived systems, the =openssl= package provides this library.
 
-  + The [[https://github.com/scymtym/model.transform.trace][model.transform.trace]] project
+  + Lisp dependencies :: The following Lisp dependencies cannot be installed automatically via [[quicklisp][Quicklisp]], yet:
 
-  + The [[https://github.com/scymtym/language.yaml][language.yaml]] project
+       + The [[https://github.com/scymtym/model.transform.trace][model.transform.trace]] project
 
-  + The [[https://github.com/scymtym/text.source-location][text.source-location]] project
+       + The [[https://github.com/scymtym/language.yaml][language.yaml]] project
 
-  + The [[https://code.cor-lab.org/projects/rosetta][rosetta]] project
+       + The [[https://github.com/scymtym/text.source-location][text.source-location]] project
 
-    + The [[https://code.cor-lab.org/projects/rosetta][rosetta-project]] project
+       + The [[https://code.cor-lab.org/projects/rosetta][rosetta]] project
+
+         + The [[https://code.cor-lab.org/projects/rosetta][rosetta-project]] project
 
 * Building
 

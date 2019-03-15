@@ -112,7 +112,11 @@
                                                  (progress    t))
                                 (&rest args)
                                 &body body)
-  (let+ (((&values body declarations documentation)
+  (let+ ((sequence-var (typecase sequence-parameter
+                         (symbol        sequence-parameter)
+                         ((cons symbol) (first sequence-parameter))
+                         ((cons cons)   (caar sequence-parameter))))
+         ((&values body declarations documentation)
           (parse-body body :documentation t)))
     `(define-step (,name :designator ,designator
                          ,@(remove-from-plist
@@ -120,7 +124,7 @@
                             :execution :combination :designator :progress))
          (,@args ,sequence-parameter)
        ,@(when documentation `(,documentation))
-       (with-sequence-processing (,designator ,item-var ,sequence-parameter
+       (with-sequence-processing (,designator ,item-var ,sequence-var
                                   :execution   ,execution
                                   :combination ,combination
                                   :progress    ,progress)

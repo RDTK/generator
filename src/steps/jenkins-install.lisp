@@ -163,7 +163,9 @@
                           #+unix (logand #o777 (sb-posix:stat-mode
                                                 (sb-posix:stat filename)))
                           #-unix nil))
-            (directory (merge-pathnames "**/*.*" data-directory)))))
+            (remove-if
+             #'uiop:directory-pathname-p
+             (directory (merge-pathnames "**/*.*" data-directory))))))
 
 (define-sequence-step (jenkins/install-config-files file-info config-files
                        :progress :install/config-file)

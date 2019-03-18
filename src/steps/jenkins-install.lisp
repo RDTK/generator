@@ -147,33 +147,34 @@
 
 ;;; `jenkins/install-config-files' step
 
-;;; Load the configuration files into a resource group.
-(let* ((base-directory (merge-pathnames
-                        (make-pathname
-                         :name :unspecific
-                         :type :unspecific
-                         :directory '(:relative :back :back "data" "jenkins-install" "config"))
-                        #.(or *compile-file-truename* *load-truename*)))
-       (pattern        (merge-pathnames "**/*.*" base-directory))
-       (name           :jenkins-config-files)
-       (group          (jenkins.project.resources:make-group name)))
-  (jenkins.project.resources:add-file group pattern :base-directory base-directory))
+;;; For each configuration profile, load the configuration files into
+;;; a resource group.
+(map nil (lambda (directory)
+           (let* ((name  (make-keyword
+                          (string-upcase
+                           (last-elt (pathname-directory directory)))))
+                  (group (jenkins.project.resources:make-group name)))
+             (jenkins.project.resources:add-file group directory)))
+     (directory (merge-pathnames
+                 #P"../../data/jenkins-install/config/*.*"
+                 #.(or *compile-file-truename* *load-truename*))))
 
-(defun jenkins-config-files ()
+(defun profile-config-files (profile)
   (jenkins.project.resources:entries
-   (jenkins.project.resources:find-group* :jenkins-config-files)))
+   (jenkins.project.resources:find-group* profile)))
 
 (define-sequence-step (jenkins/install-config-files
-                       entry (config-files (jenkins-config-files))
+                       entry (config-files (profile-config-files profile))
                        :progress :install/config-file)
-    (destination-directory)
+    (destination-directory
+     (profile              :single-user))
   "Install Jenkins configuration files into a specified directory."
   (let+ (((&accessors-r/o
            (name                      jenkins.project.resources:name)
            (content                   jenkins.project.resources:content)
            ((&plist-r/o (mode :mode)) jenkins.project.resources:info))
           entry))
-    (progress "~A" name)
+    (progress "~(~A~):~A" profile name)
     (let ((destination-file (merge-pathnames name destination-directory)))
       (ensure-directories-exist destination-file)
       (write-byte-vector-into-file content destination-file

@@ -1,4 +1,13 @@
-((:release "0.28" nil)
+((:release "0.28" nil
+
+  (:enhancement
+   "The" (:verb "install-jenkins") "command now accepts a"
+   (:verb "profile") "option which can be used to choose among
+    different Jenkins configuration profiles. The following profiles
+    are currently built in:"
+   (:ul
+    ((:verb "single-user") "(default): the Jenkins installation will
+     be used by a single user without additional slaves"))))
 
  (:release "0.27" "2019-03-11"
 

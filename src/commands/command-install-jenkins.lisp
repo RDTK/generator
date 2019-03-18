@@ -6,6 +6,8 @@
 
 (cl:in-package #:jenkins.project.commands)
 
+;;; Required and additional plugins
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; TODO should be defined in aspects module
   (defmethod jenkins.model.project:requires ((thing jenkins.model.aspects::aspect))
@@ -29,11 +31,43 @@
 (defparameter *default-extra-plugins*
   '("extra-columns"))
 
+;;; Jenkins installation profiles
+
+(defclass profile ()
+  ((%name          :initarg :name
+                   :type    keyword
+                   :reader  name)
+   (%extra-plugins :initarg :extra-plugins
+                   :type    list
+                   :reader  extra-plugins)))
+
+(defparameter *profiles*
+  (flet ((profile (name &optional extra-plugins)
+           `(,name . ,(make-instance 'profile
+                                     :name          name
+                                     :extra-plugins extra-plugins))))
+    `(,(profile :single-user)
+      ,(profile :local-docker '("docker-plugin")))))
+
+(defun find-profile (name)
+  (assoc-value *profiles* name))
+
+;;; Command
+
 (defclass install-jenkins (output-directory-mixin)
   (;; Output
    (output-directory     :documentation
                          #.(format nil "Destination directory for the ~
                             Jenkins installation."))
+   ;; Profile
+   (profile              :initarg  :profile
+                         :type     (member :single-user :local-docker)
+                         :reader   profile
+                         :initform :single-user
+                         :documentation
+                         #.(format nil "A Jenkins usage profile to ~
+                            which the installation should be ~
+                            tailored."))
    ;; Jenkins download
    (jenkins-download-url :initarg  :jenkins-download-url
                          :type     puri:uri
@@ -94,6 +128,8 @@
     (*command-schema* "install-jenkins")
   (0                        "output-directory"     "DIRECTORY"     t)
 
+  ("--profile"              "profile"              "PROFILE")
+
   ("--jenkins-download-url" "jenkins-download-url" "URL")
 
   (("--plugin" "-p")        "plugins"              "PLUGIN")
@@ -104,11 +140,15 @@
 
 (defmethod command-execute ((command install-jenkins))
   (let+ (((&accessors-r/o output-directory
+                          (profile-name profile)
                           jenkins-download-url plugins
                           username email password)
           command)
+         (profile     (find-profile profile-name))
          (all-plugins (remove-duplicates
-                       (append (required-jenkins-plugins) plugins)
+                       (append (required-jenkins-plugins)
+                               (extra-plugins profile)
+                               plugins)
                        :test #'string=)))
     (as-phase (:install)
       (with-trivial-progress (:install/core)
@@ -125,7 +165,8 @@
     (as-phase (:configure)
       (jenkins.project.steps:execute
        (jenkins.project.steps:make-step :jenkins/install-config-files) nil
-       :destination-directory output-directory)
+       :destination-directory output-directory
+       :profile               (name profile))
 
       (when (and username email password)
         (jenkins.project.steps:execute

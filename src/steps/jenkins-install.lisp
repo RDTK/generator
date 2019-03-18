@@ -147,34 +147,34 @@
 
 ;;; `jenkins/install-config-files' step
 
-(defparameter *jenkins-config-files*
-  '#.(let ((data-directory (merge-pathnames
-                            (make-pathname
-                             :name      :unspecific
-                             :type      :unspecific
-                             :directory '(:relative
-                                          :back :back
-                                          "data" "jenkins-install" "config"))
-                            (or *compile-file-truename*
-                                *load-truename*))))
-       (map 'list (lambda (filename)
-                    (list (enough-namestring filename data-directory)
-                          (read-file-into-byte-vector filename)
-                          #+unix (logand #o777 (sb-posix:stat-mode
-                                                (sb-posix:stat filename)))
-                          #-unix nil))
-            (remove-if
-             #'uiop:directory-pathname-p
-             (directory (merge-pathnames "**/*.*" data-directory))))))
+;;; Load the configuration files into a resource group.
+(let* ((base-directory (merge-pathnames
+                        (make-pathname
+                         :name :unspecific
+                         :type :unspecific
+                         :directory '(:relative :back :back "data" "jenkins-install" "config"))
+                        #.(or *compile-file-truename* *load-truename*)))
+       (pattern        (merge-pathnames "**/*.*" base-directory))
+       (name           :jenkins-config-files)
+       (group          (jenkins.project.resources:make-group name)))
+  (jenkins.project.resources:add-file group pattern :base-directory base-directory))
 
-(define-sequence-step (jenkins/install-config-files file-info config-files
+(defun jenkins-config-files ()
+  (jenkins.project.resources:entries
+   (jenkins.project.resources:find-group* :jenkins-config-files)))
+
+(define-sequence-step (jenkins/install-config-files
+                       entry (config-files (jenkins-config-files))
                        :progress :install/config-file)
     (destination-directory)
   "Install Jenkins configuration files into a specified directory."
-  (let+ (((filename content mode) file-info))
-    (progress "~A" filename)
-    (let ((destination-file (merge-pathnames
-                             filename destination-directory)))
+  (let+ (((&accessors-r/o
+           (name                      jenkins.project.resources:name)
+           (content                   jenkins.project.resources:content)
+           ((&plist-r/o (mode :mode)) jenkins.project.resources:info))
+          entry))
+    (progress "~A" name)
+    (let ((destination-file (merge-pathnames name destination-directory)))
       (ensure-directories-exist destination-file)
       (write-byte-vector-into-file content destination-file
                                    :if-exists :supersede)
@@ -183,10 +183,20 @@
 ;;; `jenkins/create-user' step
 
 (defparameter *jenkins-user-config-file-template*
-  #.(let ((filename (merge-pathnames
-                     "../../data/jenkins-install/user-config.xml.in"
-                     (or *compile-file-truename* *load-truename*))))
-      (read-file-into-byte-vector filename)))
+  #.(let* ((base-directory (merge-pathnames
+                            (make-pathname
+                             :name      :unspecific
+                             :type      :unspecific
+                             :directory '(:relative :back :back "data" "jenkins-install"))
+                            (or *compile-file-truename* *load-truename*)))
+           (filename       (merge-pathnames
+                            "user-config.xml.in" base-directory))
+           (entry          (nth-value
+                            1 (jenkins.project.resources:add-file
+                               (jenkins.project.resources:make-group
+                                :user-configuration)
+                               filename :base-directory base-directory))))
+      (jenkins.project.resources:content entry)))
 
 (macrolet ((define-xpath-constant (name xpath)
              `(define-constant ,name

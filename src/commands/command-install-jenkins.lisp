@@ -125,8 +125,7 @@
     (as-phase (:configure)
       (jenkins.project.steps:execute
        (jenkins.project.steps:make-step :jenkins/install-config-files) nil
-       :destination-directory output-directory
-       :config-files          jenkins.project.steps::*jenkins-config-files*)
+       :destination-directory output-directory)
 
       (when (and username email password)
         (jenkins.project.steps:execute

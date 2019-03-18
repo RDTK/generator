@@ -7,10 +7,12 @@
 (cl:in-package #:jenkins.project.commandline-interface)
 
 (defun make-error-policy (policy &key debug? fail)
-  (let+ (((&flet flame (condition &key (debug? debug?))
-            (format *error-output* "~@<~A~@:>~2%" condition)
-            (when debug?
-              #+sbcl (sb-debug:print-backtrace))))
+  (let+ ((lock (bt:make-lock "output and debug"))
+         ((&flet flame (condition &key (debug? debug?))
+            (bt:with-lock-held (lock)
+              (format *error-output* "~@<~A~@:>~2%" condition)
+              (when debug?
+                #+sbcl (sb-debug:print-backtrace)))))
          ;; Specific actions.
          ((&flet do-continue (condition)
             (when-let ((restart (find-restart 'jenkins.project.commands::defer condition))) ; TODO should just call defer
@@ -28,7 +30,6 @@
               (flame condition :debug? debug?)
               (invoke-restart restart))))
          #+sbcl (main-thread sb-thread:*current-thread*)
-         (lock (bt:make-lock "main thread debug"))
          ((&flet do-debug (condition)
             (bt:with-lock-held (lock)
               (let (#+sbcl (sb-ext:*invoke-debugger-hook* nil))

@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>master</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>* * * * *</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>cat &lt;&lt;&apos;EOF&apos; &gt; Dockerfile
+FROM ubuntu:xenial
+
+LABEL Maintainer=&quot;Jan Moringen&quot;
+LABEL Description=&quot;Jenkins slave with sudo on &lt;%= $image_name %&gt; &lt;%= $image_tag %&gt;&quot;
+
+RUN apt-get -qq update &amp;&amp; \
+    apt-get -qq -y install sudo openjdk-8-jre-headless curl git gnupg2 &amp;&amp; \
+    rm -rf /var/cache/apt/
+
+ENV HOME /home/jenkins
+RUN groupadd -g 10000 jenkins &amp;&amp; \
+    useradd -c &quot;Jenkins user&quot; -d $HOME -u 10000 -g 10000 -m jenkins &amp;&amp; \
+    echo &quot;jenkins ALL=(ALL:ALL) NOPASSWD:SETENV: /usr/bin/apt-get&quot; &gt;&gt; /etc/sudoers
+
+ARG VERSION=3.7
+RUN curl --create-dirs \
+    -sSLo /usr/share/jenkins/slave.jar \
+    https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+  &amp;&amp; chmod 755 /usr/share/jenkins \
+  &amp;&amp; chmod 644 /usr/share/jenkins/slave.jar
+
+ENV LC_ALL=C.UTF-8
+
+USER jenkins
+WORKDIR /home/jenkins
+EOF</command>
+    </hudson.tasks.Shell>
+    <com.nirima.jenkins.plugins.docker.builder.DockerBuilderPublisher plugin="docker-plugin@1.1.6">
+      <dockerFileDirectory>.</dockerFileDirectory>
+      <fromRegistry plugin="docker-commons@1.13"/>
+      <tags>
+        <string>docker-slave-ubuntu-xenial-sudo</string>
+      </tags>
+      <pushOnSuccess>false</pushOnSuccess>
+      <pushCredentialsId></pushCredentialsId>
+      <cleanImages>false</cleanImages>
+      <cleanupWithJenkinsJobDelete>false</cleanupWithJenkinsJobDelete>
+      <cloud>docker</cloud>
+    </com.nirima.jenkins.plugins.docker.builder.DockerBuilderPublisher>
+    <hudson.plugins.groovy.SystemGroovy plugin="groovy@2.2">
+      <source class="hudson.plugins.groovy.StringSystemScriptSource">
+        <script plugin="script-security@1.54">
+          <script>build.project.disable()</script>
+          <sandbox>false</sandbox>
+        </script>
+      </source>
+    </hudson.plugins.groovy.SystemGroovy>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

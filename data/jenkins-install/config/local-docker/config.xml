@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>1.0</version>
+  <installStateName>RESTART</installStateName>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="hudson.security.FullControlOnceLoggedInAuthorizationStrategy">
+    <denyAnonymousReadAccess>false</denyAnonymousReadAccess>
+  </authorizationStrategy>
+  <securityRealm class="hudson.security.HudsonPrivateSecurityRealm">
+    <disableSignup>true</disableSignup>
+    <enableCaptcha>false</enableCaptcha>
+  </securityRealm>
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <workspaceDir>${ITEM_ROOTDIR}/workspace</workspaceDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+  <markupFormatter class="hudson.markup.EscapedMarkupFormatter"/>
+  <jdks/>
+  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+  <clouds>
+    <com.nirima.jenkins.plugins.docker.DockerCloud plugin="docker-plugin@1.1.6">
+      <name>docker</name>
+      <templates>
+        <com.nirima.jenkins.plugins.docker.DockerTemplate>
+          <configVersion>2</configVersion>
+          <labelString>docker-slave-ubuntu-xenial-sudo</labelString>
+          <connector class="io.jenkins.docker.connector.DockerComputerAttachConnector">
+            <user></user>
+          </connector>
+          <remoteFs></remoteFs>
+          <instanceCap>2147483647</instanceCap>
+          <mode>NORMAL</mode>
+          <retentionStrategy class="com.nirima.jenkins.plugins.docker.strategy.DockerOnceRetentionStrategy">
+            <idleMinutes>10</idleMinutes>
+          </retentionStrategy>
+          <dockerTemplateBase>
+            <image>jenkins-slave-xenial-sudo</image>
+            <pullCredentialsId></pullCredentialsId>
+            <dockerCommand></dockerCommand>
+            <hostname></hostname>
+            <dnsHosts/>
+            <network></network>
+            <volumes/>
+            <volumesFrom2/>
+            <devices/>
+            <environment/>
+            <bindPorts></bindPorts>
+            <bindAllPorts>false</bindAllPorts>
+            <privileged>false</privileged>
+            <tty>false</tty>
+            <extraHosts class="empty-list"/>
+          </dockerTemplateBase>
+          <removeVolumes>false</removeVolumes>
+          <pullStrategy>PULL_NEVER</pullStrategy>
+          <pullTimeout>300</pullTimeout>
+          <nodeProperties class="empty-list"/>
+          <disabled>
+            <disabledByChoice>false</disabledByChoice>
+          </disabled>
+          <name>docker-slave-ubuntu-xenial-sudo</name>
+        </com.nirima.jenkins.plugins.docker.DockerTemplate>
+      </templates>
+      <dockerApi>
+        <dockerHost plugin="docker-commons@1.13">
+          <uri>unix:///var/run/docker.sock</uri>
+        </dockerHost>
+        <connectTimeout>60</connectTimeout>
+        <readTimeout>60</readTimeout>
+      </dockerApi>
+      <containerCap>2</containerCap>
+      <exposeDockerHost>false</exposeDockerHost>
+      <disabled>
+        <disabledByChoice>false</disabledByChoice>
+      </disabled>
+    </com.nirima.jenkins.plugins.docker.DockerCloud>
+  </clouds>
+  <slaves/>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>all</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+  </views>
+  <primaryView>all</primaryView>
+  <slaveAgentPort>0</slaveAgentPort>
+  <disabledAgentProtocols>
+    <string>JNLP-connect</string>
+    <string>JNLP2-connect</string>
+    <string>JNLP3-connect</string>
+  </disabledAgentProtocols>
+  <label></label>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
+  </crumbIssuer>
+  <nodeProperties/>
+  <globalNodeProperties/>
+</hudson>

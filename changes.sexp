@@ -7,7 +7,11 @@
     are currently built in:"
    (:ul
     ((:verb "single-user") "(default): the Jenkins installation will
-     be used by a single user without additional slaves"))))
+     be used by a single user without additional slaves")
+
+    ((:verb "local-docker") ": the Jenkins installation will use the
+     Docker daemon on the local machine to dynamically create
+     slaves"))))
 
  (:release "0.27" "2019-03-11"
 

@@ -34,11 +34,20 @@
                               (:file       "base64")
                               (:file       "bcrypt")))
 
+                (:module     "resources"
+                 :pathname   "src/resources"
+                 :serial     t
+                 :components ((:file       "package")
+                              (:file       "conditions")
+                              (:file       "protocol")
+                              (:file       "resources")))
+
                 (:module     "steps"
                  :pathname   "src/steps"
                  :serial     t
                  :depends-on ("bcrypt")
                  :components ((:file       "package")
+
                               (:file       "protocol")
                               (:file       "macros")
 

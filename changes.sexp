@@ -1,6 +1,14 @@
 ((:release "0.28" nil
 
   (:enhancement
+   "When processing information representing a person, names and email
+    address explicitly specified in the" (:verb "name") ","
+   (:verb "aliases") "and" (:verb "identities") "sections of the
+    corresponding" (:verb "person") "recipe take precedence over
+    information collected during automatic analysis of project
+    repositories.")
+
+  (:enhancement
    "The" (:verb "install-jenkins") "command now accepts a"
    (:verb "profile") "option which can be used to choose among
     different Jenkins configuration profiles. The following profiles

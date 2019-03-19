@@ -215,7 +215,9 @@
          (person     (change-class
                       (apply #'rosetta-project.model.resource:make-person
                              name (append aliases identities))
-                      'person :variables variables)))
+                      'person :variables           variables
+                              :explicit-names      (list* name aliases)
+                              :explicit-identities identities)))
     (push person *persons*)
     person))
 

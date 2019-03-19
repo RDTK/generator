@@ -405,12 +405,35 @@
 
 (defclass person (rosetta-project.model.resource:person
                   direct-variables-mixin)
-  ()
+  ((explicit-names      :initarg  :explicit-names
+                        :type     list
+                        :reader   explicit-names
+                        :initform '()
+                        :documentation
+                        "Stores a list of user-specified names,
+                         ordered by preference.")
+   (explicit-identities :initarg  :explicit-identities
+                        :type     list
+                        :reader   explicit-identities
+                        :initform '()
+                        :documentation
+                        "Stores a list of user-specified identities,
+                         ordered by preference."))
   (:documentation
    "Adds variables to the rosetta-project `person' class."))
+
+(defmethod rosetta-project.model.resource:names ((thing person))
+  (let ((all (append (explicit-names thing) (call-next-method))))
+    (remove-duplicates all :test #'string= :from-end t)))
+
+(defmethod rosetta-project.model.resource:identities ((thing person))
+  (let ((all (append (explicit-identities thing) (call-next-method))))
+    (remove-duplicates all :test #'puri:uri= :from-end t)))
 
 (defmethod rosetta-project.model.resource:augment-person!
     ((person rosetta-project.model.resource:person) (other-person person))
   (rosetta-project.model.resource:augment-person!
-   (change-class person 'person :variables (direct-variables other-person))
+   (change-class person 'person :variables           (direct-variables other-person)
+                                :explicit-names      (explicit-names other-person)
+                                :explicit-identities (explicit-identities other-person))
    other-person))

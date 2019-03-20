@@ -52,7 +52,8 @@
                  :components ((:file     "package")
                               (:file     "restarts")
                               (:file     "strings")
-                              (:file     "files")))
+                              (:file     "files")
+                              (:file     "sorting")))
 
                 (:module     "version"
                  :pathname   "src/version"
@@ -127,7 +128,6 @@
 
                               (:file     "conditions")
                               (:file     "protocol")
-                              (:file     "util")
 
                               (:file     "mixins")))
 

@@ -38,4 +38,8 @@
    #:find-files
    #:make-file-generator
    #:safe-external-format-argument
-   #:read-file-into-string*))
+   #:read-file-into-string*)
+
+  ;; Sorting
+  (:export
+   #:sort-with-partial-order))

@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -97,7 +97,8 @@
   ;; steps (i.e. builders and publishers) according to declared
   ;; ordering.
   (let+ ((*step-constraints* '())
-         (aspects (sort-with-partial-order (copy-list aspect) #'aspect<))
+         (aspects (jenkins.util:sort-with-partial-order
+                   (copy-list aspect) #'aspect<))
          ((&flet sort-phase (phase read write)
             (let ((unsorted    (funcall read job))
                   (constraints (constraints-table phase)))
@@ -112,7 +113,7 @@
                            (hash-table-alist constraints))
 
                 ;; Try to sort steps according to CONSTRAINTS.
-                (let ((sorted (sort-with-partial-order
+                (let ((sorted (jenkins.util:sort-with-partial-order
                                unsorted (rcurry #'step< constraints))))
                   (log:debug "~@<Sorted ~(~A~)er~P:~@:_~
                               ~@<~{• ~A~^~@:_~}~@:>~@:>"

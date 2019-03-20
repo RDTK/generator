@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for aspects module.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -21,9 +21,7 @@
    #:jenkins.dsl)
 
   (:shadowing-import-from #:jenkins.model ; TODO hack
-   #:name
-
-   #:sort-with-partial-order)
+   #:name)
 
   (:shadowing-import-from #:jenkins.model.variables ; TODO hack
    #:as)

@@ -1,16 +1,16 @@
-;;;; util.lisp --- Utilities used in the model module.
+;;;; sorting.lisp --- Functions for sorting.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2015, 2017 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model)
+(cl:in-package #:jenkins.util)
 
 (define-condition cycle-error (error)
   ((path :initarg :path
          :reader  cycle-error-path))
   (:default-initargs
-   :path (missing-required-initarg 'cycle-error :path))
+   :path (more-conditions:missing-required-initarg 'cycle-error :path))
   (:report
    (lambda (condition stream)
      (format stream "~@<The following elements form a cycle:~

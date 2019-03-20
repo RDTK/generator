@@ -11,7 +11,7 @@
 (declaim (inline name-character?))
 (defun name-character? (character)
   (or (alphanumericp character)
-      (find character "._-+/!")))
+      (find character "._-+/!@")))
 
 (defun name? (thing)
   (and (stringp thing)

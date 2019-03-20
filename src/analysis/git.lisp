@@ -230,11 +230,11 @@
                                      &allow-other-keys)
   ;; If we already have analysis results for the commit that is
   ;; current in the remote repository, return right away.
-  (with-condition-translation (((error repository-access-error)
-                                :specification source))
-    (with-simple-restart (continue "~@<Do not try to use cached analysis ~
-                                    results.~@:>")
-      (when cache-directory
+  (when cache-directory
+    (with-simple-restart (continue "~@<Do not try to use cached ~
+                                    analysis results.~@:>")
+      (with-condition-translation (((error repository-access-error)
+                                    :specification source))
         (log:info "~@<Determining current remote commit in ~A~@:>" source)
         (when-let* ((commitish  (or commit branch))
                     (commit-key (git-remote-commit-key

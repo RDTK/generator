@@ -1,6 +1,6 @@
 ;;;; command-analyze.lisp --- Analyze a project repository.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -24,7 +24,7 @@
                should be analyzed. All other components of the URI are ~
                passed to respective version control system."))
    (natures :initarg  :natures
-            :type     (or null (cons (member :maven :cmake :asdf :ros-packages) list))
+            :type     (or null (cons (member :maven :cmake :asdf :ros-package :ros-packages) list))
             :reader   natures
             :initform nil
             :documentation

@@ -27,7 +27,8 @@
           (if interactive
               (values () (environment-with-ssh-askpass-overwritten))
               `("-c" ,(format nil "core.askpass=~A"
-                              +disable-git-credentials-helper-program+)))))
+                              +disable-git-credentials-helper-program+)
+                "-c" "core.sshCommand=ssh -oBatchMode=true"))))
     (run `("git" ,@global-options ,@spec)
          directory :environment environment)))
 

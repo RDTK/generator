@@ -1,5 +1,10 @@
 ((:release "0.28" nil
 
+  (:bugfix
+   (:verb "ssh") "sub-processes (started by" (:verb "git") ") should
+   no longer hang when encountering issues during host key
+   verification.")
+
   (:enhancement
    "When processing information representing a person, names and email
     address explicitly specified in the" (:verb "name") ","

@@ -22,12 +22,12 @@
                            +ssh-askpass-variable-name+)
                     (sb-ext:posix-environ))))
 
-(defun %run-git (spec directory &key non-interactive)
+(defun %run-git (spec directory &key interactive)
   (let+ (((&values global-options environment)
-          (if non-interactive
+          (if interactive
+              (values () (environment-with-ssh-askpass-overwritten))
               `("-c" ,(format nil "core.askpass=~A"
-                              +disable-git-credentials-helper-program+))
-              (values () (environment-with-ssh-askpass-overwritten)))))
+                              +disable-git-credentials-helper-program+)))))
     (run `("git" ,@global-options ,@spec)
          directory :environment environment)))
 
@@ -38,8 +38,7 @@
                              branch
                              commit
                              mirror?
-                             history-limit
-                             non-interactive)
+                             history-limit)
   (assert (not (and branch commit)))
   (let ((repository/string (format-git-url source username password)))
     (with-trivial-progress (:clone "~A ~A -> ~A"
@@ -50,16 +49,14 @@
                  ,@(when mirror?       '("--mirror"))
                  ,@(when history-limit `("--depth" ,history-limit))
                  ,repository/string ,clone-directory)
-       "/" :non-interactive non-interactive)
+       "/")
       (when commit
-        (%run-git `("checkout" ,commit)
-                  clone-directory :non-interactive non-interactive)))))
+        (%run-git `("checkout" ,commit) clone-directory)))))
 
-(defun update-git-repository (directory &key non-interactive)
+(defun update-git-repository (directory)
   (handler-case
       (with-trivial-progress (:pull "~A" directory)
-        (%run-git `("fetch" "--quiet" "--all")
-                  directory :non-interactive non-interactive)
+        (%run-git `("fetch" "--quiet" "--all") directory)
         t)
     (error (condition)
       (warn "~@<Could not update repository in directory ~A: ~A.~@:>"
@@ -69,14 +66,11 @@
 (defun ensure-updated-git-repository (source directory
                                       &key
                                       username
-                                      password
-                                      non-interactive)
+                                      password)
   (flet ((clone ()
-           (clone-git-repository source directory
-                                 :username        username
-                                 :password        password
-                                 :mirror?         t
-                                 :non-interactive non-interactive)))
+           (clone-git-repository source directory :username username
+                                                  :password password
+                                                  :mirror?  t)))
     (cond
       ;; If the directory does not exist, we have to perform a fresh
       ;; clone in any case.
@@ -84,7 +78,7 @@
        (clone))
       ;; If the directory exists and appears to be a repository, try
       ;; fetching.
-      ((update-git-repository directory :non-interactive non-interactive))
+      ((update-git-repository directory))
       ;; If fetching fails, try to start over.
       (t
        (with-trivial-progress (:re-clone "~A" source)
@@ -143,8 +137,7 @@
                                     branch
                                     commit
                                     history-limit
-                                    cache-directory
-                                    non-interactive)
+                                    cache-directory)
   (let+ (((&values cache-sub-directory cache-url)
           (make-git-cache-directory source username cache-directory)))
     ;; Clone into/pull in cache. Under the lock, probe/create the
@@ -153,16 +146,14 @@
     ;; immediately and parallel forcing is not a problem.
     (ensure-git-cache-entry (cache-sub-directory cache-directory)
       (ensure-updated-git-repository source cache-sub-directory
-                                     :username        username
-                                     :password        password
-                                     :non-interactive non-interactive))
+                                     :username username
+                                     :password password))
     ;; Clone from cache. We rely on git to handle parallel clones from
     ;; one cached mirror repository.
     (clone-git-repository cache-url clone-directory
-                          :branch          branch
-                          :commit          commit
-                          :history-limit   history-limit
-                          :non-interactive t)))
+                          :branch        branch
+                          :commit        commit
+                          :history-limit history-limit)))
 
 (defun clone-git-repository/maybe-cached (source clone-directory
                                           &rest args &key
@@ -213,7 +204,7 @@
                              (remove-from-plist
                               args
                               :commit :branch :scm :username :password
-                              :history-limit :non-interactive
+                              :history-limit
                               :cache-directory :key)))))
 
 (defun clone-and-analyze-git-branch (source clone-directory
@@ -222,7 +213,6 @@
                                      branch
                                      username
                                      password
-                                     non-interactive
                                      sub-directory
                                      cache-directory
                                      age-limit
@@ -241,7 +231,6 @@
                                  source commitish
                                  :username        username
                                  :password        password
-                                 :non-interactive non-interactive
                                  :cache-directory cache-directory
                                  :age-limit       age-limit))
                     (key        (natures->key
@@ -261,8 +250,7 @@
                         :branch          branch
                         :username        username
                         :password        password
-                        :cache-directory cache-directory
-                        :non-interactive non-interactive)))
+                        :cache-directory cache-directory)))
          (key        (natures->key
                       natures (sub-directory->key
                                sub-directory commit-key))))
@@ -323,8 +311,7 @@
     (with-trivial-progress (:analyze/most-recent-commit "~A" directory)
       (let+ ((output (%run-git `("log" "--max-count=1" "--pretty=format:%H %ct"
                                        ,@(when sub-directory `("--" ,sub-directory)))
-                               directory :non-interactive t ; TODO non-interactive
-                               ))
+                               directory))
              ((&optional id raw-date) (unless (emptyp output)
                                         (split-sequence #\Space output))))
         (values id
@@ -352,10 +339,9 @@
 
 ;;; Utilities
 
-(defun git-remote-refs (source &key username password non-interactive)
+(defun git-remote-refs (source &key username password)
   (let* ((url    (format-git-url source username password))
-         (output (%run-git `("ls-remote" ,url) "/"
-                           :non-interactive non-interactive))
+         (output (%run-git `("ls-remote" ,url) "/"))
          (result))
     (ppcre:do-register-groups (commit ref deref?)
         ((ppcre:create-scanner "^([a-z0-9]+)\\t(.*?)(\\^\\{\\})?$"
@@ -368,22 +354,18 @@
                                      &key
                                      username
                                      password
-                                     non-interactive
                                      cache-directory
                                      age-limit)
   (cache-or-compute cache-directory key
                     (lambda ()
-                      (git-remote-refs source
-                                       :username        username
-                                       :password        password
-                                       :non-interactive non-interactive))
+                      (git-remote-refs source :username username
+                                              :password password))
                     :age-limit age-limit))
 
 (defun git-remote-refs/cached (source
                                &key
                                username
                                password
-                               non-interactive
                                cache-directory
                                age-limit)
   (let ((key (make-git-source-key source username :suffix "refs")))
@@ -391,7 +373,6 @@
       (git-remote-refs/maybe-cached source key
                                     :username        username
                                     :password        password
-                                    :non-interactive non-interactive
                                     :cache-directory cache-directory
                                     :age-limit       age-limit))))
 
@@ -399,7 +380,6 @@
                               &key
                               username
                               password
-                              non-interactive
                               cache-directory
                               age-limit)
   (let+ (((&flet+ select ((&whole result &optional result-commit result-tag? result-deref?)
@@ -414,7 +394,6 @@
                 result)))
          (refs (git-remote-refs/cached source :username        username
                                               :password        password
-                                              :non-interactive non-interactive
                                               :cache-directory cache-directory
                                               :age-limit       age-limit)))
     (when-let ((result (reduce #'select refs :initial-value nil)))

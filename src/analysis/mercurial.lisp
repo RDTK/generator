@@ -61,6 +61,11 @@
              (mercurial-clone
               repository/string clone-directory temp-directory))
 
+           (when sub-directory
+             (with-condition-translation (((error repository-access-error)
+                                           :specification source))
+               (check-repository-sub-directory clone-directory sub-directory)))
+
            (with-sequence-progress (:analyze/version versions)
              (iter (for version in versions)
                    (progress "~A" version)

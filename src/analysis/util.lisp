@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -24,6 +24,17 @@
           (puri:uri-host url)
           (puri:uri-port url)
           (puri:uri-path url)))
+
+;;; Pathnames
+
+(defun check-repository-sub-directory (repository-directory
+                                       sub-directory)
+  (let ((directory (merge-pathnames sub-directory repository-directory)))
+    (unless (probe-file directory)
+      (error "~@<The specified sub-directory \"~A\" does not exist ~
+              in the repository.~@:>"
+             sub-directory))
+    directory))
 
 ;;; Sub-processes
 

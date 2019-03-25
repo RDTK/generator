@@ -46,4 +46,5 @@
   </crumbIssuer>
   <nodeProperties/>
   <globalNodeProperties/>
+  <noUsageStatistics>true</noUsageStatistics>
 </hudson>

@@ -257,6 +257,10 @@
                                sub-directory commit-key))))
     (log:info "~@<Cloned ~A into ~A, got key ~A~@:>"
               source clone-directory key)
+    (when sub-directory
+      (with-condition-translation (((error repository-access-error)
+                                    :specification source))
+        (check-repository-sub-directory clone-directory sub-directory)))
     (apply #'analyze-git-branch/maybe-cached clone-directory
            :key key
            args)))

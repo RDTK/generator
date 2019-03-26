@@ -38,8 +38,8 @@
                  :pathname   "src/resources"
                  :serial     t
                  :components ((:file       "package")
-                              (:file       "conditions")
                               (:file       "protocol")
+                              (:file       "conditions")
                               (:file       "resources")))
 
                 (:module     "steps"

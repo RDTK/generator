@@ -110,7 +110,7 @@
                                     (if (= i 1) :note :error)))
                "~@<Multiple definitions of variable ~A.~@:>"
                key)
-          :collect (value-cons key (cdr (first cells))))))
+          :collect (var:value-cons key (cdr (first cells))))))
 
 ;;; Uniqueness check
 

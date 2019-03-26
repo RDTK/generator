@@ -13,14 +13,15 @@
    #:let-plus
    #:more-conditions
 
-   #:jenkins.model
-   #:jenkins.model.variables
-
    #:jenkins.api
    #:jenkins.dsl)
 
   (:local-nicknames
-   (#:bp #:architecture.builder-protocol))
+   (#:bp      #:architecture.builder-protocol)
+
+   (#:model   #:jenkins.model)
+   (#:var     #:jenkins.model.variables)
+   (#:aspects #:jenkins.model.aspects))
 
   (:shadow
    #:node)
@@ -30,17 +31,6 @@
 
   (:shadowing-import-from #:jenkins.dsl
    #:job)
-
-  (:shadowing-import-from #:jenkins.model
-   #:name)
-
-  (:shadowing-import-from #:jenkins.model.variables
-   #:as)
-
-  (:import-from #:jenkins.model.aspects
-   #:aspects
-
-   #:make-aspect)
 
   (:import-from #:jenkins.version
    #:parse-version
@@ -95,12 +85,7 @@
   ;; Template specification protocol
   (:export
    #:inherit
-   #:aspects
    #:jobs)
-
-  ;; Aspect specification protocol
-  (:export
-   #:aspects)
 
   ;; Project protocol
   (:export

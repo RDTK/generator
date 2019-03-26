@@ -29,7 +29,7 @@
                     password
                     (versions       (missing-required-argument :versions))
                     sub-directory
-                    (temp-directory (default-temporary-directory)))
+                    (temp-directory (util:default-temporary-directory)))
   (when sub-directory
     (assert (eq :relative (first (pathname-directory sub-directory)))))
 
@@ -117,7 +117,7 @@
                       "log" "--limit" ,max-revisions ,directory)
                     :directory directory
                     :output    :lines
-                    (safe-external-format-argument)))
+                    (util:safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))
       (dolist (line lines)
         (ppcre:register-groups-bind (author) ("r[0-9]+ \\| ([^|]+) \\|" line)

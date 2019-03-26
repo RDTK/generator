@@ -1,6 +1,6 @@
 ;;;; dependencies.lisp --- Dependency-related functions.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -24,14 +24,14 @@
      (provided-nature provided-target &optional provided-version))
   (and (target-matches? required-nature required-target
                         provided-nature provided-target)
-       (version-matches required-version provided-version)))
+       (version:version-matches required-version provided-version)))
 
 ;;; Dependencies
 
 (defun effective-requires (requires provides)
   (set-difference requires provides :test #'dependency-matches?))
 
-(defun merge-dependencies (dependencies &key (test #'version>=))
+(defun merge-dependencies (dependencies &key (test #'version:version>=))
   (let ((test (ensure-function test))
         (seen (make-hash-table :test #'equal)))
     (map nil (lambda+ ((&whole dependency nature name &optional version))

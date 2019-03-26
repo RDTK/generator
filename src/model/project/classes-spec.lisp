@@ -21,17 +21,17 @@
 (cl:in-package #:jenkins.model.project)
 
 (defun variable-inheritable? (name)
-  (if-let ((info (find-variable name :if-does-not-exist nil)))
-    (inheritance info)
+  (if-let ((info (var:find-variable name :if-does-not-exist nil)))
+    (var:inheritance info)
     t))
 
 (defun variable-aggregation (name)
-  (when-let ((info (find-variable name :if-does-not-exist nil)))
-    (aggregation info)))
+  (when-let ((info (var:find-variable name :if-does-not-exist nil)))
+    (var:aggregation info)))
 
 ;;; `distribution-include'
 
-(defclass distribution-include (direct-variables-mixin
+(defclass distribution-include (var:direct-variables-mixin
                                 print-items:print-items-mixin)
   ((distribution :initarg :distribution
                  :type    distribution-spec
@@ -43,7 +43,7 @@
 
 ;;; `project-include'
 
-(defclass project-include (direct-variables-mixin
+(defclass project-include (var:direct-variables-mixin
                            print-items:print-items-mixin)
   ((project :initarg :project
             :type    string
@@ -58,8 +58,8 @@
 
 ;;; `resolved-project-include'
 
-(defclass resolved-project-include (direct-variables-mixin
-                                    implementation-mixin
+(defclass resolved-project-include (var:direct-variables-mixin
+                                    model:implementation-mixin
                                     print-items:print-items-mixin)
   ((version :initarg :version
             :reader  version)))
@@ -70,10 +70,10 @@
 
 ;;; `distribution-spec' class
 
-(defclass distribution-spec (named-mixin
-                             direct-variables-mixin
+(defclass distribution-spec (model:named-mixin
+                             var:direct-variables-mixin
                              person-container-mixin
-                             specification-mixin)
+                             model:specification-mixin)
   ((direct-includes :initarg  :direct-includes
                     :type     list      ; of `distribution-include'
                     :reader   direct-includes
@@ -89,31 +89,31 @@
     Basically consists of variables and a set of project version
     specifications."))
 
-(defmethod direct-variables ((thing distribution-spec))
-  (value-acons :distribution-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
+(defmethod var:direct-variables ((thing distribution-spec))
+  (var:value-acons :distribution-name (model:name thing)
+                   (when (next-method-p)
+                     (call-next-method))))
 
 (defmethod versions ((object distribution-spec))
   (append (direct-versions object)
           (mappend (compose #'versions #'distribution)
                    (direct-includes object))))
 
-(defmethod instantiate ((spec distribution-spec) &key parent specification-parent)
+(defmethod model:instantiate ((spec distribution-spec) &key parent specification-parent)
   (declare (ignore parent specification-parent))
   (let+ ((distribution (make-instance 'distribution
-                                      :name          (name spec)
+                                      :name          (model:name spec)
                                       :specification spec))
          (seen-versions (make-hash-table :test #'eq))
          ((&flet make-version (project-include &key context)
-            (let+ (((&accessors-r/o version (parameters direct-variables))
+            (let+ (((&accessors-r/o version (parameters var:direct-variables))
                     project-include))
               (unless (gethash version seen-versions)
                 (setf (gethash version seen-versions) t)
-                (when-let ((version (instantiate version
-                                                 :parent    distribution
-                                                 :context   context
-                                                 :variables parameters)))
+                (when-let ((version (model:instantiate version
+                                                       :parent    distribution
+                                                       :context   context
+                                                       :variables parameters)))
                   (list version))))))
          ;; Process one included distribution, making
          ;; `include-context' instances for the direct versions. This
@@ -121,7 +121,7 @@
          ;; relations between distributions are not represented in the
          ;; final `distribution' instance and its `version' instances.
          ((&labels one-distribution-include (distribution-include)
-            (let+ (((&accessors-r/o distribution (parameters direct-variables))
+            (let+ (((&accessors-r/o distribution (parameters var:direct-variables))
                     distribution-include)
                    (context (make-instance 'include-context
                                            :distribution distribution
@@ -148,14 +148,14 @@
     ;; After all `version' instances have been made, resolve
     ;; dependencies among them.
     (let ((providers (hash-table-alist providers)))
-      (map nil (rcurry #'add-dependencies! :providers providers) versions))
+      (map nil (rcurry #'model:add-dependencies! :providers providers) versions))
     (reinitialize-instance distribution :versions versions)))
 
 ;;; `project-spec' class
 
-(defclass project-spec (named-mixin
-                        specification-mixin
-                        direct-variables-mixin)
+(defclass project-spec (model:named-mixin
+                        model:specification-mixin
+                        var:direct-variables-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
               :reader   templates
@@ -178,50 +178,50 @@
     In addition, `project-spec' instances directly contain version
     specifications."))
 
-(defmethod direct-variables ((thing project-spec))
-  (value-acons :project-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
+(defmethod var:direct-variables ((thing project-spec))
+  (var:value-acons :project-name (model:name thing)
+                   (when (next-method-p)
+                     (call-next-method))))
 
-(defmethod variables :around ((thing project-spec))
+(defmethod var:variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
           ;; direct variables in front of variables from
           ;; templates. maybe variables should not have `append'
           ;; method combination?
-          (direct-variables thing)
-          (mappend #'variables (templates thing))))
+          (var:direct-variables thing)
+          (mappend #'var:variables (templates thing))))
 
-(defmethod lookup ((thing project-spec) (name t) &key if-undefined)
+(defmethod var:lookup ((thing project-spec) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   ;; The next method is (modulo `named-mixin') the one specialized on
   ;; `direct-variables-mixin', meaning that variables defined in the
   ;; parent are not included in the initial value.
   (values-list
-   (reduce #'merge-lookup-results
+   (reduce #'var:merge-lookup-results
            (mapcar (lambda (template)
                      (multiple-value-list
-                      (lookup template name :if-undefined nil)))
+                      (var:lookup template name :if-undefined nil)))
                    (templates thing))
            :initial-value (multiple-value-list (call-next-method)))))
 
-(defmethod aspects ((thing project-spec))
-  (remove-duplicates (mappend #'aspects (templates thing))
+(defmethod aspects:aspects ((thing project-spec))
+  (remove-duplicates (mappend #'aspects:aspects (templates thing))
                      :test     #'string=
-                     :key      #'name
+                     :key      #'model:name
                      :from-end t))
 
 (defmethod jobs ((thing project-spec))
   (remove-duplicates (mappend #'jobs (templates thing))
                      :test     #'string=
-                     :key      #'name
+                     :key      #'model:name
                      :from-end t))
 
 ;;; `version-spec' class
 
-(defclass version-spec (named-mixin
-                        specification-mixin
-                        parented-mixin
-                        direct-variables-mixin
+(defclass version-spec (model:named-mixin
+                        model:specification-mixin
+                        model:parented-mixin
+                        var:direct-variables-mixin
                         person-container-mixin)
   ((requires :initarg  :requires
              :type     list
@@ -251,16 +251,16 @@
     Consists of variables, additional requirements and provided things
     and instantiation conditions."))
 
-(defmethod direct-variables ((thing version-spec))
-  (value-acons :version-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
+(defmethod var:direct-variables ((thing version-spec))
+  (var:value-acons :version-name (model:name thing)
+                   (when (next-method-p)
+                     (call-next-method))))
 
-(defmethod aspects ((thing version-spec))
-  (aspects (parent thing)))
+(defmethod aspects:aspects ((thing version-spec))
+  (aspects:aspects (model:parent thing)))
 
 (defmethod jobs ((thing version-spec))
-  (jobs (parent thing)))
+  (jobs (model:parent thing)))
 
 (defmethod requires :around ((spec version-spec))
   (jenkins.analysis:merge-dependencies (call-next-method)))
@@ -270,62 +270,62 @@
 
 (defmethod requires ((spec version-spec))
   (append (mapcar #'parse-dependency-spec
-                  (value/cast spec :extra-requires '()))
+                  (var:value/cast spec :extra-requires '()))
           (%requires spec)))
 
 (defmethod provides ((spec version-spec))
   (append (mapcar #'parse-dependency-spec
-                  (value/cast spec :extra-provides '()))
+                  (var:value/cast spec :extra-provides '()))
           (%provides spec)))
 
-(defmethod instantiate ((spec version-spec) &key parent specification-parent
-                                                 context variables)
+(defmethod model:instantiate ((spec version-spec) &key parent specification-parent
+                                                       context variables)
   (declare (ignore specification-parent))
   (let+ ((version (make-instance 'version
-                                 :name          (name spec)
+                                 :name          (model:name spec)
                                  :specification spec
                                  :parent        parent
                                  :context       context
                                  :variables     variables))
          ((&flet make-job (job-spec)
-            (when (instantiate? job-spec version)
-              (when-let ((job (instantiate job-spec
-                                           :parent               version
-                                           :specification-parent spec)))
+            (when (model:instantiate? job-spec version)
+              (when-let ((job (model:instantiate job-spec
+                                                 :parent               version
+                                                 :specification-parent spec)))
                 (list job))))))
     (reinitialize-instance version :jobs (mapcan #'make-job (jobs spec)))))
 
 ;;; `job-spec' class
 
-(defclass job-spec (named-mixin
-                    specification-mixin
-                    conditional-mixin
-                    parented-mixin
-                    direct-variables-mixin)
+(defclass job-spec (model:named-mixin
+                    model:specification-mixin
+                    model:conditional-mixin
+                    model:parented-mixin
+                    var:direct-variables-mixin)
   ()
   (:documentation
    "Specification of a build job to be generated."))
 
-(defmethod direct-variables ((thing job-spec))
-  (value-acons :job-name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
+(defmethod var:direct-variables ((thing job-spec))
+  (var:value-acons :job-name (model:name thing)
+                   (when (next-method-p)
+                     (call-next-method))))
 
-(defmethod instantiate ((spec job-spec) &key parent specification-parent)
-  (let+ ((job (make-instance 'job :name          (name spec)
+(defmethod model:instantiate ((spec job-spec) &key parent specification-parent)
+  (let+ ((job (make-instance 'job :name          (model:name spec)
                                   :specification spec
                                   :parent        parent))
          ((&flet make-aspect (spec)
-            (when (instantiate? spec job)
-              (when-let ((aspect (instantiate spec :parent job)))
+            (when (model:instantiate? spec job)
+              (when-let ((aspect (model:instantiate spec :parent job)))
                 (list aspect))))))
     (reinitialize-instance
-     job :aspects (mapcan #'make-aspect (aspects specification-parent)))))
+     job :aspects (mapcan #'make-aspect (aspects:aspects specification-parent)))))
 
 ;;; `template' class
 
-(defclass template (named-mixin
-                    direct-variables-mixin)
+(defclass template (model:named-mixin
+                    var:direct-variables-mixin)
   ((inherit :initarg  :inherit
             :type     list
             :reader   inherit
@@ -349,40 +349,40 @@
 
 ;;; TODO(jmoringe, 2013-01-16): move to correct file
 
-(defmethod variables :around ((thing template))
-  (append (call-next-method) (mappend #'variables (inherit thing))))
+(defmethod var:variables :around ((thing template))
+  (append (call-next-method) (mappend #'var:variables (inherit thing))))
 
-(defmethod lookup ((thing template) (name t) &key if-undefined)
+(defmethod var:lookup ((thing template) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   (values-list
-   (reduce #'merge-lookup-results
+   (reduce #'var:merge-lookup-results
            (mapcar (lambda (inherited)
                      (multiple-value-list
-                      (lookup inherited name :if-undefined nil)))
+                      (var:lookup inherited name :if-undefined nil)))
                    (inherit thing))
            :initial-value (multiple-value-list (call-next-method)))))
 
-(defmethod aspects ((thing template))
+(defmethod aspects:aspects ((thing template))
   (remove-duplicates (append (direct-aspects thing)
-                             (mappend #'aspects (inherit thing)))
+                             (mappend #'aspects:aspects (inherit thing)))
                      :test     #'string=
-                     :key      #'name
+                     :key      #'model:name
                      :from-end t))
 
 (defmethod jobs ((thing template))
   (remove-duplicates (append (direct-jobs thing)
                              (mappend #'jobs (inherit thing)))
                      :test     #'string=
-                     :key      #'name
+                     :key      #'model:name
                      :from-end t))
 
 ;;; `aspect-spec'
 
-(defclass aspect-spec (named-mixin
-                       specification-mixin
-                       conditional-mixin
-                       parented-mixin
-                       direct-variables-mixin)
+(defclass aspect-spec (model:named-mixin
+                       model:specification-mixin
+                       model:conditional-mixin
+                       model:parented-mixin
+                       var:direct-variables-mixin)
   ((aspect :initarg  :aspect
            :type     string
            :reader   aspect
@@ -394,17 +394,17 @@
   (:documentation
    "Specification of an aspect that should be applied to a build job."))
 
-(defmethod instantiate ((spec aspect-spec) &key parent specification-parent)
+(defmethod model:instantiate ((spec aspect-spec) &key parent specification-parent)
   (declare (ignore specification-parent))
-  (make-aspect (aspect spec)
-               :name      (name spec)
-               :parent    parent
-               :variables (direct-variables spec)))
+  (aspects:make-aspect (aspect spec)
+                       :name      (model:name spec)
+                       :parent    parent
+                       :variables (var:direct-variables spec)))
 
 ;;; `person'
 
 (defclass person (rosetta-project.model.resource:person
-                  direct-variables-mixin)
+                  var:direct-variables-mixin)
   ((explicit-names      :initarg  :explicit-names
                         :type     list
                         :reader   explicit-names
@@ -433,7 +433,7 @@
 (defmethod rosetta-project.model.resource:augment-person!
     ((person rosetta-project.model.resource:person) (other-person person))
   (rosetta-project.model.resource:augment-person!
-   (change-class person 'person :variables           (direct-variables other-person)
+   (change-class person 'person :variables           (var:direct-variables other-person)
                                 :explicit-names      (explicit-names other-person)
                                 :explicit-identities (explicit-identities other-person))
    other-person))

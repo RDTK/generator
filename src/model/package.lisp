@@ -11,12 +11,10 @@
    #:split-sequence
    #:iterate
    #:let-plus
-   #:more-conditions
+   #:more-conditions)
 
-   #:jenkins.model.variables)
-
-  (:shadowing-import-from #:jenkins.model.variables
-   #:as)
+  (:local-nicknames
+   (#:var #:jenkins.model.variables))
 
   ;; Conditions
   (:export

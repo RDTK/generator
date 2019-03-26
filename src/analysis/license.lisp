@@ -1,6 +1,6 @@
 ;;;; license.lisp --- Analysis of license files.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -31,7 +31,7 @@
   (loop :for file :in (directory (merge-pathnames "**/*.*" directory))
         :for name = (namestring (make-pathname :directory nil :defaults file))
         :collect (cons name (normalize-text
-                             (read-file-into-string* file)))))
+                             (util:read-file-into-string* file)))))
 
 (defvar *licenses*
   (let ((system-licenses (directory-licenses "/usr/share/common-licenses/"))
@@ -63,8 +63,8 @@
           ;; Slow path: edit distance.
           (car (find normalized known-licenses
                      :test (lambda (text license)
-                             (< (edit-distance text license
-                                               :upper-bound threshold)
+                             (< (util:edit-distance
+                                 text license :upper-bound threshold)
                                 threshold))
                      :key  #'cdr))))))
 
@@ -76,10 +76,10 @@
                     &key
                     (threshold .2))
   (with-trivial-progress (:analyze/license "~A" directory)
-    (loop :with files = (make-file-generator
+    (loop :with files = (util:make-file-generator
                          directory *license-file-patterns*)
           :for file = (funcall files)
           :while file
-          :do (when-let* ((text    (read-file-into-string* file))
+          :do (when-let* ((text    (util:read-file-into-string* file))
                           (license (identify-license text :threshold threshold)))
                 (return-from analyze `(:license ,license))))))

@@ -6,5 +6,5 @@
 
 (cl:in-package #:jenkins.model.project)
 
-(defmethod deploy :before ((thing job))
+(defmethod model:deploy :before ((thing job))
   (progress :deploy/job nil "~A" thing))

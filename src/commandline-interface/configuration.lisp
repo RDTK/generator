@@ -8,7 +8,7 @@
 
 ;;; Schema
 
-(configuration.options:define-schema *global-schema*
+(options:define-schema *global-schema*
   "Global configuration options."
   ;; Generic
   ("version"          :type 'boolean :default nil
@@ -76,10 +76,10 @@
                       :documentation
                       "Progress display style.")
   ;; Directories
-  ("cache-directory"  :type 'configuration.options:directory-pathname
+  ("cache-directory"  :type 'options:directory-pathname
                       :documentation
                       "Directory into which cached data like repository mirrors should be written.")
-  ("temp-directory"   :type 'configuration.options:directory-pathname
+  ("temp-directory"   :type 'options:directory-pathname
                       :default #P"/tmp/"
                       :documentation
                       "Directory into which temporary files should be written.")
@@ -97,14 +97,14 @@
                       :documentation
                       "Trace all accesses to the specified variable."))
 
-(configuration.options:define-schema *schema*
+(options:define-schema *schema*
   "Configuration options of the build generator."
   ("global"   *global-schema*)
-  ("commands" jenkins.project.commands::*command-schema*))
+  ("commands" commands::*command-schema*))
 
 ;;; Commandline options
 
-(jenkins.project.commandline-options:define-option-mapping (*schema* "global")
+(commandline:define-option-mapping (*schema* "global")
   ;; Meta
   ("--version"              "version")
   (("-h" "--help")          "help")
@@ -129,17 +129,17 @@
   (let+ ((config-debug? (configuration.options.debug:maybe-enable-debugging
                          "BUILD_GENERATOR_"))
          (schema        *schema*)
-         (configuration (configuration.options:make-configuration schema))
+         (configuration (options:make-configuration schema))
          (source        (configuration.options.sources:make-source
                          :common-cascade
                          :basename "build-generator"
                          :syntax   :ini))
-         (synchronizer  (make-instance 'configuration.options:standard-synchronizer
+         (synchronizer  (make-instance 'options:standard-synchronizer
                                        :target configuration))
          ((&flet option-value (&rest components)
-            (let ((option (configuration.options:find-option
+            (let ((option (options:find-option
                            components configuration)))
-              (configuration.options:option-value
+              (options:option-value
                option :if-does-not-exist nil)))))
     ;; Process configuration sources other than commandline arguments.
     (configuration.options.sources:initialize source schema)
@@ -158,13 +158,13 @@
                               (subseq arguments (1+ command-index)))))
 
       ;; Process local (i.e. consumed by command) commandline options.
-      (jenkins.project.commands:configure-command
+      (commands:configure-command
        synchronizer command local-arguments)
       ;; If the help command will be executed because no command has
       ;; been supplied, enable brief output.
       (unless command-index
-        (setf (configuration.options:option-value
-               (configuration.options:find-option
+        (setf (options:option-value
+               (options:find-option
                 '("commands" "help" "brief?") configuration))
               t)))
 
@@ -186,17 +186,17 @@
 
 (defun process-global-commandline-arguments (synchronizer arguments)
   (let+ (((&flet notify (name event value &key (raw? t))
-            (configuration.options:notify
+            (options:notify
              synchronizer name event value :source :commandline :raw? raw?)))
          ((&flet set-value (name value)
             (notify :added     name nil)
             (notify :new-value name value
                     :raw? (not (typep value 'boolean))))))
-    (jenkins.project.commandline-options:map-commandline-options
+    (commandline:map-commandline-options
      #'set-value "global" arguments :stop-at-positional? t)))
 
 (defun (setf default-progress-style) (new-value)
-  (reinitialize-instance (configuration.options:find-option
+  (reinitialize-instance (options:find-option
                           '("global" "progress-style") *schema*)
                          :default new-value))
 

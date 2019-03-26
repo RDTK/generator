@@ -1,6 +1,6 @@
 ;;;; functions-deploy.lisp --- Functions for deploying Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,31 +16,31 @@
           (more-conditions::without-progress
             (with-simple-restart
                 (continue "~@<Skip deploying project version ~S.~@:>" version)
-              (appending (flatten (deploy version))))))))
+              (appending (flatten (model:deploy version))))))))
 
 (defun deploy-job-dependencies (jobs)
   (with-sequence-progress (:deploy/dependencies jobs)
     (iter (for job in jobs)
           (progress "~/print-items:format-print-items/"
                     (print-items:print-items job))
-          (deploy-dependencies job))))
+          (model:deploy-dependencies job))))
 
 ;;; Toolkit specific stuff
 
 (defun configure-orchestration (distribution)
   (with-trivial-progress (:orchestration "Configuring orchestration jobs")
-    (let* ((templates    (list (find-template "orchestration")))
-           (project-spec (make-instance 'jenkins.model.project::project-spec
+    (let* ((templates    (list (project:find-template "orchestration")))
+           (project-spec (make-instance 'project::project-spec
                                         :name      "orchestration"
                                         :templates templates))
-           (version-spec (make-instance 'jenkins.model.project::version-spec
+           (version-spec (make-instance 'project::version-spec
                                         :name   "orchestration"
                                         :parent project-spec))
            (version      (progn
                            (reinitialize-instance project-spec
                                                   :versions (list version-spec))
-                           (instantiate version-spec :parent distribution))))
-      (flatten (deploy version)))))
+                           (model:instantiate version-spec :parent distribution))))
+      (flatten (model:deploy version)))))
 
 (defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)
@@ -55,18 +55,18 @@
       view)))
 
 (defun configure-distribution (distribution)
-  (let* ((jobs               (mappend #'jobs (versions distribution)))
+  (let* ((jobs               (mappend #'project:jobs (project:versions distribution)))
          (orchestration-jobs (with-simple-restart
                                  (continue "~@<Continue without configuring orchestration jobs~@:>")
                                (configure-orchestration distribution)))
          (all-jobs           (mapcan (lambda (job)
-                                       (when-let ((jenkins-job (implementation job)))
+                                       (when-let ((jenkins-job (model:implementation job)))
                                          (list jenkins-job)))
                                      (append jobs orchestration-jobs))))
     (log:trace "~@<Jobs in ~A: ~A~@:>" distribution jobs)
-    (when-let* ((create? (value/cast distribution :view.create? nil))
-                (name    (value/cast distribution :view.name)))
-      (let ((columns (value/cast distribution :view.columns nil)))
+    (when-let* ((create? (var:value/cast distribution :view.create? nil))
+                (name    (var:value/cast distribution :view.name)))
+      (let ((columns (var:value/cast distribution :view.columns nil)))
         (with-simple-restart (continue "~@<Continue without creating a view~@:>")
           (apply #'configure-view name all-jobs
                  (when columns (list :columns columns))))))

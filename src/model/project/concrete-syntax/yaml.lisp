@@ -325,8 +325,8 @@
                    (variables (process-variables (lookup :variables spec)))
                    (catalog   (lookup :catalog spec))
                    (variables (if catalog
-                                  (value-acons :__catalog catalog
-                                               variables)
+                                  (var:value-acons :__catalog catalog
+                                                   variables)
                                   variables)))
               (if pattern
                   (map 'list (lambda (requested-name)
@@ -355,7 +355,7 @@
     (reinitialize-instance
      instance
      :templates (map 'list #'process-template (lookup :templates))
-     :variables (value-acons
+     :variables (var:value-acons
                  :__catalog (lookup :catalog)
                  (process-variables (lookup :variables)))
      :versions  (mappend (lambda (spec)
@@ -386,17 +386,17 @@
                                        (:versions  t   list)
                                        :catalog))
     (spec (name :pathname) repository generator-version)
-  (let+ ((variables (value-acons :__catalog (lookup :catalog)
-                                 (process-variables (lookup :variables))))
+  (let+ ((variables (var:value-acons :__catalog (lookup :catalog)
+                                     (process-variables (lookup :variables))))
          ;; We allow using variables defined directly in the
          ;; distribution recipe to be used in project version
          ;; expressions.
-         (context   (make-instance 'direct-variables-mixin
+         (context   (make-instance 'var:direct-variables-mixin
                                    :variables variables))
          ((&flet expand-expression (expression &optional note-success)
             (handler-case
                 (prog1
-                    (evaluate context (value-parse expression))
+                    (var:evaluate context (var:value-parse expression))
                   (when note-success (funcall note-success)))
               (error (condition)
                 (object-error

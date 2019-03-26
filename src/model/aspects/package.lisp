@@ -14,17 +14,12 @@
    #:more-conditions
    #:print-items
 
-   #:jenkins.model
-   #:jenkins.model.variables
-
    #:jenkins.api
    #:jenkins.dsl)
 
-  (:shadowing-import-from #:jenkins.model ; TODO hack
-   #:name)
-
-  (:shadowing-import-from #:jenkins.model.variables ; TODO hack
-   #:as)
+  (:local-nicknames
+   (#:model #:jenkins.model)
+   (#:var   #:jenkins.model.variables))
 
   (:shadowing-import-from #:jenkins.api ; TODO hack
    #:parameters)

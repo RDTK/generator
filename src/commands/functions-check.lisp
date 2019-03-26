@@ -1,6 +1,6 @@
 ;;;; functions-check.lisp --- Functions for checking recipes.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -11,7 +11,7 @@
             (with-simple-restart
                 (continue "~@<Skip distribution ~A.~@:>" distribution)
               (let+ (((&values access? problem)
-                      (check-access distribution t)))
+                      (model:check-access distribution t)))
                 (cond (access?
                        (list distribution))
                       (problem
@@ -27,7 +27,7 @@
      &key
      (platform (multiple-value-list (jenkins.analysis:current-platform))))
   (let ((installed-packages (jenkins.analysis:installed-packages))
-        (requirements       (platform-requires distributions platform)))
+        (requirements       (project:platform-requires distributions platform)))
     (log:info "~@<Found ~:D installed package~:P~@:>"
               (length installed-packages))
     (log:debug "~@<Found ~:D platform requirement~:P: ~{~A~^ ~}~@:>"

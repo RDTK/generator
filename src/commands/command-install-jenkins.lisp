@@ -10,19 +10,19 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; TODO should be defined in aspects module
-  (defmethod jenkins.model.project:requires ((thing jenkins.model.aspects::aspect))
+  (defmethod project:requires ((thing aspects::aspect))
     (map 'list (curry #'list :jenkins-plugin)
-         (jenkins.model.aspects::required-plugins thing)))
+         (aspects::required-plugins thing)))
 
   (defun required-jenkins-plugins ()
     (let ((aspect-classes (map 'list #'service-provider:provider-class
                                (service-provider:service-providers
-                                'jenkins.model.aspects::aspect))))
+                                'aspects::aspect))))
       (remove-duplicates
        (mappend (lambda (aspect-class)
                   (let* ((prototype    (c2mop:class-prototype
                                         (c2mop:ensure-finalized aspect-class)))
-                         (requirements (jenkins.model.project:requires-of-kind
+                         (requirements (project:requires-of-kind
                                         :jenkins-plugin prototype)))
                     (map 'list #'second requirements)))
                 aspect-classes)
@@ -72,7 +72,7 @@
    (jenkins-download-url :initarg  :jenkins-download-url
                          :type     puri:uri
                          :reader   jenkins-download-url
-                         :initform jenkins.project.steps::+default-jenkins-download-url+
+                         :initform steps::+default-jenkins-download-url+
                          :documentation
                          #.(format nil "URL from which the Jenkins ~
                             archive should be downloaded."))
@@ -152,26 +152,23 @@
                        :test #'string=)))
     (as-phase (:install)
       (with-trivial-progress (:install/core)
-        (jenkins.project.steps:execute
-         (jenkins.project.steps:make-step :jenkins/install-core) nil
-         :destination-directory output-directory
-         :url                   jenkins-download-url))
+        (steps:execute (steps:make-step :jenkins/install-core) nil
+                       :destination-directory output-directory
+                       :url                   jenkins-download-url))
 
-      (jenkins.project.steps:execute
-       (jenkins.project.steps:make-step :jenkins/install-plugins-with-dependencies) nil
+      (steps:execute
+       (steps:make-step :jenkins/install-plugins-with-dependencies) nil
        :destination-directory output-directory
        :plugins               all-plugins))
 
     (as-phase (:configure)
-      (jenkins.project.steps:execute
-       (jenkins.project.steps:make-step :jenkins/install-config-files) nil
-       :destination-directory output-directory
-       :profile               (name profile))
+      (steps:execute (steps:make-step :jenkins/install-config-files) nil
+                     :destination-directory output-directory
+                     :profile               (name profile))
 
       (when (and username email password)
-        (jenkins.project.steps:execute
-         (jenkins.project.steps:make-step :jenkins/create-user) nil
-         :destination-directory output-directory
-         :username              username
-         :email                 email
-         :password              password)))))
+        (steps:execute (steps:make-step :jenkins/create-user) nil
+                       :destination-directory output-directory
+                       :username              username
+                       :email                 email
+                       :password              password)))))

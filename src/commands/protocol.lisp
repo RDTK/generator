@@ -89,8 +89,9 @@
                         trace-variables)
   ;; We modify the global value so that all threads pick up the value
   ;; without additional work.
-  (setf *traced-variables* (map 'list (compose #'make-keyword #'string-upcase)
-                                trace-variables))
+  (setf var:*traced-variables* (map 'list (compose #'make-keyword
+                                                   #'string-upcase)
+                                    trace-variables))
 
   (let ((main-thread (bt:current-thread))
         (lock        (bt:make-lock)))

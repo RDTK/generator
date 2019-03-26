@@ -96,7 +96,7 @@
       (NAME VERSION)"))
 
 (defmethod platform-requires ((object t) (platform cons))
-  (let+ ((spec (value/cast object :platform-requires '()))
+  (let+ ((spec (var:value/cast object :platform-requires '()))
          ((&flet lookup (name &optional (where spec))
             (cdr (assoc name where :test #'eq))))
          ((&flet make-key (string)
@@ -117,4 +117,4 @@
 (defun platform-provides (object)
   (mapcar (lambda (spec)
             `(,(parse-dependency-spec spec) . :system-package))
-          (value/cast object :platform-provides '())))
+          (var:value/cast object :platform-provides '())))

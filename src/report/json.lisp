@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Report analysis results.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -11,10 +11,10 @@
 (defmethod report ((object sequence) (style (eql :json)) (target pathname))
   (map nil (rcurry #'report style target) object))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object project::distribution-spec)
                    (style  (eql :json))
                    (target pathname))
-  (let ((name (safe-name (name object))))
+  (let ((name (safe-name (model:name object))))
     (ensure-directories-exist target)
     (with-output-to-file (stream (make-pathname :name     name
                                                 :type     "json"
@@ -22,18 +22,18 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.model.project::distribution-spec)
+(defmethod report ((object project::distribution-spec)
                    (style  (eql :json))
                    (target stream))
   (json:with-object (target)
-    (json:encode-object-member "name" (name object) target)
+    (json:encode-object-member "name" (model:name object) target)
     (json:as-object-member ("access" target)
-      (json:encode-json (access object) target))
+      (json:encode-json (model:access object) target))
     (json:as-object-member ("platform-requires" target)
-      (json:encode-json (platform-requires object *platform-of-interest*) target))
+      (json:encode-json (project:platform-requires object *platform-of-interest*) target))
     (report-variables object target)
-    (let ((projects (remove-duplicates (mapcar #'parent
-                                               (versions object)))))
+    (let ((projects (remove-duplicates (mapcar #'model:parent
+                                               (project:versions object)))))
       (json:as-object-member ("projects" target)
         (json:with-array (target)
           (with-sequence-progress (:report/json projects)
@@ -44,11 +44,11 @@
                 (report project style target)))))))))
 
 ;; Describe project in separate file. Currently not used.
-(defmethod report ((object jenkins.model.project::project-spec)
+(defmethod report ((object project::project-spec)
                    (style  (eql :json))
                    (target pathname))
   (let ((directory (merge-pathnames "projects/" target))
-        (name      (safe-name (name object))))
+        (name      (safe-name (model:name object))))
     (ensure-directories-exist directory)
     (with-output-to-file (stream (make-pathname :name     name
                                                 :type     "json"
@@ -56,40 +56,40 @@
                                  :if-exists :supersede)
       (report object style stream))))
 
-(defmethod report ((object jenkins.model.project::project-spec)
+(defmethod report ((object project::project-spec)
                    (style  (eql :json))
                    (target stream))
-  (let ((implementation (implementation object)))
+  (let ((implementation (model:implementation object)))
     (json:with-object (target)
-      (json:encode-object-member "name" (name object) target)
+      (json:encode-object-member "name" (model:name object) target)
       (json:as-object-member ("versions" target)
         (json:with-array (target)
-          (dolist (version (versions object))
+          (dolist (version (project:versions object))
             (json:as-array-member (target)
               (report version style target)))))
       (report-variables implementation target))))
 
-(defmethod report ((object jenkins.model.project::version-spec)
+(defmethod report ((object project::version-spec)
                    (style  (eql :json))
                    (target stream))
-  (let ((implementation (implementation object)))
+  (let ((implementation (model:implementation object)))
     (json:with-object (target)
-      (json:encode-object-member "name" (name object) target)
-      (json:encode-object-member "access" (access object) target)
+      (json:encode-object-member "name" (model:name object) target)
+      (json:encode-object-member "access" (model:access object) target)
       (json:encode-object-member
        "requires" (jenkins.model.project::%requires object) target)
       (json:encode-object-member
        "provides" (jenkins.model.project::%provides object) target)
       (json:encode-object-member
-       "platform-requires" (platform-requires object *platform-of-interest*) target)
+       "platform-requires" (project:platform-requires object *platform-of-interest*) target)
       (json:as-object-member ("direct-dependencies" target)
         (json:with-array (target)
-          (dolist (dependency (direct-dependencies implementation))
-            (let ((parent (parent dependency)))
+          (dolist (dependency (model:direct-dependencies implementation))
+            (let ((parent (model:parent dependency)))
               (json:as-array-member (target)
                 (json:with-array (target)
-                  (json:encode-array-member (name parent) target)
-                  (json:encode-array-member (name dependency) target)))))))
+                  (json:encode-array-member (model:name parent) target)
+                  (json:encode-array-member (model:name dependency) target)))))))
       (report-variables implementation target))))
 
 ;;; Utilities
@@ -98,13 +98,13 @@
   (json:as-object-member ("variables" stream)
     (json:with-object (stream)
       (loop :for (key . raw) :in (remove-duplicates
-                                  (variables object)
+                                  (var:variables object)
                                   :key #'car :from-end t)
          :do (json:as-object-member ((string-downcase key) stream)
                (json:with-object (stream)
                  ;; (json:encode-object-member "raw" raw stream)
                  (handler-case
-                     (let ((value (value object key)))
+                     (let ((value (var:value object key)))
                        (json:encode-object-member "value" value stream))
                    (error (condition)
                      (let ((error (princ-to-string condition)))

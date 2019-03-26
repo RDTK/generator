@@ -1,6 +1,6 @@
 ;;;; asdf.lisp --- Analysis of ASDF projects.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -20,7 +20,7 @@
               ((cons (member :read-file-form :read-file-file))
                (process-version (read-file-* spec)))
               (string
-               (parse-version spec)))))
+               (version:parse-version spec)))))
          ((&labels dependency->list (dependency)
             (etypecase dependency
               ((cons (eql :require))
@@ -62,7 +62,7 @@
                     (kind      (eql :asdf))
                     &key)
   (let+ ((systems
-          (iter (for file in (find-files (merge-pathnames "**/*.asd" directory)))
+          (iter (for file in (util:find-files (merge-pathnames "**/*.asd" directory)))
                 (log:info "~@<Analyzing ~S.~@:>" file)
                 (with-simple-restart (continue "~@<Skip file ~S.~@:>" file)
                   (appending (analyze file :asdf/one-file)))))

@@ -122,7 +122,7 @@
         spec
         (process-version (first (cdr values)) globals))
     (when (ppcre:scan "^[-_.:0-9a-zA-Z]+$" spec)
-      (parse-version spec))))
+      (version:parse-version spec))))
 
 (defun process-dependency (spec globals)
   (or (ppcre:register-groups-bind (name relation version)
@@ -139,7 +139,8 @@
 (defmethod analyze ((directory pathname)
                     (kind      (eql :setuptools))
                     &key)
-  (let+ ((content    (read-file-into-string* (merge-pathnames "setup.py" directory)))
+  (let+ ((content    (util:read-file-into-string*
+                      (merge-pathnames "setup.py" directory)))
          (globals    (extract-global-variables content))
          (setup-call (ppcre:scan-to-strings "setup\\((?:.|\\n)*\\)" content))
          (arguments  (extract-keyword-arguments setup-call))

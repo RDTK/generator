@@ -44,7 +44,7 @@
   (and (listp thing) (every (of-type 'parameter-entry/legacy) thing)))
 
 (defun parameter-entry? (thing)
-  (nth-value 1 (as thing 'parameter-entry :if-type-mismatch nil)))
+  (nth-value 1 (var:as thing 'parameter-entry :if-type-mismatch nil)))
 
 (deftype parameter-entry ()
   '(and cons (satisfies parameter-entry?)))
@@ -52,7 +52,8 @@
 (defun every-parameter-entry (thing)
   (and (listp thing) (every (of-type 'parameter-entry) thing)))
 
-(defmethod as ((value t) (type (eql 'parameter-entry)) &key if-type-mismatch)
+(defmethod var:as ((value t) (type (eql 'parameter-entry))
+                   &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
   (when (and (consp value)
              (every (lambda (cell)
@@ -62,10 +63,10 @@
                     value))
     (when-let* ((name (assoc-value value :name))
                 (kind (assoc-value value :kind))
-                (kind (as kind '(or (eql :text)
-                                    (eql :string)
-                                    (eql :boolean))
-                          :if-type-mismatch nil)))
+                (kind (var:as kind '(or (eql :text)
+                                        (eql :string)
+                                        (eql :boolean))
+                              :if-type-mismatch nil)))
       (values
        (list* :name name
               :kind kind
@@ -75,36 +76,36 @@
                         `(:description ,description))))
        t))))
 
-(defmethod as ((value t) (type (eql 'parameter-entry/legacy))
-               &key if-type-mismatch)
+(defmethod var:as ((value t) (type (eql 'parameter-entry/legacy))
+                   &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
   (when (typep value '(cons string))
     (log:warn "~@<Parameter specification uses legacy format: ~S.~@:>"
               (json:encode-json-to-string value))
     (destructuring-bind (kind name &optional (default nil default?))
         value
-      (when-let ((kind (as kind '(or (eql :text) (eql :string)))))
+      (when-let ((kind (var:as kind '(or (eql :text) (eql :string)))))
         (values (list* :kind kind :name name
                        (when default?
                          (list :default default)))
                 t)))))
 
-(assert (equal (as '((:name . "foo") (:kind . "text")) 'parameter-entry)
+(assert (equal (var:as '((:name . "foo") (:kind . "text")) 'parameter-entry)
                '(:name "foo" :kind :text)))
-(assert (equal (as '(((:name . "foo") (:kind . "text"))) '(list-of parameter-entry))
+(assert (equal (var:as '(((:name . "foo") (:kind . "text"))) '(var:list-of parameter-entry))
                '((:name "foo" :kind :text))))
 
-(assert (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry/legacy)))
-(assert (not (typep '(("string" "ageLimit" "none")) '(list-of parameter-entry))))
+(assert (typep '(("string" "ageLimit" "none")) '(var:list-of parameter-entry/legacy)))
+(assert (not (typep '(("string" "ageLimit" "none")) '(var:list-of parameter-entry))))
 
 (assert (not (typep '(((:kind . "string") (:name . "ageLimit") (:default . "none")))
-                    '(list-of parameter-entry/legacy))))
+                    '(var:list-of parameter-entry/legacy))))
 (assert (typep '(((:kind . "string") (:name . "ageLimit") (:default . "none")))
-               '(list-of parameter-entry)))
+               '(var:list-of parameter-entry)))
 
 (define-aspect (parameters) ()
-    ((parameters :type (or (list-of parameter-entry)
-                           (list-of parameter-entry/legacy))
+    ((parameters :type (or (var:list-of parameter-entry)
+                           (var:list-of parameter-entry/legacy))
       :documentation
       "A list of parameters that should be configured for the
        generated job.
@@ -316,9 +317,9 @@
                    (format nil "Shell fragment to execute ~A the shell ~
                                 fragment of the ~A aspect."
                            when aspect-name)))
-              (note-variable name type :documentation documentation)
+              (var:note-variable name type :documentation documentation)
               (values name `(load-time-value
-                             (note-variable ,name ',type :documentation ,documentation))))))
+                             (var:note-variable ,name ',type :documentation ,documentation))))))
          ((&values prefix-var-name prefix-var-form)
           (make-variable '#:.prefix "before"))
          ((&values suffix-var-name suffix-var-form)
@@ -327,8 +328,8 @@
                            ,prefix-var-form
                            ,suffix-var-form
                            ,@body)
-                         (value/cast aspect ,prefix-var-name nil)
-                         (value/cast aspect ,suffix-var-name nil))))
+                         (var:value/cast aspect ,prefix-var-name nil)
+                         (var:value/cast aspect ,suffix-var-name nil))))
 
 ;;; Timeout aspect
 
@@ -366,7 +367,7 @@
 
 ;; TODO separate slaves aspect for matrix-project jobs?
 (define-aspect (slaves :job-var job) ()
-    (((slaves             '()) :type (list-of string)
+    (((slaves             '()) :type (var:list-of string)
       :documentation
       "A list of names of Jenkins slaves on which the job should be
        built.")
@@ -389,13 +390,13 @@
 ;;; Permissions aspect
 
 (deftype permission-entry ()
-  '(cons string (cons (list-of string) null)))
+  '(cons string (cons (var:list-of string) null)))
 
 (defun every-permission-entry (thing)
   (and (listp thing) (every (of-type 'permission-entry) thing)))
 
 (define-aspect (permissions :job-var job) ()
-    (((permissions :keep) :type (or (eql :keep) (list-of permission-entry))
+    (((permissions :keep) :type (or (eql :keep) (var:list-of permission-entry))
       :documentation
       "The permissions to install.
 

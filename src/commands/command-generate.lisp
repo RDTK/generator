@@ -70,7 +70,7 @@
          (distributions
           (as-phase (:instantiate)
             (mapcan (lambda (distribution-spec)
-                      (when-let ((distribution (instantiate distribution-spec)))
+                      (when-let ((distribution (model:instantiate distribution-spec)))
                         (list distribution)))
                     distributions))))
     (as-phase (:check-access ; :continuable? nil
@@ -95,22 +95,22 @@
                               (load-specifications kind files loader repository))))
               (values objects files))))
          ;; Templates
-         (template-patterns       (list (recipe-path repository :template :wild)))
+         (template-patterns       (list (project:recipe-path repository :template :wild)))
          (templates               (locate-and-load
                                    :template template-patterns
-                                   (rcurry #'load-template/yaml
+                                   (rcurry #'project:load-template/yaml
                                            :generator-version generator-version)))
          ;; Persons
-         (person-patterns         (list (recipe-path repository :person :wild)))
+         (person-patterns         (list (project:recipe-path repository :person :wild)))
          (persons                 (locate-and-load
                                    :person person-patterns
-                                   (rcurry #'load-person/yaml
+                                   (rcurry #'project:load-person/yaml
                                            :generator-version generator-version)
                                    :if-no-match '()))
          ;; Distributions
          (distributions           (locate-and-load
                                    :distribution distributions
-                                   (rcurry #'load-distribution/yaml
+                                   (rcurry #'project:load-distribution/yaml
                                            :generator-version generator-version)))
          (distributions           (as-phase (:overwrites)
                                     (set-overwrites distributions overwrites)))
@@ -140,9 +140,9 @@
          ((&labels resolve-versions (distribution)
             (ensure-gethash
              distribution seen
-             (let ((includes (direct-includes distribution))
-                   (versions (direct-versions distribution)))
-               (map nil (compose #'resolve-versions #'distribution) includes)
+             (let ((includes (project:direct-includes distribution))
+                   (versions (project:direct-versions distribution)))
+               (map nil (compose #'resolve-versions #'project:distribution) includes)
                (reinitialize-instance
                 distribution :direct-versions (resolve-project-versions versions))))))
          (distributions (as-phase (:resolve/distribution)
@@ -156,19 +156,19 @@
                         &key
                         delete-other?
                         delete-other-pattern)
-  (let+ ((projects (mappend #'versions distributions))
+  (let+ ((projects (mappend #'project:versions distributions))
          (jobs/specs (as-phase (:deploy/project)
                        (let ((jobs (deploy-projects projects)))
                          (when (some (lambda (job)
-                                       (not (eq (value/cast job :dependencies.mode) :none)))
+                                       (not (eq (var:value/cast job :dependencies.mode) :none)))
                                      jobs)
                            (deploy-job-dependencies jobs))
                          jobs)))
-         (jobs       (mappend #'implementations jobs/specs))
+         (jobs       (mappend #'model:implementations jobs/specs))
          ((&values &ign orchestration-jobs)
           (as-phase (:orchestration)
             (configure-distributions distributions)))
-         (all-jobs   (append jobs (mappend #'implementations
+         (all-jobs   (append jobs (mappend #'model:implementations
                                            orchestration-jobs))))
     (when delete-other?
       (as-phase (:delete-other-jobs)

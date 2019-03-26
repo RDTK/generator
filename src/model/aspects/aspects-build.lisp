@@ -64,7 +64,7 @@
           (shell (:command (wrapped-shell-command (:aspect.cmake/unix) command))))
         (builders job)))
 
-(define-variable :aspect.cmake/unix.find-commands list ; :write
+(var:define-variable :aspect.cmake/unix.find-commands list ; :write
   :documentation
   "Shell commands for finding upstream CMake packages.
 
@@ -75,7 +75,7 @@
    where UPSTREAM is the name of the respective upstream CMake
    module.")
 
-(define-variable :aspect.cmake/unix.dir-options list ; :write
+(var:define-variable :aspect.cmake/unix.dir-options list ; :write
   :documentation
   "CMake commandline options for configuring upstream packages.
 
@@ -89,9 +89,9 @@
 (let+ (((&flet shellify (name)
           (make-variable/sh (string-upcase name))))
        ((&flet map-cmake-requirements (function aspect)
-          (let* ((project-version   (parent (parent aspect)))
+          (let* ((project-version   (model:parent (model:parent aspect)))
                  (dependencies      (list* project-version
-                                           (dependencies project-version)))
+                                           (model:dependencies project-version)))
                  (seen-requirements (make-hash-table :test #'equal)))
             (iter outer (for dependency in dependencies)
                   (for dependencies/alist
@@ -107,11 +107,11 @@
                             (setf (gethash target seen-requirements) t)
                             (in outer (collect (funcall function target))))))))))
        ((&flet result (name raw)
-          (values (cons name (value-parse raw)) '() t))))
+          (values (cons name (var:value-parse raw)) '() t))))
 
-  (defmethod lookup ((thing aspect-cmake/unix)
-                     (name  (eql :aspect.cmake/unix.find-commands))
-                     &key if-undefined)
+  (defmethod var:lookup ((thing aspect-cmake/unix)
+                         (name  (eql :aspect.cmake/unix.find-commands))
+                         &key if-undefined)
     (declare (ignore if-undefined))
     (let+ (((&flet make-find (required)
               (format nil "~A_DIR=\"$(find \"${dependency-dir}\" ~
@@ -126,9 +126,9 @@
                (shellify required) required))))
       (result name (map-cmake-requirements #'make-find thing))))
 
-  (defmethod lookup ((thing aspect-cmake/unix)
-                     (name  (eql :aspect.cmake/unix.dir-options))
-                     &key if-undefined)
+  (defmethod var:lookup ((thing aspect-cmake/unix)
+                         (name  (eql :aspect.cmake/unix.dir-options))
+                         &key if-undefined)
     (declare (ignore if-undefined))
     (let+ (((&flet make-option (required)
               (format nil "~A_DIR=\\${~A_DIR}"
@@ -172,11 +172,11 @@
     (list (subseq spec 0 position) (subseq spec (1+ position)))))
 
 (define-aspect (maven :job-var job) (builder-defining-mixin)
-    (((properties           '()) :type (list-of string/name=value)
+    (((properties           '()) :type (var:list-of string/name=value)
       :documentation
       "A list of Maven properties that should be set for the build.
        Entries are of the form NAME=VALUE.")
-     (targets                    :type (list-of string)
+     (targets                    :type (var:list-of string)
       :documentation
       "A list of names of Maven targets that should be built.")
      (private-repository?        :type boolean
@@ -218,7 +218,7 @@
   (and (listp thing) (every (of-type 'setuptools-option) thing)))
 
 (define-aspect (setuptools :job-var job) (builder-defining-mixin)
-    (((options '()) :type (list-of setuptools-option)
+    (((options '()) :type (var:list-of setuptools-option)
       :documentation
       "A list of names of Setuptools option and corresponding values
        that should be set during the build. Entries are of the form
@@ -243,11 +243,11 @@
                              command))))
         (builders job)))
 
-(defmethod lookup ((thing aspect-setuptools)
-                   (name  (eql :aspect.setuptools.option-lines))
-                   &key if-undefined)
+(defmethod var:lookup ((thing aspect-setuptools)
+                       (name  (eql :aspect.setuptools.option-lines))
+                       &key if-undefined)
   (declare (ignore if-undefined))
-  (when-let ((options (value/cast thing :aspect.setuptools.options '())))
+  (when-let ((options (var:value/cast thing :aspect.setuptools.options '())))
     (let+ (((&flet+ make-option ((section name value))
               (format nil "setopt -c \"~A\" -o \"~A\" -s \"~A\""
                       section name value))))

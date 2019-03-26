@@ -57,16 +57,16 @@
    not install built software but copy results from upstream jobs into
    the workspaces of downstream jobs."
   (let ((copy-artifacts? nil))
-    (when-let ((self-kind    (first (ensure-list (value spec :kind nil))))
-               (dependencies (dependencies spec)))
+    (when-let ((self-kind    (first (ensure-list (var:value spec :kind nil))))
+               (dependencies (model:dependencies spec)))
       ;; Multiple copy-artifact builders which copy artifacts from
       ;; other jobs.
       (iter (for dependency in dependencies)
-            (let+ ((id      (value/cast dependency :build-job-name))
-                   (kind    (first (ensure-list (value dependency :kind nil))))
+            (let+ ((id      (var:value/cast dependency :build-job-name))
+                   (kind    (first (ensure-list (var:value dependency :kind nil))))
                    (pattern (when-let ((aspect (find-if (of-type 'aspect-archive-artifacts)
                                                         (aspects dependency))))
-                              (value/cast aspect :aspect.archive-artifacts.file-pattern nil)))
+                              (var:value/cast aspect :aspect.archive-artifacts.file-pattern nil)))
                    ((&flet matrix? (kind)
                       (member kind '("matrix" "matrix-project") :test #'string-equal)))
                    (reference (format nil "~A~@[/label=$label~]"

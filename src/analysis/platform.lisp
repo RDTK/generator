@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the analysis module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -45,7 +45,7 @@
                     (when (ends-with-subseq "install ok installed" line)
                       (let+ (((name version)
                               (subseq (split-sequence #\Space line) 0 2)))
-                            (collect (list name (parse-version version))))))))))
+                            (collect (list name (version:parse-version version))))))))))
     (union (list-packages "binary:package")
            (list-packages "Package")
            :test #'equalp)))
@@ -55,7 +55,7 @@
   (let ((lines (inferior-shell:run/lines '("pacman" "-Q"))))
     (iter (for line in lines)
           (let+ (((name version) (split-sequence #\Space line)))
-            (collect (list name (parse-version version)))))))
+            (collect (list name (version:parse-version version)))))))
 
 (defvar *installed-packages-functions/linux*
   `(("Ubuntu" . installed-packages/linux/debian-like)

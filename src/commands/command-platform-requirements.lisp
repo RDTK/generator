@@ -58,10 +58,10 @@
          (distributions
           (as-phase (:instantiate)
             (mapcan (lambda (distribution-spec)
-                      (when-let ((distribution (instantiate distribution-spec)))
+                      (when-let ((distribution (model:instantiate distribution-spec)))
                         (list distribution)))
                     distributions)))
          (platform     (split-sequence:split-sequence #\Space platform))
          (requirements (as-phase (:check-platform-requirements)
-                         (platform-requires distributions platform))))
+                         (project:platform-requires distributions platform))))
     (report-platform-requirements requirements platform)))

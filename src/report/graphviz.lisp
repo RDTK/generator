@@ -1,6 +1,6 @@
 ;;;; graphviz.lisp --- Graph generation for projects and dependencies.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -40,7 +40,7 @@
                  :attributes (graph-object-attributes graph object)))
 
 (defmethod cl-dot:graph-object-node ((graph  jenkins-dependencies)
-                                     (object jenkins.model.project::distribution))
+                                     (object project:distribution))
   nil)
 
 (defstruct provided)
@@ -58,7 +58,7 @@
 (defstruct (system (:include unsatisfied)))
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                          (object jenkins.model.project::distribution))
+                                          (object project:distribution))
   (jenkins.model.project:versions object))
 
 (flet ((dependency (spec target)
@@ -85,7 +85,7 @@
                                              '())))))))
 
   (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
-                                            (object jenkins.model.project::version))
+                                            (object project:version))
     (let+ ((relations '())
            ((&flet add-relation (dependency provide)
               (push provide (cdr (or (assoc dependency relations :test #'eq)
@@ -102,27 +102,27 @@
                                                  system))
                                       (t       target))))
                    (map nil (curry #'add-relation target) reasons)))
-           (jenkins.model.project::direct-dependencies/reasons object))
+           (project:direct-dependencies/reasons object))
       ;; Make and return edge descriptions.
       (mapcar (lambda+ ((target . specs))
                 (dependency specs target))
               relations)))
 
   (defmethod cl-dot:graph-object-pointed-to-by ((graph  jenkins-dependencies)
-                                                (object jenkins.model.project::version))
+                                                (object project:version))
     (when (eq object (jenkins-dependencies-root graph))
-      (let ((provides (jenkins.model.project:provides object)))
+      (let ((provides (project:provides object)))
         (list (dependency provides (make-provided)))))))
 
 ;;; File generation
 
-(defmethod object-filename ((object jenkins.model.project::distribution))
-  (safe-name (name object)))
+(defmethod object-filename ((object project:distribution))
+  (safe-name (model:name object)))
 
-(defmethod object-filename ((object jenkins.model.project::version))
+(defmethod object-filename ((object project:version))
   (format nil "~A-~A"
-          (safe-name (name (parent (specification object))))
-          (safe-name (name object))))
+          (safe-name (model:name (model:parent (model:specification object))))
+          (safe-name (model:name object))))
 
 (defmethod report ((object t) (style (eql :graph)) (target pathname))
   (ensure-directories-exist target)
@@ -151,10 +151,10 @@
                               target (object-filename distribution)
                               :type :directory)))
               (map nil (curry #'add-project-version directory)
-                   (versions distribution))))))
+                   (project:versions distribution))))))
     (cond ((emptyp object)
            nil)
-          ((typep (first-elt object) 'jenkins.model.project::distribution)
+          ((typep (first-elt object) 'project:distribution)
            (map nil #'add-distribution object))
           (t
            (error "Not handled")))

@@ -16,8 +16,8 @@
 
 (defun render-person-data? (person style)
   (case (gdpr? style)
-    (:opt-in (when (typep person 'jenkins.model.project::person)
-               (as (value person :gdpr.opt-in? nil) 'boolean)))
+    (:opt-in (when (typep person 'project::person)
+               (var:as (var:value person :gdpr.opt-in? nil) 'boolean)))
     ((nil)   t)
     ((t)     nil)))
 
@@ -82,7 +82,7 @@
 ;;; Data access helpers
 
 (defun catalog-value (object key)
-  (assoc-value (value object :__catalog nil) key))
+  (assoc-value (var:value object :__catalog nil) key))
 
 (define-constant +opensource-schema+
   "opensource://"
@@ -99,12 +99,12 @@
 (defun catalog-description (object)
   (when-let ((description (catalog-value object :description)))
     (if (starts-with-subseq +opensource-schema+ description)
-        (when-let* ((location (jenkins.model.project::location-of
+        (when-let* ((location (project::location-of
                                (typecase object
-                                 (jenkins.model.project::distribution
+                                 (project:distribution
                                   object)
-                                 (jenkins.model.project::version
-                                  (specification object)))))
+                                 (project:version
+                                  (model:specification object)))))
                     (source   (text.source-location:source location))
                     (recipe   (text.source-location:name source))
                     (filename (subseq description (length +opensource-schema+)))
@@ -112,9 +112,9 @@
                                       (list
                                        filename
                                        (etypecase object
-                                         (jenkins.model.project::distribution
+                                         (project:distribution
                                           "distribution-descriptions/")
-                                         (jenkins.model.project::version
+                                         (project:version
                                           "project-descriptions/"))
                                        "../assets/"
                                        recipe)))
@@ -141,12 +141,12 @@
      (ensure-list value))))
 
 (defun project-version-name (project-version)
-  (name (parent (specification project-version))))
+  (model:name (model:parent (model:specification project-version))))
 
 (defun project-version-name+version (project-version)
   (format nil "~A-~A"
           (project-version-name project-version)
-          (name project-version)))
+          (model:name project-version)))
 
 (defun project-version-title (project-version)
   (or (catalog-value project-version :title)
@@ -163,17 +163,17 @@
 (defun emit-generic-metadata (object version filename fallback-name)
   (cxml:attribute "name"    (or (catalog-value object :title) fallback-name))
   (cxml:attribute "version" version)
-  (cxml:attribute "access"  (string-downcase (access object)))
+  (cxml:attribute "access"  (string-downcase (model:access object)))
   (cxml:with-element "filename" (cxml:text filename)))
 
 (defun emit-description (object)
   (or (when-let ((description (catalog-description object)))
         (emit-description-element description :format "text/markdown")
         t)
-      (emit-description-element (value object :description nil))))
+      (emit-description-element (var:value object :description nil))))
 
 (defun emit-histogram-element (object variable outer-element inner-element)
-  (when-let ((values (value object variable nil)))
+  (when-let ((values (var:value object variable nil)))
     (cxml:with-element outer-element
       (map nil (lambda+ ((value . count))
                  (cxml:with-element inner-element
@@ -193,7 +193,7 @@
                                                   requirements for
                                                   ~{~A~^:~}~@:>"
                                                  platform)
-                                     (platform-requires object platform))))
+                                     (project:platform-requires object platform))))
                (cxml:with-element "system"
                  (cxml:attribute "name" name)
                  (cxml:attribute "version" version)
@@ -208,7 +208,7 @@
 
 (defun emit-resources (object)
   (let+ (((&flet resource (type variable)
-            (emit-resource-element type (value object variable nil)))))
+            (emit-resource-element type (var:value object variable nil)))))
     (resource "homepage"      :homepage.url)
     (resource "documentation" :documentation.url)
     (resource "wiki"          :wiki.url)
@@ -234,7 +234,7 @@
 (defun emit-relations (style object)
   (flet ((do-role (role title)
            (map nil (curry #'emit-person-relation style title)
-                (persons-in-role role object))))
+                (project:persons-in-role role object))))
     (do-role :recipe.maintainer "Recipe Maintainer")
     (do-role :author            "Author")
     (do-role :maintainer        "Maintainer")
@@ -248,7 +248,7 @@
 
 (defun project-version-dependency (project-version)
   (let ((title   (project-version-title project-version))
-        (version (name project-version)))
+        (version (model:name project-version)))
     (emit-direct-dependency
      title version (project-version-name+version project-version))))
 
@@ -283,24 +283,24 @@
                (report element style target)))
        object))
 
-(defmethod report ((object jenkins.model.project::distribution)
+(defmethod report ((object project:distribution)
                    (style  catalog)
                    (target pathname))
   (let ((distribution-directory (merge-pathnames #P"distribution/" target)))
-    (with-output-to-catalog-file (stream distribution-directory (safe-name (name object)))
+    (with-output-to-catalog-file (stream distribution-directory (safe-name (model:name object)))
       (report object style stream)))
 
   (let ((project-directory (merge-pathnames #P"project/" target)))
-    (report (versions object) style project-directory)))
+    (report (project:versions object) style project-directory)))
 
-(defmethod report ((object jenkins.model.project::distribution)
+(defmethod report ((object project:distribution)
                    (style  catalog)
                    (target stream))
   (with-catalog-xml-output (target :indentation (indentation style)
                                    :gdpr?       (gdpr? style))
     (cxml:with-element "distribution"
       ;; Generic metadata
-      (let ((name    (safe-name (name object)))
+      (let ((name    (safe-name (model:name object)))
             (version (catalog-value object :version)))
         (emit-generic-metadata object version name name))
 
@@ -318,7 +318,7 @@
         ;; System dependencies
         (emit-system-dependencies object)
         ;; Included projects
-        (map nil #'project-version-dependency (versions object)))
+        (map nil #'project-version-dependency (project:versions object)))
 
       ;; Resources
       (emit-resources object)
@@ -326,21 +326,21 @@
       ;; Relations
       (emit-relations style object))))
 
-(defmethod report ((object jenkins.model.project::version)
+(defmethod report ((object project:version)
                    (style  catalog)
                    (target pathname))
   (with-output-to-catalog-file
       (stream target (safe-name (project-version-name+version object)))
     (report object style stream)))
 
-(defmethod report ((object jenkins.model.project::version)
+(defmethod report ((object project:version)
                    (style  catalog)
                    (target stream))
   (with-catalog-xml-output (target :indentation (indentation style)
                                    :gdpr?       (gdpr? style))
     (cxml:with-element "project"
       ;; Generic metadata
-      (let ((name          (name object))
+      (let ((name          (model:name object))
             (safe-name     (safe-name (project-version-name+version object)))
             (fallback-name (project-version-name object)))
         (emit-generic-metadata object name safe-name fallback-name))
@@ -348,31 +348,31 @@
       ;; Description and keywords
       (emit-description object)
       (emit-element-list
-       "keywords" "keyword" (value/cast object :keywords '()))
-      (let ((licenses (or (value object :licenses nil)
-                          (ensure-list (value object :license nil))
-                          (ensure-list (value object :analysis.license nil)))))
+       "keywords" "keyword" (var:value/cast object :keywords '()))
+      (let ((licenses (or (var:value object :licenses nil)
+                          (ensure-list (var:value object :license nil))
+                          (ensure-list (var:value object :analysis.license nil)))))
         (cxml:with-element "licenses"
           (map nil (curry #'emit-text-element "license") licenses)))
 
       ;; Repository
       (cxml:with-element "scm"
-        (emit-text-element "kind"          (value object :analysis.scm nil)
+        (emit-text-element "kind"          (var:value object :analysis.scm nil)
                                            :transform #'string-downcase)
-        (emit-text-element "repository"    (value object :repository nil))
-        (emit-text-element "sub-directory" (value object :sub-directory nil))
-        (when-let ((id   (value object :analysis.most-recent-commit.id   nil))
-                   (date (value object :analysis.most-recent-commit.date nil)))
+        (emit-text-element "repository"    (var:value object :repository nil))
+        (emit-text-element "sub-directory" (var:value object :sub-directory nil))
+        (when-let ((id   (var:value object :analysis.most-recent-commit.id   nil))
+                   (date (var:value object :analysis.most-recent-commit.date nil)))
           (cxml:with-element "revision"
             (emit-text-element "id"   id)
             (emit-text-element "date" date))))
 
       ;; Nature and languages
       (emit-element-list
-       "natures" "nature" (value object :analysis.natures '()))
+       "natures" "nature" (var:value object :analysis.natures '()))
       (emit-element-list
        "programmingLanguages" "language"
-       (value object :analysis.programming-languages '()))
+       (var:value object :analysis.programming-languages '()))
 
       ;; Dependencies
       (cxml:with-element "dependencies"
@@ -380,7 +380,7 @@
         (emit-system-dependencies object)
 
         ;; Project dependencies.
-        (map nil #'project-version-dependency (direct-dependencies object)))
+        (map nil #'project-version-dependency (model:direct-dependencies object)))
 
       ;; Resources
       (emit-resources object)
@@ -395,7 +395,7 @@
     (with-output-to-catalog-file (stream target (person-unique-id object))
       (report object style stream))))
 
-(defmethod report ((object jenkins.model.project::person)
+(defmethod report ((object project::person)
                    (style  catalog)
                    (target pathname))
   (when (render-person-data? object style)
@@ -452,8 +452,7 @@
 (defmethod report ((object t) (style (eql :catalog)) (target t))
   (let ((style  (make-instance 'catalog :gdpr? :opt-in))
         (object (if (and (typep object '(and sequence (not null)))
-                         (typep (first-elt object)
-                                'jenkins.model.project::distribution))
+                         (typep (first-elt object) 'project:distribution))
                     (make-instance 'distributions :distributions object)
                     object)))
     (report object style target)))

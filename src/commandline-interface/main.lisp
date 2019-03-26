@@ -15,7 +15,7 @@
                 #+sbcl (sb-debug:print-backtrace)))))
          ;; Specific actions.
          ((&flet do-continue (condition)
-            (when-let ((restart (find-restart 'jenkins.project.commands::defer condition))) ; TODO should just call defer
+            (when-let ((restart (find-restart 'commands::defer condition))) ; TODO should just call defer
               (invoke-restart restart condition :debug? debug?))
             (flame condition :debug? debug?)
             (when (typep condition 'jenkins.util:continuable-error)
@@ -37,7 +37,7 @@
                          (bt:interrupt-thread main-thread #'sb-thread:release-foreground))
                 (invoke-debugger condition))))))
     (lambda (condition)
-      (when (typep condition 'jenkins.project.commands::deferred-phase-error)
+      (when (typep condition 'commands::deferred-phase-error)
         (format t "~A~2%" condition)
         (continue))
       (log:info "Handling ~A: ~A" (type-of condition) condition)
@@ -58,9 +58,8 @@
 
   (let+ ((arguments (uiop:command-line-arguments))
          ((&flet execute-command-and-quit (code command &rest args)
-            (jenkins.project.commands:command-execute
-             (apply #'jenkins.project.commands:make-command
-                    command args))
+            (commands:command-execute
+             (apply #'commands:make-command command args))
             (uiop:quit code)))
          (debugging? nil)
          ((&flet die (condition &optional usage? context)
@@ -76,9 +75,9 @@
          ((&values option-value &ign configuration &ign
                    (&plist-r/o
                     (version? :version?) (help? :help?) (debug? :debug?)))
-          (handler-bind (((and error jenkins.project.commandline-options:option-context-condition)
+          (handler-bind (((and error commandline:option-context-condition)
                           (lambda (condition)
-                            (die condition t (jenkins.project.commandline-options:context condition))))
+                            (die condition t (commandline:context condition))))
                          (error (rcurry #'die t "global")))
             (process-configuration-and-commandline-arguments arguments))) ; TODO this calls configure-command but reported conditions are not right. e.g. report -D foo.distribution produces "The "-D" option requires a VARIABLE-NAME=VALUE argument." and the generic help. does not mention the command and does not print the command-specific help
          ((&flet option-value (&rest args)
@@ -87,19 +86,19 @@
           (help?    (execute-command-and-quit 0 :help))
           (debug?   (setf debugging? t)))
     (handler-bind
-        ((jenkins.project.commands:command-not-found-error
+        ((commands:command-not-found-error
           (rcurry #'die t "global"))
-         (jenkins.project.commands:command-configuration-problem
+         (commands:command-configuration-problem
           (lambda (condition)
-            (die condition t (jenkins.project.commands:command condition))))
+            (die condition t (commands:command condition))))
          (error #'die)
          #+sbcl (sb-sys:interactive-interrupt #'die))
-      (let* ((command-configuration (configuration.options:sub-configuration
+      (let* ((command-configuration (options:sub-configuration
                                      "commands.**" configuration))
-             (command               (jenkins.project.commands:make-command
+             (command               (commands:make-command
                                      command-configuration))
              (fail?                 nil))
-        (jenkins.project.commands:execute-command
+        (commands:execute-command
          command
          :configuration   configuration
          :num-processes   (option-value "global" "num-processes")
@@ -117,4 +116,4 @@
         (uiop:quit (if fail? 1 0))))))
 
 (eval-when (:load-toplevel)
-  (check-variable-liveness))
+  (var:check-variable-liveness))

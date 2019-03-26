@@ -11,11 +11,11 @@
    #:split-sequence
    #:iterate
    #:let-plus
-   #:more-conditions
-   #:print-items
+   #:more-conditions)
 
-   #:jenkins.util
-   #:jenkins.version)
+  (:local-nicknames
+   (#:util    #:jenkins.util)
+   (#:version #:jenkins.version))
 
   ;; Conditions
   (:export

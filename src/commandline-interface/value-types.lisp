@@ -26,9 +26,9 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *condition-types*
-    '((jenkins.model.project::object-error            . nil)
-      (jenkins.model.project::simple-object-error     . nil)
-      (jenkins.model.project::yaml-syntax-error       . "syntax-error")
+    '((project::object-error                          . nil)
+      (project::simple-object-error                   . nil)
+      (project::yaml-syntax-error                     . "syntax-error")
 
       (caused-by-repository-access-error              . "repository-access-error")
       (caused-by-repository-analysis-error            . "repository-analysis-error")
@@ -37,9 +37,9 @@
 
       (caused-by-unfulfilled-project-dependency-error . "dependency-error")
 
-      (jenkins.model:instantiation-error              . nil)
+      (model:instantiation-error                      . nil)
 
-      (jenkins.model:deployment-error                 . nil)
+      (model:deployment-error                         . nil)
 
       (jenkins.report::report-error                   . nil)))
 
@@ -51,7 +51,7 @@
 
 (deftype error-policy ()
   '(cons (cons symbol error-handling-action) list))
-(setf (get 'error-policy 'configuration.options::dont-expand) t)
+(setf (get 'error-policy 'options::dont-expand) t)
 
 (macrolet ((define-condition-type-rules ()
              (let+ ((rule-names '())
@@ -106,19 +106,17 @@
   (:destructure (actions default)
     (append actions (list default))))
 
-(defmethod configuration.options:raw->value-using-type
-    ((schema-item t)
-     (raw         string)
-     (type        (eql 'error-policy))
-     &key inner-type)
+(defmethod options:raw->value-using-type ((schema-item t)
+                                          (raw         string)
+                                          (type        (eql 'error-policy))
+                                          &key inner-type)
   (declare (ignore inner-type))
   (esrap:parse 'multi raw))
 
-(defmethod configuration.options:value->string-using-type
-    ((schema-item t)
-     (value       cons)
-     (type        (eql 'error-policy))
-     &key inner-type)
+(defmethod options:value->string-using-type ((schema-item t)
+                                             (value       cons)
+                                             (type        (eql 'error-policy))
+                                             &key inner-type)
   (declare (ignore inner-type))
   (with-output-to-string (stream)
     (map nil (lambda+ ((condition-type . action))

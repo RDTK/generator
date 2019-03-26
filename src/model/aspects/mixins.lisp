@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Mixin classes for aspect classes.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -49,7 +49,7 @@
                               (step-constraints aspect phase step)))
          (cell        (ensure-gethash
                        step (constraints-table phase)
-                       (list tag (name aspect) '()))))
+                       (list tag (model:name aspect) '()))))
     (log:trace "~@<All constraints for ~A~@:_~
                 ~/jenkins.model.aspects::format-constraints/~@:>"
                step constraints)
@@ -70,7 +70,7 @@
                            :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
                            (let ((type-string (string step-type)))
                              (subseq type-string (length "builder/")))))
-         (constraints/raw (value aspect variable nil))
+         (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~
                 ~/jenkins.model.aspects::format-constraints/~@:>"
@@ -92,7 +92,7 @@
                            :keyword "ASPECT.PUBLISHER-CONSTRAINTS.~@:(~A~)"
                            (let ((type-string (string step-type)))
                              (subseq type-string (length "publisher/")))))
-         (constraints/raw (value aspect variable nil))
+         (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~
                 ~/jenkins.model.aspects::format-constraints/~@:>"

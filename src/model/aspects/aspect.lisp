@@ -1,6 +1,6 @@
 ;;;; aspect.lisp --- Basic infrastructure for job aspects.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,7 +10,7 @@
 
 (defclass aspect-parameter (print-items:print-items-mixin)
   ((variable      :initarg  :variable
-                  :type     variable-info
+                  :type     var:variable-info
                   :reader   aspect-parameter-variable
                   :documentation
                   "Stores a `variable-info' instance for the variable
@@ -41,7 +41,7 @@
            aspect-parameter- variable binding-name
            ((&values default default?) default-value))
           object)
-         ((&structure-r/o variable-info- type) variable))
+         ((&accessors-r/o (type var:variable-info-type)) variable))
     `((:binding-name ,binding-name)
       (:type         ,type ":~A" ((:after :binding-name)))
       ,@(when default? `((:default ,default " = ~S" ((:after :type))))))))
@@ -53,10 +53,10 @@
 
 ;;; `aspect' base class
 
-(defclass aspect (named-mixin
-                  implementation-mixin
-                  parented-mixin
-                  direct-variables-mixin)
+(defclass aspect (model:named-mixin
+                  model:implementation-mixin
+                  model:parented-mixin
+                  var:direct-variables-mixin)
   ((required-plugins :allocation :class
                      :accessor required-plugins
                      :initform '()
@@ -88,8 +88,10 @@
   (let+ (((&structure-r/o aspect-parameter- variable
                           ((&values default default?) default-value))
           parameter)
-         ((&structure-r/o variable-info- name type) variable)
-         (value (value aspect name '%undefined)))
+         ((&accessors-r/o (name var:variable-info-name)
+                          (type var:variable-info-type))
+          variable)
+         (value (var:value aspect name '%undefined)))
     (cond
       ;; HACK treat nil permissively
       ((and (null value) (not (typep value type)))
@@ -103,7 +105,7 @@
              :aspect    aspect
              :parameter parameter
              :value     value))
-         (list (as value type))))
+         (list (var:as value type))))
       ((not default?)
        (missing-argument-error aspect parameter))
       ((equal default '%bail)
@@ -115,8 +117,8 @@
   (mappend (curry #'aspect-process-parameter aspect)
            (aspect-parameters aspect)))
 
-(defmethod check-access ((object aspect) (lower-bound t))
-  (check-access (parent (parent object)) lower-bound))
+(defmethod model:check-access ((object aspect) (lower-bound t))
+  (model:check-access (model:parent (model:parent object)) lower-bound))
 
 (defmethod aspect< ((left aspect) (right aspect))
   (let+ (((&accessors-r/o (constraints-left constraints))  left)

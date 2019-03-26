@@ -1,6 +1,6 @@
 ;;;; maven.lisp --- Analysis of maven projects.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -83,7 +83,7 @@
              ((&flet+ process-dependency ((name version1))
                 (list* :maven (%resolve-maven-value name #'property-value)
                        (when version1
-                         (list (parse-version
+                         (list (version:parse-version
                                 (%resolve-maven-version
                                  version1 #'property-value))))))))
         ;; Analyse sub-modules, populating `sub-provides' and

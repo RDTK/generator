@@ -1,6 +1,6 @@
 ;;;; command-info-variables.lisp --- Command for printing variable information.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -27,7 +27,7 @@
             (string
              (lambda (variable-info)
                (let ((name (string-downcase
-                            (variable-info-name variable-info))))
+                            (var:variable-info-name variable-info))))
                  (ppcre:scan filter name))))))))
 
 (service-provider:register-provider/class
@@ -40,15 +40,17 @@
 (defmethod command-execute ((command info-variables))
   (let* ((stream   *standard-output*)
          (relevant (if-let ((filter (filter command)))
-                     (delete-if-not filter (copy-list (all-variables)))
-                     (copy-list (all-variables))))
-         (sorted   (sort relevant #'string< :key #'variable-info-name)))
+                     (delete-if-not filter (copy-list (var:all-variables)))
+                     (copy-list (var:all-variables))))
+         (sorted   (sort relevant #'string< :key #'var:variable-info-name)))
     (format stream "~@<~{~{~
                       \"~(~A~)\"~@[: ~(~A~)~]~
                       ~@[~@:_~2@T~<~A~:>~]~
                     ~}~^~@:_~@:_~}~:>"
      (mapcar (lambda (variable)
-               (let+ (((&structure-r/o variable-info- name type documentation)
+               (let+ (((&accessors-r/o (name          var:variable-info-name)
+                                       (type          var:variable-info-type)
+                                       (documentation var:variable-info-documentation))
                        variable))
                  (list name
                        (unless (eq type t) type)

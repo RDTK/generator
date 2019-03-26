@@ -12,7 +12,7 @@
      (directory spec))
     ((pathnamep spec)
      (unless (probe-file spec)
-       (jenkins.model.project::object-error
+       (project::object-error
         (list (list spec "included here" :error))
         "~@<File does not exist: ~A.~@:>" spec))
      (list spec))
@@ -47,7 +47,7 @@
   (let ((root-directory (merge-pathnames
                          (make-pathname :directory '(:relative :back))
                          (uiop:pathname-directory-pathname distribution-pathname))))
-    (make-populated-recipe-repository root-directory mode)))
+    (project:make-populated-recipe-repository root-directory mode)))
 
 ;;; Projects
 
@@ -56,24 +56,24 @@
          ((&flet ensure-project (location project-include)
             (if-let ((project (gethash location projects)))
               (pushnew project-include (second project)
-                       :test #'string= :key #'jenkins.model.project:version) ; TODO should consider parameters as part of the key
+                       :test #'string= :key #'project:version) ; TODO should consider parameters as part of the key
               (setf (gethash location projects)
                     (list location (list project-include)))))))
     (map nil (lambda (distribution)
                (map nil (lambda (project-include)
-                          (let ((name (project project-include)))
-                            (when-let* ((pattern  (jenkins.model.project::copy-location
-                                                   name (recipe-path repository :project name)))
+                          (let ((name (project:project project-include)))
+                            (when-let* ((pattern  (project::copy-location
+                                                   name (project:recipe-path repository :project name)))
                                         (location (first (locate-specifications
                                                           :project (list pattern)))))
                               (ensure-project location project-include))))
-                    (versions distribution)))
+                    (project:versions distribution)))
          distributions)
     (hash-table-values projects)))
 
 (defun load-project/versioned (file version-names repository
                                &key generator-version)
-  (let+ ((project       (load-project-spec/yaml
+  (let+ ((project       (project:load-project-spec/yaml
                          file
                          :repository        repository
                          :version-test      (lambda (name pattern)
@@ -85,9 +85,9 @@
                                                  (remove pattern version-names
                                                          :test-not #'ppcre:scan))))
                          :generator-version generator-version))
-         (branches      (value/cast project :branches '()))
+         (branches      (var:value/cast project :branches '()))
          (branches      (intersection version-names branches :test #'string=))
-         (tags          (value/cast project :tags '()))
+         (tags          (var:value/cast project :tags '()))
          (tags          (set-difference tags branches :test #'string=))
          (tags          (intersection version-names tags :test #'string=))
          (tags+branches (union branches tags :test #'string=))
@@ -96,10 +96,10 @@
          ((&flet process-version (name &key version-required? branch? tag?)
             (with-simple-restart (continue "~@<Skip version ~S.~@:>" name)
               (let* ((version       (cond
-                                      ((find name (versions project)
-                                             :test #'string= :key #'name))
+                                      ((find name (project:versions project)
+                                             :test #'string= :key #'model:name))
                                       (version-required?
-                                       (jenkins.model.project::object-error
+                                       (project::object-error
                                         (list (list name "included here" :error))
                                         "~@<No version section for ~
                                          version ~S in project ~
@@ -108,19 +108,18 @@
                                         name (print-items:print-items project)))
                                       (t
                                        (let ((version-spec
-                                               (make-instance 'version-spec
+                                               (make-instance 'project::version-spec
                                                               :name      name
                                                               :parent    project
                                                               :variables '())))
-                                         (jenkins.model.project::copy-location
+                                         (project::copy-location
                                           name version-spec)))))
                      (name-variable (cond
                                       (branch? :branch)
                                       (tag?    :tag))))
                 (when (and name-variable
-                           (not (jenkins.model.variables:value
-                                 version name-variable nil)))
-                  (setf (jenkins.model.variables:lookup version name-variable) name))
+                           (not (var:value version name-variable nil)))
+                  (setf (var:lookup version name-variable) name))
                 (list version)))))
          (versions (append (mapcan (rcurry #'process-version :branch? t)
                                    branches)
@@ -137,8 +136,7 @@
        (progress "~A" (jenkins.util:safe-enough-namestring file))
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
-         (let ((version-names (map 'list #'jenkins.model.project:version
-                                   project-includes)))
+         (let ((version-names (map 'list #'project:version project-includes)))
           (list (load-project/versioned
                  file version-names repository
                  :generator-version generator-version)))))
@@ -157,12 +155,11 @@
     (:sub-directory . uiop:ensure-directory-pathname)))
 
 (defun group-project-versions-for-analysis (project)
-  (let+ ((versions (versions project))
+  (let+ ((versions (project:versions project))
          ((&flet maybe-key-fragment (version variable-and-transform)
             (let+ (((variable . transform)
                     (ensure-list variable-and-transform)))
-              (when-let ((value (jenkins.model.variables:value
-                                 version variable nil)))
+              (when-let ((value (var:value version variable nil)))
                 (list variable (if transform
                                    (funcall transform value)
                                    value))))))
@@ -181,7 +178,7 @@
 (defun make-analysis-variables (results)
   (let+ (((&flet make-variable (key value)
             (let ((name (format-symbol '#:keyword "ANALYSIS.~A" key)))
-              (value-cons name (to-value value)))))
+              (var:value-cons name (var:to-value value)))))
          ((&flet person->string (person)
             (format nil "~A~@[ <~A>~]"
                     (rs.m:name person)
@@ -189,7 +186,7 @@
     (iter (for (key value) :on results :by #'cddr)
           (case key
             ((:authors :maintainers :committers :recipe.maintainers)
-             (let ((persons (ensure-persons! value)))
+             (let ((persons (project:ensure-persons! value)))
                (collect (ecase key
                           (:authors            :author)
                           (:maintainers        :maintainer)
@@ -213,8 +210,7 @@
                                                 :requires :provides
                                                 :properties))
          (recipe-maintainers (jenkins.analysis::parse-people-list
-                              (jenkins.model.variables:value
-                               version :recipe.maintainer '())))
+                              (var:value version :recipe.maintainer '())))
          ((&values analysis-variables persons)
           (make-analysis-variables
            (list* :recipe.maintainers recipe-maintainers
@@ -224,11 +220,11 @@
      :requires  requires
      :provides  provides
      :variables (append
-                 (jenkins.model.variables:direct-variables version)
+                 (var::direct-variables version)
                  (when scm
-                   (list (value-cons :scm (string-downcase scm))))
+                   (list (var:value-cons :scm (string-downcase scm))))
                  (when branch-directory
-                   (list (value-cons :branch-directory branch-directory)))
+                   (list (var:value-cons :branch-directory branch-directory)))
                  analysis-variables)
      :persons   persons)))
 
@@ -250,14 +246,13 @@
                                      temp-directory
                                      cache-directory
                                      age-limit)
-  (declare (ignore cache-directory temp-directory non-interactive age-limit))
+  (declare (ignore non-interactive temp-directory cache-directory age-limit))
   (let+ ((groups (group-project-versions-for-analysis project))
          ((&flet version-info (version)
             (let+ (((&flet maybe-key-fragment (version variable-and-transform)
                       (let+ (((variable . transform)
                               (ensure-list variable-and-transform)))
-                            (when-let ((value (jenkins.model.variables:value
-                                               version variable nil)))
+                            (when-let ((value (var:value version variable nil)))
                               (list variable (if transform
                                                  (funcall transform value)
                                                  value)))))))
@@ -299,25 +294,25 @@
                    (continue "~@<Skip analyzing project ~A.~@:>" project)
                  (when-let ((project (apply #'analyze-project project
                                             other-args)))
-                   (list (setf (find-project (name project)) project)))))))
+                   (list (setf (project:find-project (model:name project)) project)))))))
          :parts most-positive-fixnum projects)))))
 
 (defun resolve-project-version (project version)
-  (let ((project (find-project project)))
-    (or (find version (versions project) :test #'string= :key #'name)
+  (let ((project (project:find-project project)))
+    (or (find version (project:versions project) :test #'string= :key #'model:name)
         (error "~@<Could not find version ~S in project ~
                 ~/print-items:format-print-items/.~@:>"
                version (print-items:print-items project)))))
 
 (defun resolve-project-versions (versions)
   (mapcan (lambda (project-include)
-            (let ((project    (project project-include))
-                  (version    (jenkins.model.project:version project-include))
-                  (parameters (direct-variables project-include)))
+            (let ((project    (project:project project-include))
+                  (version    (project:version project-include))
+                  (parameters (var:direct-variables project-include)))
               (with-simple-restart
                   (continue "~@<Skip version ~A of project ~A.~@:>"
                             version project)
-                (list (make-instance 'resolved-project-include
+                (list (make-instance 'project:resolved-project-include
                                      :specification project-include
                                      :version       (resolve-project-version
                                                      project version)
@@ -338,11 +333,11 @@
              (iter (for (name . value) in overwrites)
                    (log:info "~@<In ~A, setting ~S to ~S.~@:>"
                              distribution name value)
-                   (setf (lookup distribution name) value))
+                   (setf (var:lookup distribution name) value))
              (let ((recipe-maintainers
-                    (ensure-persons!
+                    (project:ensure-persons!
                      (jenkins.analysis::parse-people-list
-                      (value/cast distribution :recipe.maintainer '())))))
+                      (var:value/cast distribution :recipe.maintainer '())))))
                (reinitialize-instance
                 distribution :persons `(:recipe.maintainer ,recipe-maintainers))
                distribution)))

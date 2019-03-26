@@ -98,7 +98,7 @@
     reason as a second value."))
 
 (defmethod access ((object t))
-  (value/cast object :access :public))
+  (var:value/cast object :access :public))
 
 (defmethod check-access ((object t) (lower-bound t))
   t)

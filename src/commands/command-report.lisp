@@ -51,7 +51,7 @@
          (distributions
           (as-phase (:instantiate)
             (mapcan (lambda (distribution-spec)
-                      (when-let ((distribution (instantiate distribution-spec)))
+                      (when-let ((distribution (model:instantiate distribution-spec)))
                         (list distribution)))
                     distributions))))
     (map nil (lambda (kind)

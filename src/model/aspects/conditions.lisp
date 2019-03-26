@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -27,10 +27,10 @@
   ()
   (:report
    (lambda (condition stream)
-     (let* ((aspect (parameter-condition-aspect condition))
+     (let* ((aspect    (parameter-condition-aspect condition))
             (parameter (parameter-condition-parameter condition))
-            (variable (aspect-parameter-variable parameter))
-            (name (variable-info-name variable)))
+            (variable  (aspect-parameter-variable parameter))
+            (name      (var:variable-info-name variable)))
        (format stream "~@<No value has been supplied for the required ~
                        ~A parameter of ~A.~@:>"
                name aspect))))
@@ -60,8 +60,8 @@
             (parameter (parameter-condition-parameter   condition))
             (value     (argument-condition-value condition))
             (variable  (aspect-parameter-variable parameter))
-            (name      (variable-info-name variable))
-            (type      (variable-info-type variable)))
+            (name      (var:variable-info-name variable))
+            (type      (var:variable-info-type variable)))
        (format stream "~@<The value ~S which has been supplied for the ~
                        ~S parameter of ~A is not of type ~S.~
                        ~/more-conditions:maybe-print-cause/~@:>"

@@ -153,15 +153,14 @@
            (let* ((name  (make-keyword
                           (string-upcase
                            (last-elt (pathname-directory directory)))))
-                  (group (jenkins.project.resources:make-group name)))
-             (jenkins.project.resources:add-file group directory)))
+                  (group (res:make-group name)))
+             (res:add-file group directory)))
      (directory (merge-pathnames
                  #P"../../data/jenkins-install/config/*.*"
                  #.(or *compile-file-truename* *load-truename*))))
 
 (defun profile-config-files (profile)
-  (jenkins.project.resources:entries
-   (jenkins.project.resources:find-group* profile)))
+  (res:entries (res:find-group* profile)))
 
 (define-sequence-step (jenkins/install-config-files
                        entry (config-files (profile-config-files profile))
@@ -169,10 +168,9 @@
     (destination-directory
      (profile              :single-user))
   "Install Jenkins configuration files into a specified directory."
-  (let+ (((&accessors-r/o
-           (name                      jenkins.project.resources:name)
-           (content                   jenkins.project.resources:content)
-           ((&plist-r/o (mode :mode)) jenkins.project.resources:info))
+  (let+ (((&accessors-r/o (name                      res:name)
+                          (content                   res:content)
+                          ((&plist-r/o (mode :mode)) res:info))
           entry))
     (progress "~(~A~):~A" profile name)
     (let ((destination-file (merge-pathnames name destination-directory)))
@@ -191,10 +189,8 @@
                         #.(or *compile-file-truename* *load-truename*)))
        (filename       (merge-pathnames
                         "user-config.xml.in" base-directory)))
-  (jenkins.project.resources:add-file
-   (jenkins.project.resources:make-group
-    :user-configuration)
-   filename :base-directory base-directory))
+  (res:add-file (res:make-group :user-configuration)
+                filename :base-directory base-directory))
 
 (macrolet ((define-xpath-constant (name xpath)
              `(define-constant ,name

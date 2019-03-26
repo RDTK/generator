@@ -10,17 +10,19 @@
    #:alexandria
    #:let-plus
    #:iterate
-   #:more-conditions
+   #:more-conditions)
 
-   #:jenkins.model
-   #:jenkins.model.variables
-   #:jenkins.model.project)
+  (:local-nicknames
+   (#:model   #:jenkins.model)
+   (#:var     #:jenkins.model.variables)
+   (#:project #:jenkins.model.project)
+   (#:aspects #:jenkins.model.aspects)
+
+   (#:steps   #:jenkins.project.steps))
 
   (:shadow
    #:generate
-   #:phase
-   #:value
-   #:version)
+   #:phase)
 
   (:shadowing-import-from #:jenkins.model.variables
    #:as)

@@ -35,8 +35,8 @@
 (macrolet ((define-download-function (name &body body)
              `(defun ,name (url output-file &rest args &key username password)
                 (declare (ignore username password))
-                (with-retries (usocket:ns-try-again-condition :limit 3)
-                  (with-retry-restart ("Retry downloading ~A" url)
+                (util:with-retries (usocket:ns-try-again-condition :limit 3)
+                  (util:with-retry-restart ("Retry downloading ~A" url)
                     (apply #'call-with-download-stream
                            (lambda (stream content-length)
                              (declare (ignore content-length))
@@ -65,8 +65,8 @@
   (declare (ignore username password))
   (with-condition-translation (((error repository-access-error)
                                 :specification url))
-    (with-retries (usocket:ns-try-again-condition :limit 3)
-      (with-retry-restart ("Retry obtaining hash for ~A" url)
+    (util:with-retries (usocket:ns-try-again-condition :limit 3)
+      (util:with-retry-restart ("Retry obtaining hash for ~A" url)
         (apply #'call-with-download-stream
                (lambda (stream content-length)
                  (let ((digest (ironclad:make-digesting-stream :sha512))
@@ -176,7 +176,7 @@
                     (versions       (missing-required-argument :versions))
                     sub-directory
                     cache-directory
-                    (temp-directory (default-temporary-directory)))
+                    (temp-directory (util:default-temporary-directory)))
   (flet ((analyze-versions (content-key &key extract-directory)
            (with-sequence-progress (:analyze/version versions)
              (mapcan

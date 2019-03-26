@@ -28,7 +28,7 @@
                                            aspect-name name))))
     (values
      (apply #'make-instance 'aspect-parameter
-            :variable     (make-variable-info
+            :variable     (var:make-variable-info
                            parameter-name type :documentation documentation)
             :binding-name name
             (cond
@@ -41,10 +41,12 @@
      name-supplied?)))
 
 (defun+ make-aspect-variable-form ((parameter . explicit-name?))
-  (let+ (((&structure-r/o variable-info- name type documentation)
+  (let+ (((&accessors-r/o (name          var:variable-info-name)
+                          (type          var:variable-info-type)
+                          (documentation var:variable-info-documentation))
           (aspect-parameter-variable parameter)))
     (unless explicit-name?
-      `(note-variable ',name ',type :documentation ,documentation))))
+      `(var:note-variable ',name ',type :documentation ,documentation))))
 
 (defun make-aspect-parameter-form (parameter)
   (let+ (((&structure-r/o aspect-parameter-
@@ -52,9 +54,9 @@
                           ((&values default-value default-value?)
                            default-value))
           parameter)
-         (name (variable-info-name variable)))
+         (name (var:variable-info-name variable)))
     `(make-instance 'aspect-parameter
-                    :variable     (check-variable-access
+                    :variable     (var:check-variable-access
                                    ',name :if-undefined #'error)
                     :binding-name ',binding-name
                     ,@(when default-value?

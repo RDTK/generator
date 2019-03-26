@@ -17,14 +17,14 @@
 
 ;;;
 
-(define-variable :distribution-name string
+(var:define-variable :distribution-name string
   :inheritance :outermost-only
   :documentation
   "Name of the distribution.")
 
 ;;; General variables
 
-(define-variable :recipe.maintainer (or string (list-of string))
+(var:define-variable :recipe.maintainer (or string (var:list-of string))
   :inheritance nil
   :documentation
   "Names and Email address of the maintainer(s) of the recipe.
@@ -38,18 +38,18 @@
 
    .")
 
-(define-variable :description string
+(var:define-variable :description string
   :inheritance nil
   :documentation
   "A short description of the project, distribution, etc.")
 
-(define-variable :keywords (list-of string)
+(var:define-variable :keywords (var:list-of string)
   :inheritance nil
   :aggregation :histogram
   :documentation
   "A list of keywords characterizing the project, distribution, etc.")
 
-(define-variable :licenses (list-of string)
+(var:define-variable :licenses (var:list-of string)
   :inheritance nil
   :aggregation :histogram
   :documentation
@@ -59,13 +59,13 @@
    different parts of the project or constitute alternatives from
    which a user can choose.")
 
-(define-variable :programming-languages (list-of string)
+(var:define-variable :programming-languages (var:list-of string)
   :inheritance nil
   :aggregation :histogram
   :documentation
   "A list of programming languages used in the project.")
 
-(define-variable :platform-provides (list-of dependency)
+(var:define-variable :platform-provides (var:list-of dependency)
   :documentation
   "A list of things provided by the operating system or otherwise
    available \"a priori\".
@@ -102,7 +102,7 @@
 
 ;;; Project variables
 
-(define-variable :scm (or (eql :archive) (eql :git) (eql :svn) (eql :mercurial)
+(var:define-variable :scm (or (eql :archive) (eql :git) (eql :svn) (eql :mercurial)
                           string)
   :documentation
   "Forces the use a particular source code management system in the
@@ -110,7 +110,7 @@
 
    Common values are \"archive\", \"git\", \"svn\" and \"mercurial\".")
 
-(define-variable :scm.credentials (or null string)
+(var:define-variable :scm.credentials (or null string)
   :documentation
   "A reference to an entry in Jenkins' global credentials store that
    should be used for authentication by Jenkins when accessing the
@@ -128,14 +128,14 @@
    * Distributions with one or more private projects must specify
      private access.")
 
-(define-variable :scm.username string
+(var:define-variable :scm.username string
   :documentation
   "The username that should be used for accessing the source code
    management system of the project.
 
    Used in the generator's analysis and generated Jenkins jobs.")
 
-(define-variable :scm.password (or null string)
+(var:define-variable :scm.password (or null string)
   :documentation
   "The password that should be used for accessing the source code
    management system of the project.
@@ -146,11 +146,11 @@
    Jenkins jobs and build logs, even for Jenkins users with few
    permissions.")
 
-(define-variable :scm.history-limit positive-integer
+(var:define-variable :scm.history-limit positive-integer
   :documentation
   "Do not use.")
 
-(define-variable :repository string
+(var:define-variable :repository string
   :documentation
   "The URL of the source repository, download location or filesystem
    location for the project.
@@ -158,23 +158,23 @@
    If the given URL contains the words \"git\", \"svn\", etc. the SCM
    kind is guessed automatically.")
 
-(define-variable :branches (list-of string)
+(var:define-variable :branches (var:list-of string)
   :documentation
   "A list of names of branch available in the project repository.")
 
-(define-variable :tags (list-of string)
+(var:define-variable :tags (var:list-of string)
   :documentation
   "A list of names of tags available in the project repository.")
 
-(define-variable :branch string
+(var:define-variable :branch string
   :documentation
   "The name of a specific branch to process.")
 
-(define-variable :tag string
+(var:define-variable :tag string
   :documentation
   "The name of a specific tag to process.")
 
-(define-variable :directory string
+(var:define-variable :directory string
   :documentation
   "Directory within a subversion repository.
 
@@ -182,11 +182,11 @@
    conform to the standard layout and thus cannot use the branch and
    tag variables.")
 
-(define-variable :commit string
+(var:define-variable :commit string
   :documentation
   "A specific commit to process.")
 
-(define-variable :sub-directory string
+(var:define-variable :sub-directory string
   :documentation
   "The name of a sub-directory within the project repository in which
    the project should be considered to reside.
@@ -197,7 +197,7 @@
    will only act on the sub-directory and treat it as if it were the
    sole content of the repository.")
 
-(define-variable :natures (list-of string)
+(var:define-variable :natures (var:list-of string)
   :inheritance nil
   :aggregation :histogram
   :documentation
@@ -207,7 +207,7 @@
    Common values are (combinations of) \"cmake\", \"setuptools\",
    \"maven\", \"ros-package\" and \"asdf\".")
 
-(define-variable :extra-requires (list-of dependency)
+(var:define-variable :extra-requires (var:list-of dependency)
   :documentation
   "A list of additional (i.e. not covered by automatic analysis)
    requirements.
@@ -243,7 +243,7 @@
        \"sbin/spread\" in the current installation prefix is
        required.")
 
-(define-variable :extra-provides (list-of dependency)
+(var:define-variable :extra-provides (var:list-of dependency)
   :documentation
   "A list of additional (i.e. not covered by automatic analysis)
    provides.
@@ -281,7 +281,7 @@
 
 ;;; Project and distribution variables
 
-(define-variable :access (or (eql :private) (eql :public))
+(var:define-variable :access (or (eql :private) (eql :public))
   :inheritance nil
   :documentation
   "Specifies access restrictions of the project or distribution. If present,
@@ -291,7 +291,7 @@
    Distributions with one or more private projects must specify
    private access.")
 
-(define-variable :platform-requires list
+(var:define-variable :platform-requires list
   :inheritance nil
   :aggregation :merge
   :documentation
@@ -341,11 +341,11 @@
 
 ;;; Job variables
 
-(define-variable :build-job-name string
+(var:define-variable :build-job-name string
   :documentation
   "Name of the Jenkins job that should be generated.")
 
-(define-variable :kind (or string (cons string (cons string null)))
+(var:define-variable :kind (or string (cons string (cons string null)))
   :documentation
   "The kind of the Jenkins job that should be generated.
 
@@ -355,7 +355,7 @@
 
    where KIND is \"project\" or \"matrix\".")
 
-(define-variable :build-job.disabled? (or boolean (eql :force-disabled))
+(var:define-variable :build-job.disabled? (or boolean (eql :force-disabled))
   :documentation
   "Should the generated build job be disabled?
 
@@ -371,15 +371,15 @@
 
      Disable newly created as well as existing jobs.")
 
-(define-variable :build-job.orchestrate? boolean
+(var:define-variable :build-job.orchestrate? boolean
   :documentation
   "Should the generated build job be managed by orchestration jobs?")
 
-(define-variable :dependency-job-name string
+(var:define-variable :dependency-job-name string
   :documentation
   "Internal.")
 
-(define-variable :dependencies.mode (or (eql :direct) (eql :minimal) (eql :none))
+(var:define-variable :dependencies.mode (or (eql :direct) (eql :minimal) (eql :none))
   :documentation
   "Controls up/downstream relations between generated jobs.
 
@@ -401,24 +401,24 @@
      No up/downstream relations should be established between
      generated jobs.")
 
-(define-variable :upstream-dir string
+(var:define-variable :upstream-dir string
   :documentation
   "Directory in which artifacts copied from upstream jobs should be
    placed.")
 
 ;;; Orchestration variables
 
-(define-variable :jobs.list list
+(var:define-variable :jobs.list list
   :documentation
   "A list of names for all Jenkins jobs.
 
    Does not include \"orchestration\" jobs.")
 
-(define-variable :jobs.dependencies list
+(var:define-variable :jobs.dependencies list
   :documentation
   "An association between up- and downstream build jobs.")
 
-(define-variable :jobs.dependencies/groovy string
+(var:define-variable :jobs.dependencies/groovy string
   :documentation
   "jobs.dependencies, formatted as a Groovy script string.
 
@@ -433,16 +433,16 @@
 
 ;;; View variables
 
-(define-variable :view.create? boolean
+(var:define-variable :view.create? boolean
   :documentation
   "If true, create an associated view for each created distribution.")
 
-(define-variable :view.name string
+(var:define-variable :view.name string
   :documentation
   "The name of the associated view for the current distribution.
 
    Has no effect if the value of view.create? is not true.")
 
-(define-variable :view.columns (list-of string)
+(var:define-variable :view.columns (var:list-of string)
   :documentation
   "Column class names for the associated view for the current distribution.")

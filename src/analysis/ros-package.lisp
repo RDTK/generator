@@ -1,6 +1,6 @@
 ;;;; ros-package.lisp --- Analysis of ROS packages.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -92,7 +92,7 @@
                                                  :if-multiple-matches :all))
         document
       (let+ (((&values authors maintainers) (partition-persons persons))
-             (version (parse-version version))
+             (version (version:parse-version version))
              ((&flet trim (string)
                 (string-trim '(#\Space #\Tab #\Newline) string))))
         `(:natures  (,:ros-package)
@@ -101,8 +101,10 @@
           :requires ,(mapcan (lambda+ ((kind name &optional version))
                                (when (member kind '("build" "test")
                                              :test #'string=)
-                                 `((:cmake ,name
-                                           ,@(when version `(,(parse-version version)))))))
+                                 `((:cmake
+                                    ,name
+                                    ,@(when version
+                                        `(,(version:parse-version version)))))))
                              dependencies)
           ,@(cond
               (description/long

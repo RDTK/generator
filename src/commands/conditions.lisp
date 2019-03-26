@@ -103,7 +103,7 @@
    "Superclass for phase error conditions."))
 
 (defun unfulfilled-project-dependency-error? (condition)
-  (when (typep condition 'instantiation-error)
+  (when (typep condition 'model:instantiation-error)
     (let ((root-cause (root-cause condition)))
       (typep root-cause 'jenkins.analysis:unfulfilled-project-dependency-error))))
 
@@ -114,7 +114,7 @@
   (declare (ignore colon? at?))
   (let ((table (make-hash-table :test #'equal)))
     (loop :for condition :in conditions
-          :for specification = (instantiation-condition-specification
+          :for specification = (model:instantiation-condition-specification
                                 condition)
           :for cause = (root-cause condition)
           :for dependency = (jenkins.analysis:dependency-condition-dependency

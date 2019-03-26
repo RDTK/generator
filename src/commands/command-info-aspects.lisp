@@ -1,6 +1,6 @@
 ;;;; command-info-aspects.lisp --- Command for printing aspect information.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -19,7 +19,7 @@
 
 (defmethod command-execute ((command info-aspects))
   (let* ((stream    *standard-output*)
-         (providers (service-provider:service-providers 'jenkins.model.aspects::aspect))
+         (providers (service-provider:service-providers 'aspects::aspect))
          (providers (sort (copy-list providers) #'string<
                           :key (compose #'string #'service-provider:provider-name))))
     (format stream "~{~<~
@@ -33,14 +33,14 @@
             (mapcar (lambda (provider)
                       (list (service-provider:provider-name provider)
                             (when-let ((stuff (mapcar (lambda (parameter)
-                                                        (let ((variable (jenkins.model.aspects:aspect-parameter-variable parameter)))
-                                                          (list (variable-info-name variable)
-                                                                (unless (eq (variable-info-type variable) t)
-                                                                  (variable-info-type variable))
+                                                        (let ((variable (aspects:aspect-parameter-variable parameter)))
+                                                          (list (var:variable-info-name variable)
+                                                                (unless (eq (var:variable-info-type variable) t)
+                                                                  (var:variable-info-type variable))
                                                                 (json:encode-json-to-string
-                                                                 (jenkins.model.aspects:aspect-parameter-default-value parameter))
-                                                                (variable-info-documentation variable))))
-                                                      (jenkins.model.aspects:aspect-parameters
+                                                                 (aspects:aspect-parameter-default-value parameter))
+                                                                (var:variable-info-documentation variable))))
+                                                      (aspects:aspect-parameters
                                                        (service-provider:provider-class provider)))))
                               (list stuff))
                             (documentation provider t)))

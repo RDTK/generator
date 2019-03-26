@@ -38,7 +38,7 @@
                     password
                     (versions (missing-required-argument :versions))
                     sub-directory
-                    (temp-directory (default-temporary-directory)))
+                    (temp-directory (util:default-temporary-directory)))
   (when (or username password)
     (error "~@<Authentication support not implemented for ~A.~@:>" schema))
 
@@ -104,7 +104,7 @@
                     `("hg" "log" "--template" "{author}\\n")
                     :directory directory
                     :output    :lines
-                    (safe-external-format-argument)))
+                    (util:safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))
       (map nil (lambda (line)
                  (funcall person-collector

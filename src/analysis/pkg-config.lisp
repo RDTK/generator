@@ -1,6 +1,6 @@
 ;;;; pkg-config.lisp --- Analyze pkg-config files.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,7 +8,7 @@
 
 (defmethod analyze ((source pathname) (kind (eql :pkg-config))
                     &key)
-  (with-open-stream (stream (apply #'open source (safe-external-format-argument)))
+  (with-open-stream (stream (apply #'open source (util:safe-external-format-argument)))
     (analyze stream kind :name (pathname-name source))))
 
 (defmethod analyze ((source stream) (kind (eql :pkg-config))
@@ -25,7 +25,7 @@
              ("[ \\t]*([^:]+):[ \\t]*([^ \\t#]*)" line)
            (cond
              ((string= key "Version")
-              (setf version (parse-version value)))
+              (setf version (version:parse-version value)))
              ((string= key "Requires")
               (appending (parse-requires value) :into requires))))
          (finally (return `(:provides ((:pkg-config ,name ,version))

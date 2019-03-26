@@ -268,7 +268,7 @@
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &rest args &key
                     (versions       (missing-required-argument :versions))
-                    (temp-directory (default-temporary-directory)))
+                    (temp-directory (util:default-temporary-directory)))
   (let+ (((&flet find-commitish (version)
             (or (when-let ((commit (getf version :commit)))
                   (list :commit commit))
@@ -334,7 +334,7 @@
                             ,@(when sub-directory `("--" ,sub-directory)))
                     :directory directory
                     :output    :lines
-                    (safe-external-format-argument)))
+                    (util:safe-external-format-argument)))
            (person-collector (make-names->person-list :count max-committers)))
       (map nil (lambda (line)
                  (funcall person-collector
@@ -409,7 +409,7 @@
                        '("git" "rev-parse" "HEAD")
                        :output    '(:string :stripped t)
                        :directory directory
-                       (safe-external-format-argument))))
+                       (util:safe-external-format-argument))))
     (%git-commit->key commit)))
 
 (defun %git-commit->key (commit)

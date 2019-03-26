@@ -48,9 +48,8 @@
 (defmethod command-execute ((command create-jenkins-user))
   (let+ (((&accessors-r/o output-directory username email password) command))
     (as-phase (:configure)
-      (jenkins.project.steps:execute
-       (jenkins.project.steps:make-step :jenkins/create-user) nil
-       :destination-directory output-directory
-       :username              username
-       :email                 email
-       :password              password))))
+      (steps:execute (steps:make-step :jenkins/create-user) nil
+                     :destination-directory output-directory
+                     :username              username
+                     :email                 email
+                     :password              password))))

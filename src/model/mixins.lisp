@@ -33,10 +33,10 @@
   (:documentation
    "Intended to be mixed into classes representing named model objects."))
 
-(defmethod direct-variables ((thing named-mixin))
-  (value-acons :name (name thing)
-               (when (next-method-p)
-                 (call-next-method))))
+(defmethod var:direct-variables ((thing named-mixin))
+  (var:value-acons :name (name thing)
+                   (when (next-method-p)
+                     (call-next-method))))
 
 (defmethod print-items:print-items append ((object named-mixin))
   `((:name ,(reverse (ancestor-names object)) "~{~A~^:~}")))
@@ -52,21 +52,21 @@
   (:documentation
    "Intended to be mixed into classes representing parented model objects."))
 
-(defmethod variables append ((thing parented-mixin))
+(defmethod var:variables append ((thing parented-mixin))
   (when-let ((parent (parent thing)))
-    (variables parent)))
+    (var:variables parent)))
 
-(defmethod lookup ((thing parented-mixin) (name t) &key if-undefined)
+(defmethod var:lookup ((thing parented-mixin) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   (let ((next-method? (next-method-p))
         (parent       (parent thing)))
     (cond ((and next-method? parent)
-           (multiple-value-call #'merge-lookup-values
-             (call-next-method) (lookup parent name :if-undefined nil)))
+           (multiple-value-call #'var:merge-lookup-values
+             (call-next-method) (var:lookup parent name :if-undefined nil)))
           (next-method?
            (call-next-method))
           (parent
-           (lookup parent name :if-undefined nil)))))
+           (var:lookup parent name :if-undefined nil)))))
 
 ;;; `implementation-mixin'
 
@@ -116,9 +116,9 @@
   (log:debug "~@<Checking whether to instantiate ~A with parent ~A~@:>"
              spec parent)
   (let+ (((&flet value (name)
-            (let+ (((&values value defaulted?) (value parent name nil)))
+            (let+ (((&values value defaulted?) (var:value parent name nil)))
               (if defaulted?
-                  (value spec name nil)
+                  (var:value spec name nil)
                   value))))
          ((&labels matches? (regex value)
             (etypecase value

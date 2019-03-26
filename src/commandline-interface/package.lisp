@@ -9,14 +9,17 @@
    #:cl
    #:alexandria
    #:let-plus
-   #:more-conditions
+   #:more-conditions)
 
-   #:jenkins.model
-   #:jenkins.model.variables
-   #:jenkins.model.project)
+  (:local-nicknames
+   (#:options     #:configuration.options)
 
-  (:shadowing-import-from #:jenkins.model.variables
-   #:as)
+   (#:model       #:jenkins.model)
+   (#:var         #:jenkins.model.variables)
+   (#:project     #:jenkins.model.project)
+
+   (#:commands    #:jenkins.project.commands)
+   (#:commandline #:jenkins.project.commandline-options))
 
   (:export
    #:main)

@@ -1,6 +1,6 @@
 ;;;; cmake.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,17 +8,16 @@
   (:use
    #:cl
    #:alexandria
-   #:split-sequence
    #:let-plus
-   #:iterate
+   #:iterate)
 
-   #:jenkins.version)
+  (:local-nicknames
+   (#:util     #:jenkins.util)
+   (#:version  #:jenkins.version))
 
   (:import-from #:jenkins.analysis
    #:analyze
 
-   #:read-file-into-string*
-   #:find-files
    #:merge-dependencies
    #:effective-requires))
 
@@ -362,7 +361,7 @@
             (remove-duplicates (reduce #'append (property-values name)
                                        :key #'second)
                                :test #'equal)))
-         ((&flet property-value/dependencies (name &key (test #'version>=))
+         ((&flet property-value/dependencies (name &key (test #'version:version>=))
             (let ((all (reduce #'append (property-values name) :key #'second)))
               (merge-dependencies all :test test))))
          (sub-provides        (property-value/dependencies :provides))
@@ -408,7 +407,7 @@
                     (parent-environment '())
                     (environment        (make-instance 'environment :parent parent-environment))
                     implicit-provides?)
-  (let+ ((content (read-file-into-string* source))
+  (let+ ((content (util:read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
          ((&flet add-variable! (name value)
@@ -444,7 +443,7 @@
         (when version/resolved
           (add-project-variable! "PROJECT_VERSION" version/resolved)
           (loop :for name      :in '("MAJOR" "MINOR" "PATH")
-                :for value     :in (parse-version version/resolved)
+                :for value     :in (version:parse-version version/resolved)
                 :for variable  =   (format nil "PROJECT_VERSION_~A" name)
                 :do  (add-project-variable! variable (princ-to-string value))))))
     ;; If we found a define_project_version(…) call, use the versions
@@ -614,11 +613,11 @@
 ;;; CMake Config-mode Template Files
 
 (defun %find-config-mode-templates (directory)
-  (append (find-files (merge-pathnames "**/*-config.cmake.*" directory))
-          (find-files (merge-pathnames "**/*-config-version.cmake.*" directory))
-          (find-files (merge-pathnames "**/*Config.cmake.*" directory))
-          (find-files (merge-pathnames "**/*ConfigVersion.cmake.*" directory))
-          (find-files (merge-pathnames "**/*Config-version.cmake.*" directory))))
+  (append (util:find-files (merge-pathnames "**/*-config.cmake.*" directory))
+          (util:find-files (merge-pathnames "**/*-config-version.cmake.*" directory))
+          (util:find-files (merge-pathnames "**/*Config.cmake.*" directory))
+          (util:find-files (merge-pathnames "**/*ConfigVersion.cmake.*" directory))
+          (util:find-files (merge-pathnames "**/*Config-version.cmake.*" directory))))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/config-mode-template))
@@ -633,7 +632,7 @@
                 (map 'list (rcurry #'make-matcher environment)
                      `("VERSION_MAJOR" "VERSION_MINOR" "VERSION_PATCH"
                        ,name nil)))
-               (content (read-file-into-string source)))
+               (content (util:read-file-into-string* source)))
           (ppcre:do-matches-as-strings (reference *variable-reference-scanner* content)
             (when (and (starts-with #\@ reference)
                        (search "VERSION" reference))
@@ -651,14 +650,15 @@
 ;;; pkg-config Template Files
 
 (defun %find-pkg-config-template-files (directory)
-  (find-files (merge-pathnames #P"**/*.pc.*" directory)))
+  (util:find-files (merge-pathnames #P"**/*.pc.*" directory)))
 
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/pkg-config-template))
                     &key
                     environment)
-  (let* ((name    (first (split-sequence #\. (pathname-name source))))
-         (content (read-file-into-string source))
+  (let* ((name    (first (split-sequence:split-sequence
+                          #\. (pathname-name source))))
+         (content (util:read-file-into-string* source))
          (content (%resolve-variables content environment)))
     (when-let* ((result (with-input-from-string (stream content)
                           (analyze stream :pkg-config :name name))))
@@ -668,7 +668,7 @@
 
 (defun %make-dependency (name &optional version (nature :cmake))
   (list* nature name (typecase version
-                       (string (list (parse-version version)))
+                       (string (list (version:parse-version version)))
                        (cons   (list version)))))
 
 (defun %split-arguments (arguments)

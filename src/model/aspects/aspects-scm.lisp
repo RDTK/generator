@@ -84,7 +84,7 @@
       "Name of an entry in Jenkins' global credentials store that
        should be use for authenticating against the remote repository
        server.")
-     (branches                              :type (list-of string)
+     (branches                              :type (var:list-of string)
       :documentation
       "List of names of branches in the git repository that should be
        checked out.")
@@ -128,7 +128,7 @@
   ;; Configure GIT scm plugin.
   (let* ((url/parsed  (puri:uri url))
          (credentials (or credentials
-                          (unless (check-access aspect :public)
+                          (unless (model:check-access aspect :public)
                             (puri:uri-host url/parsed)))))
     (setf (repository job)
           (git (:url                    (jenkins.analysis::format-git-url
@@ -214,7 +214,7 @@
                                "//+" (puri:uri-path url/parsed) "/")))
          (url/revision (format nil "~A~@[@~A~]" url/parsed revision))
          (credentials  (or credentials
-                           (unless (check-access aspect :public)
+                           (unless (model:check-access aspect :public)
                              (puri:uri-host url/parsed)))))
     (setf (repository job)
           (svn (:url               url/revision
@@ -258,7 +258,7 @@
   ;; Configure mercurial scm plugin.
   (let* ((url/parsed   (puri:uri url))
          (credentials  (or credentials
-                           (unless (check-access aspect :public)
+                           (unless (model:check-access aspect :public)
                              (puri:uri-host url/parsed)))))
     (when (and branch tag)
       (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"

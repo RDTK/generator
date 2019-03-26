@@ -20,19 +20,36 @@
 
 ;;; Entry protocol
 
-(defgeneric content (entry))
+(defgeneric content (entry)
+  (:documentation
+   "Return the content of ENTRY a `nibbles:octet-vector'."))
 
-(defgeneric info (entry))
+(defgeneric info (entry)
+  (:documentation
+   "Return the info plist of ENTRY."))
 
 ;;; Group protocol
 
-(defgeneric parent (group))
+(defgeneric parent (group)
+  (:documentation
+   "Return the resource container containing GROUP."))
 
-(defgeneric entries (group))
+(defgeneric entries (group)
+  (:documentation
+   "Return a list of the entries of GROUP."))
 
-(defgeneric find-entry (name group &key if-does-not-exist))
+(defgeneric find-entry (name group &key if-does-not-exist)
+  (:documentation
+   "Return entry named NAME in GROUP.
 
-(defgeneric (setf find-entry) (new-value name group))
+    IF-DOES-NOT-EXIST controls the behavior in case such an entry does
+    not exist."))
+
+(defgeneric (setf find-entry) (new-value name group &key if-does-not-exist)
+  (:documentation
+   "Store the entry NEW-VALUE under the NAME in GROUP.
+
+    IF-DOES-NOT-EXIST is accepted for parity with `find-entry'."))
 
 (defgeneric add-file (container file &key base-directory name info))
 
@@ -40,8 +57,13 @@
 
 (defgeneric find-group (name container &key if-does-not-exist)
   (:documentation
-   "Return the resource group named NAME in CONTAINER."))
+   "Return the resource group named NAME in CONTAINER.
+
+    IF-DOES-NOT-EXIST controls the behavior in case NAME does not name
+    a resource group in CONTAINER."))
 
 (defgeneric (setf find-group) (new-value name container &key if-does-not-exist)
   (:documentation
-   "TODO"))
+   "Store the resource group NEW-VALUE under NAME in CONTAINER.
+
+    IF-DOES-NOT-EXIST is accepted for parity with `find-group'."))

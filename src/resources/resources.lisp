@@ -66,7 +66,9 @@
 
 (defmethod (setf find-entry) ((new-value t)
                               (name      pathname)
-                              (container group))
+                              (container group)
+                              &key if-does-not-exist)
+  (declare (ignore if-does-not-exist))
   (log:debug "~@<~A is adding entry ~A~@:>" container new-value)
   (setf (gethash name (%entries container)) new-value))
 
@@ -152,4 +154,3 @@
 
 (defun find-group* (name &key (parent *resources*) (if-does-not-exist #'error))
   (find-group name parent :if-does-not-exist if-does-not-exist))
-

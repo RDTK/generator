@@ -183,21 +183,18 @@
 
 ;;; `jenkins/create-user' step
 
-(defparameter *jenkins-user-config-file-template*
-  #.(let* ((base-directory (merge-pathnames
-                            (make-pathname
-                             :name      :unspecific
-                             :type      :unspecific
-                             :directory '(:relative :back :back "data" "jenkins-install"))
-                            (or *compile-file-truename* *load-truename*)))
-           (filename       (merge-pathnames
-                            "user-config.xml.in" base-directory))
-           (entry          (nth-value
-                            1 (jenkins.project.resources:add-file
-                               (jenkins.project.resources:make-group
-                                :user-configuration)
-                               filename :base-directory base-directory))))
-      (jenkins.project.resources:content entry)))
+(let* ((base-directory (merge-pathnames
+                        (make-pathname
+                         :name      :unspecific
+                         :type      :unspecific
+                         :directory '(:relative :back :back "data" "jenkins-install"))
+                        #.(or *compile-file-truename* *load-truename*)))
+       (filename       (merge-pathnames
+                        "user-config.xml.in" base-directory)))
+  (jenkins.project.resources:add-file
+   (jenkins.project.resources:make-group
+    :user-configuration)
+   filename :base-directory base-directory))
 
 (macrolet ((define-xpath-constant (name xpath)
              `(define-constant ,name
@@ -247,7 +244,10 @@
 
 (define-step (jenkins/create-user)
     (destination-directory
-     (config-file-template *jenkins-user-config-file-template*)
+     (config-file-template (jenkins.project.resources:content
+                            (jenkins.project.resources:find-entry
+                             #P"user-config.xml.in"
+                             (jenkins.project.resources:find-group* :user-configuration))))
      username email password)
   "Create a user in an existing Jenkins installation."
   (ensure-jenkins-directory-state '(:fresh :stopped) destination-directory)

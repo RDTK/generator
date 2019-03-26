@@ -45,7 +45,7 @@
                 (:module     "steps"
                  :pathname   "src/steps"
                  :serial     t
-                 :depends-on ("bcrypt")
+                 :depends-on ("bcrypt" "resources")
                  :components ((:file       "package")
 
                               (:file       "protocol")

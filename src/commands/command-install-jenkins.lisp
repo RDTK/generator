@@ -132,7 +132,7 @@
 
   ("--jenkins-download-url" "jenkins-download-url" "URL")
 
-  (("--plugin" "-p")        "plugins"              "PLUGIN")
+  (("--plugin" "-l")        "plugins"              "PLUGIN")
 
   (("--username" "-u")      "username"             "USENAME")
   (("--email" "-e")         "email"                "EMAIL-ADDRESS")

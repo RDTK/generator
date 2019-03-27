@@ -125,7 +125,7 @@
   (let+ ((step      (make-step :jenkins/install-plugins))
          (installed '())
          ((&flet install (round plugins)
-            (log:info "~@<Installing plugins with dependencies round
+            (log:info "~@<Installing plugins with dependencies round ~
                        ~D: ~{~A~^, ~}.~@:>"
                       round plugins)
             (appendf installed plugins)

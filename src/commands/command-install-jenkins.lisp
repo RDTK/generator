@@ -33,13 +33,16 @@
 
 ;;; Jenkins installation profiles
 
-(defclass profile ()
+(defclass profile (print-items:print-items-mixin)
   ((%name          :initarg :name
                    :type    keyword
                    :reader  name)
    (%extra-plugins :initarg :extra-plugins
                    :type    list
                    :reader  extra-plugins)))
+
+(defmethod print-items:print-items append ((object profile))
+  `((:name ,(name object) "~A")))
 
 (defparameter *profiles*
   (flet ((profile (name &optional extra-plugins)
@@ -144,12 +147,19 @@
                           jenkins-download-url plugins
                           username email password)
           command)
-         (profile     (find-profile profile-name))
-         (all-plugins (remove-duplicates
-                       (append (required-jenkins-plugins)
-                               (extra-plugins profile)
-                               plugins)
-                       :test #'string=)))
+         (profile          (find-profile profile-name))
+         (required-plugins (required-jenkins-plugins))
+         (extra-plugins    (extra-plugins profile))
+         (all-plugins      (remove-duplicates
+                            (append required-plugins extra-plugins plugins)
+                            :test #'string=)))
+    (log:info "~@<Installing profile ~A with plugins~@:_~
+                 ~2@Trequired     ~<~{~A~^, ~}~@:>~@:_~
+                 ~2@Tfrom profile ~<~{~A~^, ~}~@:>~@:_~
+                 ~2@Textra        ~<~{~A~^, ~}~@:>~
+               ~:>"
+              profile
+              (list required-plugins) (list extra-plugins) (list plugins))
     (as-phase (:install)
       (with-trivial-progress (:install/core)
         (steps:execute (steps:make-step :jenkins/install-core) nil

@@ -40,7 +40,12 @@
       (when (typep condition 'commands::deferred-phase-error)
         (format t "~A~2%" condition)
         (continue))
-      (log:info "Handling ~A: ~A" (type-of condition) condition)
+      (log:info "~@<Handling ~A~@[ (caused by ~A)~]:~@:_~A~@:>"
+                (type-of condition)
+                (let ((cause (more-conditions:root-cause condition)))
+                  (unless (eq cause condition)
+                    (type-of cause)))
+                condition)
       (loop :for (condition-type . action) :in policy
             :do (log:debug "Considering rule: ~S → ~S" condition-type action)
             :when (typep condition condition-type)

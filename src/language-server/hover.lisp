@@ -16,12 +16,13 @@
      (context     known-variable-value-context)
      (contributor variable-hover-contributor))
   (let+ (((&accessors-r/o variable-location variable-node) context))
-    (values
-     (list (format nil "Type: ~A" (var:variable-info-type variable-node))
-           (or (var:variable-info-documentation variable-node)
-               "«undocumented variable»"))
-     (sloc:range variable-location)
-     "Variable Information")))
+    (values (format nil "Type: `~A`~@
+                         ~@
+                         ~:[«undocumented»~;~:*~A~]"
+                    (var:variable-info-type variable-node)
+                    (var:variable-info-documentation variable-node))
+            (sloc:range variable-location)
+            "Variable Information")))
 
 ;;; Effective value
 
@@ -35,12 +36,11 @@
   (let+ (((&accessors-r/o object) document)
          ((&accessors-r/o variable-name variable-location) context))
     (when object
-      (values (format nil "Effective value:~@
-                         ```yaml~@
-                         ~A~@
-                         ```"
+      (values (format nil "```yaml~@
+                           ~A~@
+                           ```"
                       (handler-case
-                          (jenkins.model.variables:value object variable-name)
+                          (var:value object variable-name)
                         (error (condition)
                           condition)))
               (sloc:range variable-location)
@@ -77,7 +77,6 @@
      (contributor system-package-name-hover-contributor))
   (when-let* ((packages (lparallel:force (ensure-platform-packages workspace)))
               (package  (find (word context) packages :test #'string= :key #'first)))
-    (log:error (word context) package)
     (values (format nil "name: ~A~%version: ~A" (first package) (second package))
             (sloc:range (location context))
             "Package Information")))

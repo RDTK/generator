@@ -59,16 +59,15 @@
 
          (errors    '())
          (result    nil)
-         (locations nil)
          (index     (make-instance 'lookup::range-index))
 
          (project::*locations* (make-instance 'project::locations
-                                                            :hook (lambda (object location)
-                                                                    (declare (ignore object))
-                                                                    ;; TODO the sources should be eq
-                                                                    (when (equalp (sloc:name (sloc:source location)) (sloc:name source
-                                                                                                                                ))
-                                                                      (lookup:add! location index))))))
+                                              :hook (lambda (object location)
+                                                      (declare (ignore object))
+                                                      ;; TODO the sources should be eq
+                                                      (when (equalp (sloc:name (sloc:source location))
+                                                                    (sloc:name source))
+                                                        (lookup:add! location index))))))
     (handler-bind (((and error build-generator.util:continuable-error)
                      (lambda (condition)
                        (log:warn "~@<Error during parsing:~:@_~A~@:>" condition)
@@ -107,7 +106,7 @@
                                           (version   t)
                                           (position  t))
   (or (when-let ((locations (lookup:lookup position (index document))))
-        (vector (proto:make-highlight :text (text.source-location:range (first locations)))))
+        (vector (proto:make-highlight :text (sloc:range (first locations)))))
       #()))
 
 (defmethod methods:code-actions ((workspace t)

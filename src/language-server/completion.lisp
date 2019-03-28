@@ -82,28 +82,39 @@
 (defclass variable-name-completion-contributor ()
   ())
 
-(defmethod contrib:completion-contributions
-    ((workspace   t)
-     (document    t)
-     (context     variable-name-context)
-     (contributor variable-name-completion-contributor))
-  (let+ (((&flet make-item (variable)
-            (let* ((name          (var:variable-info-name variable))
-                   (type          (var:variable-info-type variable))
-                   (documentation (var:variable-info-documentation variable))
-                   (title         (string-downcase name))
-                   (new-text      title))
-              (proto:make-completion-item
-               title
-               :kind          :variable
-               :detail        (format nil "Type: ~A " type)
-               :documentation documentation
-               :range         (prefix-range context)
-               :new-text      new-text)))))
-    (loop :for variable :in (var:all-variables)
-          #+todo :when #+todo (starts-with-subseq
-                 prefix (string-downcase (var:variable-info-name variable)))
-            :collect (make-item variable))))
+(flet ((make-completions (context kind)
+         (let+ (((&flet make-item (variable)
+                   (let* ((name          (var:variable-info-name variable))
+                          (type          (var:variable-info-type variable))
+                          (documentation (var:variable-info-documentation variable))
+                          (title         (string-downcase name)))
+                     (proto:make-completion-item
+                      title
+                      :kind          :variable
+                      :detail        (format nil "Type: ~A " type)
+                      :documentation documentation
+                      :range         (prefix-range context)
+                      :new-text      (case kind
+                                       ((nil)                       title)
+                                       (:scalar (format nil "${~A}" title))))))))
+           (loop :for variable :in (var:all-variables)
+                    #+todo :when #+todo (starts-with-subseq
+                                         prefix (string-downcase (var:variable-info-name variable)))
+                 :collect (make-item variable)))))
+
+  (defmethod contrib:completion-contributions
+      ((workspace   t)
+       (document    t)
+       (context     variable-name-context)
+       (contributor variable-name-completion-contributor))
+    (make-completions context nil))
+
+  (defmethod contrib:completion-contributions
+      ((workspace   t)
+       (document    t)
+       (context     variable-reference-context)
+       (contributor variable-name-completion-contributor))
+    (make-completions context :scalar)))
 
 ;;; Variable value completion
 

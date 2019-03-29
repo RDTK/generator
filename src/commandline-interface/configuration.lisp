@@ -75,6 +75,9 @@
                       :default :cmake
                       :documentation
                       "Progress display style.")
+  ("colored-output"   :type 'boolean :default nil
+                      :documentation
+                      "Should output be printed with colors.")
   ;; Directories
   ("cache-directory"  :type 'options:directory-pathname
                       :documentation
@@ -202,6 +205,11 @@
                           '("global" "progress-style") *schema*)
                          :default new-value))
 
+(defun (setf default-colored-output) (new-value)
+  (reinitialize-instance (configuration.options:find-option
+                          '("global" "colored-output") *schema*)
+                         :default new-value))
+
 (defun adapt-configuration-for-terminal (&key
                                          (standard-output *standard-output*)
                                          (error-output    *error-output*)
@@ -209,8 +217,9 @@
   (let ((interactive? (and (interactive-stream-p standard-output)
                            (interactive-stream-p error-output)))
         (smart?       (not (equal terminal-type "dumb"))))
-    ;; Change defaults to "one-line" progress style when apparently
-    ;; running interactively.
+    ;; Change defaults to "one-line" progress style and colored output
+    ;; when apparently running interactively.
     (when (and interactive? smart?)
-      (setf (default-progress-style) :one-line))
+      (setf (default-progress-style) :one-line
+            (default-colored-output) t))
     (and interactive? smart?)))

@@ -6,14 +6,50 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
+(defun call-with-condition-printing (thunk &key (stream *error-output*) color)
+  (flet (#+unix
+         (sgr (code)
+           (let* ((string (format nil "~C[~Dm" #\Escape code))
+                  (length (length string)))
+             (write-string string stream)
+             (finish-output stream)
+             #+sbcl (labels ((resolve (stream)
+                               (typecase stream
+                                 (synonym-stream
+                                  (resolve (symbol-value
+                                            (synonym-stream-symbol stream))))
+                                 (t
+                                  stream))))
+                      (let ((stream (resolve stream)))
+                        (when (sb-impl::fd-stream-p stream)
+                          (let ((column (sb-impl::fd-stream-output-column stream)))
+                            ;; Intervening output may have changed the
+                            ;; column.
+                            (when (and column (>= column length))
+                              (setf (sb-impl::fd-stream-output-column stream)
+                                    (- column length)))))))))
+         (do-it ()
+           (funcall thunk stream)))
+    (if color
+        (unwind-protect
+             (progn
+               #+unix (sgr (ecase color
+                             (:red    31)
+                             (:yellow 33)))
+               (do-it))
+          #+unix (sgr 0))
+        (do-it))))
+
 (defun pretty-print-condition (condition stream)
   (format stream "~@<~A~@:>~2%" condition))
 
 (defun make-error-policy (policy &key (lock (bt:make-recursive-lock "output and debug"))
-                                      debug? fail)
+                                      debug? color? fail)
   (let+ (((&flet flame (condition &key (debug? debug?))
             (bt:with-recursive-lock-held (lock)
-              (pretty-print-condition condition *error-output*)
+              (call-with-condition-printing
+               (curry #'pretty-print-condition condition)
+               :color (when color? :red))
               (when debug?
                 #+sbcl (sb-debug:print-backtrace)))))
          ;; Specific actions.
@@ -48,7 +84,9 @@
          (continue))
         (warning
          (bt:with-recursive-lock-held (lock)
-           (pretty-print-condition condition *error-output*))
+           (call-with-condition-printing
+            (curry #'pretty-print-condition condition)
+            :color (when color? :yellow)))
          (muffle-warning)))
 
       (log:info "~@<Handling ~A~@[ (caused by ~A)~]:~@:_~A~@:>"
@@ -70,9 +108,9 @@
 
 (defun main ()
   (log:config :thread :warn)
-  (adapt-configuration-for-terminal)
 
-  (let+ ((arguments (uiop:command-line-arguments))
+  (let+ ((smart-terminal? (adapt-configuration-for-terminal))
+         (arguments       (uiop:command-line-arguments))
          ((&flet execute-command-and-quit (code command &rest args)
             (commands:command-execute
              (apply #'commands:make-command command args))
@@ -81,7 +119,9 @@
          (lock       (bt:make-recursive-lock "output and debug"))
          ((&flet die (condition &optional usage? context)
             (bt:with-recursive-lock-held (lock)
-              (pretty-print-condition condition *error-output*)
+              (call-with-condition-printing
+               (curry #'pretty-print-condition condition)
+               :color (when smart-terminal? :red))
               (when debugging?
                 #+sbcl (sb-debug:print-backtrace))
               (if usage?
@@ -103,14 +143,13 @@
     (cond (version? (execute-command-and-quit 0 :version))
           (help?    (execute-command-and-quit 0 :help))
           (debug?   (setf debugging? t)))
-    (handler-bind
-        ((commands:command-not-found-error
-          (rcurry #'die t "global"))
-         (commands:command-configuration-problem
-          (lambda (condition)
-            (die condition t (commands:command condition))))
-         (error #'die)
-         #+sbcl (sb-sys:interactive-interrupt #'die))
+    (handler-bind ((commands:command-not-found-error
+                     (rcurry #'die t "global"))
+                   (commands:command-configuration-problem
+                     (lambda (condition)
+                       (die condition t (commands:command condition))))
+                   (error #'die)
+                   #+sbcl (sb-sys:interactive-interrupt #'die))
       (let* ((command-configuration (options:sub-configuration
                                      "commands.**" configuration))
              (command               (commands:make-command
@@ -124,6 +163,7 @@
                            (option-value "global" "on-error")
                            :lock   lock
                            :debug? debugging?
+                           :color? (option-value "global" "colored-output")
                            :fail   (lambda (condition)
                                      (declare (ignore condition))
                                      (setf fail? t)))

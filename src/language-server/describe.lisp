@@ -9,7 +9,7 @@
 (defun describe-project (project)
   (let+ (((&flet attribute (name default)
             (handler-case
-                (jenkins.model.variables:value/cast project name default)
+                (var:value/cast project name default)
               (error (condition)
                 (format nil "Error: ~A" condition)))))
          (natures               (attribute :natures '()))
@@ -17,17 +17,20 @@
          (licenses              (attribute :licenses '()))
          (maintainers           (ensure-list
                                  (attribute :recipe.maintainer '())))
-         (description           (attribute :description "«no description»")))
-    (format nil "* **Nature~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
-                 * **Programming Language~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
-                 * **License~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
-                 * **Recipe Maintainer~P**:~
-                 ~:*~[ *none known*~%~
+         (description           (attribute :description nil)))
+    (format nil "# Project ~A
+                 ~@
+                 **Nature~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
+                 **Programming Language~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
+                 **License~P**: ~:*~[*none known*~*~:;~{~A~^ ~}~]~%~
+                 **Recipe Maintainer~P**:~
+                 ~:*~[ *none known*~*~%~
                  ~:;~
                    ~%~
                    ~{  * ~A~^~%~}~
                  ~]~
-                 ~2%~:[*no description available*~;~:*~A~]"
+                 ~%~:[*no description available*~;~:*~A~]"
+            (jenkins.model:name project)
             (length natures)               natures
             (length programming-languages) programming-languages
             (length licenses)              licenses

@@ -195,6 +195,45 @@
                            :range         (sloc:range (location context)))))))
               (lparallel:force projects)))))
 
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     project-version-context)
+     (contributor project-name-completion-contributor))
+  (let ((project-name (project-name context))
+        (prefix       (prefix context))
+        (projects     (projects (workspace document)))) ; TODO we should get the workspace directly
+    (when (lparallel:fulfilledp projects)
+      (let+ ((result '())
+             ((&flet consider (name detail &key documentation)
+                (when (starts-with-subseq prefix name)
+                  (push (apply #'proto:make-completion-item
+                               name
+                               :kind   :file
+                               :detail detail
+                               :range  (sloc:range (location context))
+                               (when documentation
+                                 `(:documentation ,(funcall documentation))))
+                        result)))))
+        ;; TODO workspace should provide project lookup
+        (map nil (lambda (project)
+                   (when (string= project-name (jenkins.model:name project))
+                     ;; TODO does not cover +branches+, tags, commits and patterns
+                     (ignore-errors
+                      (map nil (rcurry #'consider "branch version")
+                           (var:value/cast project :branches)))
+                     (map nil (lambda (version)
+                                (consider
+                                 (jenkins.model:name version)
+                                 "project version"
+                                 :documentation
+                                 (lambda ()
+                                   ;; TODO directly describe as markup-content))))
+                                   (proto:make-markup-content (describe-project project) :markdown))))
+                          (project:versions project))))
+             (lparallel:force projects))
+        result))))
+
 ;;;
 
 (defclass aspect-class-completion-contributor () ())

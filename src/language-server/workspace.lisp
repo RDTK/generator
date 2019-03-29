@@ -78,18 +78,17 @@
 ;;; Projects
 
 (defmethod load-projects ((container workspace))
-  (let* ((jenkins.model.project::*templates* (lparallel:force (ensure-templates container)))
-         (jenkins.model.project::*projects* nil ; (make-hash-table :test #'equal)
+  (let* ((project::*templates* (lparallel:force (ensure-templates container)))
+         (project::*projects* nil ; (make-hash-table :test #'equal)
                                             )
-         (jenkins.model.project::*projects-lock* (bt:make-lock))
+         (project::*projects-lock* (bt:make-lock))
          (repository (repository container))
-         (pattern    (jenkins.model.project:recipe-path
-                      repository :project :wild)))
+         (pattern    (project:recipe-path repository :project :wild)))
     (handler-bind (((and error jenkins.util:continuable-error)
                      (compose #'invoke-restart #'jenkins.util:find-continue-restart)))
       (mappend (lambda (filename)
                  (with-simple-restart (continue "Skip")
-                   (list (jenkins.model.project:load-project-spec/yaml
+                   (list (project:load-project-spec/yaml
                           filename :repository repository))))
                (directory pattern)))))
 

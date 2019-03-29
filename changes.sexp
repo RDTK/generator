@@ -1,5 +1,13 @@
 ((:release "0.28" nil
 
+  (:enhancement
+   "Printing of error and warning messages has been improved:"
+   (:ul
+    ("Error and warning messages are now printed in color if it makes
+      sense in the current context (apparently running interactively,
+      non-dumb terminal)")
+    ("Messages should no longer be printed twice")))
+
   (:bugfix
    (:verb "ssh") "sub-processes (started by" (:verb "git") ") should
    no longer hang when encountering issues during host key

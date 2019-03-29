@@ -6,10 +6,10 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
-(defun make-error-policy (policy &key debug? fail)
-  (let+ ((lock (bt:make-lock "output and debug"))
-         ((&flet flame (condition &key (debug? debug?))
-            (bt:with-lock-held (lock)
+(defun make-error-policy (policy &key (lock (bt:make-recursive-lock "output and debug"))
+                                      debug? fail)
+  (let+ (((&flet flame (condition &key (debug? debug?))
+            (bt:with-recursive-lock-held (lock)
               (format *error-output* "~@<~A~@:>~2%" condition)
               (when debug?
                 #+sbcl (sb-debug:print-backtrace)))))
@@ -32,15 +32,17 @@
               (invoke-restart restart))))
          #+sbcl (main-thread sb-thread:*current-thread*)
          ((&flet do-debug (condition)
-            (bt:with-lock-held (lock)
+            (bt:with-recursive-lock-held (lock)
               (let (#+sbcl (sb-ext:*invoke-debugger-hook* nil))
                 #+sbcl (unless (eq sb-thread:*current-thread* main-thread)
                          (bt:interrupt-thread main-thread #'sb-thread:release-foreground))
                 (invoke-debugger condition))))))
     (lambda (condition)
       (when (typep condition 'commands::deferred-phase-error)
-        (format t "~A~2%" condition)
+        (bt:with-recursive-lock-held (lock)
+          (format t "~A~2%" condition))
         (continue))
+
       (log:info "~@<Handling ~A~@[ (caused by ~A)~]:~@:_~A~@:>"
                 (type-of condition)
                 (let ((cause (more-conditions:root-cause condition)))
@@ -68,16 +70,18 @@
              (apply #'commands:make-command command args))
             (uiop:quit code)))
          (debugging? nil)
+         (lock       (bt:make-recursive-lock "output and debug"))
          ((&flet die (condition &optional usage? context)
-            (format *error-output* "~@<~A~@:>~2%" condition)
-            (when debugging?
-              #+sbcl (sb-debug:print-backtrace))
-            (if usage?
-                (apply #'execute-command-and-quit
-                       1 :help :brief? t
-                       (when (and context (not (equal context "global")))
-                         (list :command context)))
-                (uiop:quit 1))))
+            (bt:with-recursive-lock-held (lock)
+              (format *error-output* "~@<~A~@:>~2%" condition)
+              (when debugging?
+                #+sbcl (sb-debug:print-backtrace))
+              (if usage?
+                  (apply #'execute-command-and-quit
+                         1 :help :brief? t
+                         (when (and context (not (equal context "global")))
+                           (list :command context)))
+                  (uiop:quit 1)))))
          ((&values option-value &ign configuration &ign
                    (&plist-r/o
                     (version? :version?) (help? :help?) (debug? :debug?)))
@@ -110,6 +114,7 @@
          :num-processes   (option-value "global" "num-processes")
          :error-policy    (make-error-policy
                            (option-value "global" "on-error")
+                           :lock   lock
                            :debug? debugging?
                            :fail   (lambda (condition)
                                      (declare (ignore condition))

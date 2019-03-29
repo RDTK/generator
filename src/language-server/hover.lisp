@@ -58,13 +58,13 @@
   (let ((prefix   (prefix context))
         (projects (projects (workspace document))))
     (when (lparallel:fulfilledp projects)
-      (map nil (lambda (project)
-                 (let ((name (model:name project)))
-                   (when (starts-with-subseq prefix name)
-                     (return-from contrib:hover-contribution
-                       (values (describe-project project)
-                               (sloc:range (location context)))))))
-           (lparallel:force projects)))))
+      (when-let ((project (find prefix (lparallel:force projects)
+                                :test #'string= :key #'model:name)))
+        (return-from contrib:hover-contribution
+          (values (describe-project project)
+                  (sloc:range (location context))))))))
+
+;; TODO project-version-context
 
 ;;; System package name
 

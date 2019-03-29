@@ -64,7 +64,7 @@
                                       (text.source-location:source location)
                                       (make-instance (class-of start)
                                                      :index (+ (text.source-location:index start)
-                                                               index)
+                                                               (1+ index))
                                                      :info  (text.source-location::info start))
                                       (text.source-location:end location))))
        (values name (list (cons version nil)))))
@@ -467,10 +467,12 @@
                      (list (list included-project "specified here" :error))
                      "~@<No project versions after expansion.~@:>"))
                   (map 'list (lambda+ ((version parameters))
-                               (make-instance 'project-include
-                                              :project   name
-                                              :version   version
-                                              :variables parameters))
+                               (copy-location ; TODO precise locations for multiple versions
+                                included-project
+                                (make-instance 'project-include
+                                               :project   name
+                                               :version   version
+                                               :variables parameters)))
                        versions)))))))
     ; (build-generator.model.variables::debug-container context)
     (make-instance

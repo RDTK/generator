@@ -132,15 +132,16 @@
           ;; NAME: … ${NAME} …
           ;;           ^
           ((stringp leaf)
-           (when-let* ((base     (sloc:index (sloc:start location)))
+           (when-let* ((text     (sloc:content location))
+                       (base     (sloc:index (sloc:start location)))
                        (relative (- (sloc:index position) base))
-                       (start    (search "${" leaf :end2 (1+ relative) :from-end t))
-                       (end      (if-let ((end (search "}" leaf :start2 start)))
+                       (start    (search "${" text :end2 (1+ relative) :from-end t))
+                       (end      (if-let ((end (search "}" text :start2 start)))
                                    (1+ end)
-                                   (length leaf))))
+                                   (length text))))
              (list (make-instance 'variable-reference-context
                                   :location     location
-                                  :prefix       leaf
+                                  :prefix       text
                                   :prefix-range (sloc:make-range
                                                  (+ base start) (+ base end)
                                                  (lsp:text document))
@@ -200,39 +201,92 @@
 (defmethod print-items:print-items append ((object project-name-context))
   `((:prefix ,(prefix object) "~S")))
 
-(defclass project-version-context () ())
+(defclass project-version-context (project-name-context) ; TODO correct superclass
+  ((%project-name :initarg :project-name ; TODO look up the project
+                  :reader  project-name)))
 
 (defclass project-version-reference-context-contributor () ())
+
+#+old (defmethod contrib:context-contributions
+    ((workspace   t)
+     (document    t)
+     (position    t)
+     (contributor project-version-reference-context-contributor))
+  (let+ (((&values path locations) (structure-path position document))
+         ((&values thing location)
+          (loop :for location :in locations
+                :for thing = (project::object-at location (locations document))
+                :when (stringp thing)
+                :return (values thing location)))
+         (path-position (position :versions path))
+         (location (first locations))) ; TODO
+    (when (and (eql path-position 0) (stringp thing))
+      (let (; (base (sloc:index (sloc:start )))
+            (at   (position #\@ thing)))
+        (log:error thing at)
+        (cond ;; versions:
+              ;; - PROJECT-NAME
+              ;;     ^
+              ((not at)
+               (list (make-instance 'project-name-context
+                                    :location location
+                                    :prefix   thing)))
+
+              ;; versions:
+              ;; - PROJECT-NAME@…
+              ;;     ^
+              ((sloc:location< position (sloc::adjust (sloc:start location) :offset at))
+               (list (make-instance 'project-name-context
+                                    :location location
+                                    :prefix   (string-trim " " (subseq thing 0 at)))))
+
+              ;; versions:
+              ;; - PROJECT-NAME@VERSION-NAME
+              ;;                    ^
+              (t
+               (break)
+               (list (make-instance 'project-version-context
+                                    :location location
+                                    :project-name (string-trim " " (subseq thing 0 at))
+                                    :prefix       (string-trim " " (subseq thing (min (1+ at) (length thing))))))))))))
 
 (defmethod contrib:context-contributions
     ((workspace   t)
      (document    t)
      (position    t)
      (contributor project-version-reference-context-contributor))
-  (let+ (((&values path locations)
-          (structure-path position document))
-         (thing (loop :for location :in locations
-                      :for thing = (project::object-at location (locations document))
+  (let+ (((&values path locations) (structure-path position document))
+         ((&values include location)
+          (loop :for location :in locations
+                :for thing = (project::object-at location (locations document))
+                :when (typep thing 'project::project-include)
+                :return (values thing location)))
+         (path-position (position :versions path))
+         (location (first locations))) ; TODO
 
-                      :when (stringp thing)
-                      :do (log:error location thing)
-                      :and :return thing)))
-    (when-let ((position (position :versions path)))
+    (when (eql path-position 0)
       (cond ;; versions:
-            ;; - PROJECT-NAME
+            ;; - PROJECT-NAME@VERSION-NAME
             ;;     ^
-            ((and (= position 0) (stringp thing) (not (find #\@ thing)))
+            ((and include
+                  (project::project include)
+                  (project::location-of (project::project include) (locations document))
+                  (lookup:location-in? position (project::location-of (project::project include) (locations document))))
              (list (make-instance 'project-name-context
-                                  :location (first locations)
-                                  :prefix   thing)))
+                                  :location (project::location-of (project::project include) (locations document))
+                                  :prefix   (project::project include))))
 
             ;; versions:
-            ;; - PROJECT-NAME@…
-            ;;     ^
-            ((and (= position 0) (stringp thing) (find #\@ thing))
-             (list (make-instance 'project-name-context
-                                  :location (first locations)
-                                  :prefix   (string-trim " " (subseq thing 0 (position #\@ thing))))))))))
+            ;; - PROJECT-NAME@VERSION-NAME
+            ;;                    ^
+            ((and include
+                  (project::version include)
+                  (project::location-of (project::version include) (locations document))
+                  (lookup:location-in? position (project::location-of (project::version include) (locations document))))
+             (list (make-instance 'project-version-context
+                                  :location location
+                                  :project-name (project::project include)
+                                  :prefix       (project::version include))))))))
 
 ;;; Aspect class context
 

@@ -97,11 +97,13 @@
         (lock        (bt:make-lock)))
     (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
     (unwind-protect-case ()
-        (handler-bind ((error error-policy)
+        (handler-bind ((error   error-policy)
+                       (warning error-policy)
                        (more-conditions:progress-condition
                          (make-progress-handler progress-style)))
           (lparallel:task-handler-bind
-              ((error error-policy)
+              ((error   error-policy)
+               (warning error-policy)
                (more-conditions:progress-condition
                 (lambda (condition)
                   (bt:interrupt-thread

@@ -41,10 +41,15 @@
                          (bt:interrupt-thread main-thread #'sb-thread:release-foreground))
                 (invoke-debugger condition))))))
     (lambda (condition)
-      (when (typep condition 'commands::deferred-phase-error)
-        (bt:with-recursive-lock-held (lock)
-          (format t "~A~2%" condition))
-        (continue))
+      (typecase condition
+        (commands::deferred-phase-error
+         (bt:with-recursive-lock-held (lock)
+           (format t "~A~2%" condition))
+         (continue))
+        (warning
+         (bt:with-recursive-lock-held (lock)
+           (pretty-print-condition condition *error-output*))
+         (muffle-warning)))
 
       (log:info "~@<Handling ~A~@[ (caused by ~A)~]:~@:_~A~@:>"
                 (type-of condition)

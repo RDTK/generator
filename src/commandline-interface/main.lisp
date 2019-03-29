@@ -6,11 +6,14 @@
 
 (cl:in-package #:jenkins.project.commandline-interface)
 
+(defun pretty-print-condition (condition stream)
+  (format stream "~@<~A~@:>~2%" condition))
+
 (defun make-error-policy (policy &key (lock (bt:make-recursive-lock "output and debug"))
                                       debug? fail)
   (let+ (((&flet flame (condition &key (debug? debug?))
             (bt:with-recursive-lock-held (lock)
-              (format *error-output* "~@<~A~@:>~2%" condition)
+              (pretty-print-condition condition *error-output*)
               (when debug?
                 #+sbcl (sb-debug:print-backtrace)))))
          ;; Specific actions.
@@ -73,7 +76,7 @@
          (lock       (bt:make-recursive-lock "output and debug"))
          ((&flet die (condition &optional usage? context)
             (bt:with-recursive-lock-held (lock)
-              (format *error-output* "~@<~A~@:>~2%" condition)
+              (pretty-print-condition condition *error-output*)
               (when debugging?
                 #+sbcl (sb-debug:print-backtrace))
               (if usage?

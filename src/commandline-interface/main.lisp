@@ -59,7 +59,7 @@
 
 (defun main ()
   (log:config :thread :warn)
-  (choose-default-progress-style)
+  (adapt-configuration-for-terminal)
 
   (let+ ((arguments (uiop:command-line-arguments))
          ((&flet execute-command-and-quit (code command &rest args)

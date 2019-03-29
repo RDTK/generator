@@ -195,18 +195,22 @@
     (commandline:map-commandline-options
      #'set-value "global" arguments :stop-at-positional? t)))
 
+;;; Terminal setup
+
 (defun (setf default-progress-style) (new-value)
   (reinitialize-instance (options:find-option
                           '("global" "progress-style") *schema*)
                          :default new-value))
 
-(defun choose-default-progress-style (&key
-                                      (standard-output *standard-output*)
-                                      (error-output    *error-output*)
-                                      (terminal-type   (uiop:getenv "TERM")))
-  ;; Default to "one-line" progress style when apparently running
-  ;; interactively.
-  (when (and (interactive-stream-p standard-output)
-             (interactive-stream-p error-output)
-             (not (equal terminal-type "dumb")))
-    (setf (default-progress-style) :one-line)))
+(defun adapt-configuration-for-terminal (&key
+                                         (standard-output *standard-output*)
+                                         (error-output    *error-output*)
+                                         (terminal-type   (uiop:getenv "TERM")))
+  (let ((interactive? (and (interactive-stream-p standard-output)
+                           (interactive-stream-p error-output)))
+        (smart?       (not (equal terminal-type "dumb"))))
+    ;; Change defaults to "one-line" progress style when apparently
+    ;; running interactively.
+    (when (and interactive? smart?)
+      (setf (default-progress-style) :one-line))
+    (and interactive? smart?)))

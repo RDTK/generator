@@ -13,6 +13,15 @@
 
   The build generator is a program for generating [[jenkins][Jenkins]] jobs (and other things) from declarative recipes describing software projects, software systems (and other things).
 
+* Obtaining a Build Generator Binary
+
+  One way to obtain a build generator binary is [[*Building][building from source]].
+  Furthermore, the following pre-built binaries are available:
+
+  + Binaries for released versions can be downloaded in the [[https://github.com/rdtk/generator/releases]["Releases" section of the GitHub project]].
+
+  + Binaries for the master version can be downloaded from the [[https://jenkins-cse.bob.ci.cit-ec.net/view/build-generator-nightly-ci-docker/job/build-generator-master-ci-docker-build-generator-nightly][continous integration server]].
+
 * Dependencies
 
   + Common Lisp Implementation :: At the moment, the code is almost but not quite portable and can only be used with the [[sbcl][SBCL]] implementation of Common Lisp.

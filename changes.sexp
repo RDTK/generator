@@ -1,5 +1,10 @@
 ((:release "0.28" nil
 
+  (:incompatible-change
+   "The legacy syntax for including project versions in distribution
+    recipes, i.e." (:verb "[ \"NAME\", \"VERSION₁\", \"VERSION₂\", … ]")
+   ", is no longer recognized.")
+
   (:bugfix
    "Analysis results for archives are now cached in some cases that
     should have worked but did not.")

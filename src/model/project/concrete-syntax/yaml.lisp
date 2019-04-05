@@ -35,24 +35,7 @@
 (defun parse-project-include-spec (spec)
   (optima:match spec
 
-    ;; Legacy syntax variants
-    ((list* (and name (type string)) versions)
-     (flet ((parse-version (spec)
-              (optima:match spec
-                ((type string)
-                 (cons spec '()))
-                ((list (and name (type string))
-                       (and parameters (type list)))
-                 (cons name parameters))
-                (otherwise
-                 (object-error
-                  (list (list spec "specified here" :error))
-                  "~@<Version is neither a string nor a list of a ~
-                   string followed by a dictionary of ~
-                   parameters.~@:>")))))
-       (values name (map 'list #'parse-version versions))))
-
-    ;; Current syntax for a single version
+    ;; Syntax for a single version
     ((optima:guard (type string) (position #\@ spec)) ; TODO check length
      (let* ((index   (position #\@ spec))
             (name    (string-right-trim '(#\Space) (subseq spec 0 index)))
@@ -70,7 +53,7 @@
                         (:parameters nil list)))
      (values name (list (cons version parameters))))
 
-    ;; Current syntax for multiple versions
+    ;; Syntax for multiple versions
     ((and (assoc :name     (and name     (type string)))
           (assoc :versions (and versions (type list))))
      (check-keys spec '((:name t string) (:versions t list)))

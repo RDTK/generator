@@ -1,6 +1,6 @@
 ;;;; model.lisp --- Model for value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -158,6 +158,36 @@
                (t
                 `(:list ,@(mapcar #'rec thing))))))
     (rec raw)))
+
+(defun value-unparse (value)
+  (labels ((rec (expr)
+             (optima:match expr
+               ((type (or real boolean))
+                expr)
+
+               ((type string)
+                (ppcre:regex-replace "\\${" expr "\\${"))
+
+               ((list* (and kind (or :ref :ref/list))
+                       name (or nil (list :default default)))
+                (format nil "~C{~A~@[|~A~]}"
+                        (case kind
+                          (:ref      #\$)
+                          (:ref/list #\@))
+                        (rec name)
+                        (when default (rec default))))
+
+               ((list* :list elements)
+                (map 'list #'rec elements))
+
+               ((list* :alist elements)
+                (map 'list (lambda+ ((car . cdr))
+                             (cons car (rec cdr)))
+                     elements))
+
+               ((list* elements)
+                (format nil "~{~A~}" (map 'list #'rec elements))))))
+    (rec value)))
 
 (defun value-list (&rest elements)
   (mapcar #'value-parse elements))

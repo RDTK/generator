@@ -208,6 +208,7 @@
                  :depends-on ("test")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "model")
                               (:file     "grammar")
                               (:file     "evaluation")))
 

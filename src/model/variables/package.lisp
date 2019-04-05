@@ -40,6 +40,7 @@
    #:value-cons
    #:value-acons
    #:value-parse
+   #:value-unparse
 
    #:to-value)
 

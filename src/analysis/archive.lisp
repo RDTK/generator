@@ -32,33 +32,57 @@
 
 (defconstant +archive-hash-length-limit+ 65536)
 
-(macrolet ((define-download-function (name &body body)
-             `(defun ,name (url output-file &rest args &key username password)
-                (declare (ignore username password))
-                (util:with-retries (usocket:ns-try-again-condition :limit 3)
-                  (util:with-retry-restart ("Retry downloading ~A" url)
-                    (apply #'call-with-download-stream
-                           (lambda (stream content-length)
-                             (declare (ignore content-length))
-                             ,@body)
-                           url args))))))
+(defun digest-stream-head (url input-stream &key content-length output-stream)
 
-  (define-download-function download-file/hash-head
-      ;; In order to download the file and obtain the hash in a single
-      ;; pass, copy the first `+archive-hash-length-limit+' bytes from
-      ;; STREAM into both, OUTPUT and DIGEST. Then copy the remainder
-      ;; into OUTPUT only.
-      (let ((digest (ironclad:make-digesting-stream :sha512)))
-        (with-output-to-file
-            (output output-file :element-type '(unsigned-byte 8))
-          (copy-stream stream (make-broadcast-stream output digest)
-                       :end +archive-hash-length-limit+)
-          (copy-stream stream output))
-        (ironclad:produce-digest digest)))
+  (log:debug "~@<Content length for ~A is ~:[not known~;~:*~:D~]~@:>"
+             url content-length)
+  (let* ((digest     (ironclad:make-digesting-stream :sha512))
+         (end        (if content-length
+                         (min content-length +archive-hash-length-limit+)
+                         +archive-hash-length-limit+))
+         (end-length (integer-length end)))
+    ;; Feed length of content length and content length to digest.
+    (write-byte end-length digest)
+    (loop :for i :below end-length :by 8
+          :for octet = (ldb (byte 8 i) end)
+          :do (write-byte octet digest))
+    ;; Feed beginning of content to digest.
+    (let ((stream (if output-stream
+                      (make-broadcast-stream output-stream digest)
+                      digest)))
+      (copy-stream input-stream stream :end end))
+    (ironclad:produce-digest digest)))
 
-  (define-download-function download-file
-    (with-output-to-file
-        (output output-file :element-type '(unsigned-byte 8))
+(macrolet ((define-download-function
+               (name (stream-var &optional content-length-var) &body body)
+             (let+ (((&values content-length-var content-length-used?)
+                     (if content-length-var
+                         (values content-length-var t)
+                         (values (gensym)           nil))))
+               `(defun ,name (url output-file &rest args &key username password)
+                  (declare (ignore username password))
+                  (util:with-retries (usocket:ns-try-again-condition :limit 3)
+                    (util:with-retry-restart ("Retry downloading ~A" url)
+                      (apply #'call-with-download-stream
+                             (lambda (,stream-var ,content-length-var)
+                               ,@(when (not content-length-used?)
+                                   `((declare (ignore ,content-length-var))))
+                               ,@body)
+                             url args)))))))
+
+  (define-download-function download-file/hash-head (stream content-length)
+    ;; In order to download the file and obtain the hash in a single
+    ;; pass, copy the first `+archive-hash-length-limit+' bytes from
+    ;; STREAM into both, OUTPUT and DIGEST. Then copy the remainder
+    ;; into OUTPUT only.
+    (with-output-to-file (output output-file :element-type '(unsigned-byte 8))
+      (prog1
+          (digest-stream-head url stream :content-length content-length
+                                         :output-stream  output)
+        (copy-stream stream output))))
+
+  (define-download-function download-file (stream)
+    (with-output-to-file (output output-file :element-type '(unsigned-byte 8))
       (copy-stream stream output))))
 
 (defun archive-remote-hash (url &rest args &key username password)
@@ -69,21 +93,8 @@
       (util:with-retry-restart ("Retry obtaining hash for ~A" url)
         (apply #'call-with-download-stream
                (lambda (stream content-length)
-                 (let ((digest (ironclad:make-digesting-stream :sha512))
-                       (end    (if content-length
-                                   (min content-length +archive-hash-length-limit+)
-                                   +archive-hash-length-limit+)))
-                   ;; If known, feed content length to digest.
-                   (log:debug "~@<Content length for ~A is ~:[not ~
-                               known~;~:*~:D~]~@:>"
-                              url content-length)
-                   (when content-length
-                     (loop :for i :below (integer-length content-length) :by 8
-                           :for octet = (ldb (byte 8 i) content-length)
-                           :do (write-byte octet digest)))
-                   ;; Feed beginning of content to digest.
-                   (copy-stream stream digest :end end)
-                   (ironclad:produce-digest digest)))
+                 (digest-stream-head
+                  url stream :content-length content-length))
                url args)))))
 
 (defun download-and-extract (source temp-directory

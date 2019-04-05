@@ -1,5 +1,9 @@
 ((:release "0.28" nil
 
+  (:bugfix
+   "Analysis results for archives are now cached in some cases that
+    should have worked but did not.")
+
   (:enhancement
    "Printing of error and warning messages has been improved:"
    (:ul

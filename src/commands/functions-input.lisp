@@ -333,7 +333,7 @@
              (iter (for (name . value) in overwrites)
                    (log:info "~@<In ~A, setting ~S to ~S.~@:>"
                              distribution name value)
-                   (setf (var:lookup distribution name) value))
+                   (setf (var:lookup distribution name) (var:value-unparse value)))
              (let ((recipe-maintainers
                     (project:ensure-persons!
                      (jenkins.analysis::parse-people-list

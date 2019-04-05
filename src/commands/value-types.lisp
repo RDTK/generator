@@ -1,6 +1,6 @@
 ;;;; value-types.lisp --- Option value types used in the commands module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -32,7 +32,7 @@
                         (let ((json:*json-identifier-name-to-lisp* #'string-upcase))
                           (json:decode-json-from-string value/raw))
                         value/raw)))
-    (cons name value)))
+    (var:value-cons name value)))
 
 (defmethod configuration.options:value->string-using-type
     ((schema-item t)
@@ -48,4 +48,4 @@
                         (let ((json:*lisp-identifier-name-to-json*
                                #'string-downcase))
                           (json:encode-json-to-string value))))))
-    (format nil "~(~A~)=~A" variable value/json)))
+    (format nil "~(~A~)=~A" variable (var:value-unparse value/json))))

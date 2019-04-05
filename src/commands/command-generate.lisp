@@ -111,9 +111,10 @@
          (distributions           (locate-and-load
                                    :distribution distributions
                                    (rcurry #'project:load-distribution/yaml
-                                           :generator-version generator-version)))
-         (distributions           (as-phase (:overwrites)
-                                    (set-overwrites distributions overwrites)))
+                                           :generator-version generator-version
+                                           :overwrites        overwrites)))
+         (distributions           (as-phase (:parse-persons)
+                                    (parse-distribution-persons distributions)))
          ;; Projects
          (projects-files+versions (as-phase (:locate/project)
                                     (locate-projects distributions repository)))

@@ -321,24 +321,17 @@
 
 ;;; Distributions
 
-(defun set-overwrites (distributions overwrites)
-  (with-sequence-progress (:overwrites distributions)
-    (map (class-of distributions)
-         (lambda (distribution)
-           (progress "~/print-items:format-print-items/"
-                     (print-items:print-items distribution))
-           (with-simple-restart
-               (continue "~@<Do not overwrite variables in ~S.~@:>"
-                         distribution)
-             (iter (for (name . value) in overwrites)
-                   (log:info "~@<In ~A, setting ~S to ~S.~@:>"
-                             distribution name value)
-                   (setf (var:lookup distribution name) (var:value-unparse value)))
-             (let ((recipe-maintainers
-                    (project:ensure-persons!
-                     (jenkins.analysis::parse-people-list
-                      (var:value/cast distribution :recipe.maintainer '())))))
-               (reinitialize-instance
-                distribution :persons `(:recipe.maintainer ,recipe-maintainers))
-               distribution)))
-         distributions)))
+(defun parse-distribution-persons (distributions)
+  (map (class-of distributions)
+       (lambda (distribution)
+         (with-simple-restart
+             (continue "~@<Do not overwrite variables in ~S.~@:>"
+                       distribution)
+           (let ((recipe-maintainers
+                   (project:ensure-persons!
+                    (jenkins.analysis::parse-people-list
+                     (var:value/cast distribution :recipe.maintainer '())))))
+             (reinitialize-instance
+              distribution :persons `(:recipe.maintainer ,recipe-maintainers))
+             distribution)))
+       distributions))

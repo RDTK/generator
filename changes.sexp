@@ -5,6 +5,21 @@
     recipes, i.e." (:verb "[ \"NAME\", \"VERSION₁\", \"VERSION₂\", … ]")
    ", is no longer recognized.")
 
+  (:enhancement
+   "Variable assignments specified on the commandline
+    using" (:verb "-D NAME=VALUE") "are now taken into account when
+    resolving project version includes in distribution recipes."
+   "That is, a project version include in a distribution recipe like
+    the following"
+   (:verb
+    "variables:
+  foo-tag: '1.1'
+
+versions:
+- project@v${foo-tag}")
+   "is now affected by a" (:verb "-D foo-tag=\"1.2\"") "commandline
+    option.")
+
   (:bugfix
    "Analysis results for archives are now cached in some cases that
     should have worked but did not.")

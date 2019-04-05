@@ -368,9 +368,11 @@
                                        (:variables nil list)
                                        (:versions  t   list)
                                        :catalog))
-    (spec (name :pathname) repository generator-version)
-  (let+ ((variables (var:value-acons :__catalog (lookup :catalog)
-                                     (process-variables (lookup :variables))))
+    (spec (name :pathname) repository generator-version overwrites)
+  (let+ ((variables (var:value-acons
+                     :__catalog (lookup :catalog)
+                     (append overwrites
+                             (process-variables (lookup :variables)))))
          ;; We allow using variables defined directly in the
          ;; distribution recipe to be used in project version
          ;; expressions.
@@ -399,8 +401,8 @@
                      (distribution (with-uniqueness-check
                                        (includes-seen name spec)
                                      (resolve-distribution-dependency
-                                      name repository
-                                      :generator-version generator-version))))
+                                      name repository generator-version
+                                      :overwrites overwrites))))
                 (list (make-instance 'distribution-include
                                      :distribution distribution
                                      :variables    parameters))))))
@@ -440,6 +442,7 @@
                                               :version   version
                                               :variables parameters))
                        versions)))))))
+    ; (jenkins.model.variables::debug-container context)
     (make-instance
      'distribution-spec
      :name            name
@@ -457,22 +460,28 @@
 
 (defvar *distribution-load-stack* '())
 
-(defun find-or-load-distribution (name pathname repository generator-version)
+(defun find-or-load-distribution (name pathname repository generator-version
+                                  &key overwrites)
   (ensure-distribution
    name (lambda ()
           (loading-recipe (*distribution-load-stack* name)
             (load-one-distribution/yaml
              pathname
              :repository        repository
-             :generator-version generator-version)))))
+             :generator-version generator-version
+             :overwrites        overwrites)))))
 
-(defun resolve-distribution-dependency (name repository &key generator-version)
+(defun resolve-distribution-dependency (name repository generator-version
+                                        &key overwrites)
   (let ((pathname (recipe-path repository :distribution name)))
-    (find-or-load-distribution name pathname repository generator-version)))
+    (find-or-load-distribution name pathname repository generator-version
+                               :overwrites overwrites)))
 
 (defun load-distribution/yaml (pathname
                                &key
                                (repository (missing-required-argument :repository))
-                               generator-version)
+                               generator-version
+                               overwrites)
   (let ((name (pathname-name pathname)))
-    (find-or-load-distribution name pathname repository generator-version)))
+    (find-or-load-distribution name pathname repository generator-version
+                               :overwrites overwrites)))

@@ -266,6 +266,11 @@
 
             :initial-value (multiple-value-list (var:direct-lookup thing name))))))
 
+(defmethod var:value ((thing version) (name (eql :repository)) &optional default)
+  (declare (ignore default))
+  (multiple-value-call #'apply-replacements
+    :url-replacements (call-next-method)))
+
 (defmethod var:variables append ((thing version))
   (var:variables (model:specification thing)))
 

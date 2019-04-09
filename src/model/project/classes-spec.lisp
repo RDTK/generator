@@ -233,6 +233,21 @@
 (defmethod model:name-variable ((thing version-spec))
   :version-name)
 
+(defvar *global-stuff*
+  (make-instance 'var:direct-variables-mixin))
+
+(defun apply-replacements (variable value defaulted?)
+  (let ((rules (var:value *global-stuff* variable '())))
+    (values (reduce (lambda+ (value (pattern template))
+                      (ppcre:regex-replace pattern value template))
+                    rules :initial-value value)
+            defaulted?)))
+
+(defmethod var:value ((thing version-spec) (name (eql :repository)) &optional default)
+  (declare (ignore default))
+  (multiple-value-call #'apply-replacements
+    :url-replacements (call-next-method)))
+
 (defmethod aspects:aspects ((thing version-spec))
   (aspects:aspects (model:parent thing)))
 

@@ -9,6 +9,8 @@
 (defun generate-load (distributions mode overwrites
                       &key generator-version
                            cache-directory)
+  (reinitialize-instance project::*global-stuff* :variables overwrites)
+
   (let+ (((&values repository distributions)
           (let ((repository (derive-root-repository (first distributions) mode
                                                     :cache-directory cache-directory)))

@@ -58,7 +58,7 @@
            (map 'list #'make-item '(:minimum-generator-version
                                     :name :conditions :variables))))))
 
-;;;
+;;; Template name contributor
 
 (defclass template-name-completion-contributor () ())
 
@@ -70,11 +70,11 @@
   (let+ (((&accessors-r/o location word) context)
          (templates (templates workspace))
          ((&flet make-item (template)
-            (proto:make-completion-item (jenkins.model:name template)
+            (proto:make-completion-item (model:name template)
                                         :range (sloc:range location)))))
     (when (lparallel:fulfilledp templates)
       (loop :for template :in (lparallel:force templates)
-            :when (starts-with-subseq word (jenkins.model:name template ))
+            :when (starts-with-subseq word (model:name template ))
             :collect (make-item template)))))
 
 ;;; Variable name completion
@@ -82,25 +82,43 @@
 (defclass variable-name-completion-contributor ()
   ())
 
-(flet ((make-completions (context kind)
-         (let+ (((&flet make-item (variable)
-                   (let* ((name          (var:variable-info-name variable))
-                          (type          (var:variable-info-type variable))
-                          (documentation (var:variable-info-documentation variable))
-                          (title         (string-downcase name)))
-                     (proto:make-completion-item
-                      title
-                      :kind          :variable
-                      :detail        (format nil "Type: ~A " type)
-                      :documentation documentation
-                      :range         (prefix-range context)
-                      :new-text      (case kind
-                                       ((nil)                       title)
-                                       (:scalar (format nil "${~A}" title))))))))
-           (loop :for variable :in (var:all-variables)
-                    #+todo :when #+todo (starts-with-subseq
-                                         prefix (string-downcase (var:variable-info-name variable)))
-                 :collect (make-item variable)))))
+(labels ((make-new-text (kind variable-name)
+           (case kind
+             ((nil)                       variable-name)
+             (:scalar (format nil "${~A}" variable-name))
+             (:list   (format nil "@{~A}" variable-name))))
+         (make-completions (context kind)
+           (flet ((make-item (variable)
+                    (let* ((name          (var:variable-info-name variable))
+                           (type          (var:variable-info-type variable))
+                           (documentation (var:variable-info-documentation variable))
+                           (title         (string-downcase name)))
+                      (proto:make-completion-item
+                       title
+                       :kind          :variable
+                       :detail        (format nil "Type: ~A " type)
+                       :documentation documentation
+                       :range         (prefix-range context)
+                       :new-text      (make-new-text kind title)))))
+             (loop :for variable :in (var:all-variables)
+                      #+todo :when #+todo (starts-with-subseq
+                                           prefix (string-downcase (var:variable-info-name variable)))
+                   :collect (make-item variable))))
+         (make-next-value-item (context default?)
+           (let* ((kind          (kind context))
+                  (documentation "The next value of this variable")
+                  (title         (format nil "next-value~@[~A~]"
+                                         (cond ((not default?)    nil)
+                                               ((eq kind :scalar) "|")
+                                               ((eq kind :list)   "|[]"))))
+                  (detail        (format nil "~:[without~;with~] default" default?)))
+             (proto:make-completion-item
+              title
+              :kind          :variable
+              :detail        detail
+              :documentation documentation
+              :range         (prefix-range context)
+              :new-text      (make-new-text kind title)))))
 
   (defmethod contrib:completion-contributions
       ((workspace   t)
@@ -114,7 +132,11 @@
        (document    t)
        (context     variable-reference-context)
        (contributor variable-name-completion-contributor))
-    (make-completions context :scalar)))
+    (let ((kind (kind context)))
+      (list* (make-next-value-item context nil)
+             (make-next-value-item context t)
+             '() ; (make-completions context kind)
+             ))))
 
 ;;; Variable value completion
 
@@ -185,7 +207,7 @@
         (projects (projects (workspace document)))) ; TODO we should get the workspace directly
     (when (lparallel:fulfilledp projects)
       (mapcan (lambda (project)
-                (let ((name (jenkins.model:name project)))
+                (let ((name (model:name project)))
                   (when (starts-with-subseq prefix name)
                     (list (proto:make-completion-item
                            name
@@ -217,14 +239,14 @@
                         result)))))
         ;; TODO workspace should provide project lookup
         (map nil (lambda (project)
-                   (when (string= project-name (jenkins.model:name project))
+                   (when (string= project-name (model:name project))
                      ;; TODO does not cover +branches+, tags, commits and patterns
                      (ignore-errors
                       (map nil (rcurry #'consider "branch version")
                            (var:value/cast project :branches)))
                      (map nil (lambda (version)
                                 (consider
-                                 (jenkins.model:name version)
+                                 (model:name version)
                                  "project version"
                                  :documentation
                                  (lambda ()
@@ -234,7 +256,7 @@
              (lparallel:force projects))
         result))))
 
-;;;
+;;; Aspect class completion
 
 (defclass aspect-class-completion-contributor () ())
 

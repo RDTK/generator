@@ -129,13 +129,18 @@
                                 :prefix       (string leaf)
                                 :prefix-range (sloc:range location))))
 
+          ;; NAME: … @{NAME} …
           ;; NAME: … ${NAME} …
           ;;           ^
           ((stringp leaf)
            (when-let* ((text     (sloc:content location))
                        (base     (sloc:index (sloc:start location)))
                        (relative (- (sloc:index position) base))
-                       (start    (search "${" text :end2 (1+ relative) :from-end t))
+                       (start    (let ((start$ (search "${" text :end2 (1+ relative) :from-end t))
+                                       (start@ (search "@{" text :end2 (1+ relative) :from-end t)))
+                                   (cond ((and start$ start@) (max start$ start@))
+                                         (start$)
+                                         (start@))))
                        (end      (if-let ((end (search "}" text :start2 start)))
                                    (1+ end)
                                    (length text))))
@@ -145,7 +150,9 @@
                                   :prefix-range (sloc:make-range
                                                  (+ base start) (+ base end)
                                                  (lsp:text document))
-                                  :kind         :scalar)))))))
+                                  :kind         (case (aref text start)
+                                                  (#\$ :scalar) ; TODO store this while searching
+                                                  (#\@ :list)))))))))
 
 ;;;
 

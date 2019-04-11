@@ -9,7 +9,10 @@
 (defclass hack-distribution (distribution-input-mixin
                              mode-mixin
                              output-directory-mixin)
-  ()
+  ((bare? :initarg  :bare?
+          :type     boolean
+          :reader   bare?
+          :initform nil))
   (:documentation
    "Make distribution(s) available for development in local workspaces."))
 
@@ -20,11 +23,12 @@
     (*command-schema* "hack-distribution")
   (&rest                       "distributions"    "DISTRIBUTION-RECIPE" t)
 
-  (("--output-directory" "-o") "output-directory" "DIRECTORY"           t))
+  (("--output-directory" "-o") "output-directory" "DIRECTORY"           t)
+  (("--bare")                  "bare?"))
 
 (defmethod command-execute ((command hack-distribution))
   (let+ ((generator-version (generator-version))
-         ((&accessors-r/o distributions mode overwrites output-directory)
+         ((&accessors-r/o distributions mode overwrites output-directory bare?)
           command)
          ;; Load templates, distributions and projects.
          ((&values distributions projects)
@@ -52,7 +56,8 @@
                    (with-simple-restart
                        (continue "~@<Skip project ~A.~@:>" project)
                      (access-project project output-directory
-                                     :cache-directory cache-directory)))))
+                                     :cache-directory cache-directory
+                                     :bare?           bare?)))))
              :parts most-positive-fixnum projects)))))
     ;; Report unresolved platform requirements.
     (as-phase (:check-platform-requirements)
@@ -67,22 +72,36 @@
 
 ;;; Utilities
 
-(defun output-directory-for-project (name version output-directory)
-  (merge-pathnames (make-pathname :directory (list :relative name version))
-                   output-directory))
+(defun output-directory-for-project (output-directory name &optional version)
+  (let ((directory `(:relative ,name ,@(when version `(,version)))))
+    (merge-pathnames (make-pathname :directory directory) output-directory)))
 
-(defun access-project (project output-directory &key cache-directory)
+(defun access-project (project output-directory &key cache-directory bare?)
   (log:debug "~@<Retrieving ~A into ~S~@:>"
              project output-directory)
   (let ((groups (group-project-versions-for-analysis project)))
     (mapc (lambda+ ((info . versions))
             (when-let ((repository (getf info :repository)))
               (let ((other-info (remove-from-plist info :repository)))
-                (mapc (rcurry #'access-project-version
-                              repository other-info output-directory
-                              :cache-directory cache-directory)
-                      versions))))
+                (if bare?
+                    (access-project-repository
+                     project repository other-info output-directory
+                     :cache-directory cache-directory)
+                    (mapc (rcurry #'access-project-version
+                                  repository other-info output-directory
+                                  :cache-directory cache-directory)
+                          versions)))))
           groups)))
+
+(defun access-project-repository (project repository info output-directory
+                                  &key cache-directory)
+  (let* ((project-name (model:name project))
+         (directory    (output-directory-for-project
+                        output-directory project-name)))
+    (apply #'access-source (puri:uri repository) :auto directory
+           :cache-directory cache-directory
+           :bare?           t
+           info)))
 
 (defun access-project-version (version repository info output-directory
                                &key cache-directory)
@@ -90,7 +109,7 @@
          (version-name (model:name version))
          (info*         (resolve-analysis-variables version)) ; TODO do we need both infos?
          (directory    (output-directory-for-project
-                        project-name version-name output-directory)))
+                        output-directory project-name version-name)))
     (apply #'access-source (puri:uri repository) :auto directory
            :cache-directory cache-directory
            (append info info*))))
@@ -111,20 +130,23 @@
                           (kind   (eql :git))
                           (target pathname)
                           &rest args &key
-                          cache-directory)
-  (let+ (((&flet find-commitish (version)
-            (or (when-let ((commit (getf version :commit)))
-                  (list :commit commit))
-                (when-let ((branch (or (getf version :tag)
-                                       (getf version :branch))))
-                  (list :branch branch))
-                (error "~@<No commit, tag or branch specified in ~
-                        ~S~@:>"
-                       version)))))
-    ;; TODO sub-directory
-    (apply #'build-generator.analysis::clone-git-repository/maybe-cached
-           source target :cache-directory cache-directory
-           (find-commitish (remove-from-plist args :cache-directory)))))
+                          cache-directory bare?)
+  (if bare?
+      (build-generator.analysis::clone-git-repository/maybe-cached
+       source target :cache-directory cache-directory :bare? t)
+      (let+ (((&flet find-commitish (version)
+                (or (when-let ((commit (getf version :commit)))
+                      (list :commit commit))
+                    (when-let ((branch (or (getf version :tag)
+                                           (getf version :branch))))
+                      (list :branch branch))
+                    (error "~@<No commit, tag or branch specified in ~
+                            ~S~@:>"
+                           version)))))
+        ;; TODO sub-directory
+        (apply #'build-generator.analysis::clone-git-repository/maybe-cached
+               source target :cache-directory cache-directory
+               (find-commitish (remove-from-plist args :cache-directory))))))
 
 (defmethod access-source ((source puri:uri)
                           (kind   (eql :svn))

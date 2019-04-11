@@ -42,7 +42,8 @@
                              branch
                              commit
                              mirror?
-                             history-limit)
+                             history-limit
+                             bare?)
   (assert (not (and branch commit)))
   (let ((repository/string (format-git-url source username password)))
     (with-trivial-progress (:clone "~A ~A -> ~A"
@@ -52,6 +53,7 @@
                  ,@(when branch        `("--branch" ,branch))
                  ,@(when mirror?       '("--mirror"))
                  ,@(when history-limit `("--depth" ,history-limit))
+                 ,@(when bare?         '("--bare"))
                  ,repository/string ,clone-directory)
        "/")
       (when commit
@@ -141,6 +143,7 @@
                                     branch
                                     commit
                                     history-limit
+                                    bare?
                                     cache-directory)
   (let+ (((&values cache-sub-directory cache-url)
           (make-git-cache-directory source username cache-directory)))
@@ -157,7 +160,8 @@
     (clone-git-repository cache-url clone-directory
                           :branch        branch
                           :commit        commit
-                          :history-limit history-limit)))
+                          :history-limit history-limit
+                          :bare?         bare?)))
 
 (defun clone-git-repository/maybe-cached (source clone-directory
                                           &rest args &key

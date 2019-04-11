@@ -23,10 +23,14 @@
     (*command-schema* "hack-distribution")
   (&rest                       "distributions"    "DISTRIBUTION-RECIPE" t)
 
+  (("--set" "-D")              "overwrites"       "VARIABLE-NAME=VALUE")
+
   (("--output-directory" "-o") "output-directory" "DIRECTORY"           t)
   (("--bare")                  "bare?"))
 
 (defmethod command-execute ((command hack-distribution))
+  (reinitialize-instance project::*global-stuff* :variables (overwrites command))
+
   (let+ ((generator-version (generator-version))
          ((&accessors-r/o distributions mode overwrites output-directory bare?)
           command)
@@ -73,7 +77,8 @@
 ;;; Utilities
 
 (defun output-directory-for-project (output-directory name &optional version)
-  (let ((directory `(:relative ,name ,@(when version `(,version)))))
+  (let ((directory `(:relative ,@(ensure-list name)
+                               ,@(when version (ensure-list version)))))
     (merge-pathnames (make-pathname :directory directory) output-directory)))
 
 (defun access-project (project output-directory &key cache-directory bare?)
@@ -95,7 +100,11 @@
 
 (defun access-project-repository (project repository info output-directory
                                   &key cache-directory)
-  (let* ((project-name (model:name project))
+  (let* ((project-name (split-sequence:split-sequence
+                        #\/ (multiple-value-call #'project::apply-replacements
+                              :output-replacements
+                              (var:value project :repository
+                                         (model:name project)))))
          (directory    (output-directory-for-project
                         output-directory project-name)))
     (apply #'access-source (puri:uri repository) :auto directory

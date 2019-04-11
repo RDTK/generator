@@ -1,6 +1,6 @@
 ;;;; evaluation.lisp --- Evaluation of value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -165,7 +165,7 @@
     (if defined?
         (with-augmented-trace (name thing raw)
           (with-expansion-stack (name thing)
-            (expand (cdr raw) (make-lookup raw/next-values))))
+            (values (expand (cdr raw) (make-lookup raw/next-values)) nil)))
         (values (if (functionp default) (funcall default) default) t)))) ; TODO function business
 
 (defmethod evaluate ((thing t) (expression t))

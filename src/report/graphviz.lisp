@@ -24,7 +24,7 @@
   (root nil))
 
 (defmethod graph-object-attributes append ((graph  jenkins-dependencies)
-                                           (object jenkins.model:named-mixin))
+                                           (object model:named-mixin))
   (let ((label `(:html ()
                   (:table ((:border "0"))
                     (:tr ()
@@ -59,7 +59,7 @@
 
 (defmethod cl-dot:graph-object-points-to ((graph  jenkins-dependencies)
                                           (object project:distribution))
-  (jenkins.model.project:versions object))
+  (project:versions object))
 
 (flet ((dependency (spec target)
          (let ((label (format nil "~:[?~:;~:*~{~{~(~A~):~A~^:~{~A~^.~}~}~^\\n~}~]"

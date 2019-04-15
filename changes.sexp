@@ -25,6 +25,28 @@ versions:
     should have worked but did not.")
 
   (:enhancement
+   "The variable" (:verb "platform-provides") "can now be used to
+    describe system packages in terms of provided features, thus
+    interfacing with the automatically analyzed or manually declared
+    required features of projects."
+   "For example, the following entry could be used to describe the
+    Protocol Buffers C++ Library:"
+   (:verb
+    "platform-provides:
+- name: protocol-buffers-cpp-library
+  variables:
+    extra-provides:
+    - nature: cmake
+      target: ProtocolBuffers
+    platform-requires:
+      ubuntu:
+        packages:
+        - libprotobuf-dev")
+   "A project version requiring" (:verb "cmake:ProtocolBuffers")
+   "would then automatically gain" (:verb "libprotobuf-dev") "as a
+    platform requirement.")
+
+  (:enhancement
    "Printing of error and warning messages has been improved:"
    (:ul
     ("Error and warning messages are now printed in color if it makes

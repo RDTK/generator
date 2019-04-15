@@ -1,4 +1,4 @@
-((:release "0.28" nil
+((:release "0.28" "2019-04-15"
 
   (:incompatible-change
    "The legacy syntax for including project versions in distribution

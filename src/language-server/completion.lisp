@@ -135,8 +135,7 @@
     (let ((kind (kind context)))
       (list* (make-next-value-item context nil)
              (make-next-value-item context t)
-             '() ; (make-completions context kind)
-             ))))
+             (make-completions context kind)))))
 
 ;;; Variable value completion
 

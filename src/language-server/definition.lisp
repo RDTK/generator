@@ -16,14 +16,13 @@
      (document    build-generator-document)
      (context     template-name-context)
      (contributor template-definition-contributor))
-  (log:error (word context))
   (when-let* ((name      (word context))
               (templates (let ((templates (templates workspace)))
                            (when (lparallel:fulfilledp templates)
                              (lparallel:force templates))))
               (template  (find name templates
                                :test #'string= :key #'jenkins.model:name))
-              (location  (jenkins.model.project::location-of template)))
+              (location  (project::location-of template)))
     (list location)))
 
 ;;; `project-definition-contributor'
@@ -42,5 +41,5 @@
                             (lparallel:force projects))))
               (project  (find name projects
                               :test #'string= :key #'jenkins.model:name))
-              (location (jenkins.model.project::location-of project)))
+              (location (project::location-of project)))
     (list location)))

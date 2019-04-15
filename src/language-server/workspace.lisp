@@ -13,6 +13,9 @@
   ((%repository        :initarg  :repository
                        :reader   repository
                        :writer   (setf %repository))
+   ;; Documents by kind
+   (%project-documents :accessor project-documents
+                       :initform '())
    ;;
    (%templates         :accessor %templates
                        :initform nil)
@@ -33,25 +36,25 @@
   (declare (ignore root-uri root-path repository))
   (when (and (or root-uri-supplied? root-path-supplied?)
              (not repository-supplied?))
-    (setf (%repository instance)
-          (jenkins.model.project:make-populated-recipe-repository
-           (lsp:root-directory instance) "toolkit"))))
+    (setf (%repository instance) (project:make-populated-recipe-repository
+                                  (lsp:root-directory instance) "toolkit"))))
+
+
 
 ;;; Templates
 
 (defmethod load-templates ((container workspace))
-  (let* ((jenkins.model.project::*templates* (make-hash-table :test #'equal))
-         (jenkins.model.project::*templates-lock* (bt:make-lock))
+  (let* ((project::*templates* (make-hash-table :test #'equal))
+         (project::*templates-lock* (bt:make-lock))
          (repository (repository container))
-         (pattern    (jenkins.model.project:recipe-path
-                      repository :template :wild)))
+         (pattern    (project:recipe-path repository :template :wild)))
     (log:error "Background-loading templates from ~A" pattern)
     (mappend (lambda (filename)
                (with-simple-restart (continue "Skip")
-                 (list (jenkins.model.project:load-template/yaml
+                 (list (project:load-template/yaml
                         filename :repository repository))))
-         (directory pattern))
-    jenkins.model.project::*templates*))
+             (directory pattern))
+    project::*templates*))
 
 (defmethod ensure-templates ((container workspace))
   (loop :for templates = (%templates container)
@@ -103,6 +106,7 @@
                                     (load-projects container)))))))
 
 (defmethod projects ((container workspace))
+  ;; TODO merge with (map 'list #'object <project-documents>)
   (ensure-projects container))
 
 ;;; Platform packages
@@ -157,3 +161,7 @@
                  :version   version
                  :text      text
                  :workspace container))
+
+#+todo-later (defmethod lsp:note-adopted progn ((container workspace)
+                                   (document  project-document)) ; TODO removal
+  (push document (project-documents container)))

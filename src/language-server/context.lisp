@@ -120,6 +120,7 @@
                            leaf))
               (path      (structure-path position document))
               (position* (position :variables path)))
+
     (cond ;; NAME: VALUE
           ;;   ^
           ((and (= position* 1)
@@ -154,7 +155,7 @@
                                                   (#\$ :scalar) ; TODO store this while searching
                                                   (#\@ :list)))))))))
 
-;;;
+;;; Variable value context
 
 (defclass variable-value-context (context)
   ((%variable-location :initarg :variable-location

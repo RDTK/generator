@@ -16,7 +16,6 @@
      (document    build-generator-document)
      (context     template-name-context)
      (contributor template-definition-contributor))
-  (log:error (word context))
   (when-let* ((name      (word context))
               (templates (let ((templates (templates workspace)))
                            (when (lparallel:fulfilledp templates)

@@ -13,6 +13,9 @@
   ((%repository        :initarg  :repository
                        :reader   repository
                        :writer   (setf %repository))
+   ;; Documents by kind
+   (%project-documents :accessor project-documents
+                       :initform '())
    ;;
    (%templates         :accessor %templates
                        :initform nil)
@@ -33,9 +36,8 @@
   (declare (ignore root-uri root-path repository))
   (when (and (or root-uri-supplied? root-path-supplied?)
              (not repository-supplied?))
-    (setf (%repository instance)
-          (project:make-populated-recipe-repository
-           (lsp:root-directory instance) "toolkit"))))
+    (setf (%repository instance) (project:make-populated-recipe-repository
+                                  (lsp:root-directory instance) "toolkit"))))
 
 ;;; Templates
 
@@ -49,7 +51,7 @@
                (with-simple-restart (continue "Skip")
                  (list (project:load-template/yaml
                         filename :repository repository))))
-         (directory pattern))
+             (directory pattern))
     project::*templates*))
 
 (defmethod ensure-templates ((container workspace))
@@ -102,6 +104,7 @@
                                     (load-projects container)))))))
 
 (defmethod projects ((container workspace))
+  ;; TODO merge with (map 'list #'object <project-documents>)
   (ensure-projects container))
 
 ;;; Platform packages
@@ -156,3 +159,7 @@
                  :version   version
                  :text      text
                  :workspace container))
+
+#+todo-later (defmethod lsp:note-adopted progn ((container workspace)
+                                   (document  project-document)) ; TODO removal
+  (push document (project-documents container)))

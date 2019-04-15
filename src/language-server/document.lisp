@@ -85,7 +85,7 @@
           (messages    '()))
       (flet ((do-condition (condition)
                (if (compute-applicable-methods #'project::annotations (list condition))
-                   (push (make-instance 'protocol.language-server.protocol:diagnostic
+                   (push (make-instance 'proto:diagnostic
                                         :annotation (first (project::annotations condition))
                                         :message    condition)
                          diagnostics)
@@ -120,10 +120,30 @@
                                    (position  t))
   nil)
 
+;;; Document classes
+
+;;; TODO use this for build-generator-document as well
+(defmacro define-document-class (name slots &body aspect-contributors)
+  (let+ (((&flet+ make-aspect-method ((aspect &rest contributors))
+            (let+ (((&flet make-contributor-form (contributor)
+                      `(make-instance ',contributor))))
+              `(defmethod contrib:make-contributors ((document ,name)
+                                                     (aspect   (eql ',aspect)))
+                 (list* ,@(map 'list #'make-contributor-form contributors)
+                        (when (next-method-p)
+                          (call-next-method)))))) ))
+    `(progn
+       (defclass ,name (build-generator-document)
+         ,slots)
+       ,@(map 'list #'make-aspect-method aspect-contributors))))
+
 ;;; `project-document'
 
-(defclass project-document (build-generator-document)
-  ())
+(define-document-class project-document
+  ()
+  (contrib:context    template-name-context-contributor)
+  (contrib:completion template-name-completion-contributor)
+  (contrib:definition template-definition-contributor))
 
 (defmethod parse ((document project-document) (text string) (pathname t))
   (let* ((workspace            (workspace document))
@@ -140,29 +160,19 @@
                                  (remove pattern '("foo")
                                          :test-not #'ppcre:scan)))))))
 
-(defmethod contrib:make-contributors ((document project-document)
-                                      (aspect   (eql 'contrib:context)))
-  (list* (make-instance 'template-name-context-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document project-document)
-                                      (aspect   (eql 'contrib:completion)))
-  (list* (make-instance 'template-name-completion-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document project-document)
-                                      (aspect   (eql 'contrib:definition)))
-  (list (make-instance 'template-definition-contributor)))
-
 ;;; `distribution-document'
 
-(defclass distribution-document (build-generator-document)
-  ())
+(define-document-class distribution-document
+  ()
+  (contrib:context    project-version-reference-context-contributor)
+  (contrib:hover      project-version-hover-contributor)
+  (contrib:completion project-name-completion-contributor)
+  (contrib:definition project-definition-contributor))
 
 (defmethod parse ((document distribution-document) (text string) (pathname t))
   (let* ((workspace    (workspace document))
          (repository   (repository workspace))
-         (name         (pathname-name pathname))
+         (name         (pathname-name pathname)) ; TODO project:recipe-name
          (project::*distributions* (make-hash-table :test #'equal))
          (distribution (project::loading-recipe (project::*distribution-load-stack* name)
                          (project::load-one-distribution/yaml
@@ -182,29 +192,15 @@
                                      )))
     distribution))
 
-(defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib:context)))
-  (list* (make-instance 'project-version-reference-context-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib:hover)))
-  (list* (make-instance 'project-version-hover-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib:completion)))
-  (list* (make-instance 'project-name-completion-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document distribution-document)
-                                      (aspect   (eql 'contrib:definition)))
-  (list (make-instance 'project-definition-contributor)))
-
 ;;; `template-document'
 
-(defclass template-document (build-generator-document)
-  ())
+(define-document-class template-document
+  ()
+  (contrib:context    template-name-context-contributor
+                      aspect-class-context-contributor)
+  (contrib:completion template-name-completion-contributor
+                      aspect-class-completion-contributor)
+  (contrib:definition template-definition-contributor))
 
 (defmethod parse ((document template-document) (text string) (pathname t))
   (let ((workspace (workspace document))
@@ -216,19 +212,3 @@
        :pathname          pathname
        :repository        (repository workspace)
        :generator-version "0.26.0"))))
-
-(defmethod contrib:make-contributors ((document template-document)
-                                      (aspect   (eql 'contrib:context)))
-  (list* (make-instance 'template-name-context-contributor)
-         (make-instance 'aspect-class-context-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document template-document)
-                                      (aspect   (eql 'contrib:completion)))
-  (list* (make-instance 'template-name-completion-contributor)
-         (make-instance 'aspect-class-completion-contributor)
-         (call-next-method)))
-
-(defmethod contrib:make-contributors ((document template-document)
-                                      (aspect   (eql 'contrib:definition)))
-  (list (make-instance 'template-definition-contributor)))

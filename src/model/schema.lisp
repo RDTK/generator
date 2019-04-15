@@ -22,12 +22,31 @@
                                   (:version (unless version? (setf version? t)))))))
            (and nature? target?)))))
 
+(defun platform-dependency-specification? (thing)
+  (when (proper-list-p thing)
+    (let ((name?      nil)
+          (variables? nil))
+      (and (loop :for entry :in thing
+                 :always (typecase entry
+                           ((cons (eql :name) string)
+                            (unless name? (setf name? t)))
+                           ((cons (eql :variables) list)
+                            (unless variables? (setf variables? t)))))
+           name?))))
+
 (deftype dependency ()
   '(or (cons string (cons string (or null (cons string null)))) ; old [ NATURE, TARGET, [VERSION] ] style
        (satisfies dependency-specification?)))
 
 (defun every-dependency (thing)
   (and (listp thing) (every (of-type 'dependency) thing)))
+
+(deftype dependency-or-platform-dependency ()
+  '(or dependency (satisfies platform-dependency-specification?)))
+
+(defun every-dependency-or-platform-dependency (thing)
+  (and (listp thing)
+       (every (of-type 'dependency-or-platform-dependency) thing)))
 
 ;;;
 
@@ -79,7 +98,8 @@
   :documentation
   "A list of programming languages used in the project.")
 
-(var:define-variable :platform-provides (var:list-of dependency)
+(var:define-variable :platform-provides
+    (var:list-of dependency-or-platform-dependency)
   :documentation
   "A list of things provided by the operating system or otherwise
    available \"a priori\".

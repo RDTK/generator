@@ -1,6 +1,6 @@
 ;;;; variables.lisp --- Variables used by the project module.
 ;;;;
-;;;; Copyright (C) 2013-2018 Jan Moringen
+;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -80,9 +80,12 @@
          (candidates (stable-sort candidates #'provider-better)))
     ;; Take the best candidate or act according to IF-DOES-NOT-EXIST.
     (or (when-let ((providers (cdr (first candidates))))
-          (if (eq providers :system-package)
-              providers
-              (first providers)))
+          (cond ((eq providers :system-package)
+                 providers)
+                ((typep providers 'platform-dependency)
+                 providers)
+                (t
+                 (first providers))))
         (error-behavior-restart-case
             (if-does-not-exist
              (jenkins.analysis:unfulfilled-project-dependency-error

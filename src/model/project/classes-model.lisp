@@ -13,6 +13,20 @@
 
 (cl:in-package #:jenkins.model.project)
 
+;;; `platform-dependency' class
+
+(defclass platform-dependency (model:named-mixin
+                               var:direct-variables-mixin
+                               dependencies-from-variables-mixin)
+  ()
+  (:documentation
+   "Instances represent dependency relations of platform packages."))
+
+(defun make-platform-dependency (name variables)
+  (make-instance 'platform-dependency
+                 :name      name
+                 :variables (process-variables variables)))
+
 ;;; `distribution' class
 
 (defclass distribution (model:named-mixin
@@ -160,47 +174,56 @@
                    model:parented-mixin
                    var:direct-variables-mixin
                    dependencies-from-variables-mixin)
-  ((context             :initarg  :context
-                        :type     (or null include-context)
-                        :reader   context
-                        :initform nil
-                        :documentation
-                        "Stores the `include-context' instance for the version.
+  ((context               :initarg  :context
+                          :type     (or null include-context)
+                          :reader   context
+                          :initform nil
+                          :documentation
+                          "Stores the `include-context' instance for the version.
 
-                         This context stores the distribution in which
-                         this project version was originally included
-                         as well parameters specified at the point of
-                         inclusion.")
-   (direct-dependencies :initarg  :direct-dependencies
-                        :type     list #| of (version . reasons) |#
-                        :accessor %direct-dependencies
-                        :initform '()
-                        :documentation
-                        "List of pairs of the form
+                           This context stores the distribution in which
+                           this project version was originally included
+                           as well parameters specified at the point of
+                           inclusion.")
+   (direct-dependencies   :initarg  :direct-dependencies
+                          :type     list #| of (version . reasons) |#
+                          :accessor %direct-dependencies
+                          :initform '()
+                          :documentation
+                          "List of pairs of the form
 
-                           (VERSION . REASONS)
+                             (VERSION . REASONS)
 
-                         where VERSION is either
+                           where VERSION is either
 
-                         + `nil' indicating unresolved requirements
+                           + `nil' indicating unresolved requirements
 
-                         + `:system' indicating requirements resolved
-                           via a system dependency.
+                           + `:system' indicating requirements resolved
+                             via a system dependency.
 
-                         + or a `version' instance representing
-                           project versions on which the project
-                           version depends.
+                           + or a `version' instance representing
+                             project versions on which the project
+                             version depends.
 
-                         REASONS is a list of requirements of the form
+                           REASONS is a list of requirements of the form
 
-                           (NATURE TARGET [VERSION])
+                             (NATURE TARGET [VERSION])
 
-                         .")
-   (jobs                :initarg  :jobs
-                        :type     list
-                        :reader   jobs
-                        :documentation
-                        ""))
+                           .")
+   (platform-dependencies :initarg  :direct-platform-dependencies
+                          :type     list #|of platform-dependency|#
+                          :reader   direct-platform-dependencies/reasons
+                          :accessor %direct-platform-dependencies
+                          :initform '()
+                          :documentation
+                          "List of `platform-dependency' instances
+                           representing platform dependencies of the
+                           project version.")
+   (jobs                  :initarg  :jobs
+                          :type     list
+                          :reader   jobs
+                          :documentation
+                          ""))
   (:documentation
    "Instances of this class represent versions of `project's."))
 
@@ -284,6 +307,9 @@
               (list target)))
           (%direct-dependencies thing)))
 
+(defmethod direct-platform-dependencies ((thing version))
+  (map 'list #'car (%direct-platform-dependencies thing)))
+
 (defmethod model:add-dependencies! ((thing version)
                                     &key
                                     (providers (missing-required-argument :providers)))
@@ -298,21 +324,33 @@
                             (let ((new (cons provider '())))
                               (push new (%direct-dependencies thing))
                               new))))
+              (pushnew required (cdr cell) :test #'equal))))
+         ((&flet add-platform-dependency (required provider)
+            (let ((cell (or (assoc provider (%direct-platform-dependencies thing))
+                            (let ((new (cons provider '())))
+                              (push new (%direct-platform-dependencies thing))
+                              new))))
               (pushnew required (cdr cell) :test #'equal)))))
     (iter (for requires in (requires thing))
           (log:trace "~@<Trying to satisfy requirement ~S for ~A.~@:>"
                      requires thing)
           (restart-case
-              (cond ((when-let ((match (find-provider/version
+              (cond ;; Search in distribution-provided features.
+                    ((when-let ((match (find-provider/version
                                         requires providers
                                         :if-does-not-exist nil)))
                        (log:trace "~@<Best candidate is ~S.~@:>" match)
                        (unless (eq match thing)
                          (add-dependency requires match))
                        t))
-                    ((when (find-provider/version
-                            requires (platform-provides))
-                       (add-dependency requires :system)
+                    ;; Search in platform-provided features.
+                    ((when-let ((provider (find-provider/version
+                                           requires (platform-provides))))
+                       (typecase provider
+                         (platform-dependency
+                          (add-platform-dependency requires provider))
+                         (t
+                          (add-dependency requires :system)))
                        t)))
             (continue (&optional condition)
               :report (lambda (stream)
@@ -322,6 +360,11 @@
               (add-dependency requires nil)))))
 
   (mapc #'model:add-dependencies! (jobs thing)))
+
+(defmethod platform-requires ((object version) (platform cons))
+  (append (call-next-method)
+          (mappend (rcurry #'platform-requires platform)
+                   (direct-platform-dependencies object))))
 
 (defmethod model:deploy ((thing version))
   (with-sequence-progress (:deploy/job (jobs thing))

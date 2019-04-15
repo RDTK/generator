@@ -117,6 +117,19 @@
   (mappend (rcurry #'platform-requires platform) object))
 
 (defun platform-provides (object)
-  (mapcar (lambda (spec)
-            `(,(parse-dependency-spec spec) . :system-package))
+  (mapcan (lambda (spec)
+            (cond ;; New-style platform provides of the form:
+                  ;;
+                  ;; name: NAME
+                  ;; variables:
+                  ;;   platform-provides:
+                  ;;
+                  ((when-let* ((name      (assoc-value spec :name))
+                               (variables (assoc-value spec :variables)))
+                     (let ((dependency (make-platform-dependency name variables)))
+                       (map 'list (rcurry #'cons dependency)
+                            (provides dependency)))))
+                  ;; Old-style platform provides.
+                  (t
+                   (list `(,(parse-dependency-spec spec) . :system-package)))))
           (var:value/cast object :platform-provides '())))

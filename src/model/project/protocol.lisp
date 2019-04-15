@@ -95,6 +95,9 @@
 
       (NAME VERSION)"))
 
+(defmethod platform-requires :around ((object t) (platform cons))
+  (remove-duplicates (call-next-method) :test #'string=))
+
 (defmethod platform-requires ((object t) (platform cons))
   (let+ ((spec (var:value/cast object :platform-requires '()))
          ((&flet lookup (name &optional (where spec))
@@ -108,11 +111,10 @@
               (when-let ((child (lookup (make-key platform-first) spec)))
                 (collect child platform-rest))))))
     (collect spec platform)
-    (remove-duplicates requirements :test #'string=)))
+    requirements))
 
 (defmethod platform-requires ((object sequence) (platform cons))
-  (let ((requirements (mappend (rcurry #'platform-requires platform) object)))
-    (remove-duplicates requirements :test #'string=)))
+  (mappend (rcurry #'platform-requires platform) object))
 
 (defun platform-provides (object)
   (mapcar (lambda (spec)

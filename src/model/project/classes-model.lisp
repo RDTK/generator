@@ -116,11 +116,9 @@
       (return-value name (hash-table-alist counts)))))
 
 (defmethod platform-requires ((object distribution) (platform t))
-  (remove-duplicates
-   (append (call-next-method)
-           (mappend (rcurry #'platform-requires platform)
-                    (versions object)))
-   :test #'string=))
+  (append (call-next-method)
+          (mappend (rcurry #'platform-requires platform)
+                   (versions object))))
 
 (defmethod model:check-access ((object distribution) (lower-bound t))
   (and (call-next-method)

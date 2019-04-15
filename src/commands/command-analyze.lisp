@@ -6,6 +6,9 @@
 
 (cl:in-package #:jenkins.project.commands)
 
+(deftype nature ()
+  '(member :freestyle :maven :cmake :asdf :ros-package :ros-packages))
+
 (defclass analyze ()
   ((sources :initarg  :sources
             :type     (or null (cons (or configuration.options::proper-puri pathname) list))
@@ -24,7 +27,7 @@
                should be analyzed. All other components of the URI are ~
                passed to respective version control system."))
    (natures :initarg  :natures
-            :type     (or null (cons (member :maven :cmake :asdf :ros-package :ros-packages) list))
+            :type     (or null (cons nature list))
             :reader   natures
             :initform nil
             :documentation

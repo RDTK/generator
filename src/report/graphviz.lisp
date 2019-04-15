@@ -31,8 +31,15 @@
                       (:td ()
                         ,(format nil "~/print-items:format-print-items/"
                                  (print-items:print-items object))))))))
-   `(:shape :box
-     :label ,label)))
+   `(:label ,label)))
+
+(defmethod graph-object-attributes append ((graph  jenkins-dependencies)
+                                           (object project:version))
+  `(:shape :box))
+
+(defmethod graph-object-attributes append ((graph  jenkins-dependencies)
+                                           (object project::platform-dependency))
+  `(:shape :plain))
 
 (defmethod cl-dot:graph-object-node ((graph  jenkins-dependencies)
                                      (object t))
@@ -81,6 +88,8 @@
                                              `(:color     "red"
                                                :arrowhead :dot
                                                :arrowtail :none))
+                                            (project::platform-dependency
+                                             `(:color "orange"))
                                             (t
                                              '())))))))
 
@@ -103,6 +112,11 @@
                                       (t       target))))
                    (map nil (curry #'add-relation target) reasons)))
            (project:direct-dependencies/reasons object))
+      ;; Add platform dependencies.
+      (when (eq object (jenkins-dependencies-root graph))
+        (map nil (lambda+ ((target . reasons))
+                   (map nil (curry #'add-relation target) reasons))
+             (project::direct-platform-dependencies/reasons object)))
       ;; Make and return edge descriptions.
       (mapcar (lambda+ ((target . specs))
                 (dependency specs target))

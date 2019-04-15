@@ -8,12 +8,26 @@
 
 ;;; Utilities
 
+(defun dependency-specification? (thing)
+  (when (proper-list-p thing)
+    (let ((nature?  nil)
+          (target?  nil)
+          (version? nil))
+      (and (loop :for entry :in thing
+                 :always (and (typep entry '(cons keyword string))
+                              (let ((key (car entry)))
+                                (case key
+                                  (:nature  (unless nature?  (setf nature?  t)))
+                                  (:target  (unless target?  (setf target?  t)))
+                                  (:version (unless version? (setf version? t)))))))
+           (and nature? target?)))))
+
 (deftype dependency ()
-  '(or (cons string (cons string (or null (cons string null))))
-       (cons (cons keyword t) list)))
+  '(or (cons string (cons string (or null (cons string null)))) ; old [ NATURE, TARGET, [VERSION] ] style
+       (satisfies dependency-specification?)))
 
 (defun every-dependency (thing)
-  (and (listp thing) (every (of-type 'dependency) thing) ))
+  (and (listp thing) (every (of-type 'dependency) thing)))
 
 ;;;
 
@@ -103,7 +117,7 @@
 ;;; Project variables
 
 (var:define-variable :scm (or (eql :archive) (eql :git) (eql :svn) (eql :mercurial)
-                          string)
+                              string)
   :documentation
   "Forces the use a particular source code management system in the
    generator's analysis and generated Jenkins jobs.

@@ -105,10 +105,8 @@
 
   ;; Requires/provides protocol
   (:export
-   #:requires
-   #:requires-of-kind
-   #:provides
-   #:provides-of-kind
+   #:direct-requires #:requires #:requires-of-kind
+   #:direct-provides #:provides #:provides-of-kind
 
    #:direct-dependencies/reasons)
 

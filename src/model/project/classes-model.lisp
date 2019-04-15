@@ -158,7 +158,8 @@
 (defclass version (model:named-mixin
                    model:implementation-mixin
                    model:parented-mixin
-                   var:direct-variables-mixin)
+                   var:direct-variables-mixin
+                   dependencies-from-variables-mixin)
   ((context             :initarg  :context
                         :type     (or null include-context)
                         :reader   context
@@ -267,14 +268,12 @@
            (call-next-method)))))
 
 (defmethod requires ((spec version))
-  (append (mapcar #'parse-dependency-spec
-                  (var:value/cast spec :extra-requires '()))
-          (%requires (model:specification spec))))
+  (append (call-next-method)
+          (direct-requires (model:specification spec))))
 
 (defmethod provides ((spec version))
-  (append (mapcar #'parse-dependency-spec
-                  (var:value/cast spec :extra-provides '()))
-          (%provides (model:specification spec))))
+  (append (call-next-method)
+          (direct-provides (model:specification spec))))
 
 (defmethod direct-dependencies/reasons ((thing version))
   (%direct-dependencies thing))

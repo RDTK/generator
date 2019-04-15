@@ -222,29 +222,11 @@
                         model:specification-mixin
                         model:parented-mixin
                         var:direct-variables-mixin
+                        dependency-merging-mixin
+                        dependencies-mixin
+                        dependencies-from-variables-mixin
                         person-container-mixin)
-  ((requires :initarg  :requires
-             :type     list
-             :accessor %requires
-             :initform '()
-             :documentation
-             "A list of requirement descriptions. Elements are of the
-              form
-
-                (NATURE NAME [VERSION])
-
-             .")
-   (provides :initarg  :provides
-             :type     list
-             :reader   %provides
-             :initform '()
-             :documentation
-             "A list of descriptions of provided things. Elements are
-              of the form
-
-                (NATURE NAME [VERSION])
-
-              ."))
+  ()
   (:documentation
    "Instances are project version specifications.
 
@@ -261,22 +243,6 @@
 
 (defmethod jobs ((thing version-spec))
   (jobs (model:parent thing)))
-
-(defmethod requires :around ((spec version-spec))
-  (jenkins.analysis:merge-dependencies (call-next-method)))
-
-(defmethod provides :around ((spec version-spec))
-  (jenkins.analysis:merge-dependencies (call-next-method)))
-
-(defmethod requires ((spec version-spec))
-  (append (mapcar #'parse-dependency-spec
-                  (var:value/cast spec :extra-requires '()))
-          (%requires spec)))
-
-(defmethod provides ((spec version-spec))
-  (append (mapcar #'parse-dependency-spec
-                  (var:value/cast spec :extra-provides '()))
-          (%provides spec)))
 
 (defmethod model:instantiate ((spec version-spec) &key parent specification-parent
                                                        context variables)

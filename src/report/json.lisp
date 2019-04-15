@@ -1,6 +1,6 @@
 ;;;; json.lisp --- Report analysis results.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017, 2019 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -76,10 +76,8 @@
     (json:with-object (target)
       (json:encode-object-member "name" (model:name object) target)
       (json:encode-object-member "access" (model:access object) target)
-      (json:encode-object-member
-       "requires" (jenkins.model.project::%requires object) target)
-      (json:encode-object-member
-       "provides" (jenkins.model.project::%provides object) target)
+      (json:encode-object-member "requires" (project:direct-requires object) target)
+      (json:encode-object-member "provides" (project:direct-provides object) target)
       (json:encode-object-member
        "platform-requires" (project:platform-requires object *platform-of-interest*) target)
       (json:as-object-member ("direct-dependencies" target)

@@ -40,6 +40,15 @@
   (:documentation
    "Signaled when a specified command cannot be bound."))
 
+(define-condition simple-command-error (command-configuration-problem
+                                        simple-error)
+  ())
+
+(defun command-error (command format-control &rest format-arguments)
+  (error 'simple-command-error :command          command
+                               :format-control   format-control
+                               :format-arguments format-arguments))
+
 (define-condition option-configuration-problem
     (command-configuration-problem
      jenkins.project.commandline-options:option-condition)

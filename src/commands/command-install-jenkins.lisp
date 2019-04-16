@@ -122,10 +122,24 @@
       • Install Jenkins configuration files that make the instance ~
         work well with the build-generator.~@
       ~@
-      • Optionally set up a user account.")))
+      • Optionally, if username, email and password are supplied, set ~
+        up a user account.")))
 
 (service-provider:register-provider/class
  'command :install-jenkins :class 'install-jenkins)
+
+(defmethod shared-initialize :after ((instance   install-jenkins)
+                                     (slots-name t)
+                                     &key)
+  (let+ (((&accessors-r/o username email password) instance))
+    (when (and (or username email password)
+               (not (and username email password)))
+      (command-error (string-downcase (class-name (class-of instance)))
+                     "~@<Specify either all or none of username, email ~
+                      and password, not just ~{~A~^ and ~}.~@:>"
+                     `(,@(when username '("username"))
+                       ,@(when email    '("email"))
+                       ,@(when password '("password")))))))
 
 (jenkins.project.commandline-options:define-option-mapping
     (*command-schema* "install-jenkins")

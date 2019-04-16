@@ -17,10 +17,9 @@
    (%project-documents :accessor project-documents
                        :initform '())
    ;;
-   (%templates         :accessor %templates
-                       :initform nil)
-   (%projects          :accessor %projects
-                       :initform nil)
+   (%templates         :accessor %templates)
+   (%projects          :accessor %projects)
+   (%distributions     :accessor %distributions)
    (%persons           :accessor %persons
                        :initform nil)
    ;; Platform
@@ -37,77 +36,32 @@
   (when (and (or root-uri-supplied? root-path-supplied?)
              (not repository-supplied?))
     (setf (%repository instance) (project:make-populated-recipe-repository
-                                  (lsp:root-directory instance) "toolkit"))))
+                                  (lsp:root-directory instance) "toolkit")))
 
-
+  (setf (%templates instance)     (make-instance 'deferred-templates     :workspace instance)
+        (%projects instance)      (make-instance 'deferred-projects      :workspace instance)
+        (%distributions instance) (make-instance 'deferred-distributions :workspace instance)))
 
 ;;; Templates
 
-(defmethod load-templates ((container workspace))
-  (let* ((project::*templates* (make-hash-table :test #'equal))
-         (project::*templates-lock* (bt:make-lock))
-         (repository (repository container))
-         (pattern    (project:recipe-path repository :template :wild)))
-    (log:error "Background-loading templates from ~A" pattern)
-    (mappend (lambda (filename)
-               (with-simple-restart (continue "Skip")
-                 (list (project:load-template/yaml
-                        filename :repository repository))))
-             (directory pattern))
-    project::*templates*))
+(defmethod templates ((container workspace) &key if-unavailable)
+  (table (%templates container) :if-unavailable if-unavailable))
 
-(defmethod ensure-templates ((container workspace))
-  (loop :for templates = (%templates container)
-        :when templates :do (return templates)
-        :do (let ((promise (lparallel:promise)))
-              (when (null (sb-ext:compare-and-swap
-                           (slot-value container '%templates) nil promise))
-                ;; (methods::log-message (proto:make-message :info "Background-loading templates"))
-                (lparallel:future (lparallel:fulfill promise
-                                    (load-templates container)))))))
-
-(defmethod templates ((container workspace))
-  (let ((templates (ensure-templates container)))
-    (if (lparallel:fulfilledp templates)
-        (hash-table-values (lparallel:force templates))
-        (lparallel:future (hash-table-values (lparallel:force templates))))))
-
-(defmethod find-template ((name t) (container workspace))
-  (let ((templates (ensure-templates container)))
-    (if (lparallel:fulfilledp templates)
-        (gethash name (lparallel:force templates))
-        (lparallel:future (gethash name (lparallel:force templates))))))
+(defmethod find-template ((name t) (container workspace) &key if-unavailable)
+  (find-element name (%templates container) :if-unavailable if-unavailable))
 
 ;;; Projects
 
-(defmethod load-projects ((container workspace))
-  (let* ((project::*templates* (lparallel:force (ensure-templates container)))
-         (project::*projects* nil ; (make-hash-table :test #'equal)
-                                            )
-         (project::*projects-lock* (bt:make-lock))
-         (repository (repository container))
-         (pattern    (project:recipe-path repository :project :wild)))
-    (handler-bind (((and error jenkins.util:continuable-error)
-                     (compose #'invoke-restart #'jenkins.util:find-continue-restart)))
-      (mappend (lambda (filename)
-                 (with-simple-restart (continue "Skip")
-                   (list (project:load-project-spec/yaml
-                          filename :repository repository))))
-               (directory pattern)))))
+(defmethod projects ((container workspace) &key if-unavailable)
+  (elements (%projects container) :if-unavailable if-unavailable))
 
-(defmethod ensure-projects ((container workspace))
-  (loop :for projects = (%projects container)
-        :when projects :do (return projects)
-        :do (let ((promise (lparallel:promise)))
-              (when (null (sb-ext:compare-and-swap
-                           (slot-value container '%projects) nil promise))
-                ; (methods::log-message (proto::make-message :info "Background-loading projects"))
-                (lparallel:future (lparallel:fulfill promise
-                                    (load-projects container)))))))
+(defmethod find-project ((name t) (container workspace) &key if-unavailable)
+  (find-element name (%projects container) :if-unavailable if-unavailable))
 
-(defmethod projects ((container workspace))
-  ;; TODO merge with (map 'list #'object <project-documents>)
-  (ensure-projects container))
+;;; Distributions
+
+(defmethod distributions ((container workspace) &key if-unavailable)
+  (elements (%distributions container) :if-unavailable if-unavailable))
 
 ;;; Platform packages
 

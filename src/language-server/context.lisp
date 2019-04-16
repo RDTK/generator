@@ -102,8 +102,10 @@
   `((:prefix ,(prefix object) "~S")))
 
 (defclass variable-reference-context (variable-name-context)
-  ((%kind :initarg :kind
-          :reader  kind)))
+  ((%kind          :initarg :kind
+                   :reader  kind)
+   (%variable-name :initarg :variable-name
+                   :reader  variable-name)))
 
 (defclass variable-name-context-contributor ()
   ())
@@ -146,14 +148,15 @@
                                    (1+ end)
                                    (length text))))
              (list (make-instance 'variable-reference-context
-                                  :location     location
-                                  :prefix       text
-                                  :prefix-range (sloc:make-range
-                                                 (+ base start) (+ base end)
-                                                 (lsp:text document))
-                                  :kind         (case (aref text start)
-                                                  (#\$ :scalar) ; TODO store this while searching
-                                                  (#\@ :list)))))))))
+                                  :location      location
+                                  :prefix        text
+                                  :prefix-range  (sloc:make-range
+                                                  (+ base start) (+ base end)
+                                                  (lsp:text document))
+                                  :kind          (case (aref text start)
+                                                   (#\$ :scalar) ; TODO store this while searching
+                                                   (#\@ :list))
+                                  :variable-name (subseq text (+ start 2) (1- end)))))))))
 
 ;;; Variable value context
 

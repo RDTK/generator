@@ -35,3 +35,18 @@
               (project  (find-project name workspace))
               (location (project::location-of project)))
     (list location)))
+
+;;; `distribution-definition-contributor'
+
+#+later (defclass distribution-definition-contributor ()
+  ())
+
+#+later (defmethod contrib:definition-contributions
+    ((workspace   t)
+     (document    distribution-document)
+     (context     distribution-name-context)
+     (contributor distribution-definition-contributor))
+  (when-let* (
+              (distribution (find-distribution name workspace))
+              (location     (project::location-of distribution)))
+    (list distribution)))

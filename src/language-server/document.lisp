@@ -49,6 +49,10 @@
         (make-instance 'variable-value-completion-contributor)
         (make-instance 'system-package-name-completion-contributor)))
 
+(defmethod contrib:make-contributors ((document build-generator-document)
+                                      (aspect   (eql 'contrib:reference)))
+  (list (make-instance 'variable-reference-contributor)))
+
 (defmethod (setf lsp:text) :after ((new-value string)
                                    (document  build-generator-document))
   (unless (starts-with-subseq "file:///" *uri*)

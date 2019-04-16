@@ -30,6 +30,7 @@
                  :serial     t
                  :components ((:file       "package")
 
+                              (:file       "deferred-loading")
                               (:file       "workspace")
                               (:file       "document")
 
@@ -41,6 +42,7 @@
                               (:file       "signature-help")
                               (:file       "completion")
                               (:file       "definition")
+                              (:file       "reference")
 
                               ; TODO later (:file       "parser")
                               ))))

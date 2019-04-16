@@ -55,14 +55,9 @@
      (document    t)
      (context     project-name-context)
      (contributor project-version-hover-contributor))
-  (let ((prefix   (prefix context))
-        (projects (projects (workspace document))))
-    (when (lparallel:fulfilledp projects)
-      (when-let ((project (find prefix (lparallel:force projects)
-                                :test #'string= :key #'model:name)))
-        (return-from contrib:hover-contribution
-          (values (describe-project project)
-                  (sloc:range (location context))))))))
+  (when-let* ((prefix   (prefix context))
+              (project (find-project prefix workspace)))
+    (values (describe-project project) (sloc:range (location context)))))
 
 ;; TODO project-version-context
 

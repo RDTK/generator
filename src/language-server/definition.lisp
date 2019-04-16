@@ -16,13 +16,9 @@
      (document    build-generator-document)
      (context     template-name-context)
      (contributor template-definition-contributor))
-  (when-let* ((name      (word context))
-              (templates (let ((templates (templates workspace)))
-                           (when (lparallel:fulfilledp templates)
-                             (lparallel:force templates))))
-              (template  (find name templates
-                               :test #'string= :key #'model:name))
-              (location  (project::location-of template)))
+  (when-let* ((name     (word context))
+              (template (find-template name workspace))
+              (location (project::location-of template)))
     (list location)))
 
 ;;; `project-definition-contributor'
@@ -36,10 +32,6 @@
      (context     project-name-context)
      (contributor project-definition-contributor))
   (when-let* ((name     (prefix context))
-              (projects (let ((projects (projects workspace)))
-                          (when (lparallel:fulfilledp projects)
-                            (lparallel:force projects))))
-              (project  (find name projects
-                              :test #'string= :key #'model:name))
+              (project  (find-project name workspace))
               (location (project::location-of project)))
     (list location)))

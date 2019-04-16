@@ -11,7 +11,8 @@
                                     contrib:context-contributors-mixin
                                     contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin
-                                    contrib:definition-contributors-mixin)
+                                    contrib:definition-contributors-mixin
+                                    contrib:reference-contributors-mixin)
   ((lsp::%workspace :initarg  :workspace
                :reader   workspace)
    (%object    :accessor object
@@ -101,6 +102,11 @@
   (reinitialize-instance position :column (max 0 (1- (sloc:column position))))
   (call-next-method))
 
+(defmethod methods:symbols ((workspace t) (document build-generator-document))
+  (when-let ((object (object document)))
+    (list (proto:make-symbol-information
+           (model:name object) :object (project::location-of object (locations document))))))
+
 (defmethod methods:highlight-in-document ((workspace t)
                                           (document  build-generator-document)
                                           (version   t)
@@ -143,11 +149,12 @@
   ()
   (contrib:context    template-name-context-contributor)
   (contrib:completion template-name-completion-contributor)
-  (contrib:definition template-definition-contributor))
+  (contrib:definition template-definition-contributor)
+  (contrib:reference  project-reference-contributor))
 
 (defmethod parse ((document project-document) (text string) (pathname t))
   (let* ((workspace            (workspace document))
-         (project::*templates* (lparallel:force (ensure-templates workspace))))
+         (project::*templates* (templates workspace :if-unavailable :block)))
     (project::load-project-spec/yaml
      text
      :pathname          pathname
@@ -167,7 +174,8 @@
   (contrib:context    project-version-reference-context-contributor)
   (contrib:hover      project-version-hover-contributor)
   (contrib:completion project-name-completion-contributor)
-  (contrib:definition project-definition-contributor))
+  (contrib:definition project-definition-contributor)
+  (contrib:reference  ))
 
 (defmethod parse ((document distribution-document) (text string) (pathname t))
   (let* ((workspace    (workspace document))
@@ -182,7 +190,7 @@
                           :generator-version "0.26.0")))
          (projects-files+versions (uiop:symbol-call '#:build-generator.commands '#:locate-projects
                                                     (list distribution) repository))
-         (project::*templates*        (lparallel:force (ensure-templates (workspace document))))
+         (project::*templates*        (templates (workspace document) :if-unavailable :block))
          (project::*projects*         (make-hash-table :test #'equal))
          (project::*locations*        (make-instance 'project::locations
                                                                    :hook nil))
@@ -200,7 +208,8 @@
                       aspect-class-context-contributor)
   (contrib:completion template-name-completion-contributor
                       aspect-class-completion-contributor)
-  (contrib:definition template-definition-contributor))
+  (contrib:definition template-definition-contributor)
+  (contrib:reference  template-reference-contributor))
 
 (defmethod parse ((document template-document) (text string) (pathname t))
   (let ((workspace (workspace document))

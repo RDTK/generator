@@ -21,11 +21,7 @@
    (#:steps   #:jenkins.project.steps))
 
   (:shadow
-   #:generate
    #:phase)
-
-  (:shadowing-import-from #:jenkins.model.variables
-   #:as)
 
   ;; Conditions
   (:export

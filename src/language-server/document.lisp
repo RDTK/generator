@@ -9,8 +9,9 @@
 (defclass build-generator-document (lsp:document
                                     contrib:diagnostics-contributors-mixin
                                     contrib:context-contributors-mixin
-                                    contrib:completion-contributors-mixin
                                     contrib:hover-contributors-mixin
+                                    contrib:document-highlight-contributors-mixin
+                                    contrib:completion-contributors-mixin
                                     contrib:definition-contributors-mixin
                                     contrib:reference-contributors-mixin)
   ((lsp::%workspace :initarg  :workspace
@@ -43,11 +44,19 @@
         (make-instance 'system-package-name-hover-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
+                                      (aspect   (eql 'contrib:document-highlight)))
+  (list (make-instance 'variable-highlight-contributor)))
+
+(defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:completion)))
   (list (make-instance 'structure-completion-contributor)
         (make-instance 'variable-name-completion-contributor)
         (make-instance 'variable-value-completion-contributor)
         (make-instance 'system-package-name-completion-contributor)))
+
+(defmethod contrib:make-contributors ((document build-generator-document)
+                                      (aspect   (eql 'contrib:definition)))
+  (list (make-instance 'variable-definition-contributor)))
 
 (defmethod contrib:make-contributors ((document build-generator-document)
                                       (aspect   (eql 'contrib:reference)))
@@ -115,9 +124,11 @@
                                           (document  build-generator-document)
                                           (version   t)
                                           (position  t))
-  (or (when-let ((locations (lookup:lookup position (index document))))
-        (vector (proto:make-highlight :text (sloc:range (first locations)))))
-      #()))
+  (let* ((others (call-next-method))
+         (word   (when-let ((location (first (lookup:lookup position (index document)))))
+                   (list (proto:make-highlight :text (sloc:range location)))))
+         (all    (or others word)))
+    (coerce all 'vector)))
 
 (defmethod methods:code-actions ((workspace t)
                                  (document  build-generator-document)

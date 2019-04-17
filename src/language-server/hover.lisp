@@ -28,23 +28,35 @@
 
 (defclass effective-value-hover-contributor () ())
 
-(defmethod contrib:hover-contribution
-    ((workspace   t)
-     (document    t)
-     (context     variable-value-context)
-     (contributor effective-value-hover-contributor))
-  (let+ (((&accessors-r/o object) document)
-         ((&accessors-r/o variable-name variable-location) context))
-    (when object
-      (values (format nil "```yaml~@
-                           ~A~@
-                           ```"
-                      (handler-case
-                          (var:value object variable-name)
-                        (error (condition)
-                          condition)))
-              (sloc:range variable-location)
-              "Effective Value"))))
+(flet ((effective-value (object variable-name variable-location)
+         (when object
+           (values (format nil "```yaml~@
+                                ~A~@
+                                ```"
+                           (handler-case
+                               (var:value object variable-name)
+                             (error (condition)
+                               condition)))
+                   variable-location
+                   (format nil "Effective Value of `~(~A~)`" variable-name)))))
+
+  (defmethod contrib:hover-contribution
+      ((workspace   t)
+       (document    t)
+       (context     variable-value-context)
+       (contributor effective-value-hover-contributor))
+    (let+ (((&accessors-r/o object) document)
+           ((&accessors-r/o variable-name variable-location) context))
+      (effective-value object variable-name (sloc:range variable-location))))
+
+  (defmethod contrib:hover-contribution
+      ((workspace   t)
+       (document    t)
+       (context     variable-reference-context)
+       (contributor effective-value-hover-contributor))
+    (effective-value (object document)
+                     (make-keyword (string-upcase (variable-name context))) ; TODO
+                     (prefix-range context))))
 
 ;;; Project version
 

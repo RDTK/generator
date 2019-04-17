@@ -49,4 +49,17 @@
   (when-let* (
               (distribution (find-distribution name workspace))
               (location     (project::location-of distribution)))
-    (list distribution)))
+    (list location)))
+
+;;; `variable-definition-contributor'
+
+(defclass variable-definition-contributor ()
+  ())
+
+(defmethod contrib:definition-contributions
+    ((workspace   t)
+     (document    t)
+     (context     variable-reference-context)
+     (contributor variable-definition-contributor))
+  (when-let ((location (project::location-of (definition context))))
+    (list location)))

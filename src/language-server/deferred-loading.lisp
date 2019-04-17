@@ -106,3 +106,28 @@
                      (setf (gethash (model:name distribution) distributions) distribution))))
            (directory pattern)))
     distributions))
+
+;;; Persons
+
+(defclass deferred-persons (deferred-collection)
+  ((%workspace :initarg :workspace
+               :reader  workspace)))
+
+(defmethod load-elements ((container deferred-persons))
+  (let* ((workspace               (workspace container))
+         (project::*persons-lock* (bt:make-lock))
+         (persons                 (make-hash-table :test #'equal))
+         (repository              (repository workspace))
+         (pattern                 (project:recipe-path repository :person :wild)))
+    (log:error "Background-loading persons from ~A" pattern)
+    (handler-bind (((and error jenkins.util:continuable-error)
+                     (lambda (c) (log:error "~A" c) (funcall  (compose #'invoke-restart #'jenkins.util:find-continue-restart) c))))
+      (map nil (lambda (filename)
+                 (with-simple-restart (continue "Skip")
+                   (let ((person (project:load-person/yaml
+                                  filename :repository        repository
+                                           :generator-version "0.28.0")))
+                     (log:error person)
+                     (setf (gethash (rosetta.model:name person) persons) person))))
+           (directory pattern)))
+    persons))

@@ -20,8 +20,7 @@
    (%templates         :accessor %templates)
    (%projects          :accessor %projects)
    (%distributions     :accessor %distributions)
-   (%persons           :accessor %persons
-                       :initform nil)
+   (%persons           :accessor %persons)
    ;; Platform
    (%platform-packages :accessor %platform-packages
                        :initform nil)))
@@ -40,7 +39,8 @@
 
   (setf (%templates instance)     (make-instance 'deferred-templates     :workspace instance)
         (%projects instance)      (make-instance 'deferred-projects      :workspace instance)
-        (%distributions instance) (make-instance 'deferred-distributions :workspace instance)))
+        (%distributions instance) (make-instance 'deferred-distributions :workspace instance)
+        (%persons instance)       (make-instance 'deferred-persons       :workspace instance)))
 
 ;;; Templates
 

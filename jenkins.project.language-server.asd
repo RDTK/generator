@@ -40,6 +40,7 @@
                               (:file       "context")
                               (:file       "hover")
                               (:file       "signature-help")
+                              (:file       "highlight")
                               (:file       "completion")
                               (:file       "definition")
                               (:file       "reference")

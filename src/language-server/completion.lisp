@@ -87,7 +87,7 @@
              ((nil)                       variable-name)
              (:scalar (format nil "${~A}" variable-name))
              (:list   (format nil "@{~A}" variable-name))))
-         (make-completions (context kind)
+         (make-completions (context kind) ; make-known-variable-items
            (flet ((make-item (variable)
                     (let* ((name          (var:variable-info-name variable))
                            (type          (var:variable-info-type variable))
@@ -104,6 +104,16 @@
                       #+todo :when #+todo (starts-with-subseq
                                            prefix (string-downcase (var:variable-info-name variable)))
                    :collect (make-item variable))))
+         (make-local-variable-items (context object)
+           (map 'list (lambda+ ((name . &ign))
+                        (let ((title (string-downcase name)))
+                          (proto:make-completion-item
+                           title
+                           :kind   :variable
+                                        ; :detail
+                           :range    (prefix-range context)
+                           :new-text (make-new-text (kind context) title))))
+                (var:variables object)))
          (make-next-value-item (context default?)
            (let* ((kind          (kind context))
                   (documentation "The next value of this variable")
@@ -135,7 +145,9 @@
     (let ((kind (kind context)))
       (list* (make-next-value-item context nil)
              (make-next-value-item context t)
-             (make-completions context kind)))))
+             (nconc (when-let ((object (object document)))
+                      (make-local-variable-items context object))
+                    (make-completions context kind))))))
 
 ;;; Variable value completion
 
@@ -160,8 +172,21 @@
 (defmethod possible-values-using-head ((type cons) (head (eql 'eql)))
   (list (format nil "~(~A~)" (second type))))
 
+(defun complete-person (context workspace)
+  (when-let ((persons (elements (%persons workspace)))) ; TODO
+    (mappend (lambda (person)
+               (when (search (word context) (rosetta.model:name person ))
+                 (list (proto:make-completion-item
+                        (format nil "~A <~A>"
+                                (rosetta.model:name person )
+                                (first (rosetta-project.model.resource:identities person)))
+                        :kind   :constant
+                        :detail "Person"
+                        :range  (sloc:range (location context))))))
+             persons)))
+
 (defun remote-refs (project kind)
-  (when-let ((repository (var:value/cast project :repository nil)))
+  (when-let ((repository (ignore-errors (var:value/cast project :repository nil)))) ; TODO
     (mappend (lambda (line)
                (let+ (((&values match? groups)
                        (ppcre:scan-to-strings
@@ -186,6 +211,8 @@
            (remote-refs (object document) :branch))
           ((member (var:variable-info-name variable) '(:tags :tag))
            (remote-refs (object document) :tag))
+          ((eq (var:variable-info-name variable) :recipe.maintainer)
+           (complete-person context workspace))
           (t
            (map 'list (lambda (value)
                         (proto:make-completion-item value
@@ -193,67 +220,62 @@
                                                     :range (sloc:range (location context))))
                 (possible-values (var:variable-info-type variable)))))))
 
-;;;
+;;; Project name and version completion
 
-(defclass project-name-completion-contributor () ())
+(defclass project-name-completion-contributor ()
+  ())
 
 (defmethod contrib:completion-contributions
     ((workspace   t)
      (document    t)
      (context     project-name-context)
      (contributor project-name-completion-contributor))
-  (let ((prefix   (prefix context))
-        (projects (projects (workspace document)))) ; TODO we should get the workspace directly
-    (when (lparallel:fulfilledp projects)
-      (mapcan (lambda (project)
-                (let ((name (model:name project)))
-                  (when (starts-with-subseq prefix name)
-                    (list (proto:make-completion-item
-                           name
-                           :kind          :file
-                           :detail        "project"
-                           :documentation (proto:make-markup-content (describe-project project) :markdown) ; TODO directly describe as markup-content
-                           :range         (sloc:range (location context)))))))
-              (lparallel:force projects)))))
+  (when-let ((prefix   (prefix context))
+             (projects (projects workspace)))
+    (mapcan (lambda (project)
+              (let ((name (model:name project)))
+                (when (starts-with-subseq prefix name)
+                  (list (proto:make-completion-item
+                         name
+                         :kind          :file
+                         :detail        "project"
+                         :documentation (proto:make-markup-content (describe-project project) :markdown) ; TODO directly describe as markup-content
+                         :range         (sloc:range (location context)))))))
+            projects)))
 
 (defmethod contrib:completion-contributions
     ((workspace   t)
      (document    t)
      (context     project-version-context)
      (contributor project-name-completion-contributor))
-  (let ((project-name (project-name context))
-        (prefix       (prefix context))
-        (projects     (projects (workspace document)))) ; TODO we should get the workspace directly
-    (when (lparallel:fulfilledp projects)
-      (let+ ((result '())
-             ((&flet consider (name detail &key documentation)
-                (when (starts-with-subseq prefix name)
-                  (push (apply #'proto:make-completion-item
-                               name
-                               :kind   :file
-                               :detail detail
-                               :range  (sloc:range (location context))
-                               (when documentation
-                                 `(:documentation ,(funcall documentation))))
-                        result)))))
-        ;; TODO workspace should provide project lookup
-        (map nil (lambda (project)
-                   (when (string= project-name (model:name project))
-                     ;; TODO does not cover +branches+, tags, commits and patterns
-                     (ignore-errors
-                      (map nil (rcurry #'consider "branch version")
-                           (var:value/cast project :branches)))
-                     (map nil (lambda (version)
-                                (consider
-                                 (model:name version)
-                                 "project version"
-                                 :documentation
-                                 (lambda ()
-                                   ;; TODO directly describe as markup-content))))
-                                   (proto:make-markup-content (describe-project project) :markdown))))
-                          (project:versions project))))
-             (lparallel:force projects))
-        result))))
+  (when-let* ((project-name (project-name context))
+              (prefix       (prefix context))
+              (project      (find-project project-name workspace)))
+    (let+ ((result '())
+           ((&flet consider (name detail &key documentation)
+              (when (starts-with-subseq prefix name)
+                (push (apply #'proto:make-completion-item
+                             name
+                             :kind   :file
+                             :detail detail
+                             :range  (sloc:range (location context))
+                             (when documentation
+                               `(:documentation ,(funcall documentation))))
+                      result)))))
+
+      (ignore-errors
+       (map nil (rcurry #'consider "branch version")
+            (var:value/cast project :branches)))
+      (map nil (lambda (version)
+                 (consider
+                  (model:name version)
+                  "project version"
+                  :documentation
+                  (lambda ()
+                    ;; TODO directly describe as markup-content))))
+                    (proto:make-markup-content (describe-project project) :markdown))))
+           (project:versions project))
+      result)))
 
 ;;; Aspect class completion
 

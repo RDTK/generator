@@ -105,7 +105,9 @@
   ((%kind          :initarg :kind
                    :reader  kind)
    (%variable-name :initarg :variable-name
-                   :reader  variable-name)))
+                   :reader  variable-name)
+   (%definition    :initarg :definition
+                   :reader  definition)))
 
 (defclass variable-name-context-contributor ()
   ())
@@ -139,24 +141,31 @@
            (when-let* ((text     (sloc:content location))
                        (base     (sloc:index (sloc:start location)))
                        (relative (- (sloc:index position) base))
-                       (start    (let ((start$ (search "${" text :end2 (1+ relative) :from-end t))
-                                       (start@ (search "@{" text :end2 (1+ relative) :from-end t)))
+                       (limit    (min (+ relative 3) (length text)))
+                       (start    (let ((start$ (search "${" text :end2 limit :from-end t))
+                                       (start@ (search "@{" text :end2 limit :from-end t)))
                                    (cond ((and start$ start@) (max start$ start@))
                                          (start$)
                                          (start@))))
                        (end      (if-let ((end (search "}" text :start2 start)))
                                    (1+ end)
                                    (length text))))
-             (list (make-instance 'variable-reference-context
-                                  :location      location
-                                  :prefix        text
-                                  :prefix-range  (sloc:make-range
-                                                  (+ base start) (+ base end)
-                                                  (lsp:text document))
-                                  :kind          (case (aref text start)
-                                                   (#\$ :scalar) ; TODO store this while searching
-                                                   (#\@ :list))
-                                  :variable-name (subseq text (+ start 2) (1- end)))))))))
+             (when (<= relative end)
+               (let* ((name       (subseq text (+ start 2) (1- end)))
+                      (definition (when-let ((object (object document)))
+                                    (var:lookup object (make-keyword (string-upcase name))
+                                                :if-undefined nil))))
+                 (list (make-instance 'variable-reference-context
+                                      :location      location
+                                      :prefix        text
+                                      :prefix-range  (sloc:make-range
+                                                      (+ base start) (+ base end)
+                                                      (lsp:text document))
+                                      :kind          (case (aref text start)
+                                                       (#\$ :scalar) ; TODO store this while searching
+                                                       (#\@ :list))
+                                      :variable-name name
+                                      :definition    definition)))))))))
 
 ;;; Variable value context
 

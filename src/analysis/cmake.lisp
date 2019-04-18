@@ -185,7 +185,11 @@
                     ([-_.A-Za-z0-9]+)~
                   [ \\t\\n]*~
                   (?:NAMES[ \\t\\n]+)?~
-                  ([^ \\t\\n)]+)~
+                  (?:~
+                    \"([^\"]+)\"~
+                  |~
+                    ([^ \\t\\n\")]+)~
+                  )~
                   [^)]*~
                 \\)")
    :multi-line-mode       t
@@ -195,15 +199,18 @@
         (assert (equalp expected (nth-value
                                   1 (ppcre:scan-to-strings
                                      *find-library-or-program-scanner* input)))))
-      '(("find_library(FOO foo)"        #("library" "FOO" "foo"))
-        ("FIND_LIBRARY(FOO foo)"        #("library" "FOO" "foo"))
-        ("find_program(FOO foo)"        #("program" "FOO" "foo"))
-        ("FIND_program(FOO foo)"        #("program" "FOO" "foo"))
-        ("find_library(FOO foo BAR)"    #("library" "FOO" "foo"))
+      '(("find_library(FOO foo)"            #("library" "FOO" nil      "foo"))
+        ("FIND_LIBRARY(FOO foo)"            #("library" "FOO" nil      "foo"))
+        ("find_program(FOO foo)"            #("program" "FOO" nil      "foo"))
+        ("FIND_program(FOO foo)"            #("program" "FOO" nil      "foo"))
+        ("find_library(FOO foo BAR)"        #("library" "FOO" nil      "foo"))
+        ("find_library(FOO \"foo\")"        #("library" "FOO" "foo"    nil))
 
-        ("find_library(FOO NAMES foo)"  #("library" "FOO" "foo"))
+        ("find_library(FOO NAMES foo)"      #("library" "FOO" nil      "foo"))
+        ("find_library(FOO NAMES \"foo\")"  #("library" "FOO" "foo"    nil))
 
-        ("find_library(FOO ${FOO} BAR)" #("library" "FOO" "${FOO}"))))
+        ("find_library(FOO ${FOO} BAR)"     #("library" "FOO" nil      "${FOO}"))
+        ("find_library(FOO \"${FOO}\" BAR)" #("library" "FOO" "${FOO}" nil))))
 
 (defparameter *project-version-scanner*
   (ppcre:create-scanner
@@ -642,22 +649,23 @@
 
 (defun %analyze-find-libraries (content environment)
   (let ((result '()))
-    (ppcre:do-register-groups (which variable library)
+    (ppcre:do-register-groups (which variable name1 name2)
         (*find-library-or-program-scanner* content)
-      (let ((nature           (eswitch (which :test #'string-equal)
-                                ("library" :library)
-                                ("program" :program)))
-            (library/resolved (%resolve-variables
-                               library environment
-                               :if-unresolved (%continuable-resolution-error
-                                               "find_(library|program)(…) expression"
-                                               "Ignore the library or program"))))
+      (let* ((name          (or name1 name2))
+             (nature        (eswitch (which :test #'string-equal)
+                              ("library" :library)
+                              ("program" :program)))
+             (name/resolved (%resolve-variables
+                             name environment
+                             :if-unresolved (%continuable-resolution-error
+                                             "find_(library|program)(…) expression"
+                                             "Ignore the library or program"))))
         (log:debug "~@<Found find_~A(…) call with output ~S, ~2:*~A~* ~
                     ~S~:[~; → ~S~]~@:>"
                    which variable
-                   library (not (equal library library/resolved)) library/resolved)
-        (when library/resolved
-          (push (%make-dependency library/resolved nil nature) result))))
+                   name (not (equal name name/resolved)) name/resolved)
+        (when name/resolved
+          (push (%make-dependency name/resolved nil nature) result))))
     result))
 
 ;;; CMake Config-mode Template Files

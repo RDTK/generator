@@ -169,7 +169,7 @@
 
 (defmethod parse ((document project-document) (text string) (pathname t))
   (let* ((workspace            (workspace document))
-         (project::*templates* (templates workspace :if-unavailable :block)))
+         (project::*templates* (templates/table workspace :if-unavailable :block)))
     (project::load-project-spec/yaml
      text
      :pathname          pathname
@@ -205,7 +205,7 @@
                           :generator-version "0.26.0")))
          (projects-files+versions (uiop:symbol-call '#:jenkins.project.commands '#:locate-projects
                                                     (list distribution) repository))
-         (project::*templates*        (templates (workspace document) :if-unavailable :block))
+         (project::*templates*        (templates/table (workspace document) :if-unavailable :block))
          (project::*projects*         (make-hash-table :test #'equal))
          (project::*locations*        (make-instance 'project::locations
                                                                    :hook nil))

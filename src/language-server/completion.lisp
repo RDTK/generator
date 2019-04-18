@@ -67,15 +67,14 @@
      (document    t)
      (context     template-name-context)
      (contributor template-name-completion-contributor))
-  (let+ (((&accessors-r/o location word) context)
-         (templates (templates workspace))
-         ((&flet make-item (template)
-            (proto:make-completion-item (model:name template)
-                                        :range (sloc:range location)))))
-    (when (lparallel:fulfilledp templates)
-      (loop :for template :in (lparallel:force templates)
-            :when (starts-with-subseq word (model:name template ))
-            :collect (make-item template)))))
+  (when-let* ((word      (word context))
+              (location  (location context))
+              (templates (templates workspace)))
+    (loop :for template :in templates
+          :for name = (model:name template )
+          :when (starts-with-subseq word name)
+          :collect (proto:make-completion-item
+                    name :range (sloc:range location)))))
 
 ;;; Variable name completion
 

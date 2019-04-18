@@ -63,7 +63,7 @@
                     collection))
          (all-references (name workspace)
            (nconc (when-let ((templates (templates workspace)))
-                    (references-in-collection name (hash-table-values templates))) ; TODO
+                    (references-in-collection name templates))
                   (when-let ((projects (projects workspace)))
                     (references-in-collection name projects))
                   (when-let ((distributions (distributions workspace)))
@@ -75,7 +75,6 @@
        (context     variable-name-context)
        (contributor variable-reference-contributor))
     (when-let ((name (prefix context)))
-      (log:error name)
       (all-references name workspace)))
 
   (defmethod contrib:reference-contributions
@@ -84,5 +83,4 @@
        (context     variable-reference-context)
        (contributor variable-reference-contributor))
     (when-let ((name (variable-name context)))
-      (log:error name)
       (all-references name workspace))))

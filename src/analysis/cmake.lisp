@@ -463,10 +463,12 @@
                    ~@[ and version ~{~S~^ → ~S~}~]~@:>"
                   (%list-unless-equal project project/resolved)
                   (%list-unless-equal version version/resolved))
-        (add-project-variable! "PROJECT_SOURCE_DIR" (namestring
-                                                     (uiop:pathname-directory-pathname
-                                                      source)))
-        (add-project-variable! "PROJECT_NAME"       project/resolved)
+        (let ((variable-with-name (format nil "~A_SOURCE_DIR" project/resolved))
+              (directory          (namestring
+                                   (uiop:pathname-directory-pathname source))))
+          (add-project-variable! variable-with-name   directory)
+          (add-project-variable! "PROJECT_SOURCE_DIR" directory))
+        (add-project-variable! "PROJECT_NAME" project/resolved)
         (when version/resolved
           (add-project-variable! "PROJECT_VERSION" version/resolved)
           (loop :for name      :in '("MAJOR" "MINOR" "PATH")

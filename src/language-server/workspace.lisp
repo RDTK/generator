@@ -44,8 +44,11 @@
 
 ;;; Templates
 
-(defmethod templates ((container workspace) &key if-unavailable)
+(defmethod templates/table ((container workspace) &key if-unavailable)
   (table (%templates container) :if-unavailable if-unavailable))
+
+(defmethod templates ((container workspace) &key if-unavailable)
+  (elements (%templates container) :if-unavailable if-unavailable))
 
 (defmethod find-template ((name t) (container workspace) &key if-unavailable)
   (find-element name (%templates container) :if-unavailable if-unavailable))

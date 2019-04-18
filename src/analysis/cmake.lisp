@@ -184,7 +184,8 @@
                   [ \\t\\n]*~
                     ([-_.A-Za-z0-9]+)~
                   [ \\t\\n]*~
-                    ([^ \\t\\n)]+)~
+                  (?:NAMES[ \\t\\n]+)?~
+                  ([^ \\t\\n)]+)~
                   [^)]*~
                 \\)")
    :multi-line-mode       t
@@ -199,6 +200,9 @@
         ("find_program(FOO foo)"        #("program" "FOO" "foo"))
         ("FIND_program(FOO foo)"        #("program" "FOO" "foo"))
         ("find_library(FOO foo BAR)"    #("library" "FOO" "foo"))
+
+        ("find_library(FOO NAMES foo)"  #("library" "FOO" "foo"))
+
         ("find_library(FOO ${FOO} BAR)" #("library" "FOO" "${FOO}"))))
 
 (defparameter *project-version-scanner*

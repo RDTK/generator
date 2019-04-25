@@ -173,4 +173,5 @@
 (defmethod access-source ((source puri:uri)
                           (kind   (eql :archive))
                           (target pathname)
-                          &key))
+                          &key)
+  (build-generator.analysis::download-file source ))

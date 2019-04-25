@@ -1,6 +1,6 @@
 ;;;; util.lisp --- Utilities for analysis module.
 ;;;;
-;;;; Copyright (C) 2013-2019 Jan Moringen
+;;;; Copyright (C) 2013-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,8 +39,7 @@
 ;;; Sub-processes
 
 (defun run (spec directory
-            &key
-            (environment '() environment-supplied?))
+            &key (environment '() environment-supplied?))
   (log:debug "~@<Executing ~S~@:>" spec)
   (let+ ((output (make-string-output-stream))
          ((&values &ign &ign code)
@@ -53,15 +52,17 @@
                        (list :environment environment)))
             (error (condition)
               (error "~@<Error executing command~@:_~@:_~
+                      ~2@T[in directory ~A]~@:_~
                       ~2@T~/build-generator.analysis::%print-process-spec/~@:_~@:_~
                       ~A~@:>"
-                     spec condition)))))
+                     directory spec condition)))))
     (unless (zerop code)
       (error "~@<Command~@:_~@:_~
+              ~2@T[in directory ~A]~@:_~
               ~2@T~/build-generator.analysis::%print-process-spec/~@:_~@:_~
               failed with exit code ~D and output:~@:_~@:_~
               ~A~@:>"
-             spec code (get-output-stream-string output)))
+             directory spec code (get-output-stream-string output)))
     (get-output-stream-string output)))
 
 (defun %print-process-spec (stream spec &optional colon? at?)

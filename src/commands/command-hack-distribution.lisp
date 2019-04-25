@@ -90,7 +90,7 @@
               (let ((other-info (remove-from-plist info :repository)))
                 (if bare?
                     (access-project-repository
-                     project repository other-info output-directory
+                     project versions repository other-info output-directory
                      :cache-directory cache-directory)
                     (mapc (rcurry #'access-project-version
                                   repository other-info output-directory
@@ -98,16 +98,24 @@
                           versions)))))
           groups)))
 
-(defun access-project-repository (project repository info output-directory
+(defun access-project-repository (project versions repository info output-directory
                                   &key cache-directory)
-  (let* ((project-name (split-sequence:split-sequence
-                        #\/ (multiple-value-call #'project::apply-replacements
-                              :output-replacements
-                              (var:value project :repository
-                                         (model:name project)))))
-         (directory    (output-directory-for-project
-                        output-directory project-name)))
+  (let+ (((&flet value (name &optional default)
+            (loop :for thing :in (list* project versions)
+                  :for (value error?) = (multiple-value-list
+                                         (ignore-errors
+                                          (var:value thing name))) ; TODO hack
+                  :when (not error?)
+                  :do (return-from value (values value nil)))
+            (values default t)))
+         (project-name        (split-sequence:split-sequence
+                               #\/ (multiple-value-call #'project::apply-replacements
+                                     :output-replacements
+                                     (value :repository (model:name project)))))
+         (directory           (output-directory-for-project
+                               output-directory project-name)))
     (apply #'access-source (puri:uri repository) :auto directory
+           :versions        versions
            :cache-directory cache-directory
            :bare?           t
            info)))
@@ -125,7 +133,11 @@
 
 ;;; Stub access implementation
 
-(defgeneric access-source (source kind target &key &allow-other-keys))
+(defgeneric access-source (source kind target &key &allow-other-keys)
+  (:method ((source puri:uri) (kind t) (target pathname) &key)
+    (error "Making ~A repositories available locally is not ~
+            implemented."
+           kind)))
 
 (defmethod access-source ((source puri:uri)
                           (kind   (eql :auto))
@@ -155,23 +167,23 @@
         ;; TODO sub-directory
         (apply #'build-generator.analysis::clone-git-repository/maybe-cached
                source target :cache-directory cache-directory
-               (find-commitish (remove-from-plist args :cache-directory))))))
+               (find-commitish (remove-from-plist args :cache-directory)))))
+
+  (build-generator.analysis::%run-git
+   `("remote" "set-url" "origin" ,(princ-to-string source)) target))
 
 (defmethod access-source ((source puri:uri)
                           (kind   (eql :svn))
                           (target pathname)
-                          &key
-                          )
+                          &key)
   (build-generator.analysis::checkout-subversion-repository
    source target))
-
-(defmethod access-source ((source puri:uri)
-                          (kind   (eql :mercurial))
-                          (target pathname)
-                          &key))
 
 (defmethod access-source ((source puri:uri)
                           (kind   (eql :archive))
                           (target pathname)
                           &key)
-  (build-generator.analysis::download-file source ))
+  (let* ((archive-name (lastcar (puri:uri-parsed-path source)))
+         (output-file  (merge-pathnames archive-name target)))
+    (ensure-directories-exist output-file)
+    (build-generator.analysis::download-file source output-file)))

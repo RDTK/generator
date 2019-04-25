@@ -100,20 +100,11 @@
 
 (defun access-project-repository (project versions repository info output-directory
                                   &key cache-directory)
-  (let+ (((&flet value (name &optional default)
-            (loop :for thing :in (list* project versions)
-                  :for (value error?) = (multiple-value-list
-                                         (ignore-errors
-                                          (var:value thing name))) ; TODO hack
-                  :when (not error?)
-                  :do (return-from value (values value nil)))
-            (values default t)))
-         (project-name        (split-sequence:split-sequence
-                               #\/ (multiple-value-call #'project::apply-replacements
-                                     :output-replacements
-                                     (value :repository (model:name project)))))
-         (directory           (output-directory-for-project
-                               output-directory project-name)))
+  (let* ((project-name (split-sequence:split-sequence
+                        #\/ (project::apply-replacements
+                             :output-replacements repository nil)))
+         (directory    (output-directory-for-project
+                        output-directory project-name)))
     (apply #'access-source (puri:uri repository) :auto directory
            :versions        versions
            :cache-directory cache-directory

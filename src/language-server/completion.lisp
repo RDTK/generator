@@ -249,7 +249,7 @@
      (contributor project-name-completion-contributor))
   (when-let* ((project-name (project-name context))
               (prefix       (prefix context))
-              (project      (find-project project-name workspace)))
+              (project      (find-project project-name workspace))) ; TODO the context should do this
     (let+ ((result '())
            ((&flet consider (name detail &key documentation)
               (when (starts-with-subseq prefix name)

@@ -404,6 +404,11 @@
     (var:lookup (model:specification thing) name :if-undefined nil)
     (call-next-method)))
 
+#+no (defmethod var:value ((thing job) (name (eql :repository)) &optional default)
+  (declare (ignore default))
+  (multiple-value-call #'apply-replacements
+    :url-replacements (call-next-method)))
+
 (defmethod model:add-dependencies! ((thing job) &key providers)
   (declare (ignore providers))
   (let ((dependency-name (var:value/cast thing :dependency-job-name (model:name thing))))

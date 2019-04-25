@@ -133,3 +133,8 @@
                   (t
                    (list `(,(parse-dependency-spec spec) . :system-package)))))
           (var:value/cast object :platform-provides '())))
+
+(defmethod var:value :around ((thing standard-object) (name (eql :repository)) &optional default)
+  (declare (ignore default))
+  (multiple-value-call #'apply-replacements
+    :url-replacements (call-next-method)))

@@ -237,16 +237,22 @@
   (make-instance 'var:direct-variables-mixin))
 
 (defun apply-replacements (variable value defaulted?)
-  (let ((rules (var:value *global-stuff* variable '())))
-    (values (reduce (lambda+ (value (pattern template))
-                      (ppcre:regex-replace pattern value template))
-                    rules :initial-value value)
-            defaulted?)))
+  (if-let ((stuff *global-stuff*))
+    (let ((rules (var:value stuff variable '())))
+      (values (reduce (lambda+ (value (pattern template))
+                        (ppcre:regex-replace pattern value template))
+                      rules :initial-value value)
+              defaulted?))
+    (values value defaulted?)))
 
-(defmethod var:value ((thing version-spec) (name (eql :repository)) &optional default)
+#+no (defmethod var:value ((thing version-spec) (name (eql :repository)) &optional default)
   (declare (ignore default))
   (multiple-value-call #'apply-replacements
     :url-replacements (call-next-method)))
+
+#+no (defmethod var:value ((thing version-spec) (name (eql :original-repository)) &optional default)
+  (let ((*global-stuff* nil))
+    (var:value thing :repository default)))
 
 (defmethod aspects:aspects ((thing version-spec))
   (aspects:aspects (model:parent thing)))
@@ -367,6 +373,11 @@
    :aspect (missing-required-initarg 'aspect-spec :aspect))
   (:documentation
    "Specification of an aspect that should be applied to a build job."))
+
+#+no (defmethod var:value ((thing aspect-spec) (name (eql :repository)) &optional default)
+  (declare (ignore default))
+  (multiple-value-call #'apply-replacements
+    :url-replacements (call-next-method)))
 
 (defmethod model:instantiate ((spec aspect-spec) &key parent specification-parent)
   (declare (ignore specification-parent))

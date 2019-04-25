@@ -64,7 +64,7 @@
 
 (defmethod load-elements ((container deferred-projects))
   (let* ((workspace                (workspace container))
-         (project::*templates*     (templates workspace :if-unavailable :block))
+         (project::*templates*     (templates/table workspace :if-unavailable :block))
          (project::*projects*      nil)
          (projects                 (make-hash-table :test #'equal))
          (project::*projects-lock* (bt:make-lock))
@@ -72,7 +72,9 @@
          (pattern                  (project:recipe-path repository :project :wild)))
     (log:error "Background-loading projects from ~A" pattern)
     (handler-bind (((and error build-generator.util:continuable-error)
-                     (compose #'invoke-restart #'build-generator.util:find-continue-restart)))
+                     (lambda (condition)
+                       (log:error "Error background-loading project: ~A" condition)
+                       (funcall (compose #'invoke-restart #'build-generator.util:find-continue-restart) condition))))
       (map nil (lambda (filename)
                  (with-simple-restart (continue "Skip")
                    (let ((project (project:load-project-spec/yaml
@@ -89,7 +91,7 @@
 
 (defmethod load-elements ((container deferred-distributions))
   (let* ((workspace                (workspace container))
-         (project::*templates*     (templates workspace :if-unavailable :block))
+         (project::*templates*     (templates/table workspace :if-unavailable :block))
          (project::*projects*      nil)
          (distributions            (make-hash-table :test #'equal))
          (project::*projects-lock* (bt:make-lock))

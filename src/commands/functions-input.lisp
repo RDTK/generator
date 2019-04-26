@@ -241,6 +241,17 @@
                                        #'string-upcase)
                         natures)))))
 
+(defun resolve-analysis-variables (version)
+  (let+ (((&flet maybe-key-fragment (version variable-and-transform)
+            (let+ (((variable . transform)
+                    (ensure-list variable-and-transform)))
+              (when-let ((value (var:value version variable nil)))
+                (list variable (if transform
+                                   (funcall transform value)
+                                   value)))))))
+    (mapcan (curry #'maybe-key-fragment version)
+            *analysis-variables*)))
+
 (defun analyze-project (project &rest args
                                 &key non-interactive
                                      temp-directory
@@ -248,16 +259,6 @@
                                      age-limit)
   (declare (ignore non-interactive temp-directory cache-directory age-limit))
   (let+ ((groups (group-project-versions-for-analysis project))
-         ((&flet version-info (version)
-            (let+ (((&flet maybe-key-fragment (version variable-and-transform)
-                      (let+ (((variable . transform)
-                              (ensure-list variable-and-transform)))
-                            (when-let ((value (var:value version variable nil)))
-                              (list variable (if transform
-                                                 (funcall transform value)
-                                                 value)))))))
-              (mapcan (curry #'maybe-key-fragment version)
-                      *analysis-variables*))))
          ((&flet+ analyze-group ((info . versions))
             (let+ (((&plist-r/o (repository :repository)) info)
                    (other-info (remove-from-plist info :repository)))
@@ -268,7 +269,8 @@
                versions
                (apply #'jenkins.analysis:analyze repository :auto
                       :project  project
-                      :versions (map 'list #'version-info versions)
+                      :versions (map 'list #'resolve-analysis-variables
+                                     versions)
                       (append other-info args)))))))
     (mapc #'analyze-group groups)
     project))

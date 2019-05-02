@@ -18,7 +18,8 @@
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (build)
-          (shell (:command (wrapped-shell-command (:aspect.shell) command))))
+          (make-instance 'jenkins.api:builder/shell
+                         :command (wrapped-shell-command (:aspect.shell) command)))
         (builders job)))
 
 ;;; Batch aspect
@@ -32,7 +33,8 @@
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (build) (batch (:command command)))
+  (push (constraint! (build)
+          (make-instance 'jenkins.api:builder/batch :command command))
         (builders job)))
 
 ;;; CMake aspects
@@ -61,7 +63,9 @@
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (build ((:after dependency-download)))
-          (shell (:command (wrapped-shell-command (:aspect.cmake/unix) command))))
+          (make-instance 'jenkins.api:builder/shell
+                         :command (wrapped-shell-command (:aspect.cmake/unix)
+                                    command)))
         (builders job)))
 
 (var:define-variable :aspect.cmake/unix.find-commands list ; :write
@@ -150,7 +154,7 @@
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (build ((:after dependency-download)))
-          (batch (:command command)))
+          (make-instance 'jenkins.api:builder/batch :command command))
         (builders job)))
 
 ;;; Maven aspect
@@ -195,18 +199,19 @@
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
   (push (constraint! (build)
-          (maven (:properties          (mapcan (lambda (spec)
-                                                 (let+ (((name value) (split-option spec)))
-                                                   (list (make-keyword name) value)))
-                                               properties)
-                  ;; hack to prevent useless progress output
-                  ;; In the targets list because the maven
-                  ;; plugin does not have specific fields
-                  ;; for command line options
-                  :targets             (list* "-B" targets)
-                  :private-repository? private-repository?
-                  :settings            (or settings-file :default)
-                  :global-settings     (or global-settings-file :default))))
+          (make-instance 'jenkins.api:builder/maven
+                         :properties          (mapcan (lambda (spec)
+                                                        (let+ (((name value) (split-option spec)))
+                                                          (list (make-keyword name) value)))
+                                                      properties)
+                         ;; hack to prevent useless progress output In
+                         ;; the targets list because the maven plugin
+                         ;; does not have specific fields for command
+                         ;; line options
+                         :targets             (list* "-B" targets)
+                         :private-repository? private-repository?
+                         :settings            (or settings-file :default)
+                         :global-settings     (or global-settings-file :default)))
         (builders job)))
 
 ;;; Setuptools aspect
@@ -239,8 +244,9 @@
    ordering constraints."
   (declare (ignore options))
   (push (constraint! (build ((:after dependency-download)))
-          (shell (:command (wrapped-shell-command (:aspect.setuptools)
-                             command))))
+          (make-instance 'jenkins.api:builder/shell
+                         :command (wrapped-shell-command (:aspect.setuptools)
+                                    command)))
         (builders job)))
 
 (defmethod var:lookup ((thing aspect-setuptools)
@@ -283,6 +289,9 @@
    ordering constraints."
   (push (constraint! (build)
           (ecase kind
-            (:system (system-groovy (:code code :sandbox? sandbox?)))
-            (:normal (groovy        (:code code)))))
+            (:system (make-instance 'jenkins.api:builder/system-groovy
+                                    :code     code
+                                    :sandbox? sandbox?))
+            (:normal (make-instance 'jenkins.api:builder/groovy
+                                    :code code))))
         (builders job)))

@@ -50,11 +50,12 @@
              (analysis-tools issues-recorder))))
     (:legacy
      (push (constraint! (publish)
-             (tasks (:pattern         pattern
-                     :exclude         exclude
-                     :keywords/low    keywords.low
-                     :keywords/normal keywords.normal
-                     :keywords/high   keywords.high)))
+             (make-instance 'jenkins.api:publisher/tasks
+                            :pattern         pattern
+                            :exclude         exclude
+                            :keywords/low    keywords.low
+                            :keywords/normal keywords.normal
+                            :keywords/high   keywords.high))
            (publishers job)))))
 
 ;;; SLOCcount aspect
@@ -74,10 +75,11 @@
     (push (constraint! (build ((:before cmake/unix)
                                (:before maven)
                                (:before setuptools)))
-            (shell (:command command)))
+            (make-instance 'jenkins.api:builder/shell :command command))
           (builders job)))
 
-  (push (constraint! (publish) (sloccount (:pattern "sloccount.sc")))
+  (push (constraint! (publish)
+          (make-instance 'jenkins.api::publisher/sloccount :pattern "sloccount.sc"))
         (publishers job)))
 
 ;;; Warnings aspect
@@ -307,12 +309,13 @@
       "Control the verbosity of the plugin during the upload process."))
   "Adds a publisher for uploads build results to the generated job."
   (push (constraint! (publish)
-          (ssh (:target           target
-                :source-files     source-files
-                :excludes         excludes
-                :remove-prefix    remove-prefix
-                :remote-directory remote-directory
-                :verbose?         verbose?)))
+          (make-instance 'jenkins.api:publisher/ssh
+                         :target           target
+                         :source-files     source-files
+                         :excludes         excludes
+                         :remove-prefix    remove-prefix
+                         :remote-directory remote-directory
+                         :verbose?         verbose?))
         (publishers job)))
 
 ;;; HTML report aspect

@@ -14,18 +14,11 @@
    #:more-conditions
    #:print-items
 
-   #:jenkins.api
-   #:jenkins.dsl)
+   #:jenkins.api)
 
   (:local-nicknames
    (#:model #:jenkins.model)
    (#:var   #:jenkins.model.variables))
-
-  (:shadowing-import-from #:jenkins.api ; TODO hack
-   #:parameters)
-
-  (:shadowing-import-from #:jenkins.dsl ; TODO hack
-   #:job)
 
   ;; Conditions
   (:export

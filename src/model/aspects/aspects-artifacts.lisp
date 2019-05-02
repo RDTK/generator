@@ -84,11 +84,12 @@
                 (t
                  (push (constraint! (build ((:after sloccount))
                                            copy-artifact)
-                         (copy-artifact (:project-name reference
-                                         :filter       pattern
-                                         :target       upstream-dir
-                                         :flatten?     t
-                                         :clazz        "hudson.plugins.copyartifact.StatusBuildSelector")))
+                         (make-instance 'jenkins.api:builder/copy-artifact
+                                        :project-name reference
+                                        :filter       pattern
+                                        :target       upstream-dir
+                                        :flatten?     t
+                                        :clazz        "hudson.plugins.copyartifact.StatusBuildSelector"))
                        (builders job))
                  (setf copy-artifacts? t)))))
 
@@ -100,5 +101,5 @@
                                upstream-dir)))
           (push (constraint! (build ((:before cmake/unix)
                                     (:after copy-artifact)))
-                  (shell (:command command)))
+                  (make-instance 'jenkins.api:builder/shell :command command))
                 (builders job)))))))

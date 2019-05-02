@@ -57,7 +57,8 @@
                                        (rest (pathname-directory
                                               (uiop:ensure-directory-pathname
                                                sub-directory)))))))))
-    (push (constraint! (build ((:before t))) (shell (:command command)))
+    (push (constraint! (build ((:before t)))
+            (make-instance 'jenkins.api:builder/shell :command command))
           (builders job))))
 
 (define-aspect (git :job-var    job
@@ -131,25 +132,27 @@
                           (unless (model:check-access aspect :public)
                             (puri:uri-host url/parsed)))))
     (setf (repository job)
-          (git (:url                    (jenkins.analysis::format-git-url
-                                         url/parsed username password)
-                :credentials            credentials
-                :branches               branches
-                :clone-timeout          clone-timeout
-                :wipe-out-workspace?    wipe-out-workspace?
-                :clean-before-checkout? clean-before-checkout?
-                :checkout-submodules?   checkout-submodules?
-                :shallow?               shallow?
-                :local-branch           local-branch
-                :internal-tag?          nil))))
+          (make-instance 'jenkins.api:scm/git
+                         :url                    (jenkins.analysis::format-git-url
+                                                  url/parsed username password)
+                         :credentials            credentials
+                         :branches               branches
+                         :clone-timeout          clone-timeout
+                         :wipe-out-workspace?    wipe-out-workspace?
+                         :clean-before-checkout? clean-before-checkout?
+                         :checkout-submodules?   checkout-submodules?
+                         :shallow?               shallow?
+                         :local-branch           local-branch
+                         :internal-tag?          nil)))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
     (push (constraint! (build ((:before t)))
-            (shell (:command (make-focus-sub-directory-command
-                              sub-directory :exclude '(".git")))))
+            (make-instance 'jenkins.api:builder/shell
+                           :command (make-focus-sub-directory-command
+                                     sub-directory :exclude '(".git"))))
           (builders job))))
 
 (define-aspect (git-repository-browser
@@ -217,10 +220,11 @@
                            (unless (model:check-access aspect :public)
                              (puri:uri-host url/parsed)))))
     (setf (repository job)
-          (svn (:url               url/revision
-                :credentials       credentials
-                :local-directory   local-dir
-                :checkout-strategy checkout-strategy)))))
+          (make-instance 'jenkins.api:scm/svn
+                         :url               url/revision
+                         :credentials       credentials
+                         :local-directory   local-dir
+                         :checkout-strategy checkout-strategy))))
 
 (define-aspect (mercurial :job-var    job
                           :aspect-var aspect
@@ -264,21 +268,23 @@
       (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"
              branch tag))
     (setf (repository job)
-          (mercurial (:url           url
-                      :credentials   credentials
-                      :revision-type (cond
-                                       (branch :branch)
-                                       (tag    :tag))
-                      :branch        (or branch tag)
-                      :clean?        clean?))))
+          (make-instance 'jenkins.api:scm/mercurial
+                         :url           url
+                         :credentials   credentials
+                         :revision-type (cond
+                                          (branch :branch)
+                                          (tag    :tag))
+                         :branch        (or branch tag)
+                         :clean?        clean?)))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
     (push (constraint! (build ((:before t)))
-            (shell (:command (make-focus-sub-directory-command
-                              sub-directory :exclude '(".hg")))))
+            (make-instance 'jenkins.api:builder/shell
+                           :command (make-focus-sub-directory-command
+                                     sub-directory :exclude '(".hg"))))
           (builders job))))
 
 (define-aspect (trigger/scm) ()
@@ -291,4 +297,5 @@
   "Configures the generated job such that it polls the SCM repository."
   (removef (triggers job) 'trigger/scm :key #'type-of)
   (when spec
-    (push (scm (:spec spec)) (triggers job))))
+    (push (make-instance 'jenkins.api:trigger/scm :spec spec)
+          (triggers job))))

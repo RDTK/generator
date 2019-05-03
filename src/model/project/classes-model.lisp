@@ -446,11 +446,11 @@
                 (t
                  (setf (jenkins.api:disabled? job) (jenkins.api:disabled? existing-job))))
 
-              (push job (jenkins.model:implementations thing))
+              (push job (model:implementations thing))
 
               ;; Apply aspects, respecting declared ordering, and sort
               ;; generated builders according to declared ordering.
-              (jenkins.model.aspects:extend! job (aspects:aspects thing) thing)
+              (aspects:extend! job (aspects:aspects thing) thing)
 
               ;; TODO temp
               (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)

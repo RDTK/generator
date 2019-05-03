@@ -11,10 +11,7 @@
    #:split-sequence
    #:iterate
    #:let-plus
-   #:more-conditions
-
-   #:jenkins.api
-   #:jenkins.dsl)
+   #:more-conditions)
 
   (:local-nicknames
    (#:bp      #:architecture.builder-protocol)
@@ -28,9 +25,6 @@
 
   (:shadowing-import-from #:jenkins.api
    #:parameters)
-
-  (:shadowing-import-from #:jenkins.dsl
-   #:job)
 
   (:import-from #:jenkins.version
    #:parse-version

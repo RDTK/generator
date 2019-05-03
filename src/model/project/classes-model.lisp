@@ -440,11 +440,11 @@
               ;; `:force-disabled' has been specified.
               (cond
                 ((eq disabled? :force-disabled)
-                 (setf (disabled? job) t))
+                 (setf (jenkins.api:disabled? job) t))
                 ((not existing-job)
-                 (setf (disabled? job) disabled?))
+                 (setf (jenkins.api:disabled? job) disabled?))
                 (t
-                 (setf (disabled? job) (disabled? existing-job))))
+                 (setf (jenkins.api:disabled? job) (jenkins.api:disabled? existing-job))))
 
               (push job (jenkins.model:implementations thing))
 

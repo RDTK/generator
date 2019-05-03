@@ -707,60 +707,67 @@
    (:name-slot pattern)))
 
 (define-model-class job ()
-  ((description                :type     string)
+  ((description                :type     string
+                               :initform nil)
    (disabled?                  :type     boolean
-                               :xpath    "disabled/text()")
+                               :xpath    "disabled/text()"
+                               :initform nil)
    (block-on-downstream-build? :type     boolean
-                               :xpath    "blockBuildWhenDownstreamBuilding/text()")
+                               :xpath    "blockBuildWhenDownstreamBuilding/text()"
+                               :initform nil)
    (block-on-upstream-build?   :type     boolean
-                               :xpath    "blockBuildWhenUpstreamBuilding/text()")
+                               :xpath    "blockBuildWhenUpstreamBuilding/text()"
+                               :initform nil)
    (can-roam?                  :type     boolean
                                :xpath    "canRoam/text()"
                                :initform t)
    (restrict-to-slaves         :type     string
                                :xpath    "assignedNode/text()"
+                               :initform nil
                                :optional? t)
    ;; Interface-based children
    (properties                 :type     property
                                :xpath    ("properties/*"
-                                          :if-multiple-matches :all))
+                                          :if-multiple-matches :all)
+                               :initform '())
    (triggers                   :type     trigger
                                :xpath    ("triggers/*"
                                           :if-multiple-matches :all)
-                               ;; TODO :initform '()
-                               )
+                               :initform '())
    (repository                 :type     scm
-                               :xpath    ("scm"))
+                               :xpath    ("scm")
+                               :initform nil)
    (build-wrappers             :type     build-wrapper
                                :xpath    ("buildWrappers/*"
                                           :if-multiple-matches :all)
-                               ;; TODO :initform '()
-                               )
+                               :initform '())
    (builders                   :type     builder
                                :xpath    ("builders/*"
                                           :if-multiple-matches :all)
-                               ;; TODO :initform '()
-                               )
+                               :initform '())
    (publishers                 :type     publisher
                                :xpath    ("publishers/*"
                                           :if-multiple-matches :all)
-                               ;; TODO :initform '()
-                               )
+                               :initform '())
 
    ;; TODO Not sure about these
    (slaves          :type     string/node ; TODO(jmoringe, 2012-07-10): not correct
                     :xpath    ("axes/hudson.matrix.LabelAxis[name/text()='label']/values/string"
                                :if-multiple-matches :all)
-                    :optional? t)
+                    :optional? t
+                    :initform '())
 
    (environment     :type     (equals+newline/plist keyword string)
-                    :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()")
+                    :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()"
+                    :initform '())
 
    (permissions     :type     access-control-rule
                     :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
-                               :if-multiple-matches :all))
+                               :if-multiple-matches :all)
+                    :initform '())
    (jdk             :type     string
-                    :xpath    "jdk/text()"))
+                    :xpath    "jdk/text()"
+                    :initform nil))
   (:get-func (lambda (id)      (job-config id)))
   (:put-func (lambda (id data) (setf (job-config id) data))))
 
@@ -786,11 +793,40 @@
                                 character~P: ~{~{~A (~@[~A~])~}~^, ~}.~@:>"
              :format-arguments (list name (length offenders) offenders)))))
 
+(defmethod shared-initialize :around ((instance   job)
+                                      (slot-names t)
+                                      &rest args &key
+                                      populate?)
+  ;; Only initialize all slots if POPULATE? is true. Otherwise, the
+  ;; uninitialized slots will be populated lazily from the remote
+  ;; state.
+  (if populate?
+      (call-next-method)
+      (apply #'call-next-method instance '(id get-func put-func) args)))
+
 (defmethod initialize-instance :before ((instance job)
                                         &key
                                         id
-                                        check-id?)
-  (when check-id? (check-job-name id)))
+                                        check-id?
+                                        kind
+                                        populate?)
+  (when check-id? (check-job-name id))
+  ;; Setting the kind requires the `%data' slot to be initialized
+  ;; which is only the case when POPULATE? is true.
+  (when (and kind (not populate?))
+    (incompatible-initargs 'job :kind kind :populate? populate?)))
+
+(defmethod initialize-instance :after ((instance job)
+                                       &key
+                                       kind
+                                       populate?)
+  ;; When POPULATE? is true, all slots are initialized to default
+  ;; values. Put an empty document into the `%data' slot to match that
+  ;; state.
+  (when populate?
+    (setf (%data instance) (stp:make-document (stp:make-element "project")))
+    (when kind
+      (setf (kind instance) kind))))
 
 (defmethod kind ((object job))
   (stp:local-name (stp:document-element (%data object))))

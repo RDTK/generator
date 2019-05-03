@@ -435,7 +435,11 @@
                           (make-keyword (string-upcase kind)))))
          (disabled? (var:value/cast thing :build-job.disabled? nil))
          ((&flet make-new-job (&optional existing-job)
-            (let ((job (jenkins.dsl:job (kind id))))
+            (let ((job (make-instance 'jenkins.api:job
+                                      :id        id
+                                      :check-id? t
+                                      :kind      kind
+                                      :populate? t)))
               ;; Retain value of disabled slot unless
               ;; `:force-disabled' has been specified.
               (cond

@@ -38,7 +38,7 @@
                  :reader  distribution)))
 
 (defmethod print-items:print-items append ((object distribution-include))
-  (let ((distribution (name (distribution object))))
+  (let ((distribution (model:name (distribution object))))
     `((:distribution ,distribution "~A"))))
 
 ;;; `project-include'

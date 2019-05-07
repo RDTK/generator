@@ -19,20 +19,21 @@
                             are not re-created in this generation ~
                             run."))
    (delete-other-pattern :initarg  :delete-other-pattern
-                         :type     string
+                         :type     (or null string)
                          :reader   delete-other-pattern
-                         :initform ".*"
+                         :initform nil
                          :documentation
                          #.(format nil "When deleting previously ~
                             automatically generated jobs, only ~
                             consider jobs whose name matches the ~
                             regular expression REGEX.~@
                             ~@
-                            A common case, deleting only jobs ~
-                            belonging to the distribution being ~
-                            generated, can be achieved using the ~
+                            The default value corresponds to the ~
+                            common case of deleting only jobs ~
+                            belonging to previous versions of the ~
+                            distribution(s) being generated, i.e. the ~
                             regular expression ~
-                            DISTRIBUTION-NAME$.")))
+                            (DISTRIBUTION-NAME₁|DISTRIBUTION-NAME₂|…)$.")))
   (:documentation
    "Generate Jenkins jobs for a given distribution."))
 
@@ -150,9 +151,6 @@
                           (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
 
-(defun generated? (job)
-  (search "automatically generated" (jenkins.api:description job)))
-
 (defun generate-deploy (distributions
                         &key
                         delete-other?
@@ -172,15 +170,25 @@
          (all-jobs   (append jobs (mappend #'model:implementations
                                            orchestration-jobs))))
     (when delete-other?
-      (as-phase (:delete-other-jobs)
-        (let* ((other-jobs     (set-difference
-                                (jenkins.api:all-jobs delete-other-pattern)
-                                all-jobs
-                                :key #'jenkins.api:id :test #'string=))
-               (generated-jobs (remove-if-not #'generated? other-jobs)))
-          (with-sequence-progress (:delete-other generated-jobs)
-            (mapc (progressing #'jenkins.api:delete-job :delete-other)
-                  generated-jobs)))))
+      (delete-other-jobs all-jobs (or delete-other-pattern
+                                      `(:sequence
+                                        (:alternation ,@(map 'list #'model:name
+                                                             distributions))
+                                        :end-anchor))))
 
     (as-phase (:list-credentials)
       (list-credentials jobs))))
+
+(defun generated? (job)
+  (search "automatically generated" (jenkins.api:description job)))
+
+(defun delete-other-jobs (all-jobs pattern)
+  (as-phase (:delete-other-jobs)
+    (log:info "Deleting other jobs using pattern ~S" pattern)
+    (let* ((other-jobs     (set-difference
+                            (jenkins.api:all-jobs pattern) all-jobs
+                            :key #'jenkins.api:id :test #'string=))
+           (generated-jobs (remove-if-not #'generated? other-jobs)))
+      (with-sequence-progress (:delete-other generated-jobs)
+        (mapc (progressing #'jenkins.api:delete-job :delete-other)
+              generated-jobs)))))

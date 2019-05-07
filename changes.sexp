@@ -1,15 +1,25 @@
 ((:release "0.29" nil
 
- (:enhancement
-  "Analysis of projects with" (:verb "cmake") "nature now
-   recognizes" (:verb "find_library") "and" (:verb "find_program") "calls
-   and turns them into the following feature requirements:"
-  (:verb
-   "
+  (:enhancement
+   "Analysis of projects with" (:verb "cmake") "nature now
+    recognizes" (:verb "find_library") "and" (:verb "find_program") "calls
+    and turns them into the following feature requirements:"
+   (:verb
+    "
 find_library(OUTPUT_VAR NAME …) → nature: library
                                   target: NAME
 find_program(OUTPUT_VAR NAME …) → nature: program
-                                  target: NAME")))
+                                  target: NAME"))
+
+  (:enhancement
+   "The" (:verb "generate") "command uses a better default pattern for
+    deleting previously generated jobs if
+    the" (:verb "delete-other") "commandline option is supplied,
+    but" (:verb "delete-other-pattern") "is not supplied. The new
+    default value corresponds to the regular
+    expression" (:verb "(DISTRIBUTION-NAME₁|DISTRIBUTION_NAME₂|…)$")
+   "where" (:verb "DISTRIBUTION-NAMEₖ") "are the names of the
+    distributions for which jobs are being generated."))
 
  (:release "0.28" "2019-04-15"
 

@@ -55,11 +55,4 @@
                  :serial     t
                  :components ((:file     "classes")
                               (:file     "csrf")
-                              (:file     "api")))
-
-                (:module     "dsl"
-                 :pathname   "src/dsl"
-                 :depends-on ("api-late")
-                 :serial     t
-                 :components ((:file     "package")
-                              (:file     "macros")))))
+                              (:file     "api")))))

@@ -116,7 +116,10 @@
               ;; Scalar or list variable reference with to-be-evaluated
               ;; variable name (with or without default).
               ((list* (and (or :ref :ref/list) which) pattern rest)
-               (let* ((name     (first (recur pattern path)))
+               (let* ((name     (or (first (recur pattern path))
+                                    (error "~@<Variable name ~S ~
+                                            expanded to nothing.~@:>"
+                                            pattern)))
                       (resolved (list* which name rest))
                       (result   (recur resolved path)))
                  (ecase which

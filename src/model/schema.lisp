@@ -137,12 +137,15 @@
 ;;; Project variables
 
 (var:define-variable :scm (or (eql :archive) (eql :git) (eql :svn) (eql :mercurial)
-                              string)
+                              null string)
   :documentation
   "Forces the use a particular source code management system in the
    generator's analysis and generated Jenkins jobs.
 
-   Common values are \"archive\", \"git\", \"svn\" and \"mercurial\".")
+   Common values are \"archive\", \"git\", \"svn\" and \"mercurial\".
+
+   The value false can be used to overwrite and disable an inherited
+   value.")
 
 (var:define-variable :scm.credentials (or null string)
   :documentation

@@ -170,17 +170,23 @@
          (all-jobs   (append jobs (mappend #'model:implementations
                                            orchestration-jobs))))
     (when delete-other?
-      (delete-other-jobs all-jobs (or delete-other-pattern
-                                      `(:sequence
-                                        (:alternation ,@(map 'list #'model:name
-                                                             distributions))
-                                        :end-anchor))))
+      (delete-other-jobs all-jobs (make-delete-other-pattern
+                                   delete-other-pattern distributions)))
 
     (as-phase (:list-credentials)
       (list-credentials jobs))))
 
 (defun generated? (job)
   (search "automatically generated" (jenkins.api:description job)))
+
+(defun make-delete-other-pattern (pattern distributions)
+  (cond (pattern)
+        ((length= 1 distributions)
+         `(:sequence ,(model:name (first distributions)) :end-anchor))
+        (t
+         `(:sequence
+           (:alternation ,@(map 'list #'model:name distributions))
+           :end-anchor))))
 
 (defun delete-other-jobs (all-jobs pattern)
   (as-phase (:delete-other-jobs)

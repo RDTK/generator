@@ -149,25 +149,6 @@
                        :initform :success))
    (:name-slot upstream-projects)))
 
-;;; build-wrapper interface
-
-(define-interface-implementations (build-wrapper)
-  ((timeout "hudson.plugins.build__timeout.BuildTimeoutWrapper"
-            :plugin "build-timeout@1.11")
-   ((kind            :type     (keyword/downcase :absolute)
-                     :xpath    "timeoutType/text()"
-                     :initform :absolute)
-    (timeout/minutes :type     real
-                     :xpath    "timeoutMinutes/text()")
-    (fail-build?     :type     boolean
-                     :xpath   "failBuild/text()"
-                     :initform nil))
-   (:name-slot kind))
-
-  ((sonar "hudson.plugins.sonar.SonarBuildWrapper"
-          :plugin "sonar@2.6.1")
-   ()))
-
 ;;; builder interface
 
 (macrolet

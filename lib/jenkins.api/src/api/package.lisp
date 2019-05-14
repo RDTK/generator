@@ -165,7 +165,9 @@
    #:timeout/minutes
    #:faild-build?
 
-   #:build-wrapper/sonar)
+   #:build-wrapper/sonar
+
+   #:build-wrapper/timestamper)
 
   ;; Builder interface
   (:export

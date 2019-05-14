@@ -28,4 +28,10 @@
 
   ((sonar "hudson.plugins.sonar.SonarBuildWrapper"
           :plugin "sonar@2.6.1")
+   ())
+
+  ((timestamper "hudson.plugins.timestamper.TimestamperBuildWrapper"
+                :plugin "timestamper@1.9")
    ()))
+
+

@@ -363,6 +363,13 @@
     (:explicit
      (error "Not implemented."))))
 
+;;; Console Timestamper aspect
+
+(define-aspect (console-timestamper :plugins ("timestamper")) ()
+    ()
+  "Configures the console timestamper."
+  (with-interface (build-wrappers job) (nil (build-wrapper/timestamper))))
+
 ;;; Slaves aspect
 
 ;; TODO separate slaves aspect for matrix-project jobs?

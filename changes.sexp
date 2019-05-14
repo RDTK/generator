@@ -19,7 +19,10 @@ find_program(OUTPUT_VAR NAME …) → nature: program
     default value corresponds to the regular
     expression" (:verb "(DISTRIBUTION-NAME₁|DISTRIBUTION_NAME₂|…)$")
    "where" (:verb "DISTRIBUTION-NAMEₖ") "are the names of the
-    distributions for which jobs are being generated."))
+    distributions for which jobs are being generated.")
+
+  (:enhancement
+   "The console timestamper plugin for Jenkins is now supported."))
 
  (:release "0.28" "2019-04-15"
 

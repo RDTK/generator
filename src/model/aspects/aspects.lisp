@@ -378,7 +378,7 @@
 
        See description of option \"Advanced Project Options\" »
        \"Restrict where this project can be run\" in Jenkins' job
-       configuration for details."  ))
+       configuration for details."))
   "Configures the generated job to run on specific slaves."
   (when slaves
     (setf (slaves job) slaves))

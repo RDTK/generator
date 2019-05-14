@@ -638,11 +638,6 @@
                                :if-multiple-matches :all)
                     :optional? t
                     :initform '())
-
-   (environment     :type     (equals+newline/plist keyword string)
-                    :xpath    "buildWrappers/hudson.plugins.setenv.SetEnvBuildWrapper/localVarText/text()"
-                    :initform '())
-
    (permissions     :type     access-control-rule
                     :xpath    ("properties/hudson.security.AuthorizationMatrixProperty/permission"
                                :if-multiple-matches :all)

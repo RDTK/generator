@@ -7,6 +7,13 @@
 (cl:in-package #:jenkins.api)
 
 (define-interface-implementations (build-wrapper)
+  ;; We use the EnvInjectJobProperty instead
+  #+disabled ((environment "EnvInjectBuildWrapper" :plugin "envinject@2.1.6")
+   ((entries :type     (equals+newline/plist keyword string)
+             :xpath    "info/propertiesContent/text()"
+             :initform '()))
+   (:name-slot nil))
+
   ((timeout "hudson.plugins.build__timeout.BuildTimeoutWrapper"
             :plugin "build-timeout@1.11")
    ((kind            :type     (keyword/downcase :absolute)

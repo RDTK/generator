@@ -45,6 +45,7 @@
                               (:file     "interface")
 
                               (:file     "job")
+                              (:file     "job-property")
                               (:file     "job-publisher")
 
                               (:file     "view")))

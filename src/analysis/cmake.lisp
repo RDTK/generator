@@ -717,13 +717,14 @@
                     (kind   (eql :cmake/pkg-config-template))
                     &key
                     environment)
-  (let* ((name    (first (split-sequence:split-sequence
+  (when-let* ((name    (first (split-sequence:split-sequence
                           #\. (pathname-name source))))
-         (content (util:read-file-into-string* source))
-         (content (%resolve-variables content environment)))
-    (when-let* ((result (with-input-from-string (stream content)
-                          (analyze stream :pkg-config :name name))))
-      (getf result :provides))))
+              (content (util:read-file-into-string* source))
+              (content (%resolve-variables content environment
+                                           :if-unresolved nil))
+              (result  (with-input-from-string (stream content)
+                         (analyze stream :pkg-config :name name))))
+    (getf result :provides)))
 
 ;;; Utility functions
 

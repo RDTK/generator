@@ -683,27 +683,30 @@
                     project-version
                     environment)
   (let+ (((&values name version?) (config-file->project-name source)))
-    (if version?
-        (let+ (((&whole matchers
-                        major-version minor-version patch-version
-                        matching-version any-version)
-                (map 'list (rcurry #'make-matcher environment)
-                     `("VERSION_MAJOR" "VERSION_MINOR" "VERSION_PATCH"
-                       ,name nil)))
-               (content (util:read-file-into-string* source)))
-          (ppcre:do-matches-as-strings (reference *variable-reference-scanner* content)
-            (when (and (starts-with #\@ reference)
-                       (search "VERSION" reference))
-              (some (rcurry #'funcall reference) matchers)))
-          (let ((version (or (when-let ((major (funcall major-version))
-                                        (minor (funcall minor-version)))
-                               (let ((patch (funcall patch-version)))
-                                 (format-version major minor patch)))
-                             (funcall matching-version)
-                             (funcall any-version)
-                             project-version)))
-            (list (%make-dependency name version))))
-        (list (%make-dependency name project-version)))))
+    (cond ((not name)
+           '())
+          (version?
+           (let+ (((&whole matchers
+                           major-version minor-version patch-version
+                           matching-version any-version)
+                   (map 'list (rcurry #'make-matcher environment)
+                        `("VERSION_MAJOR" "VERSION_MINOR" "VERSION_PATCH"
+                                          ,name nil)))
+                  (content (util:read-file-into-string* source)))
+             (ppcre:do-matches-as-strings (reference *variable-reference-scanner* content)
+               (when (and (starts-with #\@ reference)
+                          (search "VERSION" reference))
+                 (some (rcurry #'funcall reference) matchers)))
+             (let ((version (or (when-let ((major (funcall major-version))
+                                           (minor (funcall minor-version)))
+                                  (let ((patch (funcall patch-version)))
+                                    (format-version major minor patch)))
+                                (funcall matching-version)
+                                (funcall any-version)
+                                project-version)))
+               (list (%make-dependency name version)))))
+          (t
+           (list (%make-dependency name project-version))))))
 
 ;;; pkg-config Template Files
 

@@ -46,7 +46,12 @@
    #:dependency-matches?
 
    #:merge-dependencies
-   #:effective-requires)
+   #:effective-requires
+
+   #:dependency-key
+   #:make-provider-index
+   #:index-provider!
+   #:lookup-providers)
 
   ;; Analysis protocol
   (:export

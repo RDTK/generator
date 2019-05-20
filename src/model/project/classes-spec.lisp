@@ -135,20 +135,21 @@
          ;; and transitive) with include contexts.
          (versions  (append (mapcan #'make-version (direct-versions spec))
                             (mappend #'one-distribution-include
-                                     (direct-includes spec))))
-         (providers (make-hash-table :test #'equal)))
+                                     (direct-includes spec)))))
 
     ;; Build a table of provided things and providers.
-    (map nil (lambda (version)
-               (map nil (lambda (provided)
-                          (push version (gethash provided providers '())))
-                    (provides version)))
-         versions)
+    (let ((provider-index (jenkins.analysis:make-provider-index)))
+      (map nil (lambda (version)
+                 (map nil (rcurry #'jenkins.analysis:index-provider!
+                                  version provider-index)
+                      (provides version)))
+           versions)
 
-    ;; After all `version' instances have been made, resolve
-    ;; dependencies among them.
-    (let ((providers (hash-table-alist providers)))
-      (map nil (rcurry #'model:add-dependencies! :providers providers) versions))
+      ;; After all `version' instances have been made, resolve
+      ;; dependencies among them.
+      (map nil (rcurry #'model:add-dependencies! :providers provider-index)
+           versions))
+
     (reinitialize-instance distribution :versions versions)))
 
 ;;; `project-spec' class

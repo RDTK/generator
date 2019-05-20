@@ -310,6 +310,13 @@
 (defmethod direct-platform-dependencies ((thing version))
   (map 'list #'car (%direct-platform-dependencies thing)))
 
+(defun index-platform-provides (thing)
+  (with-simple-restart (continue "~@<Do not compute platform provides.~@:>")
+    (reduce (lambda+ (index (dependency . provider))
+              (jenkins.analysis:index-provider! dependency provider index))
+            (platform-provides thing)
+            :initial-value (jenkins.analysis:make-provider-index))))
+
 (defmethod model:add-dependencies! ((thing version)
                                     &key
                                     (providers (missing-required-argument :providers)))
@@ -318,7 +325,7 @@
             (if platform-provides?
                 platform-provides
                 (setf platform-provides? t
-                      platform-provides  (platform-provides thing)))))
+                      platform-provides  (index-platform-provides thing)))))
          ((&flet add-dependency (required provider)
             (let ((cell (or (assoc provider (%direct-dependencies thing))
                             (let ((new (cons provider '())))
@@ -344,8 +351,9 @@
                          (add-dependency requires match))
                        t))
                     ;; Search in platform-provided features.
-                    ((when-let ((provider (find-provider/version
-                                           requires (platform-provides))))
+                    ((when-let* ((platform-provides (platform-provides))
+                                 (provider          (find-provider/version
+                                                     requires platform-provides)))
                        (typecase provider
                          (platform-dependency
                           (add-platform-dependency requires provider))

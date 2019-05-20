@@ -46,3 +46,23 @@
                              current)))))
          dependencies)
     (hash-table-values seen)))
+
+;;; Indexed dependencies
+
+(defun dependency-key (dependency)
+  (let+ (((nature target &optional version) dependency))
+    (cond
+      ((eq nature :cmake) (list nature (string-downcase target)))
+      (version            (list nature target))
+      (t                  dependency))))
+
+(defun make-provider-index ()
+  (make-hash-table :test #'equal))
+
+(defun index-provider! (provided provider index)
+  (let ((key (jenkins.analysis:dependency-key provided)))
+    (push (cons provided provider) (gethash key index '()))
+    index))
+
+(defun lookup-providers (required index)
+  (gethash (dependency-key required) index))

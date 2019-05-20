@@ -11,6 +11,9 @@
    #:let-plus
    #:iterate)
 
+  (:shadow
+   #:directory)
+
   ;; Conditions and Restarts
   (:export
    #:some-cause
@@ -34,7 +37,13 @@
   (:export
    #:safe-enough-namestring
 
-   #:default-temporary-directory
+   #:ensure-exists
+   #:ensure-deleted
+   #:temporary-directory
+   #:make-temporary-directory
+   #:temporary-sub-directory
+   #:make-temporary-sub-directory
+
    #:find-files
    #:make-file-generator
    #:safe-external-format-argument

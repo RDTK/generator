@@ -38,12 +38,12 @@
                     password
                     (versions (missing-required-argument :versions))
                     sub-directory
-                    (temp-directory (util:default-temporary-directory)))
+                    (temp-directory (util:make-temporary-directory)))
   (when (or username password)
     (error "~@<Authentication support not implemented for ~A.~@:>" schema))
 
   (let+ ((repository/string (princ-to-string source))
-         (clone-directory   temp-directory)
+         (clone-directory   (util:ensure-exists temp-directory))
          (analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
@@ -59,7 +59,7 @@
          (progn
            (with-trivial-progress (:clone "~A" repository/string)
              (mercurial-clone
-              repository/string clone-directory temp-directory))
+              repository/string clone-directory (util:ensure-exists temp-directory)))
 
            (when sub-directory
              (with-condition-translation (((error repository-access-error)
@@ -92,8 +92,7 @@
                                            :branch-directory nil
                                            :committers       committers
                                            result))))))))
-      (when (probe-file clone-directory)
-        (run `("rm" "-rf" ,clone-directory) *default-pathname-defaults*)))))
+      (util:ensure-deleted temp-directory))))
 
 (defmethod analyze ((directory pathname) (kind (eql :mercurial/committers))
                     &key

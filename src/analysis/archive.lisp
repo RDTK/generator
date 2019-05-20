@@ -187,7 +187,7 @@
                     (versions       (missing-required-argument :versions))
                     sub-directory
                     cache-directory
-                    (temp-directory (util:default-temporary-directory)))
+                    (temp-directory (util:make-temporary-directory)))
   (flet ((analyze-versions (content-key &key extract-directory)
            (with-sequence-progress (:analyze/version versions)
              (mapcan
@@ -223,11 +223,13 @@
     ;; extract the archive and re-run the analysis. Already cached
     ;; results can be re-used.
     (with-simple-restart (continue "~@<Give up analyzing ~A.~@:>" source)
-      (with-extracted-archive ((extract-directory content-key)
-                               (source temp-directory
-                                       :username      username
-                                       :password      password
-                                       :sub-directory sub-directory))
-        ;; Note that SUB-DIRECTORY has been taken care of in
-        ;; EXTRACT-DIRECTORY.
-        (analyze-versions content-key :extract-directory extract-directory)))))
+      (unwind-protect
+           (with-extracted-archive ((extract-directory content-key)
+                                    (source (util:ensure-exists temp-directory)
+                                            :username      username
+                                            :password      password
+                                            :sub-directory sub-directory))
+             ;; Note that SUB-DIRECTORY has been taken care of in
+             ;; EXTRACT-DIRECTORY.
+             (analyze-versions content-key :extract-directory extract-directory))
+        (util:ensure-deleted temp-directory)))))

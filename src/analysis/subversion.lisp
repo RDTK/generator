@@ -29,7 +29,7 @@
                     password
                     (versions       (missing-required-argument :versions))
                     sub-directory
-                    (temp-directory (util:default-temporary-directory)))
+                    (temp-directory (util:make-temporary-directory)))
   (when sub-directory
     (assert (eq :relative (first (pathname-directory sub-directory)))))
 
@@ -74,35 +74,32 @@
                                             (when sub-directory
                                               (list sub-directory))
                                             (list (parse-namestring directory)
-                                                  temp-directory)))))
+                                                  (util:ensure-exists temp-directory))))))
               (log:info "~@<Checking out ~S -> ~S~@:>" repository-url clone-directory)
-              (unwind-protect
-                   (progn
-                     (with-trivial-progress (:checkout "~A" source)
-                       (subversion-checkout
-                        repository-url clone-directory commit temp-directory
-                        :username username :password password))
-                     (let ((committers (analyze clone-directory :svn/committers
-                                                :username username
-                                                :password password))
-                           (result     (analyze-directory version clone-directory)))
-                       (list* :scm              :svn
-                              :branch-directory directory
-                              :commit           commit
-                              :committers       committers
-                              result)))
+              (with-trivial-progress (:checkout "~A" source)
+                (subversion-checkout
+                 repository-url clone-directory commit (util:ensure-exists temp-directory)
+                 :username username :password password))
+              (let ((committers (analyze clone-directory :svn/committers
+                                         :username username
+                                         :password password))
+                    (result     (analyze-directory version clone-directory)))
+                (list* :scm              :svn
+                       :branch-directory directory
+                       :commit           commit
+                       :committers       committers
+                       result))))))
 
-                (when (probe-file clone-directory)
-                  (run `("rm" "-rf" ,clone-directory) temp-directory)))))))
-
-    (with-sequence-progress (:analyze/branch locations)
-      (iter (for (version directory commit) in locations)
-            (progress "~A" version)
-            (with-simple-restart
-                (continue "~@<Ignore ~A and continue with the next ~
+    (unwind-protect
+         (with-sequence-progress (:analyze/branch locations)
+           (iter (for (version directory commit) in locations)
+                 (progress "~A" version)
+                 (with-simple-restart
+                     (continue "~@<Ignore ~A and continue with the next ~
                            branch.~@:>"
-                          version)
-              (collect (analyze-location version directory commit)))))))
+                               version)
+                   (collect (analyze-location version directory commit)))))
+      (util:ensure-deleted temp-directory))))
 
 (defmethod analyze ((directory pathname) (kind (eql :svn/committers))
                     &key

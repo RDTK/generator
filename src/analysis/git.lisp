@@ -242,7 +242,8 @@
 
   ;; Clone the repository, then analyze the requested
   ;; branches/tags/commits, potentially caching the results.
-  (let* ((commit-key (with-condition-translation
+  (let* ((clone-directory (util:ensure-exists clone-directory))
+         (commit-key (with-condition-translation
                          (((error repository-access-error)
                            :specification source))
                        (clone-git-repository/maybe-cached
@@ -268,7 +269,7 @@
 (defmethod analyze ((source puri:uri) (schema (eql :git))
                     &rest args &key
                     (versions       (missing-required-argument :versions))
-                    (temp-directory (util:default-temporary-directory)))
+                    (temp-directory (util:make-temporary-directory)))
   (let+ (((&flet find-commitish (version)
             (or (when-let ((commit (getf version :commit)))
                   (list :commit commit))
@@ -280,32 +281,31 @@
                        version))))
          ((&flet make-clone-directory (version)
             (let ((version (format nil "~(~{~A~^-~}~)" version)))
-              (merge-pathnames
+              (util:make-temporary-sub-directory
+               temp-directory
                (concatenate
-                'string (ppcre:regex-replace-all "/" version "_") "/")
-               temp-directory))))
+                'string (ppcre:regex-replace-all "/" version "_") "/")))))
          ((&flet analyze-version (version)
-            (unwind-protect
-                 (let ((commitish (find-commitish version)))
-                   (apply #'clone-and-analyze-git-branch
-                          source (make-clone-directory commitish)
-                          (append commitish
-                                  (remove-from-plist
-                                   version :branch :tag :commit)
-                                  (remove-from-plist
-                                   args :versions :temp-directory))))
-              (when (probe-file temp-directory)
-                (run `("rm" "-rf" ,temp-directory) "/"))))))
-    (with-sequence-progress (:analyze/version versions)
-      (mapcan
-       (lambda (version)
-         (progress "~A" version)
-         (with-simple-restart
-             (continue "~@<Ignore ~A and continue with the next ~
+            (let ((commitish (find-commitish version)))
+              (apply #'clone-and-analyze-git-branch
+                     source (make-clone-directory commitish)
+                     (append commitish
+                             (remove-from-plist
+                              version :branch :tag :commit)
+                             (remove-from-plist
+                              args :versions :temp-directory)))))))
+    (unwind-protect
+         (with-sequence-progress (:analyze/version versions)
+           (mapcan
+            (lambda (version)
+              (progress "~A" version)
+              (with-simple-restart
+                  (continue "~@<Ignore ~A and continue with the next ~
                         version.~@:>"
-                       version)
-           (list (analyze-version version))))
-       versions))))
+                            version)
+                (list (analyze-version version))))
+            versions))
+      (util:ensure-deleted temp-directory))))
 
 (defmethod analyze ((directory pathname) (kind (eql :git/most-recent-commit))
                     &key

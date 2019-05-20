@@ -66,7 +66,7 @@
                     (temp-directory #P"/tmp/"))
   (let* ((source         (puri:copy-uri source :fragment nil))
          (kind           (guess-scm source scm))
-         (temp-directory (util:default-temporary-directory
+         (temp-directory (util:make-temporary-directory
                           :base temp-directory :hint "project")))
     (apply #'analyze source kind
            :versions       versions

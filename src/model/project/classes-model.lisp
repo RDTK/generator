@@ -211,7 +211,7 @@
 
                            .")
    (platform-dependencies :initarg  :direct-platform-dependencies
-                          :type     list #|of platform-dependency|#
+                          :type     list #| of (platform-dependency . reasons) |#
                           :reader   direct-platform-dependencies/reasons
                           :accessor %direct-platform-dependencies
                           :initform '()

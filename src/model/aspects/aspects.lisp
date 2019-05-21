@@ -370,6 +370,15 @@
   "Configures the console timestamper."
   (with-interface (build-wrappers job) (nil (build-wrapper/timestamper))))
 
+;;; ANSI color aspect
+
+(define-aspect (console-ansi-color :plugins ("ansicolor")) ()
+    (((color-map "xterm") :type string
+       :documentation
+       "Name of the color map the plugin should use."))
+  (with-interface (build-wrappers job) (nil (build-wrapper/ansi-color
+                                             :color-map color-map))))
+
 ;;; Slaves aspect
 
 ;; TODO separate slaves aspect for matrix-project jobs?

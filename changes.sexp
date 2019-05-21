@@ -22,7 +22,10 @@ find_program(OUTPUT_VAR NAME …) → nature: program
     distributions for which jobs are being generated.")
 
   (:enhancement
-   "The console timestamper plugin for Jenkins is now supported."))
+   "The console timestamper plugin for Jenkins is now supported.")
+
+  (:enhancement
+   "The console ANSI color plugin for Jenkins is now supported."))
 
  (:release "0.28" "2019-04-15"
 

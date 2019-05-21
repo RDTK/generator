@@ -32,6 +32,11 @@
 
   ((timestamper "hudson.plugins.timestamper.TimestamperBuildWrapper"
                 :plugin "timestamper@1.9")
-   ()))
+   ())
 
-
+  ((ansi-color "hudson.plugins.ansicolor.AnsiColorBuildWrapper"
+               :plugin "ansicolor@0.6.2")
+   ((color-map :type     string
+               :xpath    "colorMapName/text()"
+               :initform "xterm"))
+   (:name-slot color-map)))

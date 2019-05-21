@@ -167,7 +167,10 @@
 
    #:build-wrapper/sonar
 
-   #:build-wrapper/timestamper)
+   #:build-wrapper/timestamper
+
+   #:build-wrapper/ansi-color
+   #:color-map)
 
   ;; Builder interface
   (:export

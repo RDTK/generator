@@ -1,4 +1,4 @@
-((:release "0.29" nil
+((:release "0.29" "2019-05-24"
 
   (:enhancement
    "Analysis of projects with" (:verb "cmake") "nature now

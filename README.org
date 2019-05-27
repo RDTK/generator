@@ -9,9 +9,11 @@
 #+ATTR_HTML: :alt "build status image" :title Build Status :align right
 [[https://travis-ci.org/RDTK/generator][https://travis-ci.org/RDTK/generator.svg]]
 
-* TODO Introduction
+* Introduction
 
-  The build generator is a program for generating [[jenkins][Jenkins]] jobs (and other things) from declarative recipes describing software projects, software systems (and other things).
+  The build generator is a program for building the components of software systems from declarative recipes describing software projects and software systems (and a few other things).
+  This can be done in several ways.
+  One way is automatically installing and configuring a [[jenkins][Jenkins]] instance, then automatically generating Jenkins jobs which do the actual building.
 
 * Obtaining a Build Generator Binary
 

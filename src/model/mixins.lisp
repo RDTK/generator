@@ -33,11 +33,6 @@
   (:documentation
    "Intended to be mixed into classes representing named model objects."))
 
-(defmethod var:direct-variables ((thing named-mixin))
-  (var:value-acons :name (name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
-
 (defmethod print-items:print-items append ((object named-mixin))
   `((:name ,(reverse (ancestor-names object)) "~{~A~^:~}")))
 

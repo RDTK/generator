@@ -61,7 +61,9 @@
           (next-method?
            (call-next-method))
           (parent
-           (var:lookup parent name :if-undefined nil)))))
+           (var:lookup parent name :if-undefined nil))
+          (t
+           (values nil nil nil)))))
 
 ;;; `implementation-mixin'
 

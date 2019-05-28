@@ -263,9 +263,10 @@
                       '(nil nil nil))
 
                   (if inheritable?
-                      (when-let ((parent (model:parent thing)))
+                      (if-let ((parent (model:parent thing)))
                         (multiple-value-list
-                         (var:lookup parent name :if-undefined nil)))
+                         (var:lookup parent name :if-undefined nil))
+                        '(nil nil nil))
                       '(nil nil nil)))
 
             :initial-value (multiple-value-list (var:direct-lookup thing name))))))

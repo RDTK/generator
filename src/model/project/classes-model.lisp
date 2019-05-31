@@ -232,11 +232,6 @@
         (model:name (model:parent (model:specification thing)))
         (model:name (model:parent thing))))
 
-(defmethod var:direct-variables ((thing version))
-  (var:value-acons :version-name (model:name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
-
 (defmethod var:lookup ((thing version) (name t) &key if-undefined)
   (declare (ignore if-undefined))
   (let ((inheritable? (variable-inheritable? name))

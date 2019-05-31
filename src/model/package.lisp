@@ -30,11 +30,15 @@
 
    #:project-deployment-error)
 
-  ;; Name protocol and mixin class
+  ;; Name protocols and mixin classes
   (:export
    #:name
 
-   #:named-mixin)
+   #:named-mixin
+
+   #:name-variable
+
+   #:named+direct-variables-mixin)
 
   ;; Parent protocol and mixin class
   (:export

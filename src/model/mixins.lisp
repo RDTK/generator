@@ -36,6 +36,25 @@
 (defmethod print-items:print-items append ((object named-mixin))
   `((:name ,(reverse (ancestor-names object)) "~{~A~^:~}")))
 
+;;; `named+direct-variables-mixin'
+
+(defclass named+direct-variables-mixin (named-mixin
+                                        var:direct-variables-mixin)
+  ())
+
+(defmethod shared-initialize :after ((instance   named+direct-variables-mixin)
+                                     (slot-names t)
+                                     &key
+                                     (name      nil name-supplied?)
+                                     (variables nil variables-supplied?))
+  (declare (ignore name variables))
+  (when (or name-supplied? variables-supplied?)
+    (let ((name  (name-variable instance))
+          (value (var:value-parse (name instance))))
+      (if-let ((cell (assoc name (var::%direct-variables instance) :test #'eq)))
+        (setf (cdr cell) value)
+        (push (cons name value) (var::%direct-variables instance))))))
+
 ;;; `parented-mixin'
 
 (defclass parented-mixin ()

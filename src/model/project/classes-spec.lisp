@@ -70,8 +70,7 @@
 
 ;;; `distribution-spec' class
 
-(defclass distribution-spec (model:named-mixin
-                             var:direct-variables-mixin
+(defclass distribution-spec (model:named+direct-variables-mixin
                              person-container-mixin
                              model:specification-mixin)
   ((direct-includes :initarg  :direct-includes
@@ -89,10 +88,8 @@
     Basically consists of variables and a set of project version
     specifications."))
 
-(defmethod var:direct-variables ((thing distribution-spec))
-  (var:value-acons :distribution-name (model:name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
+(defmethod model:name-variable ((thing distribution-spec))
+  :distribution-name)
 
 (defmethod versions ((object distribution-spec))
   (append (direct-versions object)
@@ -154,9 +151,8 @@
 
 ;;; `project-spec' class
 
-(defclass project-spec (model:named-mixin
-                        model:specification-mixin
-                        var:direct-variables-mixin)
+(defclass project-spec (model:specification-mixin
+                        model:named+direct-variables-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
               :reader   templates
@@ -179,10 +175,8 @@
     In addition, `project-spec' instances directly contain version
     specifications."))
 
-(defmethod var:direct-variables ((thing project-spec))
-  (var:value-acons :project-name (model:name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
+(defmethod model:name-variable ((thing project-spec))
+  :project-name)
 
 (defmethod var:variables :around ((thing project-spec))
   (append ;; TODO(jmoringe, 2013-02-22): this is a hack to add our
@@ -219,10 +213,9 @@
 
 ;;; `version-spec' class
 
-(defclass version-spec (model:named-mixin
-                        model:specification-mixin
+(defclass version-spec (model:specification-mixin
                         model:parented-mixin
-                        var:direct-variables-mixin
+                        model:named+direct-variables-mixin
                         dependency-merging-mixin
                         dependencies-mixin
                         dependencies-from-variables-mixin
@@ -234,10 +227,8 @@
     Consists of variables, additional requirements and provided things
     and instantiation conditions."))
 
-(defmethod var:direct-variables ((thing version-spec))
-  (var:value-acons :version-name (model:name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
+(defmethod model:name-variable ((thing version-spec))
+  :version-name)
 
 (defmethod aspects:aspects ((thing version-spec))
   (aspects:aspects (model:parent thing)))
@@ -264,19 +255,16 @@
 
 ;;; `job-spec' class
 
-(defclass job-spec (model:named-mixin
-                    model:specification-mixin
+(defclass job-spec (model:specification-mixin
                     model:conditional-mixin
                     model:parented-mixin
-                    var:direct-variables-mixin)
+                    model:named+direct-variables-mixin)
   ()
   (:documentation
    "Specification of a build job to be generated."))
 
-(defmethod var:direct-variables ((thing job-spec))
-  (var:value-acons :job-name (model:name thing)
-                   (when (next-method-p)
-                     (call-next-method))))
+(defmethod model:name-variable ((thing job-spec))
+  :job-name)
 
 (defmethod model:instantiate ((spec job-spec) &key parent specification-parent)
   (let+ ((job (make-instance 'job :name          (model:name spec)

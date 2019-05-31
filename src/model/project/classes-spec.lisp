@@ -79,7 +79,7 @@
                     :reader   direct-includes
                     :initform '())
    (direct-versions :initarg  :direct-versions
-                    :type     list      ; of version-spec
+                    :type     list      ; of `[resolved-]project-include'
                     :reader   direct-versions
                     :documentation
                     "Stores a list of project version specifications."))

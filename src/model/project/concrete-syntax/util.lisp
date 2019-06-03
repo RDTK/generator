@@ -110,7 +110,23 @@
                                     (if (= i 1) :note :error)))
                "~@<Multiple definitions of variable ~A.~@:>"
                key)
-          :collect (let ((new-cell (var:value-cons key (cdr (first cells)))))
+          :collect (let ((new-cell (handler-bind ((esrap:esrap-parse-error
+                                                    (lambda (condition)
+                                                      (let* ((location (location-of (cdr (first cells))))
+                                                             (start    (text.source-location:index
+                                                                        (text.source-location:start location))))
+                                                        (log:error location (esrap:esrap-error-position condition)
+                                                                   (+ start
+                                                                      (esrap:esrap-error-position condition)))
+                                                        (error 'simple-object-error
+                                                               :annotations (list (text.source-location:make-annotation
+                                                                                   (text.source-location:make-location
+                                                                                    (text.source-location:source location)
+                                                                                    start (1+ start))
+                                                                                   "here" :kind :error))
+                                                               :format-control "~A"
+                                                               :format-arguments (list condition))))))
+                                     (var:value-cons key (cdr (first cells))))))
                      (setf (location-of new-cell) (location-of (first cells)))
                      new-cell))))
 

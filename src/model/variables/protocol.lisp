@@ -155,3 +155,17 @@
     other objects.
 
     See `direct-variables'."))
+
+;;; Builtin entries protocol
+
+(defgeneric builtin-entries (thing)
+  (:method-combination append)
+  (:documentation
+   "Return an alist of entries to add to THING's variables.
+
+    Each cell is of the form
+
+      (NAME . VALUE)
+
+    where NAME is a keyword naming the variable and VALUE is the
+    parsed value of the variable."))

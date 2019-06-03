@@ -67,6 +67,12 @@
 
    #:direct-variables-mixin)
 
+  ;; Builtin entries protocol and mixin class
+  (:export
+   #:builtin-entries
+
+   #:builtin-entries-mixin)
+
   ;; Variable schema protocol
   (:export
    #:variable-info

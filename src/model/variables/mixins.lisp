@@ -59,3 +59,19 @@
     (push cell (%direct-variables thing))
     (setf (gethash cell *variable-locations*) thing)
     new-value))
+
+;;; `builtin-entries-mixin'
+
+(defclass builtin-entries-mixin ()
+  ())
+
+(defmethod shared-initialize :after ((instance   builtin-entries-mixin)
+                                     (slot-names t)
+                                     &key
+                                     (variables nil variables-supplied?))
+  (declare (ignore variables))
+  (when variables-supplied?
+    (loop :for (name . value) :in (builtin-entries instance)
+          :do (if-let ((cell (assoc name (%direct-variables instance) :test #'eq)))
+                (setf (cdr cell) value)
+                (push (cons name value) (%direct-variables instance))))))

@@ -70,7 +70,8 @@
 
 ;;; `distribution-spec' class
 
-(defclass distribution-spec (model:named+direct-variables-mixin
+(defclass distribution-spec (model:named+builtin-entries-mixin
+                             var:direct-variables-mixin
                              person-container-mixin
                              model:specification-mixin)
   ((direct-includes :initarg  :direct-includes
@@ -151,8 +152,9 @@
 
 ;;; `project-spec' class
 
-(defclass project-spec (model:specification-mixin
-                        model:named+direct-variables-mixin)
+(defclass project-spec (model:named+builtin-entries-mixin
+                        model:specification-mixin
+                        var:direct-variables-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
               :reader   templates
@@ -215,7 +217,8 @@
 
 (defclass version-spec (model:specification-mixin
                         model:parented-mixin
-                        model:named+direct-variables-mixin
+                        model:named+builtin-entries-mixin
+                        var:direct-variables-mixin
                         dependency-merging-mixin
                         dependencies-mixin
                         dependencies-from-variables-mixin
@@ -258,7 +261,8 @@
 (defclass job-spec (model:specification-mixin
                     model:conditional-mixin
                     model:parented-mixin
-                    model:named+direct-variables-mixin)
+                    model:named+builtin-entries-mixin
+                    var:direct-variables-mixin)
   ()
   (:documentation
    "Specification of a build job to be generated."))

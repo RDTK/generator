@@ -38,7 +38,7 @@
 
    #:name-variable
 
-   #:named+direct-variables-mixin)
+   #:named+builtin-entries-mixin)
 
   ;; Parent protocol and mixin class
   (:export

@@ -1,4 +1,9 @@
-((:release "0.30" nil)
+((:release "0.30" nil
+
+  (:incompatible-change
+   "The" (:verb "non-interactive") "commandline option is no longer
+    accepted. This change represents no reduction in functionality
+    since the option did not have any effect."))
 
  (:release "0.29" "2019-05-24"
 

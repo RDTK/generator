@@ -253,11 +253,10 @@
             *analysis-variables*)))
 
 (defun analyze-project (project &rest args
-                                &key non-interactive
-                                     temp-directory
+                                &key temp-directory
                                      cache-directory
                                      age-limit)
-  (declare (ignore non-interactive temp-directory cache-directory age-limit))
+  (declare (ignore temp-directory cache-directory age-limit))
   (let+ ((groups (group-project-versions-for-analysis project))
          ((&flet+ analyze-group ((info . versions))
             (let+ (((&plist-r/o (repository :repository)) info)

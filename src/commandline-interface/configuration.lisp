@@ -65,9 +65,6 @@
                                              (or alias (string-downcase name)))
                                      *condition-types*)
                                 *error-handling-actions*))
-  ("non-interactive"  :type 'boolean :default nil
-                      :documentation
-                      "Avoid any user interaction.")
   ("num-processes"    :type 'positive-integer :default 8
                       :documentation
                       "Number of threads (and processes) to execute in parallel.")
@@ -114,7 +111,6 @@
   ("--debug"                "debug")
   ;; Execution mode and feedback
   ("--on-error"             "on-error"        "POLICY")
-  ("--non-interactive"      "non-interactive")
   (("-j" "--num-processes") "num-processes"   "NUMBER-OF-PROCESSES")
   ("--progress-style"       "progress-style"  "STYLE")
   ;; Directories and cache

@@ -83,6 +83,7 @@
 
                               (:file       "command-analyze")
                               (:file       "command-hack-distribution")
+                              (:file       "command-list-projects")
 
                               (:file       "command-validate")
                               (:file       "command-platform-requirements")

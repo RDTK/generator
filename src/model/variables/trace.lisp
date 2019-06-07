@@ -1,6 +1,6 @@
 ;;;; trace.lisp --- Variable lookup tracing.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -119,5 +119,10 @@
 
 (defmacro with-augmented-trace ((name container &optional raw-cell)
                                 &body body)
-  `(call-with-augmented-trace
-    ,name ,container ,raw-cell (lambda () ,@body)))
+  (with-gensyms (body-thunk)
+    `(flet ((,body-thunk ()
+              ,@body))
+       (declare (dynamic-extent ,body-thunk))
+       (if *traced-variables*
+           (call-with-augmented-trace ,name ,container ,raw-cell #',body-thunk)
+           (,body-thunk)))))

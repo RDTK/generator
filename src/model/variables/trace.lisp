@@ -122,7 +122,7 @@
   (with-gensyms (body-thunk)
     `(flet ((,body-thunk ()
               ,@body))
-       (declare (dynamic-extent ,body-thunk))
+       (declare (dynamic-extent #',body-thunk))
        (if *traced-variables*
            (call-with-augmented-trace ,name ,container ,raw-cell #',body-thunk)
            (,body-thunk)))))

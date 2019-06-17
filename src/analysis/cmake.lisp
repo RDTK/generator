@@ -117,7 +117,8 @@
                     [^)]*?~
                     (?:[ \\t\\n]+COMPONENTS)?~
                     ((?:[ \\t\\n]+\"?~
-                      (?!(?:EXACT|QUIET|REQUIRED|CONFIG|NO_MODULE|NO_POLICY_SCOPE~
+                      (?!(?:COMPONENTS~
+                            |EXACT|QUIET|REQUIRED|CONFIG|NO_MODULE|NO_POLICY_SCOPE~
                             |NAMES|CONFIGS|HINTS|PATHS|PATH_SUFFIXES~
                             |NO_DEFAULT_PATH|NO_CMAKE_ENVIRONMENT_PATH~
                             |NO_CMAKE_PATH|NO_SYSTEM_ENVIRONMENT_PATH~
@@ -136,6 +137,17 @@
    :multi-line-mode       t
    :case-insensitive-mode t)
   "Finds find_package(…) calls.")
+
+(mapc (lambda+ ((input expected))
+        (assert (equalp expected
+                        (nth-value 1 (ppcre:scan-to-strings
+                                      *find-package-scanner* input)))))
+      '(("find_package(catkin COMPONENTS)"     #("catkin" nil nil))
+        ("find_package(catkin COMPONENTS foo)" #("catkin" nil " foo"))
+        ("find_package(catkin COMPONENTS
+foo)"
+         #("catkin" nil "
+foo"))))
 
 (defparameter *pkg-check-modules-scanner* ; TODO semantics: check requires all modules; search requires at least one
   (ppcre:create-scanner

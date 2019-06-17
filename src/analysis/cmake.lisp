@@ -734,11 +734,20 @@
                        (cons   (list version)))))
 
 (defun %split-arguments (arguments)
-  (let ((result '()))
+  (let ((arguments (ppcre:regex-replace-all "#.*" arguments ""))
+        (result    '()))
     (ppcre:do-matches-as-strings
-        (argument "(?:\"[^\"]*\"|[^ \\t\\n\"]+)" arguments)
+        (argument "(?:\"[^\"]*\"|[^ \\t\\n\"#]+)" arguments)
       (push (string-trim '(#\") argument) result))
     (nreverse result)))
+
+(mapc (lambda+ ((input expected))
+        (assert (equal expected (%split-arguments input))))
+      '(("foo bar
+\"baz\" # fez
+# whoop di"
+         ("foo" "bar" "baz"))))
+
 
 (defun %list-unless-equal (first second)
   (when first

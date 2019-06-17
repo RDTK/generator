@@ -88,7 +88,6 @@
               (mapcar #'ensure-list thing))))))
 
 (defun expand (pattern lookup)
-  (check-type pattern variable-expression)
   (let+ (((&flet lookup (name &optional (default nil default-supplied?))
             (let ((name (make-keyword (string-upcase name))))
               (if default-supplied?

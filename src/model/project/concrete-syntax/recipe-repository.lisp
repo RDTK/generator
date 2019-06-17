@@ -56,6 +56,8 @@
 
   (setf (gethash kind (%recipe-directories repository)) new-value))
 
+;;; `recipe-path'
+
 (defmethod recipe-path ((repository recipe-repository)
                         (kind       t)
                         (name       string))
@@ -78,3 +80,28 @@
          (type       (string-downcase kind))
          (defaults   (make-pathname :type type :defaults directory)))
     (merge-pathnames name defaults)))
+
+;;; `recipe-truename'
+
+(defmethod recipe-truename :around ((repository recipe-repository)
+                                    (kind       t)
+                                    (name       t)
+                                    &key
+                                    (if-does-not-exist #'error))
+  (or (call-next-method repository kind name :if-does-not-exist nil)
+      (error-behavior-restart-case
+          (if-does-not-exist (recipe-not-found-error
+                              :kind       kind
+                              :name       name
+                              :repository repository)))))
+
+(defmethod recipe-truename ((repository recipe-repository)
+                            (kind       t)
+                            (name       t)
+                            &key if-does-not-exist)
+  (declare (ignore if-does-not-exist))
+  (let ((pathname (recipe-path repository kind name)))
+    (cond ((and (wild-pathname-p pathname) (directory pathname))
+           pathname)
+          ((and (not (wild-pathname-p pathname)) (probe-file pathname))
+           pathname))))

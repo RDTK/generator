@@ -234,8 +234,7 @@
                         "~@<Duplicate inherit specification.~@:>"))
          ((&flet process-inherit (name)
             (with-uniqueness-check (inherit-seen name name)
-              (resolve-template-dependency
-               name repository :generator-version generator-version))))
+              (find-or-load-template name repository generator-version))))
          (template (make-instance 'template)))
     ;; Load required templates and finalize the object.
     (setf (find-template name)
@@ -249,21 +248,18 @@
 
 (defvar *template-load-stack* '())
 
-(defun find-or-load-template (name pathname repository generator-version)
+(defun find-or-load-template (name repository generator-version)
   (or (find-template name :if-does-not-exist nil)
       (loading-recipe (*template-load-stack* name)
-        (load-one-template/yaml
-         pathname
-         :repository        repository
-         :generator-version generator-version))))
-
-(defun resolve-template-dependency (name repository &key generator-version)
-  (let ((pathname (recipe-path repository :template name)))
-    (find-or-load-template name pathname repository generator-version)))
+        (let ((pathname (recipe-truename repository :template name)))
+          (load-one-template/yaml
+           pathname
+           :repository        repository
+           :generator-version generator-version)))))
 
 (defun load-template/yaml (pathname &key repository generator-version)
   (let ((name (pathname-name pathname)))
-    (find-or-load-template name pathname repository generator-version)))
+    (find-or-load-template name repository generator-version)))
 
 ;;; Project loading
 

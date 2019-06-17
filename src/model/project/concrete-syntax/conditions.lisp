@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions used in the recipe concrete syntax.
 ;;;;
-;;;; Copyright (C) 2016-2018 Jan Moringen
+;;;; Copyright (C) 2016-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -48,6 +48,23 @@
                 annotated-objects format-control format-arguments)))
 
 ;;; YAML syntax
+
+(define-condition recipe-not-found-error (error)
+  ((%kind       :initarg :kind
+                :reader  kind)
+   (%name       :initarg :name
+                :reader  name)
+   (%repository :initarg :repository
+                :reader  repository))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<~A recipe \"~A\" does not exist in repository ~
+                     ~A~@:>"
+            (kind condition)
+            (name condition)
+            (repository condition))))
+  (:documentation
+   "Signaled when a given recipe does not exist in the repository."))
 
 (define-condition yaml-syntax-error (error
                                      annotation-condition

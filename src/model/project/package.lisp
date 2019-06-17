@@ -120,6 +120,7 @@
    #:root-directory
    #:recipe-directory
    #:recipe-path
+   #:recipe-truename
 
    #:populate-recipe-repository!
 

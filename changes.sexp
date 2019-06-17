@@ -9,7 +9,13 @@
    "Computing variable values is substantially faster than before. As
     a result, many user-level commands complete more quickly:
     generating Jenkins jobs, computing system requirements and
-    generating reports."))
+    generating reports.")
+
+  (:enhancement
+   "It is no longer necessary to create symbolic links for template
+    recipe files that are shared between multiple modes. When a
+    required template file" (:verb "MODE/NAME.template") "does not
+    exist," (:verb "_common/NAME.template") "is tried instead."))
 
  (:release "0.29" "2019-05-24"
 

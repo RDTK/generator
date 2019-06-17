@@ -47,7 +47,7 @@
   (let ((root-directory (merge-pathnames
                          (make-pathname :directory '(:relative :back))
                          (uiop:pathname-directory-pathname distribution-pathname))))
-    (project:make-populated-recipe-repository root-directory mode)))
+    (project:make-populated-recipe-repository root-directory mode "_common")))
 
 ;;; Projects
 

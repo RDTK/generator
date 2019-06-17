@@ -96,7 +96,9 @@
                               (load-specifications kind files loader repository))))
               (values objects files))))
          ;; Templates
-         (template-patterns       (list (project:recipe-path repository :template :wild)))
+         (template-patterns       (let ((mode (project::mode repository))) ; TODO temporary hack
+                                    (list (project:recipe-path repository mode                   :wild)
+                                          (project:recipe-path repository (project::parent mode) :wild))))
          (templates               (locate-and-load
                                    :template template-patterns
                                    (rcurry #'project:load-template/yaml

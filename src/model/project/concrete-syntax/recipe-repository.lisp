@@ -22,6 +22,9 @@
   (:documentation
    "Stores a repository root and sub-directories for recipe kinds."))
 
+(defmethod print-items:print-items append ((object recipe-repository))
+  `((:root-path ,(root-directory object) "~A")))
+
 (defun make-recipe-repository (root-directory)
   (make-instance 'recipe-repository :root-directory root-directory))
 

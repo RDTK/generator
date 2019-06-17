@@ -3,7 +3,13 @@
   (:incompatible-change
    "The" (:verb "non-interactive") "commandline option is no longer
     accepted. This change represents no reduction in functionality
-    since the option did not have any effect."))
+    since the option did not have any effect.")
+
+  (:enhancement
+   "Computing variable values is substantially faster than before. As
+    a result, many user-level commands complete more quickly:
+    generating Jenkins jobs, computing system requirements and
+    generating reports."))
 
  (:release "0.29" "2019-05-24"
 

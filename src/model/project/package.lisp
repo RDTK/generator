@@ -121,6 +121,7 @@
    #:recipe-directory
    #:recipe-path
    #:recipe-truename
+   #:recipe-truenames
 
    #:populate-recipe-repository!
 

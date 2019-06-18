@@ -96,15 +96,13 @@
                               (load-specifications kind files loader repository))))
               (values objects files))))
          ;; Templates
-         (template-patterns       (let ((mode (project::mode repository))) ; TODO temporary hack
-                                    (list (project:recipe-path repository mode                   :wild)
-                                          (project:recipe-path repository (project::parent mode) :wild))))
+         (template-patterns       (project:recipe-truenames repository :template :wild))
          (templates               (locate-and-load
                                    :template template-patterns
                                    (rcurry #'project:load-template/yaml
                                            :generator-version generator-version)))
          ;; Persons
-         (person-patterns         (list (project:recipe-path repository :person :wild)))
+         (person-patterns         (project:recipe-truenames repository :person :wild))
          (persons                 (locate-and-load
                                    :person person-patterns
                                    (rcurry #'project:load-person/yaml

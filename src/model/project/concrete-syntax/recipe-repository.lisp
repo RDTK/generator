@@ -173,3 +173,28 @@
   (or (call-next-method repository kind name :if-does-not-exist nil)
       (when-let ((parent (parent kind)))
         (recipe-truename repository parent name :if-does-not-exist nil))))
+
+;;; `recipe-truenames'
+
+(defmethod recipe-truenames ((repository recipe-repository)
+                             (kind       t)
+                             (name       t))
+  (let ((pathname (recipe-path repository kind name)))
+    (cond ((wild-pathname-p pathname)
+           (directory pathname))
+          ((probe-file pathname)
+           (list pathname))
+          (t
+           '()))))
+
+(defmethod recipe-truenames ((repository recipe-repository)
+                             (kind       (eql :template))
+                             (name       t))
+  (recipe-truenames repository (mode repository) name))
+
+(defmethod recipe-truenames ((repository recipe-repository)
+                             (kind       mode)
+                             (name       t))
+  (append (call-next-method repository kind name)
+          (when-let ((parent (parent kind)))
+            (recipe-truenames repository parent name))))

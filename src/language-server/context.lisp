@@ -308,6 +308,27 @@
                                   :project-name (project::project include)
                                   :prefix       (project::version include))))))))
 
+;;; Distribution name context
+
+(defclass distribution-name-context (context)
+  ((%prefix :initarg :prefix
+            :reader  prefix)))
+
+(defclass distribution-name-context-contributor () ())
+
+(defmethod contrib:context-contributions
+    ((workspace   t)
+     (document    distribution-document)
+     (position    t)
+     (contributor distribution-name-context-contributor))
+  (let+ (((&values path (&optional location &rest &ign))
+          (structure-path position document))
+         (thing (project::object-at location (locations document))))
+    (when (ends-with-subseq '(:include) path)
+      (list (make-instance 'distribution-name-context
+                           :location location
+                           :prefix   thing)))))
+
 ;;; Aspect class context
 
 (defclass aspect-class-context (context)

@@ -186,9 +186,11 @@
 
 (define-document-class distribution-document
   ()
-  (contrib:context    project-version-reference-context-contributor)
+  (contrib:context    project-version-reference-context-contributor
+                      distribution-name-context-contributor)
   (contrib:hover      project-version-hover-contributor)
-  (contrib:completion project-name-completion-contributor)
+  (contrib:completion project-name-completion-contributor
+                      distribution-name-completion-contributor)
   (contrib:definition project-definition-contributor)
   (contrib:reference  ))
 

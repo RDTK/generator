@@ -69,12 +69,15 @@
      (contributor template-name-completion-contributor))
   (when-let* ((word      (word context))
               (location  (location context))
+              (range     (sloc:range location))
               (templates (templates workspace)))
     (loop :for template :in templates
-          :for name = (model:name template )
+          :for name = (model:name template)
           :when (starts-with-subseq word name)
           :collect (proto:make-completion-item
-                    name :range (sloc:range location)))))
+                    name :kind   :file
+                         :detail "template"
+                         :range  range))))
 
 ;;; Variable name completion
 
@@ -275,6 +278,30 @@
                     (proto:make-markup-content (describe-project project) :markdown))))
            (project:versions project))
       result)))
+
+;;; Distribution name completion
+
+(defclass distribution-name-completion-contributor ()
+  ())
+
+(defmethod contrib:completion-contributions
+    ((workspace   t)
+     (document    t)
+     (context     distribution-name-context)
+     (contributor distribution-name-completion-contributor))
+  (when-let* ((prefix (prefix context)))
+    ())
+  (when-let* ((word          (word context))
+              (location      (location context))
+              (range         (sloc:range location))
+              (distributions (distributions workspace)))
+    (loop :for distribution :in distributions
+          :for name = (model:name distribution)
+          :when (starts-with-subseq word name)
+          :collect (proto:make-completion-item
+                    name :kind   :file
+                         :detail "distribution"
+                         :range  range))))
 
 ;;; Aspect class completion
 

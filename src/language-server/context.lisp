@@ -173,7 +173,7 @@
   ((%variable-location :initarg :variable-location
                        :reader  variable-location)
 
-   (%prefix-range      :initarg :prefix-range
+   #+unused? (%prefix-range      :initarg :prefix-range
                        :reader  prefix-range)))
 
 (defclass unknown-variable-value-context (variable-value-context)

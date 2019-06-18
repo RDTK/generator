@@ -161,8 +161,10 @@
 ;;; `project-document'
 
 (define-document-class project-document
-  ()
+    ((%analysis-results :accessor analysis-results
+                        :initform nil))
   (contrib:context    template-name-context-contributor)
+  (contrib:hover      analysis-results-hover-contributor)
   (contrib:completion template-name-completion-contributor)
   (contrib:definition template-definition-contributor)
   (contrib:reference  project-reference-contributor))

@@ -162,4 +162,6 @@
    #:load-distribution/yaml)
 
   (:documentation
-   "Contains distribution, project and related concepts of the model."))
+   "Contains distribution, project and related concepts of the model.")
+  (:export
+   #:recipe-truenames))

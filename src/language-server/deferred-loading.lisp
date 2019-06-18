@@ -1,3 +1,9 @@
+;;;; deferred-loading.lisp --- Deferred loading of recipes.
+;;;;
+;;;; Copyright (C) 2019 Jan Moringen
+;;;;
+;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
+
 (cl:in-package #:build-generator.language-server)
 
 (defclass deferred-collection ()
@@ -37,57 +43,73 @@
           ((eq if-unavailable :promise)
            (lparallel:future (gethash name (lparallel:force elements)))))))
 
-;;; Templates
+;;; Recipe loading
 
-(defclass deferred-templates (deferred-collection)
+(defclass deferred-recipes-mixin ()
   ((%workspace :initarg :workspace
                :reader  workspace)))
 
+(defun map-recipes (function kind container)
+  (let* ((repository (repository (workspace container)))
+         (files      (project:recipe-truenames repository kind (if (eq kind :distribution) #P"**/*" :wild)))) ; TODO hack
+    (log:error "Background-loading ~:D ~(~A~)~:*~:P~* from ~A"
+               (length files) kind repository)
+    (handler-bind (((and error util:continuable-error)
+                     (lambda (condition)
+                       (log:error "Error background-loading ~(~A~): ~A"
+                                  kind condition)
+                       (invoke-restart
+                        (util:find-continue-restart condition)))))
+      (map nil (lambda (filename)
+                 (with-simple-restart (continue "Skip project recipe ~A"
+                                                filename)
+                   (funcall function filename repository)))
+           files))))
+
+;;; Templates
+
+(defclass deferred-templates (deferred-collection
+                              deferred-recipes-mixin)
+  ())
+
 (defmethod load-elements ((container deferred-templates))
-  (let* ((project::*templates* (make-hash-table :test #'equal))
-         (project::*templates-lock* (bt:make-lock))
-         (repository (repository (workspace container)))
-         (pattern    (project:recipe-path repository :template :wild)))
-    (log:error "Background-loading templates from ~A" pattern)
-    (mappend (lambda (filename)
-               (with-simple-restart (continue "Skip")
-                 (list (project:load-template/yaml
-                        filename :repository repository))))
-             (directory pattern))
+  (let ((project::*templates* (make-hash-table :test #'equal))
+         (project::*templates-lock* (bt:make-lock)))
+    (map-recipes (lambda (filename repository)
+                   (project:load-template/yaml
+                    filename :repository repository))
+                 :template container)
     project::*templates*))
 
 ;;; Projects
 
-(defclass deferred-projects (deferred-collection)
-  ((%workspace :initarg :workspace
-               :reader  workspace)))
+(defclass deferred-projects (deferred-collection
+                             deferred-recipes-mixin)
+  ())
 
 (defmethod load-elements ((container deferred-projects))
   (let* ((workspace                (workspace container))
          (project::*templates*     (templates/table workspace :if-unavailable :block))
          (project::*projects*      nil)
          (projects                 (make-hash-table :test #'equal))
-         (project::*projects-lock* (bt:make-lock))
-         (repository               (repository workspace))
-         (pattern                  (project:recipe-path repository :project :wild)))
-    (log:error "Background-loading projects from ~A" pattern)
-    (handler-bind (((and error build-generator.util:continuable-error)
-                     (lambda (condition)
-                       (log:error "Error background-loading project: ~A" condition)
-                       (funcall (compose #'invoke-restart #'build-generator.util:find-continue-restart) condition))))
-      (map nil (lambda (filename)
-                 (with-simple-restart (continue "Skip")
-                   (let ((project (project:load-project-spec/yaml
-                                   filename :repository repository)))
-                     (setf (gethash (model:name project) projects) project))))
-           (directory pattern)))
+         (project::*projects-lock* (bt:make-lock)))
+    (map-recipes
+     (lambda (filename repository)
+       (let ((project (project:load-project-spec/yaml
+                       filename :repository        repository
+                       :generator-version "0.30.0"
+                       :version-test      (lambda (name pattern)
+                                            (declare (ignore name pattern))
+                                            '()))))
+         (setf (gethash (model:name project) projects) project)))
+     :project container)
     projects))
 
 ;;; Distributions
 
-(defclass deferred-distributions (deferred-collection)
-  ((%workspace :initarg :workspace
-               :reader  workspace)))
+(defclass deferred-distributions (deferred-collection
+                                  deferred-recipes-mixin)
+  ())
 
 (defmethod load-elements ((container deferred-distributions))
   (let* ((workspace                (workspace container))
@@ -96,40 +118,30 @@
          (distributions            (make-hash-table :test #'equal))
          (project::*projects-lock* (bt:make-lock))
          ; (project::*distributions-lock* (bt:make-lock))
-         (repository               (repository workspace))
-         (pattern                  (project:recipe-path repository :distribution :wild)))
-    (log:error "Background-loading distributions from ~A" pattern)
-    (handler-bind (((and error build-generator.util:continuable-error)
-                     (compose #'invoke-restart #'build-generator.util:find-continue-restart)))
-      (map nil (lambda (filename)
-                 (with-simple-restart (continue "Skip")
-                   (let ((distribution (project:load-distribution/yaml
-                                        filename :repository repository)))
-                     (setf (gethash (model:name distribution) distributions) distribution))))
-           (directory pattern)))
+         )
+    (map-recipes
+     (lambda (filename repository)
+       (let ((distribution (project:load-distribution/yaml
+                            filename :repository        repository
+                            :generator-version "0.30.0")))
+         (setf (gethash (model:name distribution) distributions) distribution)))
+     :distribution container)
     distributions))
 
 ;;; Persons
 
-(defclass deferred-persons (deferred-collection)
-  ((%workspace :initarg :workspace
-               :reader  workspace)))
+(defclass deferred-persons (deferred-collection
+                            deferred-recipes-mixin)
+  ())
 
 (defmethod load-elements ((container deferred-persons))
   (let* ((workspace               (workspace container))
          (project::*persons-lock* (bt:make-lock))
-         (persons                 (make-hash-table :test #'equal))
-         (repository              (repository workspace))
-         (pattern                 (project:recipe-path repository :person :wild)))
-    (log:error "Background-loading persons from ~A" pattern)
-    (handler-bind (((and error jenkins.util:continuable-error)
-                     (lambda (c) (log:error "~A" c) (funcall  (compose #'invoke-restart #'jenkins.util:find-continue-restart) c))))
-      (map nil (lambda (filename)
-                 (with-simple-restart (continue "Skip")
+         (persons                 (make-hash-table :test #'equal)))
+    (map-recipes (lambda (filename repository)
                    (let ((person (project:load-person/yaml
                                   filename :repository        repository
                                            :generator-version "0.28.0")))
-                     (log:error person)
-                     (setf (gethash (rosetta.model:name person) persons) person))))
-           (directory pattern)))
+                     (setf (gethash (rosetta.model:name person) persons) person)))
+                 :person container)
     persons))

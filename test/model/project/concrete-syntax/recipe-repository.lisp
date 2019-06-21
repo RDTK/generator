@@ -12,7 +12,7 @@
 (test setf-recipe-directory.smoke
   "Smoke test for the (setf recipe-directory) generic function."
 
-  (let ((repository (make-recipe-repository #P"/root/")))
+  (let ((repository (make-recipe-repository #P"/root/" "toolkit")))
     (setf (recipe-directory :foo repository) #P"bar/")
     (is (equal #P"/root/bar/" (recipe-directory :foo repository)))
 

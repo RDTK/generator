@@ -59,3 +59,25 @@
        (:distribution "stack/foo"  ,#P"/root/distributions/stack/foo.distribution")
 
        (:person       :wild        ,#P"/root/persons/*.person")))))
+
+(test recipe-name.smoke
+  "Smoke test for the `recipe-name' generic function."
+
+  (let ((repository (make-populated-recipe-repository #P"/root/" "ci" "_common")))
+    (mapc
+     (lambda+ ((kind pathname expected))
+       (flet ((do-it ()
+                (recipe-name repository kind pathname)))
+         (case expected
+           (error (signals error (do-it)))
+           (t     (is (equal expected (do-it)))))))
+
+     `((:no-such-kind #P"/root/foo.no-such-kind"                     error)
+
+       (:template     #P"/root/templates/toolkit/foo.template"       nil)
+       (:template     #P"/root/templates/ci/foo.template"            "foo")
+       (:template     #P"/root/templates/_common/foo.template"       "foo")
+       (:template     #P"/root/templates/_common/bar/foo.template"   "bar/foo")
+
+       (:distribution #P"/root/distributions/foo.distribution"       "foo")
+       (:distribution #P"/root/distributions/stack/bar.distribution" "stack/bar")))))

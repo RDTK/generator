@@ -118,10 +118,14 @@
   ;; Recipe repository protocol
   (:export
    #:root-directory
+
    #:recipe-directory
+
    #:recipe-path
    #:recipe-truename
    #:recipe-truenames
+
+   #:recipe-name
 
    #:populate-recipe-repository!
 

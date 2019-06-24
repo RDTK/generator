@@ -97,6 +97,8 @@
 
   (setf (gethash kind (%recipe-directories repository)) new-value))
 
+;;; Name -> pathname
+
 ;;; `recipe-path'
 
 (defmethod recipe-path ((repository recipe-repository)
@@ -200,3 +202,25 @@
   (append (call-next-method repository kind name)
           (when-let ((parent (parent kind)))
             (recipe-truenames repository parent name))))
+
+;;; Pathname -> name
+
+(defmethod recipe-name ((repository recipe-repository)
+                        (kind       t)
+                        (path       pathname))
+  (let ((directory    (recipe-directory kind repository))
+        (without-type (make-pathname :type nil :defaults path)))
+    (when (uiop:subpathp without-type directory)
+      (uiop:native-namestring (uiop:enough-pathname without-type directory)))))
+
+(defmethod recipe-name ((repository recipe-repository)
+                        (kind       (eql :template))
+                        (path       pathname))
+  (recipe-name repository (mode repository) path))
+
+(defmethod recipe-name ((repository recipe-repository)
+                        (kind       mode)
+                        (path       pathname))
+  (or (call-next-method)
+      (when-let ((parent (parent kind)))
+        (recipe-name repository parent path))))

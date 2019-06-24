@@ -63,7 +63,8 @@
     (:mode      ,(name (mode object))    " ~A mode" ((:after :root-path)))))
 
 (defun make-recipe-repository (root-directory mode &rest parent-modes)
-  (let ((mode (ensure-mode (list* mode parent-modes))))
+  (let ((root-directory (truename root-directory))
+        (mode           (ensure-mode (list* mode parent-modes))))
     (make-instance 'recipe-repository :root-directory root-directory
                                       :mode           mode)))
 

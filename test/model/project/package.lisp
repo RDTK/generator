@@ -7,6 +7,7 @@
 (cl:defpackage #:jenkins.model.project.test
   (:use
    #:cl
+   #:alexandria
    #:let-plus
 
    #:fiveam

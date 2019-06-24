@@ -9,6 +9,23 @@
 (def-suite* :jenkins.project.model.project.concrete-syntax.recipe-repository
   :in :jenkins.project.model.project)
 
+(test make-populated-recipe-repository.smoke
+  "Smoke test for the `make-populated-recipe-repository' function."
+
+  (mapc (lambda+ ((root-directory &rest modes))
+          (let+ ((repository (apply #'make-populated-recipe-repository
+                                    root-directory modes))
+                 ((&labels modes (mode)
+                    (list* (jenkins.model.project::name mode)
+                           (when-let ((parent (jenkins.model.project::parent mode)))
+                             (modes parent))))))
+            (is (equal root-directory (root-directory repository)))
+            (is (equal modes          (modes (jenkins.model.project::mode
+                                              repository))))))
+        `((,#P"/root/" "mode")
+          (,#P"/root/" "mode" "parent1")
+          (,#P"/root/" "mode" "parent1" "parent2"))))
+
 (test setf-recipe-directory.smoke
   "Smoke test for the (setf recipe-directory) generic function."
 

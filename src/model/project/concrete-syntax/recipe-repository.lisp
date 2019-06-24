@@ -28,7 +28,7 @@
              (etypecase thing
                (mode   thing)
                (string (make-instance 'mode :name thing))
-               (cons   (let+ (((first &optional rest) thing))
+               (cons   (let+ (((first &rest rest) thing))
                          (make-instance 'mode :name   first
                                               :parent (when rest
                                                         (rec rest))))))))

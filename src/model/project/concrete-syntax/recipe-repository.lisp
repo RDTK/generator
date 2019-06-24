@@ -85,6 +85,10 @@
                              repository kind))))
     (merge-pathnames relative (root-directory repository))))
 
+(defmethod recipe-directory ((kind mode) (repository recipe-repository))
+  (merge-pathnames (make-pathname :directory `(:relative ,(name kind)))
+                   (recipe-directory :template repository)))
+
 (defmethod (setf recipe-directory) ((new-value  pathname)
                                     (kind       t)
                                     (repository recipe-repository))
@@ -126,9 +130,7 @@
 (defmethod recipe-path ((repository recipe-repository)
                         (kind       mode)
                         (name       pathname))
-  (let* ((directory  (merge-pathnames
-                      (make-pathname :directory `(:relative ,(name kind)))
-                      (recipe-directory :template repository)))
+  (let* ((directory  (recipe-directory kind repository))
          (type       (string-downcase :template))
          (defaults   (make-pathname :type type :defaults directory)))
     (merge-pathnames name defaults)))

@@ -396,7 +396,7 @@
                      (name         (expand-expression name))
                      (distribution (with-uniqueness-check
                                        (includes-seen name spec)
-                                     (resolve-distribution-dependency
+                                     (find-or-load-distribution
                                       name repository generator-version
                                       :overwrites overwrites))))
                 (list (make-instance 'distribution-include
@@ -456,22 +456,17 @@
 
 (defvar *distribution-load-stack* '())
 
-(defun find-or-load-distribution (name pathname repository generator-version
+(defun find-or-load-distribution (name repository generator-version
                                   &key overwrites)
   (ensure-distribution
    name (lambda ()
-          (loading-recipe (*distribution-load-stack* name)
-            (load-one-distribution/yaml
-             pathname
-             :repository        repository
-             :generator-version generator-version
-             :overwrites        overwrites)))))
-
-(defun resolve-distribution-dependency (name repository generator-version
-                                        &key overwrites)
-  (let ((pathname (recipe-path repository :distribution name)))
-    (find-or-load-distribution name pathname repository generator-version
-                               :overwrites overwrites)))
+          (let ((pathname (recipe-truename repository :distribution name)))
+            (loading-recipe (*distribution-load-stack* name)
+              (load-one-distribution/yaml
+               pathname
+               :repository        repository
+               :generator-version generator-version
+               :overwrites        overwrites))))))
 
 (defun load-distribution/yaml (pathname
                                &key
@@ -479,5 +474,5 @@
                                generator-version
                                overwrites)
   (let ((name (pathname-name pathname)))
-    (find-or-load-distribution name pathname repository generator-version
+    (find-or-load-distribution name repository generator-version
                                :overwrites overwrites)))

@@ -15,7 +15,17 @@
    "It is no longer necessary to create symbolic links for template
     recipe files that are shared between multiple modes. When a
     required template file" (:verb "MODE/NAME.template") "does not
-    exist," (:verb "_common/NAME.template") "is tried instead."))
+    exist," (:verb "_common/NAME.template") "is tried instead.")
+
+  (:enhancement
+   "Recipe files can now be placed into sub-directories. The
+    respective directory name or names are part of the object name:"
+   (:verb "Filename                                   Object name
+projects/ordinary.project                → \"ordinary\"
+projects/sub-directory/special.project   → \"sub-directory/special\"
+distributions/sub1/sub2/two.distribution → \"sub1/sub2/two\"")
+   "The respective include syntax for projects and distributions uses
+    this object name - not a (relative) path."))
 
  (:release "0.29" "2019-05-24"
 

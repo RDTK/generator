@@ -145,8 +145,9 @@
          (load-name  (symbolicate '#:load-  concept '#:/yaml))
          (context    (format nil "~(~A~) recipe" concept)))
     `(progn
-       (defun ,read-name (pathname &key generator-version ,@other-args)
-         (declare (ignore ,@other-args))
+       (defun ,read-name (pathname &key repository generator-version ,@other-args)
+         (declare (ignore ,@other-args
+                          ,@(when (eq name-kind :data) '(repository))))
          (let ((spec (%load-yaml pathname)))
            (check-keys spec '((:minimum-generator-version nil string)
                               ,@(when (eq name-kind :data)
@@ -155,7 +156,13 @@
            (check-generator-version spec generator-version ,context)
            (let ((name ,@(ecase name-kind
                            (:data     `((assoc-value spec :name)))
-                           (:pathname `((pathname-name pathname))))))
+                           (:pathname `((recipe-name
+                                         repository
+                                         ,(ecase concept
+                                            (one-template     :template)
+                                            (one-distribution :distribution)
+                                            (project-spec     :project))
+                                         pathname))))))
              (values spec name pathname))))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
@@ -178,8 +185,7 @@
                                   (jenkins.util:safe-enough-namestring pathname)
                                   condition))))
            (let+ (((&values spec name pathname)
-                   (apply #',read-name pathname
-                          (remove-from-plist args :repository))))
+                   (apply #',read-name pathname args)))
              (copy-location
               spec (apply #',parse-name spec name
                           :repository repository
@@ -258,7 +264,7 @@
            :generator-version generator-version)))))
 
 (defun load-template/yaml (pathname &key repository generator-version)
-  (let ((name (pathname-name pathname)))
+  (let ((name (recipe-name repository :template pathname)))
     (find-or-load-template name repository generator-version)))
 
 ;;; Project loading
@@ -473,6 +479,6 @@
                                (repository (missing-required-argument :repository))
                                generator-version
                                overwrites)
-  (let ((name (pathname-name pathname)))
+  (let ((name (recipe-name repository :distribution pathname)))
     (find-or-load-distribution name repository generator-version
                                :overwrites overwrites)))

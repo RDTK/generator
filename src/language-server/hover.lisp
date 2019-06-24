@@ -108,9 +108,11 @@
           (let ((existing (analysis-results document)))
             (cond ((null existing)
                    (setf (analysis-results document)
-                         (lparallel:future
-                           (multiple-value-list
-                            (maybe-analyze (object document) branch))))
+                         (lparallel:task-handler-bind
+                             ((error #'lparallel:invoke-transfer-error))
+                           (lparallel:future
+                             (multiple-value-list
+                              (maybe-analyze (object document) branch)))))
                    (values "*pending*" "Repository not yet analyzed"))
                   ((lparallel:fulfilledp existing)
                    (handler-case

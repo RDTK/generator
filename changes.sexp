@@ -1,4 +1,6 @@
-((:release "0.30" "2019-06-25"
+((:release "0.31" nil)
+
+ (:release "0.30" "2019-06-25"
 
   (:incompatible-change
    "The" (:verb "non-interactive") "commandline option is no longer

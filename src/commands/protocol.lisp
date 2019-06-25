@@ -106,11 +106,12 @@
                (warning error-policy)
                (more-conditions:progress-condition
                 (lambda (condition)
-                  (bt:interrupt-thread
-                   main-thread (lambda ()
-                                 (sb-sys:without-interrupts
-                                   (bt:with-lock-held (lock)
-                                     (signal condition))))))))
+                  (unless (eq progress-style :none)
+                    (bt:interrupt-thread
+                     main-thread (lambda ()
+                                   (sb-sys:without-interrupts
+                                     (bt:with-lock-held (lock)
+                                       (signal condition)))))))))
             (let ((*configuration*   configuration)
                   (*temp-directory*  temp-directory)
                   (*cache-directory* cache-directory)

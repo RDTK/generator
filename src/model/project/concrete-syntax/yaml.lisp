@@ -170,7 +170,7 @@
          (load-name  (symbolicate '#:load-  concept '#:/yaml))
          (context    (format nil "~(~A~) recipe" concept)))
     `(progn
-       (defun ,read-name (source &key repository generator-version ,@other-args)
+       (defun ,read-name (source &key pathname repository generator-version ,@other-args)
          (declare (ignore ,@other-args))
          (let+ (((&values spec pathname source)
                  (apply #'%load-yaml source

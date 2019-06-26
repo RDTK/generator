@@ -128,16 +128,18 @@
                    (values "*pending*" "Analyzing repository"))))))
     (values body (sloc:range (location context)) title)))
 
-(defun maybe-analyze (project branch)
-  (let* ((repository (var:value project :repository))
-         (natures    (mappend (lambda (name)
-                                (when-let ((symbol (intern (string-upcase name)
-                                                           '#:keyword)))
-                                  (list symbol)))
-                              (var:value project :natures)))
-         (results    (jenkins.analysis:analyze
-                      repository :auto :versions (list (list :branch  branch
-                                                             :natures natures)))))
+(defun maybe-analyze (object branch)
+  (let* ((repository    (var:value object :repository))
+         (sub-directory (var:value object :sub-directory nil))
+         (natures       (mappend (lambda (name)
+                                   (when-let ((symbol (intern (string-upcase name)
+                                                              '#:keyword)))
+                                     (list symbol)))
+                                 (var:value object :natures)))
+         (results       (build-generator.analysis:analyze
+                         repository :auto :versions (list (list :branch        branch
+                                                                :sub-directory sub-directory
+                                                                :natures       natures)))))
     (values (first results) branch natures)))
 
 (defun format-analysis-results (results)

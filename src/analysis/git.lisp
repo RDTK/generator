@@ -171,6 +171,7 @@
 (defun analyze-git-branch (clone-directory
                            &rest args
                            &key sub-directory &allow-other-keys)
+  (check-type sub-directory (or null (satisfies uiop:directory-pathname-p)))
   (let+ ((analyze-directory (if sub-directory
                                 (merge-pathnames sub-directory clone-directory)
                                 clone-directory))
@@ -220,6 +221,7 @@
                                      age-limit
                                      (natures        '(:auto))
                                      &allow-other-keys)
+  (check-type sub-directory (or null (satisfies uiop:directory-pathname-p)))
   ;; If we already have analysis results for the commit that is
   ;; current in the remote repository, return right away.
   (when cache-directory

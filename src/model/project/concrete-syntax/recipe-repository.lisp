@@ -209,6 +209,7 @@
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       t)
                         (path       pathname))
+  (assert (uiop:absolute-pathname-p path))
   (let ((directory    (recipe-directory kind repository))
         (without-type (make-pathname :type nil :defaults path)))
     (when (uiop:subpathp without-type directory)

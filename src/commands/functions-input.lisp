@@ -11,11 +11,11 @@
     ((wild-pathname-p spec)
      (directory spec))
     ((pathnamep spec)
-     (unless (probe-file spec)
+     (if-let ((truename (probe-file spec)))
+       (list truename)
        (project::object-error
         (list (list spec "included here" :error))
-        "~@<File does not exist: ~A.~@:>" spec))
-     (list spec))
+        "~@<File does not exist: ~A.~@:>" spec)))
     (t
      (error "~@<Invalid input specification: ~S.~@:>" spec))))
 

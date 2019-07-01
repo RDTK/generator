@@ -453,7 +453,8 @@ foo"))))
                     (parent-environment '())
                     (environment        (make-instance 'environment :parent parent-environment))
                     implicit-provides?)
-  (let+ ((content (util:read-file-into-string* source))
+  (let+ ((source-directory (uiop:pathname-directory-pathname source))
+         (content          (util:read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
          ((&flet add-variable! (name value)
@@ -467,8 +468,7 @@ foo"))))
          (included-requires '()))
     ;; Set CMAKE_SOURCE_DIR to the current directory in case an
     ;; include(…) call or similar depends on it.
-    (add-variable! "CMAKE_SOURCE_DIR"
-                   (namestring (uiop:pathname-directory-pathname source)))
+    (add-variable! "CMAKE_SOURCE_DIR" (namestring source-directory))
 
     ;; Collect all variables directly defined in SOURCE.
     (ppcre:do-register-groups (key value) (*set-variable-scanner* content)
@@ -483,8 +483,7 @@ foo"))))
                   (%list-unless-equal project project/resolved)
                   (%list-unless-equal version version/resolved))
         (let ((variable-with-name (format nil "~A_SOURCE_DIR" project/resolved))
-              (directory          (namestring
-                                   (uiop:pathname-directory-pathname source))))
+              (directory          (namestring source-directory)))
           (add-project-variable! variable-with-name   directory)
           (add-project-variable! "PROJECT_SOURCE_DIR" directory))
         (add-project-variable! "PROJECT_NAME" project/resolved)

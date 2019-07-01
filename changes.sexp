@@ -1,4 +1,8 @@
-((:release "0.31" nil)
+((:release "0.31" nil
+
+  (:enhancement
+   "Analysis of the CMake" (:verb "include()") "commands succeeds in
+    more cases."))
 
  (:release "0.30" "2019-06-25"
 

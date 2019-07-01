@@ -1,4 +1,4 @@
-;;;; cmake.lisp ---
+;;;; cmake.lisp --- Analysis functionality for the CMake build system.
 ;;;;
 ;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
@@ -282,11 +282,13 @@ foo"))))
                       (list major   minor   patch   version))))))
 
 (defclass environment (print-items:print-items-mixin)
-  ((%parent    :initarg  :parent
-               :reader   parent
-               :initform nil)
-   (%variables :reader   %variables
-               :initform (make-hash-table :test #'equal))))
+  ((%parent           :initarg  :parent
+                      :reader   parent
+                      :initform nil)
+   (%source-directory :initarg  :source-directory
+                      :reader   source-directory)
+   (%variables        :reader   %variables
+                      :initform (make-hash-table :test #'equal))))
 
 (defmethod print-items:print-items append ((object environment))
   (let+ (((&labels depth (environment)
@@ -312,6 +314,11 @@ foo"))))
   (loop :for (name . value) :in entries
         :do (setf (lookup name environment) value))
   environment)
+
+(defmethod root-directory ((environment environment))
+  (if-let ((parent (parent environment)))
+    (root-directory parent)
+    (source-directory environment)))
 
 (defun %resolve-variables (spec environment &key (if-unresolved :partial))
   (flet ((replace-all (string)
@@ -365,6 +372,20 @@ foo"))))
         (with-simple-restart (continue report)
           (%resolution-error expression context))
         (%resolution-error expression context))))
+
+(defun find-module (name environment)
+  (let ((root-directory (root-directory environment)))
+    (log:info "~@<Trying to find module ~S in ~A with root-directory ~
+               ~S.~@:>"
+              name environment root-directory)
+    (let ((candidates (directory (merge-pathnames
+                                  (make-pathname :name      name
+                                                 :type      "cmake"
+                                                 :directory '(:relative :wild-inferiors))
+                                  root-directory))))
+      (log:info "~@<Found ~D candidate~:P~@[: ~{~S~^, ~}~].~@:>"
+                (length candidates) candidates)
+      (first candidates))))
 
 (defmethod analyze ((source pathname) (kind (eql :cmake))
                     &key)
@@ -450,11 +471,14 @@ foo"))))
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))
                     &key
+                    (source-directory   (uiop:pathname-directory-pathname source))
                     (parent-environment '())
-                    (environment        (make-instance 'environment :parent parent-environment))
+                    (environment        (make-instance
+                                         'environment
+                                         :source-directory source-directory
+                                         :parent           parent-environment))
                     implicit-provides?)
-  (let+ ((source-directory (uiop:pathname-directory-pathname source))
-         (content          (util:read-file-into-string* source))
+  (let+ ((content (util:read-file-into-string* source))
          ((&values project-version components)
           (extract-project-version content))
          ((&flet add-variable! (name value)
@@ -507,10 +531,12 @@ foo"))))
                                  :if-unresolved (rcurry #'%resolution-error
                                                         "include(…) expression")))
                       (filename (unless (emptyp resolved)
-                                  (merge-pathnames resolved source)))
-                      (results  (when (probe-file filename)
+                                  (merge-pathnames resolved source-directory)))
+                      (truename (or (probe-file filename)
+                                    (find-module resolved environment)))
+                      (results  (when truename
                                   (setf label resolved)
-                                  (analyze filename kind
+                                  (analyze truename kind
                                            :environment environment))))
             (appendf included-requires (getf results :requires))))))
 

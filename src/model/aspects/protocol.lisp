@@ -97,7 +97,7 @@
   ;; steps (i.e. builders and publishers) according to declared
   ;; ordering.
   (let+ ((*step-constraints* '())
-         (aspects (jenkins.util:sort-with-partial-order
+         (aspects (util:sort-with-partial-order
                    (copy-list aspect) #'aspect<))
          ((&flet sort-phase (phase read write)
             (let ((unsorted    (funcall read job))
@@ -113,7 +113,7 @@
                            (hash-table-alist constraints))
 
                 ;; Try to sort steps according to CONSTRAINTS.
-                (let ((sorted (jenkins.util:sort-with-partial-order
+                (let ((sorted (util:sort-with-partial-order
                                unsorted (rcurry #'step< constraints))))
                   (log:debug "~@<Sorted ~(~A~)er~P:~@:_~
                               ~@<~{• ~A~^~@:_~}~@:>~@:>"

@@ -17,6 +17,8 @@
    #:jenkins.api)
 
   (:local-nicknames
+   (#:util  #:jenkins.util)
+
    (#:model #:jenkins.model)
    (#:var   #:jenkins.model.variables))
 

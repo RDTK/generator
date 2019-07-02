@@ -25,8 +25,8 @@
 (defun unresolved-platform-requirements
     (distributions
      &key
-     (platform (multiple-value-list (jenkins.analysis:current-platform))))
-  (let ((installed-packages (jenkins.analysis:installed-packages))
+     (platform (multiple-value-list (analysis:current-platform))))
+  (let ((installed-packages (analysis:installed-packages))
         (requirements       (project:platform-requires distributions platform)))
     (log:info "~@<Found ~:D installed package~:P~@:>"
               (length installed-packages))

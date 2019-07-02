@@ -13,12 +13,16 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:model   #:jenkins.model)
-   (#:var     #:jenkins.model.variables)
-   (#:project #:jenkins.model.project)
-   (#:aspects #:jenkins.model.aspects)
+   (#:util     #:jenkins.util)
 
-   (#:steps   #:jenkins.project.steps))
+   (#:analysis #:jenkins.analysis)
+
+   (#:model    #:jenkins.model)
+   (#:var      #:jenkins.model.variables)
+   (#:project  #:jenkins.model.project)
+   (#:aspects  #:jenkins.model.aspects)
+
+   (#:steps    #:jenkins.project.steps))
 
   (:shadow
    #:phase)

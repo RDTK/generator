@@ -37,7 +37,7 @@
                 (symbolicate '#:load/ kind))))
     (with-sequence-progress (name files)
       (mapcan (lambda (file)
-                (progress "~A" (jenkins.util:safe-enough-namestring file))
+                (progress "~A" (util:safe-enough-namestring file))
                 (with-simple-restart
                     (continue "~@<Skip ~A specification ~S.~@:>" kind file)
                   (list (funcall loader file :repository repository))))
@@ -133,7 +133,7 @@
   (with-sequence-progress (:load/project files-and-includes)
     (lparallel:pmapcan
      (lambda+ ((file project-includes))
-       (progress "~A" (jenkins.util:safe-enough-namestring file))
+       (progress "~A" (util:safe-enough-namestring file))
        (with-simple-restart
            (continue "~@<Skip project specification ~S.~@:>" file)
          (let ((version-names (map 'list #'project:version project-includes)))
@@ -209,7 +209,7 @@
          (other-results      (remove-from-plist results
                                                 :requires :provides
                                                 :properties))
-         (recipe-maintainers (jenkins.analysis::parse-people-list
+         (recipe-maintainers (analysis::parse-people-list
                               (var:value version :recipe.maintainer '())))
          ((&values analysis-variables persons)
           (make-analysis-variables
@@ -266,7 +266,7 @@
                  (when results
                    (list (analyze-version version results))))
                versions
-               (apply #'jenkins.analysis:analyze repository :auto
+               (apply #'analysis:analyze repository :auto
                       :project  project
                       :versions (map 'list #'resolve-analysis-variables
                                      versions)
@@ -280,17 +280,17 @@
                                        cache-directory
                                        age-limit)
   (declare (ignore temp-directory cache-directory age-limit))
-  (jenkins.analysis::with-git-cache ()
+  (analysis::with-git-cache ()
     (let ((other-args (remove-from-plist args :generator-version))
-          (cache      jenkins.analysis::*git-cache*))
+          (cache      analysis::*git-cache*))
       (with-sequence-progress (:analyze/project projects)
         (lparallel:pmapcan
          (lambda (project)
            (progress "~/print-items:format-print-items/"
                      (print-items:print-items project))
            (more-conditions::without-progress
-             (let ((jenkins.analysis::*git-cache*     cache)
-                   (jenkins.analysis::*cache-version* generator-version))
+             (let ((analysis::*git-cache*     cache)
+                   (analysis::*cache-version* generator-version))
                (with-simple-restart
                    (continue "~@<Skip analyzing project ~A.~@:>" project)
                  (when-let ((project (apply #'analyze-project project
@@ -330,7 +330,7 @@
                        distribution)
            (let ((recipe-maintainers
                    (project:ensure-persons!
-                    (jenkins.analysis::parse-people-list
+                    (analysis::parse-people-list
                      (var:value/cast distribution :recipe.maintainer '())))))
              (reinitialize-instance
               distribution :persons `(:recipe.maintainer ,recipe-maintainers))

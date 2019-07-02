@@ -86,7 +86,7 @@
            (uri                         (uri-without-branch-scm-sub-directory
                                          input)))
       (first
-       (apply #'jenkins.analysis:analyze uri :auto
+       (apply #'analysis:analyze uri :auto
               :versions `((:branch ,branch))
               (append
                (when scm
@@ -98,7 +98,7 @@
 
   (:method ((input pathname) &key natures)
     (let ((input (uiop:ensure-directory-pathname input)))
-      (apply #'jenkins.analysis:analyze input :auto
+      (apply #'analysis:analyze input :auto
              (when natures
                `(:natures ,natures))))))
 

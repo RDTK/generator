@@ -28,18 +28,18 @@
             (restart-bind ((defer (lambda (condition &key debug?)
                                     (collect-error condition :debug? debug?)
                                     (invoke-restart
-                                     (jenkins.util:find-continue-restart
+                                     (util:find-continue-restart
                                       condition))
                                     (abort))
-                             :test-function #'jenkins.util:find-continue-restart))
+                             :test-function #'util:find-continue-restart))
               (error condition)))))
     (lparallel:task-handler-bind
         ;; TODO workaround lparallel bug
         ((error (lambda (condition)
-                  (when (typep condition 'jenkins.util:continuable-error)
+                  (when (typep condition 'util:continuable-error)
                     (deferrable-error condition)))))
       (handler-bind
-          (((and error jenkins.util:continuable-error)
+          (((and error util:continuable-error)
             #'deferrable-error))
         (funcall thunk (lambda () errors))))))
 

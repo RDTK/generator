@@ -32,7 +32,7 @@
             (commands (service-provider:service-providers/alist
                        (service-provider:find-service 'command)))
             (names    (map 'list (compose #'string-downcase #'car) commands))
-            (matches  (jenkins.util:closest-matches
+            (matches  (util:closest-matches
                        command names :limit 3)))
        (format stream "~@<\"~A\" is not a known command.~@[ Closest ~
                       match~[~;~:;es~]: ~{~A~^, ~}.~]~@:>"
@@ -114,7 +114,7 @@
 (defun unfulfilled-project-dependency-error? (condition)
   (when (typep condition 'model:instantiation-error)
     (let ((root-cause (root-cause condition)))
-      (typep root-cause 'jenkins.analysis:unfulfilled-project-dependency-error))))
+      (typep root-cause 'analysis:unfulfilled-project-dependency-error))))
 
 (deftype unfulfilled-project-dependency-error ()
   '(satisfies unfulfilled-project-dependency-error?))
@@ -126,8 +126,7 @@
           :for specification = (model:instantiation-condition-specification
                                 condition)
           :for cause = (root-cause condition)
-          :for dependency = (jenkins.analysis:dependency-condition-dependency
-                             cause)
+          :for dependency = (analysis:dependency-condition-dependency cause)
           :for key = (subseq dependency 0 2)
           :do (push (list (print-items:print-items specification)
                           (third dependency))
@@ -144,14 +143,14 @@
             (hash-table-alist table))))
 
 (defun condition-category (condition)
-  (cond ((jenkins.util:some-cause
-          (of-type 'jenkins.analysis:repository-access-error)
+  (cond ((util:some-cause
+          (of-type 'analysis:repository-access-error)
           condition)
-         'jenkins.analysis:repository-access-error)
-        ((jenkins.util:some-cause
-          (of-type 'jenkins.analysis:repository-analysis-error)
+         'analysis:repository-access-error)
+        ((util:some-cause
+          (of-type 'analysis:repository-analysis-error)
           condition)
-         'jenkins.analysis:repository-analysis-error)
+         'analysis:repository-analysis-error)
         (t
          (type-of condition))))
 

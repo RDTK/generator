@@ -12,7 +12,9 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:res #:jenkins.project.resources))
+   (#:analysis #:jenkins.analysis)
+
+   (#:res      #:jenkins.project.resources))
 
   ;; Step protocol
   (:export

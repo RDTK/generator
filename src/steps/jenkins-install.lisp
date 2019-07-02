@@ -72,7 +72,7 @@
   (let ((pathname (merge-pathnames "jenkins.war" destination-directory)))
     (ensure-directories-exist pathname)
     (when (not (probe-file pathname))
-      (jenkins.analysis::download-file url pathname))))
+      (analysis::download-file url pathname))))
 
 ;;; `jenkins/install-plugins[-with-dependencies]' steps
 
@@ -129,7 +129,7 @@
         (url      (jenkins-plugin-url plugin)))
     (unless (probe-file pathname)
       (log:info "~@<Installing ~A from ~A into ~A.~@:>" plugin url pathname)
-      (jenkins.analysis::download-file url pathname)
+      (analysis::download-file url pathname)
       (jenkins-plugin-dependencies pathname))))
 
 (define-step (jenkins/install-plugins-with-dependencies)

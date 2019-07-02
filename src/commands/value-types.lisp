@@ -49,3 +49,18 @@
                                #'string-downcase))
                           (json:encode-json-to-string value))))))
     (format nil "~(~A~)=~A" variable (var:value-unparse value/json))))
+
+;;; `jenkins-username'
+
+(setf (get 'steps:jenkins-username 'configuration.options::dont-expand) t)
+
+(defmethod configuration.options:raw->value-using-type
+    ((schema-item t)
+     (raw         string)
+     (type        (eql 'steps:jenkins-username))
+     &key inner-type)
+  (declare (ignore inner-type))
+  (unless (typep raw 'steps:jenkins-username)
+    (error "~@<Jenkins usernames can only contain alphanumeric ~
+            characters, \"_\" and \"-\".~@:>"))
+  raw)

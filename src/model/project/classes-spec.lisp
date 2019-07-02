@@ -136,9 +136,9 @@
                                      (direct-includes spec)))))
 
     ;; Build a table of provided things and providers.
-    (let ((provider-index (jenkins.analysis:make-provider-index)))
+    (let ((provider-index (analysis:make-provider-index)))
       (map nil (lambda (version)
-                 (map nil (rcurry #'jenkins.analysis:index-provider!
+                 (map nil (rcurry #'analysis:index-provider!
                                   version provider-index)
                       (provides version)))
            versions)

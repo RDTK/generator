@@ -16,7 +16,7 @@
          ((&flet closest-matches (invalid-keys)
             (reduce (rcurry #'nunion :test #'string-equal)
                     (map 'list #'string invalid-keys)
-                    :key (rcurry #'jenkins.util:closest-matches
+                    :key (rcurry #'util:closest-matches
                                  (map 'list (compose #'first #'ensure-list)
                                       expected)
                                  :key #'string))))

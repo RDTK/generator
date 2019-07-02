@@ -72,9 +72,9 @@
             (version-better (third (car left)) (third (car right)))))
          ;; Find providers in PROVIDERS which can provide the required
          ;; NATURE, TARGET and VERSION of SPEC.
-         (candidates (jenkins.analysis:lookup-providers required providers))
+         (candidates (analysis:lookup-providers required providers))
          (candidates (remove-if-not
-                      (curry #'jenkins.analysis:dependency-matches? required)
+                      (curry #'analysis:dependency-matches? required)
                       candidates :key #'car))
          ;; Sort CANDIDATES according to PROVIDER-BETTER (which may
          ;; use ORDER).
@@ -83,7 +83,7 @@
     (or (cdr (first candidates))
         (error-behavior-restart-case
             (if-does-not-exist
-             (jenkins.analysis:unfulfilled-project-dependency-error
+             (analysis:unfulfilled-project-dependency-error
               :dependency spec
               :candidates candidates)
              :allow-other-values? t)))))

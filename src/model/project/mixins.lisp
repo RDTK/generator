@@ -82,10 +82,10 @@
     may return redundant feature sets."))
 
 (defmethod requires :around ((thing dependency-merging-mixin))
-  (jenkins.analysis:merge-dependencies (call-next-method)))
+  (analysis:merge-dependencies (call-next-method)))
 
 (defmethod provides :around ((thing dependency-merging-mixin))
-  (jenkins.analysis:merge-dependencies (call-next-method)))
+  (analysis:merge-dependencies (call-next-method)))
 
 ;;; `person-container-mixin'
 

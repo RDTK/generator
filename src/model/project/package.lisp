@@ -14,11 +14,15 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:bp      #:architecture.builder-protocol)
+   (#:bp       #:architecture.builder-protocol)
 
-   (#:model   #:jenkins.model)
-   (#:var     #:jenkins.model.variables)
-   (#:aspects #:jenkins.model.aspects))
+   (#:util     #:jenkins.util)
+
+   (#:analysis #:jenkins.analysis)
+
+   (#:model    #:jenkins.model)
+   (#:var      #:jenkins.model.variables)
+   (#:aspects  #:jenkins.model.aspects))
 
   (:shadow
    #:node)

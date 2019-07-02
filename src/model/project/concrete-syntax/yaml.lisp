@@ -182,7 +182,7 @@
                            (error "~@<Error when loading ~(~A~) ~
                                    description from ~S: ~A~@:>"
                                   ',concept
-                                  (jenkins.util:safe-enough-namestring pathname)
+                                  (util:safe-enough-namestring pathname)
                                   condition))))
            (let+ (((&values spec name pathname)
                    (apply #',read-name pathname args)))

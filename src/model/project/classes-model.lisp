@@ -309,9 +309,9 @@
 (defun index-platform-provides (thing)
   (with-simple-restart (continue "~@<Do not compute platform provides.~@:>")
     (reduce (lambda+ (index (dependency . provider))
-              (jenkins.analysis:index-provider! dependency provider index))
+              (analysis:index-provider! dependency provider index))
             (platform-provides thing)
-            :initial-value (jenkins.analysis:make-provider-index))))
+            :initial-value (analysis:make-provider-index))))
 
 (defmethod model:add-dependencies! ((thing version)
                                     &key

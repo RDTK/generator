@@ -23,9 +23,6 @@
   (:shadow
    #:node)
 
-  (:shadowing-import-from #:jenkins.api
-   #:parameters)
-
   (:import-from #:jenkins.version
    #:parse-version
    #:version>=
@@ -38,8 +35,7 @@
 
   ;; Template protocol
   (:export
-   #:find-template
-   )
+   #:find-template)
 
   ;; Distribution specification protocol
   (:export

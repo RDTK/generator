@@ -9,11 +9,12 @@
 ;;; types
 
 (defun jenkins-username? (thing)
-  (and string (every (lambda (character)
-                       (or (alphanumericp character)
-                           (char= character #\_)
-                           (char= character #\-))))
-       thing))
+  (and (stringp thing)
+       (every (lambda (character)
+                (or (alphanumericp character)
+                    (char= character #\_)
+                    (char= character #\-)))
+              thing)))
 
 (deftype jenkins-username ()
   '(satisfies jenkins-username?))

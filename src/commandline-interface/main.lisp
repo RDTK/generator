@@ -57,8 +57,8 @@
             (when-let ((restart (find-restart 'commands::defer condition))) ; TODO should just call defer
               (invoke-restart restart condition :debug? debug?))
 
-            (when (typep condition 'jenkins.util:continuable-error)
-              (when-let ((restart (jenkins.util:find-continue-restart condition)))
+            (when (typep condition 'util:continuable-error)
+              (when-let ((restart (util:find-continue-restart condition)))
                 (flame condition :debug? debug?)
                 (invoke-restart restart)))))
          ((&flet do-fail (condition)

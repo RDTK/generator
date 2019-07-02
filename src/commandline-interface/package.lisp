@@ -14,6 +14,10 @@
   (:local-nicknames
    (#:options     #:configuration.options)
 
+   (#:util        #:jenkins.util)
+
+   (#:analysis    #:jenkins.analysis)
+
    (#:model       #:jenkins.model)
    (#:var         #:jenkins.model.variables)
    (#:project     #:jenkins.model.project)

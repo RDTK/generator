@@ -15,14 +15,14 @@
          `(progn
             (defun ,predicate-name (thing)
               (and (typep thing 'condition)
-                   (jenkins.util:some-cause (of-type ',condition-name) thing)))
+                   (util:some-cause (of-type ',condition-name) thing)))
             (deftype ,type-name ()
               '(satisfies ,predicate-name))))))
 
-  (define-cause-predicate jenkins.analysis:repository-access-error)
-  (define-cause-predicate jenkins.analysis:repository-analysis-error)
-  (define-cause-predicate jenkins.analysis:project-analysis-error)
-  (define-cause-predicate jenkins.analysis:unfulfilled-project-dependency-error))
+  (define-cause-predicate analysis:repository-access-error)
+  (define-cause-predicate analysis:repository-analysis-error)
+  (define-cause-predicate analysis:project-analysis-error)
+  (define-cause-predicate analysis:unfulfilled-project-dependency-error))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *condition-types*
@@ -33,7 +33,7 @@
       (caused-by-repository-access-error              . "repository-access-error")
       (caused-by-repository-analysis-error            . "repository-analysis-error")
       (caused-by-project-analysis-error               . "project-analysis-error")
-      (jenkins.analysis:analysis-error                . nil)
+      (analysis:analysis-error                        . nil)
 
       (caused-by-unfulfilled-project-dependency-error . "dependency-error")
 

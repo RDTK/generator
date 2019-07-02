@@ -6,11 +6,23 @@
 
 (cl:in-package #:jenkins.project.steps)
 
-;;; Utilities
+;;; types
+
+(defun jenkins-username? (thing)
+  (and string (every (lambda (character)
+                       (or (alphanumericp character)
+                           (char= character #\_)
+                           (char= character #\-))))
+       thing))
+
+(deftype jenkins-username ()
+  '(satisfies jenkins-username?))
 
 (deftype jenkins-directory-state ()
   "Possible states of a Jenkins installation."
   '(member :not-present :fresh :stopped :running))
+
+;;; Utilities
 
 (declaim (ftype (function ((or string pathname))
                           (values jenkins-directory-state &optional))
@@ -246,6 +258,7 @@
                              (jenkins.project.resources:find-group* :user-configuration))))
      username email password)
   "Create a user in an existing Jenkins installation."
+  (check-type username jenkins-username)
   (ensure-jenkins-directory-state '(:fresh :stopped) destination-directory)
   (with-trivial-progress (:install/user "~A" username)
     (let ((destination-file (jenkins-user-configuration-file

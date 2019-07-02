@@ -36,5 +36,8 @@
 
   ;; Jenkins install steps
   (:export
+   #:jenkins-username?
+   #:jenkins-username
+
    #:+default-jenkins-download-url+
    #:+jenkins-plugins-base-url+))

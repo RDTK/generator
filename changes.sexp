@@ -2,7 +2,11 @@
 
   (:enhancement
    "Analysis of the CMake" (:verb "include()") "commands succeeds in
-    more cases."))
+    more cases.")
+
+  (:enhancement
+   "The" (:verb "install-jenkins") "command no longer silently accepts
+    invalid Jenkins usernames."))
 
  (:release "0.30" "2019-06-25"
 

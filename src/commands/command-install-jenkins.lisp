@@ -94,7 +94,7 @@
                                          #'string<)))
    ;; User creation
    (username             :initarg  :username
-                         :type     (or null string)
+                         :type     (or null steps:jenkins-username)
                          :reader   username
                          :initform nil
                          :documentation

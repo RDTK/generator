@@ -75,7 +75,7 @@
    (jenkins-download-url :initarg  :jenkins-download-url
                          :type     puri:uri
                          :reader   jenkins-download-url
-                         :initform steps::+default-jenkins-download-url+
+                         :initform steps:+default-jenkins-download-url+
                          :documentation
                          #.(format nil "URL from which the Jenkins ~
                             archive should be downloaded."))

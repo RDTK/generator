@@ -32,4 +32,9 @@
    #:with-sequence-processing
 
    #:define-step
-   #:define-sequence-step))
+   #:define-sequence-step)
+
+  ;; Jenkins install steps
+  (:export
+   #:+default-jenkins-download-url+
+   #:+jenkins-plugins-base-url+))

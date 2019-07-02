@@ -244,7 +244,7 @@
   (cxml:with-element "directDependency"
     (cxml:attribute "name"    name)
     (cxml:attribute "version" version)
-    (cxml:text (safe-name href))))
+    (cxml:text (util:safe-name href))))
 
 (defun project-version-dependency (project-version)
   (let ((title   (project-version-title project-version))
@@ -287,7 +287,8 @@
                    (style  catalog)
                    (target pathname))
   (let ((distribution-directory (merge-pathnames #P"distribution/" target)))
-    (with-output-to-catalog-file (stream distribution-directory (safe-name (model:name object)))
+    (with-output-to-catalog-file (stream distribution-directory
+                                         (util:safe-name (model:name object)))
       (report object style stream)))
 
   (let ((project-directory (merge-pathnames #P"project/" target)))
@@ -300,7 +301,7 @@
                                    :gdpr?       (gdpr? style))
     (cxml:with-element "distribution"
       ;; Generic metadata
-      (let ((name    (safe-name (model:name object)))
+      (let ((name    (util:safe-name (model:name object)))
             (version (catalog-value object :version)))
         (emit-generic-metadata object version name name))
 
@@ -330,7 +331,7 @@
                    (style  catalog)
                    (target pathname))
   (with-output-to-catalog-file
-      (stream target (safe-name (project-version-name+version object)))
+      (stream target (util:safe-name (project-version-name+version object)))
     (report object style stream)))
 
 (defmethod report ((object project:version)
@@ -341,7 +342,7 @@
     (cxml:with-element "project"
       ;; Generic metadata
       (let ((name          (model:name object))
-            (safe-name     (safe-name (project-version-name+version object)))
+            (safe-name     (util:safe-name (project-version-name+version object)))
             (fallback-name (project-version-name object)))
         (emit-generic-metadata object name safe-name fallback-name))
 

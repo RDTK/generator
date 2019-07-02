@@ -14,7 +14,7 @@
 (defmethod report ((object project::distribution-spec)
                    (style  (eql :json))
                    (target pathname))
-  (let ((name (safe-name (model:name object))))
+  (let ((name (util:safe-name (model:name object))))
     (ensure-directories-exist target)
     (with-output-to-file (stream (make-pathname :name     name
                                                 :type     "json"
@@ -48,7 +48,7 @@
                    (style  (eql :json))
                    (target pathname))
   (let ((directory (merge-pathnames "projects/" target))
-        (name      (safe-name (model:name object))))
+        (name      (util:safe-name (model:name object))))
     (ensure-directories-exist directory)
     (with-output-to-file (stream (make-pathname :name     name
                                                 :type     "json"

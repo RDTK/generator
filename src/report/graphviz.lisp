@@ -131,12 +131,12 @@
 ;;; File generation
 
 (defmethod object-filename ((object project:distribution))
-  (safe-name (model:name object)))
+  (util:safe-name (model:name object)))
 
 (defmethod object-filename ((object project:version))
   (format nil "~A-~A"
-          (safe-name (model:name (model:parent (model:specification object))))
-          (safe-name (model:name object))))
+          (util:safe-name (model:name (model:parent (model:specification object))))
+          (util:safe-name (model:name object))))
 
 (defmethod report ((object t) (style (eql :graph)) (target pathname))
   (ensure-directories-exist target)

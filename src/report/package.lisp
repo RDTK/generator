@@ -13,12 +13,11 @@
    #:more-conditions)
 
   (:local-nicknames
+   (#:util    #:jenkins.util)
+
    (#:model   #:jenkins.model)
    (#:var     #:jenkins.model.variables)
    (#:project #:jenkins.model.project))
-
-  (:import-from #:jenkins.util
-   #:safe-name)
 
   ;; Report protocol
   (:export

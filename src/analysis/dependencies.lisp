@@ -60,7 +60,7 @@
   (make-hash-table :test #'equal))
 
 (defun index-provider! (provided provider index)
-  (let ((key (jenkins.analysis:dependency-key provided)))
+  (let ((key (dependency-key provided)))
     (push (cons provided provider) (gethash key index '()))
     index))
 

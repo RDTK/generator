@@ -52,7 +52,7 @@
    (lambda (condition stream)
      (let* ((context-directory (context-directory condition))
             (pathname          (analysis-condition-specification condition))
-            (enough-namestring (jenkins.util:safe-enough-namestring
+            (enough-namestring (util:safe-enough-namestring
                                 pathname context-directory)))
        (format stream "~@<Error during analysis of repository path ~
                        \"~A\".~/more-conditions:maybe-print-cause/~@:>"

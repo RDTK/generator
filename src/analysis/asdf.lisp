@@ -42,6 +42,8 @@
                                         description
                                         defsystem-depends-on
                                         depends-on
+                                        build-pathname
+                                        entry-point
                                         &allow-other-keys))
             `(:provides ((:asdf
                           ,(string-downcase name)
@@ -50,12 +52,14 @@
               :requires ,(mapcar #'dependency->list
                                  (append defsystem-depends-on
                                          depends-on))
-              ,@(when description `(:description ,description))
-              ,@(when author      `(:authors     ,(parse-and-merge-people-list
-                                                   author)))
-              ,@(when maintainer  `(:maintainers ,(parse-and-merge-people-list
-                                                   maintainer)))
-              ,@(when license     `(:license     ,license))))))
+              ,@(when description    `(:description ,description))
+              ,@(when author         `(:authors     ,(parse-and-merge-people-list
+                                                      author)))
+              ,@(when maintainer     `(:maintainers ,(parse-and-merge-people-list
+                                                      maintainer)))
+              ,@(when license        `(:license     ,license))
+              ,@(when build-pathname `(:executable-name ,build-pathname))
+              ,@(when entry-point    `(:entry-point     ,entry-point))))))
     (mapcar #'process-system-form (%extract-system-definition-forms file))))
 
 (defmethod analyze ((directory pathname)
@@ -79,11 +83,14 @@
          ;; systems.
          ((&flet+ test-system? (system-name)
             (ppcre:scan "tests?$" system-name)))
-         ((&flet system-names ()
-            (loop :for system in systems
-               :collect (second (first (getf system :provides))))))
+         ((&flet+ executable-system? (system)
+            (and (getf system :executable-name)
+                 (getf system :entry-point))))
+         ((&flet system-name (system)
+            (second (first (getf system :provides)))))
          ((&flet system-names-if (predicate)
-            (remove-if (complement predicate) (system-names))))
+            (remove-if (complement predicate)
+                       (map 'list #'system-name systems))))
          ((&flet property-value/first (name)
             (second (first (property-values name)))))
          ((&flet maybe-property/first (name)
@@ -119,10 +126,14 @@
       :programming-languages ("Common Lisp")
       :systems               ,(system-names-if (complement #'test-system?))
       :test-systems          ,(system-names-if #'test-system?)
+      :executable-systems    ,(map 'list #'system-name
+                                   (remove-if-not #'executable-system? systems))
       ,@(maybe-property/description   :description)
       ,@(maybe-property/merge-persons :authors)
       ,@(maybe-property/merge-persons :maintainers)
-      ,@(maybe-property/first         :license))))
+      ,@(maybe-property/first         :license)
+      ,@(maybe-property/first         :executable-name)
+      ,@(maybe-property/first         :entry-point))))
 
 ;;; Utility functions
 

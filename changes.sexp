@@ -5,6 +5,11 @@
     more cases.")
 
   (:enhancement
+   "Analysis of ASDF systems can now extract executable
+    names (" (:verb ":build-pathname") ") and entry
+    points (" (:verb ":entry-point") ") from system definitions.")
+
+  (:enhancement
    "The" (:verb "install-jenkins") "command no longer silently accepts
     invalid Jenkins usernames."))
 

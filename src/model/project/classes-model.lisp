@@ -11,7 +11,7 @@
 ;;;     job
 ;;;       aspect
 
-(cl:in-package #:jenkins.model.project)
+(cl:in-package #:build-generator.model.project)
 
 ;;; `platform-dependency' class
 

@@ -4,10 +4,10 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.project.test)
+(cl:in-package #:build-generator.model.project.test)
 
-(def-suite* :jenkins.project.model.project.concrete-syntax.recipe-repository
-  :in :jenkins.project.model.project)
+(def-suite* :build-generator.model.project.concrete-syntax.recipe-repository
+  :in :build-generator.model.project)
 
 (test make-populated-recipe-repository.smoke
   "Smoke test for the `make-populated-recipe-repository' function."
@@ -16,11 +16,11 @@
           (let+ ((repository (apply #'make-populated-recipe-repository
                                     root-directory modes))
                  ((&labels modes (mode)
-                    (list* (jenkins.model.project::name mode)
-                           (when-let ((parent (jenkins.model.project::parent mode)))
+                    (list* (build-generator.model.project::name mode)
+                           (when-let ((parent (build-generator.model.project::parent mode)))
                              (modes parent))))))
             (is (equal root-directory (root-directory repository)))
-            (is (equal modes          (modes (jenkins.model.project::mode
+            (is (equal modes          (modes (build-generator.model.project::mode
                                               repository))))))
         `((,#P"/root/" "mode")
           (,#P"/root/" "mode" "parent1")

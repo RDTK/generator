@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.bcrypt)
+(cl:in-package #:build-generator.bcrypt)
 
 (alexandria:define-constant +base64-encoding+
     #(#\. #\/ #\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O

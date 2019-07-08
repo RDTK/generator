@@ -1,10 +1,10 @@
 ;;;; ros-packages.lisp --- Analysis of multi-ROS package repositories.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 (defun meta-package? (package-filename)
   (let ((document (cxml:parse package-filename (stp:make-builder))))

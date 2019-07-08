@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model)
+(cl:in-package #:build-generator.model)
 
 ;;; Ancestors protocol
 

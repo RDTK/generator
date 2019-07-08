@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.resources)
+(cl:in-package #:build-generator.resources)
 
 (define-condition entry-does-not-exist-error (error)
   ((%name  :initarg :name

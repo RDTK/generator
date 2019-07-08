@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.analysis
+(cl:defpackage #:build-generator.analysis
   (:use
    #:cl
    #:alexandria
@@ -14,8 +14,8 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:util    #:jenkins.util)
-   (#:version #:jenkins.version))
+   (#:util    #:build-generator.util)
+   (#:version #:build-generator.version))
 
   ;; Conditions
   (:export

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 (defun %svn-and-global-options (&optional username password)
   `("svn" "--non-interactive" "--quiet"

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defun check-distribution-access (distributions)
   (mapcan (lambda (distribution)

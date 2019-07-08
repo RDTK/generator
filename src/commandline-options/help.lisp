@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-options)
+(cl:in-package #:build-generator.commandline-options)
 
 (defvar *paragraph-limit* nil)
 
@@ -16,7 +16,7 @@
                     ~2@T~:[~
                       <not documented>~
                     ~;~
-                      ~:*~<~V/jenkins.project.commandline-options::print-documentation/~:>~
+                      ~:*~<~V/build-generator.commandline-options::print-documentation/~:>~
                     ~]"
             (when-let* ((option        (option info))
                         (documentation (documentation option t)))
@@ -31,7 +31,7 @@
                       &optional colon? at? (paragraph-limit *paragraph-limit*))
   (declare (ignore colon? at?))
   (let ((*paragraph-limit* paragraph-limit))
-    (format stream "~{~@:/jenkins.project.commandline-options::print-option/~^~2%~}"
+    (format stream "~{~@:/build-generator.commandline-options::print-option/~^~2%~}"
             (sort (copy-list options)
                   (rcurry #'designators< :positional-first? t)
                   :key (compose #'designators)))))
@@ -45,7 +45,7 @@
                             :key #'designators))
          (boring      (set-difference options interesting :test #'eq)))
     (format stream "~:[~; [COMMAND-OPTIONS]~]~
-                    ~{ ~/jenkins.project.commandline-options::print-option/~}"
+                    ~{ ~/build-generator.commandline-options::print-option/~}"
             boring interesting)))
 
 ;;; Utilities

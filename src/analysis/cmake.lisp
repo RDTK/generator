@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.analysis.cmake
+(cl:defpackage #:build-generator.analysis.cmake
   (:use
    #:cl
    #:alexandria
@@ -12,16 +12,16 @@
    #:iterate)
 
   (:local-nicknames
-   (#:util     #:jenkins.util)
-   (#:version  #:jenkins.version))
+   (#:util     #:build-generator.util)
+   (#:version  #:build-generator.version))
 
-  (:import-from #:jenkins.analysis
+  (:import-from #:build-generator.analysis
    #:analyze
 
    #:merge-dependencies
    #:effective-requires))
 
-(cl:in-package #:jenkins.analysis.cmake)
+(cl:in-package #:build-generator.analysis.cmake)
 
 (defparameter *main-cmake-file-name* "CMakeLists.txt"
   "The filename of the CMake file for a project.")

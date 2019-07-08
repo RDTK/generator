@@ -1,10 +1,10 @@
 ;;;; conditions.lisp --- Conditions used in the model.variables module.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.variables)
+(cl:in-package #:build-generator.model.variables)
 
 ;;; Evaluation-related conditions
 

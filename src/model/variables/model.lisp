@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.variables)
+(cl:in-package #:build-generator.model.variables)
 
 ;;; Values
 ;;;

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.aspects)
+(cl:in-package #:build-generator.model.aspects)
 
 ;;; Shell aspect
 
@@ -103,7 +103,7 @@
                           (lambda (dependency)
                             (member (car dependency) '(nil :system)))
                           (uiop:symbol-call
-                           '#:jenkins.model.project '#:direct-dependencies/reasons
+                           '#:build-generator.model.project '#:direct-dependencies/reasons
                            dependency)))
                   (iter (for (nature target version) in (mappend #'cdr dependencies/alist))
                         (when (eq nature :cmake)

@@ -1,15 +1,15 @@
 ;;;; functions-version.lisp --- Functions related to the program version.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 ;;; Version
 
 (defparameter *generator-version*
-  (asdf:component-version (asdf:find-system :jenkins.project)))
+  (asdf:component-version (asdf:find-system :build-generator)))
 
 (defun generator-version ()
   *generator-version*)
@@ -21,7 +21,7 @@
 
 (defparameter *changelog*
   (uiop:read-file-form (asdf:system-relative-pathname
-                        :jenkins.project.commands "changes.sexp")))
+                        :build-generator.commands "changes.sexp")))
 
 (defun changelog (&key count)
   (let ((changelog *changelog*))

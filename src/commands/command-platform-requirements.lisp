@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass platform-requirements (distribution-input-mixin
                                  mode-mixin)
@@ -35,7 +35,7 @@
 (service-provider:register-provider/class
  'command :platform-requirements :class 'platform-requirements)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "platform-requirements")
   (&rest               "distributions" "DISTRIBUTION-NAME"   t)
 

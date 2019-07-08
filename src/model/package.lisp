@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model
+(cl:defpackage #:build-generator.model
   (:use
    #:cl
    #:alexandria
@@ -14,7 +14,7 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:var #:jenkins.model.variables))
+   (#:var #:build-generator.model.variables))
 
   ;; Conditions
   (:export
@@ -94,4 +94,4 @@
    #:specification-mixin)
 
   (:documentation
-   "The data model of the jenkins.project system."))
+   "The data model of the build-generator system."))

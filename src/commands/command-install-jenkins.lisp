@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 ;;; Required and additional plugins
 
@@ -141,7 +141,7 @@
                        ,@(when email    '("email"))
                        ,@(when password '("password")))))))
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "install-jenkins")
   (0                        "output-directory"     "DIRECTORY"     t)
 

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 (defun %run-mercurial (spec directory)
   (run `("hg" :noninteractive ; :color "never" :pager "never"

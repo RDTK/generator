@@ -1,10 +1,10 @@
 ;;;; macros.lisp --- Macros provided by the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017 Jan Moringen
+;;;; Copyright (C) 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-options)
+(cl:in-package #:build-generator.commandline-options)
 
 (defmacro define-option-mapping ((schema context) &body clauses)
   (let+ (((&flet+ register-info ((designators option-name

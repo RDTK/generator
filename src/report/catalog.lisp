@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.report)
+(cl:in-package #:build-generator.report)
 
 ;;; XML helpers
 
@@ -47,7 +47,7 @@
       (cxml:attribute "xmlns" *catalog-namespace*)
       (when gdpr?
         (cxml:attribute "gdpr" "true"))
-      (cxml:attribute "generatorVersion" (asdf:component-version (asdf:find-system :jenkins.project)))
+      (cxml:attribute "generatorVersion" (asdf:component-version (asdf:find-system :build-generator)))
       (cxml:attribute "creationTime"     (princ-to-string (local-time:now)))
       (funcall thunk))))
 
@@ -387,7 +387,7 @@
       (emit-resources object)
 
       ;; Relations
-      (emit-relations style (jenkins.model:specification object)))))
+      (emit-relations style (model:specification object)))))
 
 (defmethod report ((object rosetta-project.model.resource:person)
                    (style  catalog)

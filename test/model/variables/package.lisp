@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model.variables.test
+(cl:defpackage #:build-generator.model.variables.test
   (:use
    #:cl
    #:alexandria
@@ -12,12 +12,12 @@
 
    #:fiveam
 
-   #:jenkins.model.variables)
+   #:build-generator.model.variables)
 
-  (:import-from #:jenkins.model.variables
+  (:import-from #:build-generator.model.variables
    #:merge-alists))
 
-(cl:in-package #:jenkins.model.variables.test)
+(cl:in-package #:build-generator.model.variables.test)
 
-(def-suite :jenkins.project.model.variables
-  :in :jenkins.project)
+(def-suite :build-generator.model.variables
+  :in :build-generator)

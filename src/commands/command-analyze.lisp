@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (deftype nature ()
   '(member :freestyle :maven :cmake :asdf :ros-package :ros-packages))
@@ -46,7 +46,7 @@
 (service-provider:register-provider/class
  'command :analyze :class 'analyze)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "analyze")
   (("--nature" "-n") "natures" "NATURE")
   (&rest             "sources" "URI-OR-DIRECTORY" t))

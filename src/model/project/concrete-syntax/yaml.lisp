@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.project)
+(cl:in-package #:build-generator.model.project)
 
 (defun %load-yaml (file)
   (let* ((source  (text.source-location:make-source
@@ -444,7 +444,7 @@
                                               :version   version
                                               :variables parameters))
                        versions)))))))
-    ; (jenkins.model.variables::debug-container context)
+    ; (build-generator.model.variables::debug-container context)
     (make-instance
      'distribution-spec
      :name            name

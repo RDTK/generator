@@ -1,4 +1,4 @@
-(cl:in-package #:jenkins.model.aspects.test)
+(cl:in-package #:build-generator.model.aspects.test)
 
 ;; `make-remove-directory-contents/unix' smoke test
 

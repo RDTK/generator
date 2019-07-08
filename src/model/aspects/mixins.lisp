@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.aspects)
+(cl:in-package #:build-generator.model.aspects)
 
 (define-constant +all-marker+ "<all>"
   :test #'string=)
@@ -51,7 +51,7 @@
                        step (constraints-table phase)
                        (list tag (model:name aspect) '()))))
     (log:trace "~@<All constraints for ~A~@:_~
-                ~/jenkins.model.aspects::format-constraints/~@:>"
+                ~/build-generator.model.aspects::format-constraints/~@:>"
                step constraints)
     (appendf (third cell) constraints)))
 
@@ -73,7 +73,7 @@
          (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~
-                ~/jenkins.model.aspects::format-constraints/~@:>"
+                ~/build-generator.model.aspects::format-constraints/~@:>"
                step variable constraints)
     constraints))
 
@@ -95,6 +95,6 @@
          (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~
-                ~/jenkins.model.aspects::format-constraints/~@:>"
+                ~/build-generator.model.aspects::format-constraints/~@:>"
                step variable constraints)
     constraints))

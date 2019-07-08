@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 (declaim (inline whitespace?))
 (defun whitespace? (character)
@@ -36,7 +36,7 @@
 (defvar *licenses*
   (let ((system-licenses (directory-licenses "/usr/share/common-licenses/"))
         (extra-licenses  (directory-licenses (asdf:system-relative-pathname
-                                              :jenkins.project "data/licenses/"))))
+                                              :build-generator "data/licenses/"))))
     (log:info "~@<~:[~
                  Not including any system licenses~
                ~;~:*~

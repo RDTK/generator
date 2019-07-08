@@ -1,10 +1,10 @@
 ;;;; protocol.lisp --- Protocol provided by the report module.
 ;;;;
-;;;; Copyright (C) 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2015, 2016, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.report)
+(cl:in-package #:build-generator.report)
 
 (defgeneric report (object style target)
   (:documentation

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.util
+(cl:defpackage #:build-generator.util
   (:use
    #:cl
    #:alexandria

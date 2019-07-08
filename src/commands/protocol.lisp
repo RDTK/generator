@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 ;;; Command service
 
@@ -60,7 +60,7 @@
                  (error 'command-not-found-error :command name)))
 
     ;; Configure provider according to ARGUMENTS.
-    (jenkins.project.commandline-options:map-commandline-options
+    (build-generator.commandline-options:map-commandline-options
      (lambda (option-path value)
        (set-value option-path value
                   (lambda (condition)

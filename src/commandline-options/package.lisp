@@ -1,10 +1,10 @@
 ;;;; package.lisp --- Package definition for the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.commandline-options
+(cl:defpackage #:build-generator.commandline-options
   (:use
    #:cl
    #:alexandria

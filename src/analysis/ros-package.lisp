@@ -7,7 +7,7 @@
 ;;;; Partially based on
 ;;;; https://github.com/ros-infrastructure/rep/blob/master/rep-0140.rst
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 (define-constant +ros-package-name+ "package/name/text()"
   :test #'string=

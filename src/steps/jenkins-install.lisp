@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.steps)
+(cl:in-package #:build-generator.steps)
 
 ;;; types
 
@@ -253,10 +253,10 @@
 
 (define-step (jenkins/create-user)
     (destination-directory
-     (config-file-template (jenkins.project.resources:content
-                            (jenkins.project.resources:find-entry
+     (config-file-template (build-generator.resources:content
+                            (build-generator.resources:find-entry
                              #P"user-config.xml.in"
-                             (jenkins.project.resources:find-group* :user-configuration))))
+                             (build-generator.resources:find-group* :user-configuration))))
      username email password)
   "Create a user in an existing Jenkins installation."
   (check-type username jenkins-username)
@@ -294,7 +294,7 @@
             (cxml-stp:serialize document (cxml:make-octet-stream-sink stream)))))
 
       ;; Write user configuration file.
-      (let* ((hash     (jenkins.project.bcrypt:hash-password password))
+      (let* ((hash     (build-generator.bcrypt:hash-password password))
              (hash     (format nil "#jbcrypt:~A" hash))
              (document (cxml:parse config-file-template (stp:make-builder))))
         ;; Populate template.

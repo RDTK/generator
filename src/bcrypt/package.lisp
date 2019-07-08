@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.bcrypt
+(cl:defpackage #:build-generator.bcrypt
   (:use
    #:cl
    #:alexandria

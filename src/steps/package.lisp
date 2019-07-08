@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.steps
+(cl:defpackage #:build-generator.steps
   (:use
    #:cl
    #:alexandria
@@ -12,9 +12,9 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:analysis #:jenkins.analysis)
+   (#:analysis #:build-generator.analysis)
 
-   (#:res      #:jenkins.project.resources))
+   (#:res      #:build-generator.resources))
 
   ;; Step protocol
   (:export

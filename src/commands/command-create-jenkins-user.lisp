@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass create-jenkins-user (output-directory-mixin)
   (;; Output
@@ -37,7 +37,7 @@
 (service-provider:register-provider/class
  'command :create-jenkins-user :class 'create-jenkins-user)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "create-jenkins-user")
   (0                   "output-directory" "DIRECTORY"     t)
 

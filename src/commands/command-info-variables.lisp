@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass info-variables ()
   ((filter :type     (or null string function) ; TODO string is a hack
@@ -33,7 +33,7 @@
 (service-provider:register-provider/class
  'command :info-variables :class 'info-variables)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "info-variables")
   (("--filter" "-f") "filter" "REGEX"))
 

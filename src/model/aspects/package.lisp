@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model.aspects
+(cl:defpackage #:build-generator.model.aspects
   (:use
    #:cl
    #:alexandria
@@ -17,10 +17,10 @@
    #:jenkins.api)
 
   (:local-nicknames
-   (#:util  #:jenkins.util)
+   (#:util  #:build-generator.util)
 
-   (#:model #:jenkins.model)
-   (#:var   #:jenkins.model.variables))
+   (#:model #:build-generator.model)
+   (#:var   #:build-generator.model.variables))
 
   ;; Conditions
   (:export

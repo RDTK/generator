@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.analysis)
+(cl:in-package #:build-generator.analysis)
 
 ;;; URIs
 
@@ -53,12 +53,12 @@
                        (list :environment environment)))
             (error (condition)
               (error "~@<Error executing command~@:_~@:_~
-                      ~2@T~/jenkins.analysis::%print-process-spec/~@:_~@:_~
+                      ~2@T~/build-generator.analysis::%print-process-spec/~@:_~@:_~
                       ~A~@:>"
                      spec condition)))))
     (unless (zerop code)
       (error "~@<Command~@:_~@:_~
-              ~2@T~/jenkins.analysis::%print-process-spec/~@:_~@:_~
+              ~2@T~/build-generator.analysis::%print-process-spec/~@:_~@:_~
               failed with exit code ~D and output:~@:_~@:_~
               ~A~@:>"
              spec code (get-output-stream-string output)))

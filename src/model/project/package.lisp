@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model.project
+(cl:defpackage #:build-generator.model.project
   (:use
    #:cl
    #:alexandria
@@ -16,18 +16,18 @@
   (:local-nicknames
    (#:bp       #:architecture.builder-protocol)
 
-   (#:util     #:jenkins.util)
+   (#:util     #:build-generator.util)
 
-   (#:analysis #:jenkins.analysis)
+   (#:analysis #:build-generator.analysis)
 
-   (#:model    #:jenkins.model)
-   (#:var      #:jenkins.model.variables)
-   (#:aspects  #:jenkins.model.aspects))
+   (#:model    #:build-generator.model)
+   (#:var      #:build-generator.model.variables)
+   (#:aspects  #:build-generator.model.aspects))
 
   (:shadow
    #:node)
 
-  (:import-from #:jenkins.version
+  (:import-from #:build-generator.version
    #:parse-version
    #:version>=
    #:version-matches)

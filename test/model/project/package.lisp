@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model.project.test
+(cl:defpackage #:build-generator.model.project.test
   (:use
    #:cl
    #:alexandria
@@ -12,11 +12,11 @@
 
    #:fiveam
 
-   #:jenkins.model.project))
+   #:build-generator.model.project))
 
-(cl:in-package #:jenkins.model.project.test)
+(cl:in-package #:build-generator.model.project.test)
 
-(def-suite :jenkins.project.model.project
-  :in :jenkins.project
+(def-suite :build-generator.model.project
+  :in :build-generator
   :description
   "Unit tests for the model.project module.")

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.aspects)
+(cl:in-package #:build-generator.model.aspects)
 
 (defun make-focus-sub-directory-command (sub-directory &key exclude)
   (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
@@ -133,7 +133,7 @@
                             (puri:uri-host url/parsed)))))
     (setf (repository job)
           (make-instance 'jenkins.api:scm/git
-                         :url                    (jenkins.analysis::format-git-url
+                         :url                    (build-generator.analysis::format-git-url
                                                   url/parsed username password)
                          :credentials            credentials
                          :branches               branches

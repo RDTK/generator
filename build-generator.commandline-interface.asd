@@ -1,10 +1,10 @@
-;;;; jenkins.project.commandline-interface.asd --- System definition for generator binary.
+;;;; build-generator.commandline-interface.asd --- System definition for generator binary.
 ;;;;
 ;;;; Copyright (C) 2013-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(defsystem "jenkins.project.commandline-interface"
+(defsystem "build-generator.commandline-interface"
   :description "Commandline interface of the generator program."
   :license     "GPLv3" ; see COPYING file for details.
 
@@ -20,9 +20,9 @@
                 (:version "configuration.options-syntax-ini"      "0.10")
                 (:version "configuration.options-and-puri"        "0.10")
 
-                (:version "jenkins.project"                       (:read-file-form "version-string.sexp"))
-                (:version "jenkins.project.more-conditions-patch" (:read-file-form "version-string.sexp"))
-                (:version "jenkins.project.commands"              (:read-file-form "version-string.sexp")))
+                (:version "build-generator"                       (:read-file-form "version-string.sexp"))
+                (:version "build-generator.more-conditions-patch" (:read-file-form "version-string.sexp"))
+                (:version "build-generator.commands"              (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "commandline-interface"
                  :pathname   "src/commandline-interface"
@@ -34,4 +34,4 @@
 
   :build-operation program-op
   :build-pathname  "build-generator"
-  :entry-point     "JENKINS.PROJECT.COMMANDLINE-INTERFACE:MAIN")
+  :entry-point     "BUILD-GENERATOR.COMMANDLINE-INTERFACE:MAIN")

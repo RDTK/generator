@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-interface)
+(cl:in-package #:build-generator.commandline-interface)
 
 ;;; `error-policy'
 
@@ -41,7 +41,7 @@
 
       (model:deployment-error                         . nil)
 
-      (jenkins.report::report-error                   . nil)))
+      (build-generator.report::report-error           . nil)))
 
   (defvar *error-handling-actions*
     '(:abort :fail :continue :debug)))

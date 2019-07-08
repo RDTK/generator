@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.project)
+(cl:in-package #:build-generator.model.project)
 
 (defmacro define-repository (name)
   (let ((variable-name (format-symbol *package* "*~A~@(~P~)*" name 2))

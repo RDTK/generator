@@ -1,10 +1,10 @@
 ;;;; builder.lisp --- Builder used for recipe concrete syntax.
 ;;;;
-;;;; Copyright (C) 2016-2018 Jan Moringen
+;;;; Copyright (C) 2016-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.project)
+(cl:in-package #:build-generator.model.project)
 
 ;;; YAML tags for includes
 
@@ -41,8 +41,7 @@
   (ppcre:regex-replace-all "\\${" string "\\${"))
 
 (let ((raw "${foo} \\${bar} \\baz $fez \\\\"))
-  (assert (equal raw (jenkins.model.variables:value-parse
-                      (protect-string raw)))))
+  (assert (equal raw (var:value-parse (protect-string raw)))))
 
 (defmethod language.yaml.construct::make-node-using-tag
     ((builder recipe-builder)

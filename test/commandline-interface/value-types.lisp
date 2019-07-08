@@ -1,4 +1,4 @@
-(cl:in-package #:jenkins.project.commandline-interface.test)
+(cl:in-package #:build-generator.commandline-interface.test)
 
 (esrap:parse 'multi "dependency-error=>abort:object-error=>abort:instantiation-error=>abort:abort")
 

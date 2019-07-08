@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (define-condition command-condition (condition)
   ((command :initarg :command
@@ -51,7 +51,7 @@
 
 (define-condition option-configuration-problem
     (command-configuration-problem
-     jenkins.project.commandline-options:option-condition)
+     build-generator.commandline-options:option-condition)
   ()
   (:documentation
    "Superclass for command option-relation conditions."))
@@ -72,7 +72,7 @@
                      of the \"~A\" command (specified via \"~A\")~
                      ~/more-conditions:maybe-print-cause/~@:>"
              (value condition)
-             (jenkins.project.commandline-options:option condition)
+             (build-generator.commandline-options:option condition)
              (command condition)
              :option-designator condition)))
   (:documentation
@@ -165,7 +165,7 @@
        (format stream "~@<~D problem~:P during ~A phase:~@:_~@:_~
                        ~2@T~@<~
                          ~@[~
-                           ~/jenkins.project.commands::print-unfulfilled-dependencies/~
+                           ~/build-generator.commands::print-unfulfilled-dependencies/~
                            ~@:_~@:_~
                          ~]~
                          ~{~

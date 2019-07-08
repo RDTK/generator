@@ -25,7 +25,7 @@
 ;;;;   `expand' computes the value of a "variable expression" relying
 ;;;;   on `lookup' to resolve variable references.
 
-(cl:in-package #:jenkins.model.variables)
+(cl:in-package #:build-generator.model.variables)
 
 ;;; Merging lookup results
 

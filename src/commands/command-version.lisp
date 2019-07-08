@@ -1,10 +1,10 @@
 ;;;; command-version.lisp --- Command for printing relevant versions.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass version ()
   ((changelog-count :initarg  :changelog-count
@@ -28,7 +28,7 @@
 (service-provider:register-provider/class
  'command :version :class 'version)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "version")
   (("-c" "--changelog") "changelog-count" "COUNT"))
 

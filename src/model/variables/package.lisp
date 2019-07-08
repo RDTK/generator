@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.model.variables
+(cl:defpackage #:build-generator.model.variables
   (:use
    #:cl
    #:alexandria

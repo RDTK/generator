@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.steps)
+(cl:in-package #:build-generator.steps)
 
 ;;; Step definition
 

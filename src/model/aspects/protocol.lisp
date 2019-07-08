@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.aspects)
+(cl:in-package #:build-generator.model.aspects)
 
 ;;; Aspect parameter protocol
 
@@ -106,7 +106,7 @@
                 (log:trace "~@<~@(~A~)er constraint~P:~@:_~
                               ~@<~{• ~{~
                                 ~A ~A:~A ~@:_~
-                                ~2@T~@<~/jenkins.model.aspects:format-constraints/~@:>~
+                                ~2@T~@<~/build-generator.model.aspects:format-constraints/~@:>~
                               ~}~^~@:_~}~@:>~
                             ~@:>"
                            phase (hash-table-count constraints)

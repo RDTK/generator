@@ -27,14 +27,14 @@ script:
   - ./cl
       -S '(:source-registry (:directory "'$(pwd)'/lib/jenkins.api") (:directory "'$(pwd)'") :ignore-inherited-configuration)'
       -Q
-      -s jenkins.project/test
+      -s build-generator/test
       '(or (mapc (function asdf:test-system)
-                 (list :jenkins.project/test))
+                 (list :build-generator/test))
             (uiop:quit -1))'
   - ./cl
       -S '(:source-registry (:directory "'$(pwd)'/lib/jenkins.api") (:directory "'$(pwd)'") :ignore-inherited-configuration)'
       -Q
-      -s jenkins.project.commandline-interface
-      --dump ! --output build-generator -r "jenkins.project.commandline-interface:main"
+      -s build-generator.commandline-interface
+      --dump ! --output build-generator -r "build-generator.commandline-interface:main"
   - ./build-generator version -c 1
   - ./build-generator || true

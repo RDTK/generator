@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.commands
+(cl:defpackage #:build-generator.commands
   (:use
    #:cl
    #:alexandria
@@ -13,16 +13,16 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:util     #:jenkins.util)
+   (#:util     #:build-generator.util)
 
-   (#:analysis #:jenkins.analysis)
+   (#:analysis #:build-generator.analysis)
 
-   (#:model    #:jenkins.model)
-   (#:var      #:jenkins.model.variables)
-   (#:project  #:jenkins.model.project)
-   (#:aspects  #:jenkins.model.aspects)
+   (#:model    #:build-generator.model)
+   (#:var      #:build-generator.model.variables)
+   (#:project  #:build-generator.model.project)
+   (#:aspects  #:build-generator.model.aspects)
 
-   (#:steps    #:jenkins.project.steps))
+   (#:steps    #:build-generator.steps))
 
   (:shadow
    #:phase)

@@ -4,9 +4,9 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.variables.test)
+(cl:in-package #:build-generator.model.variables.test)
 
-(in-suite :jenkins.project.model.variables)
+(in-suite :build-generator.model.variables)
 
 (test parse.smoke
   "Smoke test for parsing expressions of the variable language."
@@ -14,7 +14,7 @@
   (mapc
    (lambda+ ((input expected))
      (flet ((do-it ()
-              (esrap:parse 'jenkins.model.variables::expr input)))
+              (esrap:parse 'build-generator.model.variables::expr input)))
        (case expected
          (error (signals esrap:esrap-parse-error (do-it)))
          (t     (is (equal expected (do-it)))))))

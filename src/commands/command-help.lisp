@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass help ()
   ((brief?  :initarg  :brief?
@@ -25,7 +25,7 @@
 (service-provider:register-provider/class
  'command :help :class 'help)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "help")
   (0 "command" "COMMAND-NAME"))
 
@@ -47,13 +47,13 @@
                                 (first-line-or-less string))))
                       providers))))
          ((&flet service-help ()
-            (let ((options (jenkins.project.commandline-options:find-options
+            (let ((options (build-generator.commandline-options:find-options
                             "global")))
               (format stream "Usage: ~A [GLOBAL-OPTIONS] COMMAND [COMMAND-OPTIONS]~@
                               ~@[~@
                                 Global Options:~@
                                 ~@
-                                ~<  ~@:;~V/jenkins.project.commandline-options:print-options/~@:>~@
+                                ~<  ~@:;~V/build-generator.commandline-options:print-options/~@:>~@
                                 ~@
                               ~@]~
                               Supported commands:~@
@@ -63,15 +63,15 @@
                               "
                       program-name (list paragraph-limit options) (command-list)))))
          ((&flet command-help/provider (command-name provider)
-            (let ((options  (jenkins.project.commandline-options:find-options
+            (let ((options  (build-generator.commandline-options:find-options
                              command-name)))
               (format stream "Usage: ~A [GLOBAL-OPTIONS] ~A~
-                              ~/jenkins.project.commandline-options:print-usage/~@
+                              ~/build-generator.commandline-options:print-usage/~@
                               ~@
                               ~:[~
                                 <not documented>~
                               ~;~
-                                ~:*~<~/jenkins.project.commandline-options::print-documentation/~:>~
+                                ~:*~<~/build-generator.commandline-options::print-documentation/~:>~
                               ~]~
                               ~@
                               "
@@ -83,7 +83,7 @@
                 (format stream "~@
                                 Options:~@
                                   ~@
-                                  ~@<  ~@:;~V/jenkins.project.commandline-options:print-options/~@:>~
+                                  ~@<  ~@:;~V/build-generator.commandline-options:print-options/~@:>~
                                   ~@
                                 ~@
                                 "

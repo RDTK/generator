@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-interface)
+(cl:in-package #:build-generator.commandline-interface)
 
 (defun call-with-condition-printing (thunk &key (stream *error-output*) color)
   (flet (#+unix

@@ -1,10 +1,10 @@
-;;;; jenkins.project.asd ---
+;;;; build-generator.asd --- System definition for the build-generator system
 ;;;;
 ;;;; Copyright (C) 2011-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(defsystem "jenkins.project"
+(defsystem "build-generator"
   :description "Generates Jenkins jobs from different kinds of recipes."
   :license     "GPLv3" ; see COPYING file for details.
 
@@ -44,7 +44,7 @@
 
                 "cl-dot"
 
-                (:version "jenkins.project.more-conditions-patch"        (:read-file-form "version-string.sexp")))
+                (:version "build-generator.more-conditions-patch"        (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "util"
                  :pathname   "src/util"
@@ -190,15 +190,15 @@
                               (:file     "graphviz")
                               (:file     "catalog"))))
 
-  :in-order-to ((test-op (test-op "jenkins.project/test"))))
+  :in-order-to ((test-op (test-op "build-generator/test"))))
 
-(defsystem "jenkins.project/test"
-  :description "Unit tests for the jenkins.project system"
+(defsystem "build-generator/test"
+  :description "Unit tests for the build-generator system"
 
   :version     (:read-file-form "version-string.sexp")
   :depends-on  ((:version "fiveam"          "1.4")
 
-                (:version "jenkins.project" (:read-file-form "version-string.sexp")))
+                (:version "build-generator" (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "test"
                  :components ((:file     "package")))
@@ -222,4 +222,4 @@
                                :pathname "concrete-syntax/recipe-repository"))))
 
   :perform     (test-op (operation component)
-                 (uiop:symbol-call '#:jenkins.project.test '#:run-tests)))
+                 (uiop:symbol-call '#:build-generator.test '#:run-tests)))

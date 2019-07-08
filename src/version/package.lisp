@@ -1,10 +1,10 @@
 ;;;; package.lisp --- Package definition for the version module.
 ;;;;
-;;;; Copyright (C) 2014 Jan Moringen
+;;;; Copyright (C) 2014, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.version
+(cl:defpackage #:build-generator.version
   (:use
    #:cl
    #:alexandria

@@ -121,8 +121,8 @@
        CL_SOURCE_REGISTRY="$(pwd)//:"                                     \
          build/sbcl/bin/sbcl --noinform --non-interactive                 \
            --load build/quicklisp/setup.lisp                              \
-           --eval '(ql:quickload :jenkins.project.commandline-interface)' \
-           --eval '(asdf:make :jenkins.project.commandline-interface)'
+           --eval '(ql:quickload :build-generator.commandline-interface)' \
+           --eval '(asdf:make :build-generator.commandline-interface)'
      #+END_SRC
 
   This should produce a binary named =build-generator= in the project root directory.
@@ -137,8 +137,8 @@
     CL_SOURCE_REGISTRY="$(pwd)//:"                        \
       build/sbcl/bin/sbcl --noinform --non-interactive    \
         --load build/quicklisp/setup.lisp                 \
-        --eval '(ql:quickload :jenkins.project/test)'     \
-        --eval '(asdf:test-system :jenkins.project)'
+        --eval '(ql:quickload :build-generator/test)'     \
+        --eval '(asdf:test-system :build-generator)'
   #+END_SRC
 
 * Contributing

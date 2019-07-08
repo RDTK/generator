@@ -1,10 +1,10 @@
 ;;;; protocol.lisp --- Protocol provided by the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-options)
+(cl:in-package #:build-generator.commandline-options)
 
 ;;; Option info protocol
 

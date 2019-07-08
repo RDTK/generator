@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.commandline-interface
+(cl:defpackage #:build-generator.commandline-interface
   (:use
    #:cl
    #:alexandria
@@ -14,19 +14,19 @@
   (:local-nicknames
    (#:options     #:configuration.options)
 
-   (#:util        #:jenkins.util)
+   (#:util        #:build-generator.util)
 
-   (#:analysis    #:jenkins.analysis)
+   (#:analysis    #:build-generator.analysis)
 
-   (#:model       #:jenkins.model)
-   (#:var         #:jenkins.model.variables)
-   (#:project     #:jenkins.model.project)
+   (#:model       #:build-generator.model)
+   (#:var         #:build-generator.model.variables)
+   (#:project     #:build-generator.model.project)
 
-   (#:commands    #:jenkins.project.commands)
-   (#:commandline #:jenkins.project.commandline-options))
+   (#:commands    #:build-generator.commands)
+   (#:commandline #:build-generator.commandline-options))
 
   (:export
    #:main)
 
   (:documentation
-   "The commandline interface of the jenkins.project system."))
+   "The commandline interface of the build-generator system."))

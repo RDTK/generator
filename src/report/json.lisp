@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.report)
+(cl:in-package #:build-generator.report)
 
 (defvar *platform-of-interest* '("ubuntu" "trusty" "x86_64"))
 

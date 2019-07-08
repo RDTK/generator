@@ -1,10 +1,10 @@
 ;;;; version.lisp --- Simple version model.
 ;;;;
-;;;; Copyright (C) 2013, 2014, 2017 Jan Moringen
+;;;; Copyright (C) 2013, 2014, 2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.version)
+(cl:in-package #:build-generator.version)
 
 (defun parse-version (string)
   "Example:
@@ -22,7 +22,7 @@
 (defun print-version (stream version &optional colon? at?)
   "Example:
 
-     (format nil \"~/jenkins.analysis:print-version/\"
+     (format nil \"~/build-generator.analysis:print-version/\"
              '(9 2 3 \"APLPHA\"))"
   (declare (ignore colon? at?))
   (iter (for component in version)

@@ -1,10 +1,10 @@
 ;;;; grammar.lisp --- Grammar for value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2017 Jan Moringen
+;;;; Copyright (C) 2012-2017, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.variables)
+(cl:in-package #:build-generator.model.variables)
 
 (defun maybe-first (thing)
   (if (and (length= 1 thing)

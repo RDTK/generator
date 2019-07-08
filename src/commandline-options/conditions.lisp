@@ -1,10 +1,10 @@
 ;;;; conditions.lisp --- Conditions signaled by the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commandline-options)
+(cl:in-package #:build-generator.commandline-options)
 
 ;;; Option conditions
 
@@ -130,7 +130,7 @@
                        ~:*~[~;is~:;are~]~2:* mandatory for the \"~A\" ~
                        context but ~[~;has~:;have~] not been supplied: ~
                        ~{~
-                         ~/jenkins.project.commandline-options:print-option/~
+                         ~/build-generator.commandline-options:print-option/~
                          ~^, ~
                        ~}.~@:>"
                context (length missing) missing))))

@@ -1,10 +1,10 @@
-;;;; jenkins.project.commands.asd --- System definition for generator commands.
+;;;; build-generator.commands.asd --- System definition for generator commands.
 ;;;;
 ;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(defsystem "jenkins.project.commands"
+(defsystem "build-generator.commands"
   :description "Command for the generator program."
   :license     "GPLv3" ; see COPYING file for details.
 
@@ -24,8 +24,8 @@
                 (:version "nibbles"                                    "0.13")   ; for bcrypt
                 "zip"
 
-                (:version "jenkins.project"                            (:read-file-form "version-string.sexp"))
-                (:version "jenkins.project.commandline-options"        (:read-file-form "version-string.sexp")))
+                (:version "build-generator"                            (:read-file-form "version-string.sexp"))
+                (:version "build-generator.commandline-options"        (:read-file-form "version-string.sexp")))
 
   :components  ((:module     "bcrypt"
                  :pathname   "src/bcrypt"

@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.aspects)
+(cl:in-package #:build-generator.model.aspects)
 
 ;; TODO(jmoringe, 2013-02-21): find better location for these macros
 (defmacro ensure-interface ((accessor object) (class &rest initargs))

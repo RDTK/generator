@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.report
+(cl:defpackage #:build-generator.report
   (:use
    #:cl
    #:alexandria
@@ -13,11 +13,11 @@
    #:more-conditions)
 
   (:local-nicknames
-   (#:util    #:jenkins.util)
+   (#:util    #:build-generator.util)
 
-   (#:model   #:jenkins.model)
-   (#:var     #:jenkins.model.variables)
-   (#:project #:jenkins.model.project))
+   (#:model   #:build-generator.model)
+   (#:var     #:build-generator.model.variables)
+   (#:project #:build-generator.model.project))
 
   ;; Report protocol
   (:export

@@ -1,10 +1,10 @@
 ;;;; command-validate.lisp --- Validate a recipe repository.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass validate ()
   ((recipes :initarg  :recipes
@@ -18,7 +18,7 @@
 (service-provider:register-provider/class
  'command :validate :class 'validate)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "validate")
   (0 "recipes" "FILENAME-OR-DIRECTORY" t))
 

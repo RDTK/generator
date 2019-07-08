@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.project.commands)
+(cl:in-package #:build-generator.commands)
 
 (defclass report (distribution-input-mixin
                   mode-mixin
@@ -27,7 +27,7 @@
 (service-provider:register-provider/class
  'command :report :class 'report)
 
-(jenkins.project.commandline-options:define-option-mapping
+(build-generator.commandline-options:define-option-mapping
     (*command-schema* "report")
   (&rest                       "distributions"    "DISTRIBUTION-NAME"   t)
 
@@ -60,5 +60,5 @@
                    (when (eq kind :graph)
                      (unless (setf cl-dot:*dot-path* (cl-dot::find-dot))
                        (error "~@<Could not find dot program.~@:>")))
-                   (jenkins.report:report distributions kind output-directory))))
+                   (build-generator.report:report distributions kind output-directory))))
          kind)))

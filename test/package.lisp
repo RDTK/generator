@@ -1,10 +1,10 @@
-;;;; package.lisp --- Package for tests of the jenkins.project system.
+;;;; package.lisp --- Package for tests of the build-generator system.
 ;;;;
-;;;; Copyright (C) 2018 Jan Moringen
+;;;; Copyright (C) 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:defpackage #:jenkins.project.test
+(cl:defpackage #:build-generator.test
   (:use
    #:cl
 
@@ -13,9 +13,9 @@
   (:export
    #:run-tests))
 
-(cl:in-package #:jenkins.project.test)
+(cl:in-package #:build-generator.test)
 
-(def-suite :jenkins.project)
+(def-suite :build-generator)
 
 (defun run-tests ()
-  (run! :jenkins.project))
+  (run! :build-generator))

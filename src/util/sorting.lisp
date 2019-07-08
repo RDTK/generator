@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.util)
+(cl:in-package #:build-generator.util)
 
 (define-condition cycle-error (error)
   ((path :initarg :path

@@ -18,7 +18,7 @@
 ;;;   aspect-spec
 ;;;   job-spec
 
-(cl:in-package #:jenkins.model.project)
+(cl:in-package #:build-generator.model.project)
 
 (defun variable-inheritable? (name)
   (if-let ((info (var:find-variable name :if-does-not-exist nil)))

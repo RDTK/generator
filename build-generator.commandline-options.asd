@@ -1,10 +1,10 @@
-;;;; jenkins.project.commandline-options.asd --- System definition for jenkins.project.commandline-options.
+;;;; build-generator.commandline-options.asd --- System definition for build-generator.commandline-options.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(defsystem "jenkins.project.commandline-options"
+(defsystem "build-generator.commandline-options"
   :description "Commandline options of the generator program."
   :license     "GPLv3" ; see COPYING file for details.
 

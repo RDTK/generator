@@ -4,9 +4,9 @@
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(cl:in-package #:jenkins.model.variables.test)
+(cl:in-package #:build-generator.model.variables.test)
 
-(in-suite :jenkins.project.model.variables)
+(in-suite :build-generator.model.variables)
 
 (test value-unparse.smoke
   "Smoke test for the `value-unparse' function."

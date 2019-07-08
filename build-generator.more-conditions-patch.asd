@@ -1,10 +1,10 @@
-;;;; jenkins.project.more-conditions-patch.asd --- Patch for more-conditions system.
+;;;; build-generator.more-conditions-patch.asd --- Patch for more-conditions system.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
-(defsystem "jenkins.project.more-conditions-patch"
+(defsystem "build-generator.more-conditions-patch"
   :description "Patch more-conditions system."
   :license     "GPLv3" ; see COPYING file for details.
 

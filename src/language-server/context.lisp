@@ -38,6 +38,16 @@
 
 ;; TODO print-items for context
 
+;;; `prefix-mixin'
+
+(defclass prefix-mixin ()
+  ((%prefix :initarg :prefix
+            :type    string
+            :reader  prefix)))
+
+(defmethod print-items:print-items append ((object prefix-mixin))
+  `((:prefix ,(prefix object) "~S")))
+
 ;;; `structure-context'
 
 (defclass structure-context (context
@@ -62,12 +72,14 @@
 
 ;;; Template name context
 
-(defclass template-name-context (context)
+(defclass template-name-context (context
+                                 prefix-mixin
+                                 print-items:print-items-mixin)
   ())
 
 (defclass template-name-context-contributor () ())
 
-(defmethod contrib:context-contributions
+#+old (defmethod contrib:context-contributions
     ((workspace   t)
      (document    project-document)
      (position    t)
@@ -80,6 +92,19 @@
 
 (defmethod contrib:context-contributions
     ((workspace   t)
+     (document    project-document)
+     (position    t)
+     (contributor template-name-context-contributor))
+  (let+ (((&values path (&optional location &rest &ign))
+          (structure-path position document))
+         (thing (project::object-at location (locations document))))
+    (when (ends-with-subseq '(:templates) path)
+      (list (make-instance 'template-name-context
+                           :location location
+                           :prefix   thing)))))
+
+(defmethod contrib:context-contributions
+    ((workspace   t)
      (document    template-document)
      (position    t)
      (contributor template-name-context-contributor))
@@ -88,18 +113,13 @@
     (when (eql depth 0)
       (list (make-instance 'template-name-context
                            :location (first (lookup:lookup position (index document))))))))
-
 ;;; Variable name context
 
 (defclass variable-name-context (context
+                                 prefix-mixin
                                  print-items:print-items-mixin)
-  ((%prefix       :initarg :prefix
-                  :reader  prefix)
-   (%prefix-range :initarg :prefix-range
+  ((%prefix-range :initarg :prefix-range
                   :reader  prefix-range)))
-
-(defmethod print-items:print-items append ((object variable-name-context))
-  `((:prefix ,(prefix object) "~S")))
 
 (defclass variable-reference-context (variable-name-context)
   ((%kind          :initarg :kind
@@ -214,12 +234,9 @@
 ;;; Project version reference context
 
 (defclass project-name-context (context
+                                prefix-mixin
                                 print-items:print-items-mixin)
-  ((%prefix :initarg :prefix
-            :reader  prefix)))
-
-(defmethod print-items:print-items append ((object project-name-context))
-  `((:prefix ,(prefix object) "~S")))
+  ())
 
 (defclass project-version-context (project-name-context) ; TODO correct superclass
   ((%project-name :initarg :project-name ; TODO look up the project
@@ -310,9 +327,10 @@
 
 ;;; Distribution name context
 
-(defclass distribution-name-context (context)
-  ((%prefix :initarg :prefix
-            :reader  prefix)))
+(defclass distribution-name-context (context
+                                     prefix-mixin
+                                     print-items:print-items-mixin)
+  ())
 
 (defclass distribution-name-context-contributor () ())
 
@@ -331,9 +349,10 @@
 
 ;;; Aspect class context
 
-(defclass aspect-class-context (context)
-  ((%prefix :initarg :prefix
-            :reader  prefix)))
+(defclass aspect-class-context (context
+                                prefix-mixin
+                                print-items:print-items-mixin)
+  ())
 
 (defclass aspect-class-context-contributor () ())
 

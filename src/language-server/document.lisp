@@ -193,7 +193,8 @@
   (contrib:hover      project-version-hover-contributor)
   (contrib:completion project-name-completion-contributor
                       distribution-name-completion-contributor)
-  (contrib:definition project-definition-contributor)
+  (contrib:definition project-definition-contributor
+                      distribution-definition-contributor)
   (contrib:reference  ))
 
 (defmethod parse ((document distribution-document) (text string) (pathname t))

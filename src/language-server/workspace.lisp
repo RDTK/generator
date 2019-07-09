@@ -66,6 +66,9 @@
 (defmethod distributions ((container workspace) &key if-unavailable)
   (elements (%distributions container) :if-unavailable if-unavailable))
 
+(defmethod find-distribution ((name t) (container workspace) &key if-unavailable)
+  (find-element name (%distributions container) :if-unavailable if-unavailable))
+
 ;;; Platform packages
 
 (defmethod load-platform-packages ((container workspace))

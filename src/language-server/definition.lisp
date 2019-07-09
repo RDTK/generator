@@ -38,15 +38,15 @@
 
 ;;; `distribution-definition-contributor'
 
-#+later (defclass distribution-definition-contributor ()
+(defclass distribution-definition-contributor ()
   ())
 
-#+later (defmethod contrib:definition-contributions
+(defmethod contrib:definition-contributions
     ((workspace   t)
      (document    distribution-document)
      (context     distribution-name-context)
      (contributor distribution-definition-contributor))
-  (when-let* (
+  (when-let* ((name         (prefix context))
               (distribution (find-distribution name workspace))
               (location     (project::location-of distribution)))
     (list location)))

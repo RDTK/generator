@@ -35,7 +35,7 @@
   (when (and (or root-uri-supplied? root-path-supplied?)
              (not repository-supplied?))
     (setf (%repository instance) (project::load-repository
-                                  (lsp:root-directory instance) '("toolkit" "_common"))))
+                                  (lsp:root-directory instance) "toolkit")))
 
   (setf (%templates instance)     (make-instance 'deferred-templates     :workspace instance)
         (%projects instance)      (make-instance 'deferred-projects      :workspace instance)

@@ -754,14 +754,22 @@ foo"))))
                     (kind   (eql :cmake/pkg-config-template))
                     &key
                     environment)
-  (when-let* ((name    (first (split-sequence:split-sequence
-                          #\. (pathname-name source))))
-              (content (util:read-file-into-string* source))
-              (content (%resolve-variables content environment
-                                           :if-unresolved nil))
-              (result  (with-input-from-string (stream content)
-                         (analyze stream :pkg-config :name name))))
-    (getf result :provides)))
+  (when-let* ((name     (first (split-sequence:split-sequence
+                                #\. (pathname-name source))))
+              (content  (util:read-file-into-string* source))
+              (content  (%resolve-variables content environment
+                                            :if-unresolved :partial))
+              (result   (with-input-from-string (stream content)
+                          (analyze stream :pkg-config :name name)))
+              (provides (getf result :provides)))
+    (let+ (((&flet unresolved? (string)
+              (ppcre:scan "[$@]" string)))
+           ((&flet+ dependency-partial? ((&ign target &optional version))
+              (or (unresolved? target)
+                  (and (stringp version) (unresolved? version))))))
+      ;; Discard provided features that look like they contain
+      ;; unresolved variables in their target or version.
+      (remove-if #'dependency-partial? provides))))
 
 ;;; Utility functions
 

@@ -115,9 +115,18 @@
    #:platform-requires
    #:platform-provides)
 
+  ;; Mode protocol
+  (:export
+   #:name
+   #:parent
+
+   #:mode                           ; class
+   #:ensure-mode)
+
   ;; Recipe repository protocol
   (:export
    #:root-directory
+   #:mode                           ; accessor
 
    #:recipe-directory
 
@@ -129,6 +138,7 @@
 
    #:populate-recipe-repository!
 
+   #:recipe-repository
    #:make-recipe-repository
    #:make-populated-recipe-repository)
 

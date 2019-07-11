@@ -16,12 +16,11 @@
           (let+ ((repository (apply #'make-populated-recipe-repository
                                     root-directory modes))
                  ((&labels modes (mode)
-                    (list* (build-generator.model.project::name mode)
-                           (when-let ((parent (build-generator.model.project::parent mode)))
+                    (list* (name mode)
+                           (when-let ((parent (parent mode)))
                              (modes parent))))))
             (is (equal root-directory (root-directory repository)))
-            (is (equal modes          (modes (build-generator.model.project::mode
-                                              repository))))))
+            (is (equal modes          (modes (mode repository))))))
         `((,#P"/root/" "mode")
           (,#P"/root/" "mode" "parent1")
           (,#P"/root/" "mode" "parent1" "parent2"))))

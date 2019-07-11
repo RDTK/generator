@@ -131,6 +131,8 @@
    #:recipe-directory
 
    #:recipe-path
+
+   #:probe-recipe-pathname
    #:recipe-truename
    #:recipe-truenames
 

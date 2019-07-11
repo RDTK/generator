@@ -138,6 +138,18 @@
          (defaults   (make-pathname :type type :defaults directory)))
     (merge-pathnames name defaults)))
 
+;;; `probe-recipe-pathname'
+
+(defmethod probe-recipe-pathname ((repository recipe-repository)
+                                  (pathname   pathname))
+  (log:info "~@<Looking for ~A in ~A~@:>" pathname repository)
+  (cond ((wild-pathname-p pathname)
+         (directory pathname))
+        ((probe-file pathname)
+         (list pathname))
+        (t
+         nil)))
+
 ;;; `recipe-truename'
 
 (defmethod recipe-truename :around ((repository recipe-repository)
@@ -158,10 +170,8 @@
                             &key if-does-not-exist)
   (declare (ignore if-does-not-exist))
   (let ((pathname (recipe-path repository kind name)))
-    (cond ((and (wild-pathname-p pathname) (directory pathname))
-           pathname)
-          ((and (not (wild-pathname-p pathname)) (probe-file pathname))
-           pathname))))
+    (when (probe-recipe-pathname repository pathname)
+      pathname)))
 
 (defmethod recipe-truename ((repository recipe-repository)
                             (kind       (eql :template))
@@ -185,12 +195,7 @@
                              (kind       t)
                              (name       t))
   (let ((pathname (recipe-path repository kind name)))
-    (cond ((wild-pathname-p pathname)
-           (directory pathname))
-          ((probe-file pathname)
-           (list pathname))
-          (t
-           '()))))
+    (probe-recipe-pathname repository pathname)))
 
 (defmethod recipe-truenames ((repository recipe-repository)
                              (kind       (eql :template))

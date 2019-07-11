@@ -32,6 +32,13 @@
    #:version>=
    #:version-matches)
 
+  ;; Conditions
+  (:export
+   #:recipe-not-found-error
+   #:kind
+   #:name
+   #:repository)
+
   ;; People
   (:export
    #:all-persons

@@ -6,6 +6,28 @@
 
 (cl:in-package #:build-generator.model.project.test)
 
+;;; Mocks
+
+(defclass mock-repository (recipe-repository)
+  ((%pathnames :initarg  :pathnames
+               :accessor pathnames)))
+
+(defmethod probe-recipe-pathname ((repository mock-repository) (pathname pathname))
+  (when (find pathname (pathnames repository))
+    (if (wild-pathname-p pathname)
+        (list `(:directory ,pathname))
+        (list `(:probe ,pathname)))))
+
+(defun make-populated-mock-repository (root-directory mode-or-modes files)
+  (populate-recipe-repository!
+   (make-instance 'mock-repository
+                  :root-directory (pathname root-directory)
+                  :mode           (ensure-mode mode-or-modes)
+                  :pathnames      (map 'list (rcurry #'merge-pathnames root-directory)
+                                       files))))
+
+;;; Tests
+
 (def-suite* :build-generator.model.project.concrete-syntax.recipe-repository
   :in :build-generator.model.project)
 
@@ -80,3 +102,59 @@
 
        (:distribution #P"/root/distributions/foo.distribution"       "foo")
        (:distribution #P"/root/distributions/stack/bar.distribution" "stack/bar")))))
+
+(test recipe-truename.smoke
+  "Smoke test for the `recipe-truename' generic function."
+
+  ;; We use the `mock-repository' class to avoid hitting the actual
+  ;; filesystem via `cl:probe-file' and `cl:directory'.
+  (let ((repository (make-populated-mock-repository
+                     "/a/" '("toolkit" "_common")
+                     '("templates/toolkit/1.template"
+
+                       "templates/_common/2.template"
+
+                       "templates/toolkit/99.template"
+                       "templates/_common/99.template"))))
+    (mapc
+     (lambda+ ((name expected))
+       (flet ((do-it ()
+                (recipe-truename repository :template (pathname name))))
+         (case expected
+           (error
+            (signals recipe-not-found-error
+              (do-it))
+            (handler-case (do-it)
+              (recipe-not-found-error (condition)
+                (is (eq repository (repository condition))))))
+           (t     (is (equal (pathname expected) (do-it)))))))
+     '(("no-such.template" error)
+
+       ("1.template"       "/a/templates/toolkit/1.template")
+       ("2.template"       "/a/templates/_common/2.template")
+       ("99.template"      "/a/templates/toolkit/99.template")))))
+
+(test recipe-truenames.smoke
+  "Smoke test for the `recipe-truenames' generic function."
+
+  ;; We use the `mock-repository' class to avoid hitting the actual
+  ;; filesystem via `cl:probe-file' and `cl:directory'.
+  (let ((repository (make-populated-mock-repository
+                     "/a/" '("toolkit" "_common")
+                     '("templates/toolkit/1.template"
+
+                       "templates/_common/2.template"
+
+                       "templates/toolkit/99.template"
+                       "templates/_common/99.template"))))
+    (mapc
+     (lambda+ ((name expected))
+       (let ((pathname (pathname name)))
+         (is (equal expected
+                    (recipe-truenames repository :template pathname)))))
+     `(("no-such.template" ())
+
+       ("1.template"       ((:probe ,#P"/a/templates/toolkit/1.template")))
+       ("2.template"       ((:probe ,#P"/a/templates/_common/2.template")))
+       ("99.template"      ((:probe ,#P "/a/templates/toolkit/99.template")
+                            (:probe ,#P "/a/templates/_common/99.template")))))))

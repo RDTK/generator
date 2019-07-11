@@ -60,8 +60,8 @@
    (lambda (condition stream)
      (format stream "~@<~A recipe \"~A\" does not exist in repository ~
                      ~A~@:>"
-            (kind condition)
-            (name condition)
+            (kind       condition)
+            (name       condition)
             (repository condition))))
   (:documentation
    "Signaled when a given recipe does not exist in the repository."))

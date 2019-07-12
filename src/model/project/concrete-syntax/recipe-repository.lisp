@@ -37,7 +37,10 @@
 ;;; `recipe-repository'
 
 (defclass recipe-repository (print-items:print-items-mixin)
-  ((%root-directory     :initarg  :root-directory
+  ((%name               :initarg  :name
+                        :reader   name
+                        :writer   (setf %name))
+   (%root-directory     :initarg  :root-directory
                         :type     (and pathname (satisfies uiop:directory-pathname-p))
                         :reader   root-directory
                         :documentation
@@ -65,9 +68,19 @@
   (:documentation
    "Stores a repository root and sub-directories for recipe kinds."))
 
+(defmethod shared-initialize :after ((instance   recipe-repository)
+                                     (slot-names t)
+                                     &key
+                                     (name           nil name-supplied?)
+                                     (root-directory nil root-directory-supplied?))
+  (declare (ignore name))
+  (when (and (not name-supplied?) root-directory-supplied?)
+    (setf (%name instance) (lastcar (pathname-directory root-directory)))))
+
 (defmethod print-items:print-items append ((object recipe-repository))
-  `((:root-path ,(root-directory object) "~A")
-    (:mode      ,(name (mode object))    " ~A mode" ((:after :root-path)))))
+  `((:name      ,(name object)           "~A")
+    (:mode      ,(name (mode object))    " ~A mode" ((:after :name)))
+    (:root-path ,(root-directory object) " [~A]"    ((:after :mode)))))
 
 (defmethod describe-object ((object recipe-repository) stream)
   (utilities.print-tree:print-tree
@@ -79,12 +92,14 @@
       nil)
     nil #'parents)))
 
-(defun make-recipe-repository (root-directory mode-or-modes &key parents)
+(defun make-recipe-repository (root-directory mode-or-modes
+                               &rest args &key name parents)
+  (declare (ignore name parents))
   (let ((root-directory (truename root-directory))
         (mode           (ensure-mode mode-or-modes)))
-    (make-instance 'recipe-repository :root-directory root-directory
-                                      :mode           mode
-                                      :parents        parents)))
+    (apply #'make-instance 'recipe-repository :root-directory root-directory
+                                              :mode           mode
+                                              args)))
 
 (defun populate-recipe-repository! (repository)
   (setf (recipe-directory :template     repository) #P"templates/"
@@ -94,9 +109,10 @@
   repository)
 
 (defun make-populated-recipe-repository (root-directory mode-or-modes
-                                         &key parents)
+                                         &rest args &key name parents)
+  (declare (ignore name parents))
   (populate-recipe-repository!
-   (make-recipe-repository root-directory mode-or-modes :parents parents)))
+   (apply #'make-recipe-repository root-directory mode-or-modes args)))
 
 (defmethod recipe-directory ((kind t) (repository recipe-repository))
   (let ((relative (or (gethash kind (%recipe-directories repository))
@@ -339,8 +355,9 @@
 
 (defvar *loading-repositories?* nil)
 
-(defmethod load-repository :around ((source t) (mode t) &key cache-directory)
-  (declare (ignore cache-directory))
+(defmethod load-repository :around ((source t) (mode t) &key name
+                                                             cache-directory)
+  (declare (ignore name cache-directory))
   (if *loading-repositories?*
       (call-next-method)
       (let ((*loading-repositories?* t))
@@ -352,7 +369,8 @@
                           (describe result stream)))
               result))))))
 
-(defmethod load-repository ((source pathname) (mode t) &key cache-directory)
+(defmethod load-repository ((source pathname) (mode t) &key name
+                                                            cache-directory)
   (progress :load-repository nil "~A" source)
   (unless (uiop:directory-pathname-p source)
     (error "~@<Repository pathname ~A does not designate a directory.~@:>"
@@ -367,17 +385,20 @@
                               (load-parent-repositories
                                parent-references (name mode)
                                :cache-directory cache-directory))))
-    (make-populated-recipe-repository source-truename mode :parents parents)))
+    (apply #'make-populated-recipe-repository source-truename mode
+           :parents parents (when name (list :name name)))))
 
-(defmethod load-repository ((source puri:uri) (mode t) &key cache-directory)
+(defmethod load-repository ((source puri:uri) (mode t) &key name
+                                                            cache-directory)
   (unless cache-directory
     (error "~@<Cannot load remote repository ~A without cache ~
             directory.~@:>"
-           source))
+         source))
   (let* ((branch          (puri:uri-fragment source))
-         (name            (format nil "~A~@[@~A~]"
-                                  (lastcar (puri:uri-parsed-path source))
-                                  branch))
+         (name            (or name
+                              (format nil "~A~@[@~A~]"
+                                      (lastcar (puri:uri-parsed-path source))
+                                      branch)))
          (clone-directory (merge-pathnames
                            (make-pathname :directory (list :relative name))
                            cache-directory)))
@@ -390,4 +411,5 @@
              :history-limit   1
              (when branch (list :branch branch))))
     (load-repository clone-directory mode
+                     :name            name
                      :cache-directory cache-directory)))

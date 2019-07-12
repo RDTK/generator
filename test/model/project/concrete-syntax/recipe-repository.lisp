@@ -41,18 +41,19 @@
 (test make-populated-recipe-repository.smoke
   "Smoke test for the `make-populated-recipe-repository' function."
 
-  (mapc (lambda+ ((root-directory &rest modes))
+  (mapc (lambda+ ((root-directory modes expected-name))
           (let+ ((repository (make-populated-recipe-repository
                               root-directory modes))
                  ((&labels modes (mode)
                     (list* (name mode)
                            (when-let ((parent (parent mode)))
                              (modes parent))))))
+            (is (equal expected-name  (name repository)))
             (is (equal root-directory (root-directory repository)))
             (is (equal modes          (modes (mode repository))))))
-        `((,#P"/root/" "mode")
-          (,#P"/root/" "mode" "parent1")
-          (,#P"/root/" "mode" "parent1" "parent2"))))
+        `((,#P"/root/" ("mode")                     "root")
+          (,#P"/root/" ("mode" "parent1")           "root")
+          (,#P"/root/" ("mode" "parent1" "parent2") "root"))))
 
 (test setf-recipe-directory.smoke
   "Smoke test for the (setf recipe-directory) generic function."

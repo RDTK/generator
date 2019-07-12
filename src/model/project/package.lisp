@@ -132,6 +132,7 @@
 
   ;; Recipe repository protocol
   (:export
+   #:name
    #:root-directory
    #:mode                           ; accessor
 

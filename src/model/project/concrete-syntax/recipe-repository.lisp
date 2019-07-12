@@ -154,6 +154,13 @@
 
 (defmethod recipe-path ((repository recipe-repository)
                         (kind       t)
+                        (name       (eql :wild-inferiors)))
+  (let ((name (make-pathname :name      :wild
+                             :directory `(:relative :wild-inferiors))))
+    (recipe-path repository kind name)))
+
+(defmethod recipe-path ((repository recipe-repository)
+                        (kind       t)
                         (name       pathname))
   (let* ((directory  (recipe-directory kind repository))
          (type       (string-downcase kind))

@@ -76,18 +76,19 @@
            (error (signals error (do-it)))
            (t     (is (equal expected (do-it)))))))
 
-     `((:no-such-kind "foo"        error)
+     `((:no-such-kind "foo"           error)
 
-       (:template     "foo"        ,#P"/root/templates/ci/foo.template")
-       (:template     ,#P"foo"     ,#P"/root/templates/ci/foo.template")
-       (:template     ,#P"foo.bar" ,#P"/root/templates/ci/foo.bar")
+       (:template     "foo"           ,#P"/root/templates/ci/foo.template")
+       (:template     ,#P"foo"        ,#P"/root/templates/ci/foo.template")
+       (:template     ,#P"foo.bar"    ,#P"/root/templates/ci/foo.bar")
 
-       (:project      "foo"        ,#P"/root/projects/foo.project")
+       (:project      "foo"           ,#P"/root/projects/foo.project")
 
-       (:distribution "foo"        ,#P"/root/distributions/foo.distribution")
-       (:distribution "stack/foo"  ,#P"/root/distributions/stack/foo.distribution")
+       (:distribution "foo"           ,#P"/root/distributions/foo.distribution")
+       (:distribution "stack/foo"     ,#P"/root/distributions/stack/foo.distribution")
 
-       (:person       :wild        ,#P"/root/persons/*.person")))))
+       (:person       :wild           ,#P"/root/persons/*.person")
+       (:person       :wild-inferiors ,#P"/root/persons/**/*.person")))))
 
 (test recipe-name.smoke
   "Smoke test for the `recipe-name' generic function."

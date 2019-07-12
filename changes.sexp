@@ -12,6 +12,32 @@
 - ../_common"))
 
   (:enhancement
+   "Recipe repositories can now contain a" (:verb "parents") "file
+    referencing other recipe repositories. The basic idea is: when a
+    required recipe file cannot be found in the local repository,
+    referenced repositories are probed and the recipe is loaded from a
+    referenced repository if it can be found in one."
+
+   "Syntactically the" (:verb "parents") "file is a YAML document the
+    root node of which is a sequence of a single scalar node which is
+    either "
+   (:ul
+    ("a directory pathname:"
+     (:verb "# Load recipes from sibling repository:
+- ../recipes-core/"))
+    ("or a git URL:"
+     (:verb "# Load recipes from remote repository:
+- https://github.com/rdtk/recipes-core")
+     "A specific branch of a remote repository can be specified using
+      the fragment part of the URL:"
+     (:verb "# Load recipes from remote repository:
+- https://github.com/rdtk/recipes-core#master
+                                       ^^^^^^ branch")))
+   "Referenced remote repositories are cloned into the configured
+    cache directory when first accessed and updated on subsequent
+    accesses.")
+
+  (:enhancement
    "Analysis of the CMake" (:verb "include()") "commands succeeds in
     more cases.")
 

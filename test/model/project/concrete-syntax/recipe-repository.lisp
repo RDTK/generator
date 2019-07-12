@@ -35,8 +35,8 @@
   "Smoke test for the `make-populated-recipe-repository' function."
 
   (mapc (lambda+ ((root-directory &rest modes))
-          (let+ ((repository (apply #'make-populated-recipe-repository
-                                    root-directory modes))
+          (let+ ((repository (make-populated-recipe-repository
+                              root-directory modes))
                  ((&labels modes (mode)
                     (list* (name mode)
                            (when-let ((parent (parent mode)))
@@ -84,7 +84,7 @@
 (test recipe-name.smoke
   "Smoke test for the `recipe-name' generic function."
 
-  (let ((repository (make-populated-recipe-repository #P"/root/" "ci" "_common")))
+  (let ((repository (make-populated-recipe-repository #P"/root/" '("ci" "_common"))))
     (mapc
      (lambda+ ((kind pathname expected))
        (flet ((do-it ()

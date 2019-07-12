@@ -62,9 +62,9 @@
   `((:root-path ,(root-directory object) "~A")
     (:mode      ,(name (mode object))    " ~A mode" ((:after :root-path)))))
 
-(defun make-recipe-repository (root-directory mode &rest parent-modes)
+(defun make-recipe-repository (root-directory mode-or-modes)
   (let ((root-directory (truename root-directory))
-        (mode           (ensure-mode (list* mode parent-modes))))
+        (mode           (ensure-mode mode-or-modes)))
     (make-instance 'recipe-repository :root-directory root-directory
                                       :mode           mode)))
 
@@ -75,9 +75,9 @@
         (recipe-directory :person       repository) #P"persons/")
   repository)
 
-(defun make-populated-recipe-repository (root-directory mode &rest parent-modes)
+(defun make-populated-recipe-repository (root-directory mode-or-modes)
   (populate-recipe-repository!
-   (apply #'make-recipe-repository root-directory mode parent-modes)))
+   (make-recipe-repository root-directory mode-or-modes)))
 
 (defmethod recipe-directory ((kind t) (repository recipe-repository))
   (let ((relative (or (gethash kind (%recipe-directories repository))
@@ -251,6 +251,21 @@
                  element)
          document)))
 
+;;; Mode parent loading
+
+(defun load-mode-parents-file (root-directory mode)
+  (check-type mode string "A mode string")
+  (let ((filename (make-parents-filename
+                   ;; This computes the templates/MODE sub-directory
+                   ;; "manually" since the repository is not yet
+                   ;; available.
+                   (merge-pathnames
+                    (make-pathname :directory `(:relative "templates" ,mode))
+                    root-directory))))
+    (ensure-mode (list* mode (if (probe-file filename)
+                                 (parse-parents-file filename)
+                                 '("_common"))))))
+
 ;;; Loading repositories
 
 (defvar *loading-repositories?* nil)
@@ -267,8 +282,9 @@
   (unless (uiop:directory-pathname-p source)
     (error "~@<Repository pathname ~A does not designate a directory.~@:>"
            source))
-  (let ((source-truename (or (probe-file source)
-                             (error "~@<Repository directory ~A ~
-                                     does not exist.~@:>"
-                                    source))))
-    (make-populated-recipe-repository source-truename mode "_common")))
+  (let* ((source-truename (or (probe-file source)
+                              (error "~@<Repository directory ~A ~
+                                      does not exist.~@:>"
+                                     source)))
+         (mode            (load-mode-parents-file source mode)))
+    (make-populated-recipe-repository source-truename mode)))

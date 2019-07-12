@@ -1,6 +1,17 @@
 ((:release "0.31" nil
 
   (:enhancement
+   "Template directories in recipe repositories can now contain
+    a" (:verb "parents") "file referencing other template directories
+    in the same repository."
+
+   "Syntactically the" (:verb "parents") "file is a YAML document the
+   root node of which is a sequence of scalar nodes each of which is a
+   relative directory pathname:"
+   (:verb "# Fall back to templates in _common directory
+- ../_common"))
+
+  (:enhancement
    "Analysis of the CMake" (:verb "include()") "commands succeeds in
     more cases.")
 

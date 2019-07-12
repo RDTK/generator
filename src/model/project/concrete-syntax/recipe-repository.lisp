@@ -231,3 +231,25 @@
   (or (call-next-method)
       (when-let ((parent (parent kind)))
         (recipe-name repository parent path))))
+
+;;; Loading repositories
+
+(defvar *loading-repositories?* nil)
+
+(defmethod load-repository :around ((source t) (mode t))
+  (if *loading-repositories?*
+      (call-next-method)
+      (let ((*loading-repositories?* t))
+        (with-trivial-progress (:load-repository)
+          (call-next-method)))))
+
+(defmethod load-repository ((source pathname) (mode t))
+  (progress :load-repository nil "~A" source)
+  (unless (uiop:directory-pathname-p source)
+    (error "~@<Repository pathname ~A does not designate a directory.~@:>"
+           source))
+  (let ((source-truename (or (probe-file source)
+                             (error "~@<Repository directory ~A ~
+                                     does not exist.~@:>"
+                                    source))))
+    (make-populated-recipe-repository source-truename mode "_common")))

@@ -149,7 +149,9 @@
 
    #:recipe-repository
    #:make-recipe-repository
-   #:make-populated-recipe-repository)
+   #:make-populated-recipe-repository
+
+   #:load-repository)
 
   ;; YAML stuff
   (:export

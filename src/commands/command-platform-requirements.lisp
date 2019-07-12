@@ -48,7 +48,8 @@
   (let+ (((&accessors-r/o distributions mode overwrites platform) command)
          ((&values distributions projects)
           (generate-load distributions mode overwrites
-                         :generator-version (generator-version)))
+                         :generator-version (generator-version)
+                         :cache-directory   *cache-directory*))
          (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)

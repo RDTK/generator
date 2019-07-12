@@ -19,10 +19,10 @@
     (t
      (error "~@<Invalid input specification: ~S.~@:>" spec))))
 
-(defun locate-specifications (kind patterns &key (if-no-match #'error))
+(defun locate-specifications (kind patterns repository &key (if-no-match #'error))
   (with-simple-restart (continue "~@<Do not load ~A specifications.~@:>" kind)
     (or (iter (for pattern in patterns)
-              (when-let ((matches (collect-inputs (pathname pattern))))
+              (when-let ((matches (collect-inputs (project:recipe-truename repository kind pattern))))
                 (appending matches)))
         (error-behavior-restart-case
             (if-no-match (simple-error
@@ -43,11 +43,13 @@
                   (list (funcall loader file :repository repository))))
               files))))
 
-(defun derive-root-repository (distribution-pathname mode)
+(defun derive-root-repository (distribution-pathname mode
+                               &key cache-directory)
   (let ((root-directory (merge-pathnames
                          (make-pathname :directory '(:relative :back))
                          (uiop:pathname-directory-pathname distribution-pathname))))
-    (project:load-repository root-directory mode)))
+    (project:load-repository root-directory mode
+                             :cache-directory cache-directory)))
 
 ;;; Projects
 
@@ -63,9 +65,9 @@
                (map nil (lambda (project-include)
                           (let ((name (project:project project-include)))
                             (when-let* ((pattern  (project::copy-location
-                                                   name (project:recipe-path repository :project name)))
+                                                   name (project:recipe-truename repository :project name)))
                                         (location (first (locate-specifications
-                                                          :project (list pattern)))))
+                                                          :project (list pattern) repository))))
                               (ensure-project location project-include))))
                     (project:versions distribution)))
          distributions)

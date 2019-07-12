@@ -36,4 +36,5 @@
                 "distributions/*.distribution"
                 (uiop:ensure-directory-pathname recipes)))))))
     (generate-load distribution-files "toolkit" '()
-                   :generator-version (generator-version))))
+                   :generator-version (generator-version)
+                   :cache-directory   *cache-directory*)))

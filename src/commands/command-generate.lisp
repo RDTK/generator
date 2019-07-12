@@ -61,7 +61,8 @@
           command)
          ((&values distributions projects)
           (generate-load distributions mode overwrites
-                         :generator-version (generator-version)))
+                         :generator-version (generator-version)
+                         :cache-directory   *cache-directory*))
          (distributions
           (generate-analyze distributions projects
                             :generator-version (generator-version)
@@ -84,12 +85,24 @@
 ;;; Functions
 
 (defun generate-load (distributions mode overwrites
-                      &key generator-version)
-  (let+ ((repository (derive-root-repository (first distributions) mode))
+                      &key generator-version
+                           cache-directory)
+  (let+ (((&values repository distributions)
+          (let ((repository (derive-root-repository (first distributions) mode
+                                                    :cache-directory cache-directory)))
+            ;; Transform distributions pathnames into a suitable form.
+            (values repository
+                    (let ((distributions-directory (merge-pathnames
+                                                    "distributions/"
+                                                    (project:root-directory repository))))
+                      (map 'list (lambda (distribution)
+                                   (uiop:enough-pathname (merge-pathnames distribution)
+                                                         distributions-directory))
+                           distributions)))))
          ((&flet locate-and-load (kind pattern loader
                                   &key (if-no-match nil if-no-match-supplied?))
             (let* ((files   (as-phase ((symbolicate :locate/ kind))
-                              (apply #'locate-specifications kind pattern
+                              (apply #'locate-specifications kind pattern repository
                                      (when if-no-match-supplied?
                                        (list :if-no-match if-no-match)))))
                    (objects (as-phase ((symbolicate :load/ kind))

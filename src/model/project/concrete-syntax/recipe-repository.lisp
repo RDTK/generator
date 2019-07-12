@@ -315,29 +315,79 @@
                                  (parse-parents-file filename)
                                  '("_common"))))))
 
+;;; Repository parent loading
+
+(defun load-repository-parents-file (root-directory)
+  (let ((filename (make-parents-filename root-directory)))
+    (when-let ((entries (when (probe-file filename)
+                          (parse-parents-file filename))))
+      (map 'list (lambda (entry)
+                   (cond ((ppcre:scan "[^:]+://" entry)
+                          (puri:uri entry))
+                         (t
+                          (uiop:ensure-directory-pathname entry))))
+           entries))))
+
 ;;; Loading repositories
+
+(defun load-parent-repositories (references mode &key cache-directory)
+  (mapcan (lambda (reference)
+            (with-simple-restart (continue "~@<Skip the recipe repository designated by ~A.~@:>" reference)
+              (list (load-repository reference mode
+                                     :cache-directory cache-directory))))
+          references))
 
 (defvar *loading-repositories?* nil)
 
-(defmethod load-repository :around ((source t) (mode t))
+(defmethod load-repository :around ((source t) (mode t) &key cache-directory)
+  (declare (ignore cache-directory))
   (if *loading-repositories?*
       (call-next-method)
       (let ((*loading-repositories?* t))
         (with-trivial-progress (:load-repository)
-          (let ((result (call-next-method)))
-            (log:info "~@<~@;Loaded repository stack~@:_~A~@:>"
-                      (with-output-to-string (stream)
-                        (describe result stream)))
-            result)))))
+          (analysis::with-git-cache ()
+            (let ((result (call-next-method)))
+              (log:info "~@<~@;Loaded repository stack~@:_~A~@:>"
+                        (with-output-to-string (stream)
+                          (describe result stream)))
+              result))))))
 
-(defmethod load-repository ((source pathname) (mode t))
+(defmethod load-repository ((source pathname) (mode t) &key cache-directory)
   (progress :load-repository nil "~A" source)
   (unless (uiop:directory-pathname-p source)
     (error "~@<Repository pathname ~A does not designate a directory.~@:>"
            source))
-  (let* ((source-truename (or (probe-file source)
-                              (error "~@<Repository directory ~A ~
-                                      does not exist.~@:>"
-                                     source)))
-         (mode            (load-mode-parents-file source mode)))
-    (make-populated-recipe-repository source-truename mode)))
+  (let* ((source-truename   (or (probe-file source)
+                                (error "~@<Repository directory ~A ~
+                                        does not exist.~@:>"
+                                       source)))
+         (mode              (load-mode-parents-file source mode))
+         (parent-references (load-repository-parents-file source-truename))
+         (parents           (let ((*default-pathname-defaults* source-truename))
+                              (load-parent-repositories
+                               parent-references (name mode)
+                               :cache-directory cache-directory))))
+    (make-populated-recipe-repository source-truename mode :parents parents)))
+
+(defmethod load-repository ((source puri:uri) (mode t) &key cache-directory)
+  (unless cache-directory
+    (error "~@<Cannot load remote repository ~A without cache ~
+            directory.~@:>"
+           source))
+  (let* ((branch          (puri:uri-fragment source))
+         (name            (format nil "~A~@[@~A~]"
+                                  (lastcar (puri:uri-parsed-path source))
+                                  branch))
+         (clone-directory (merge-pathnames
+                           (make-pathname :directory (list :relative name))
+                           cache-directory)))
+    (uiop:delete-directory-tree
+     clone-directory :validate t :if-does-not-exist :ignore)
+    (more-conditions::without-progress
+      (apply #'analysis::clone-git-repository/maybe-cached
+             source clone-directory
+             :cache-directory cache-directory
+             :history-limit   1
+             (when branch (list :branch branch))))
+    (load-repository clone-directory mode
+                     :cache-directory cache-directory)))

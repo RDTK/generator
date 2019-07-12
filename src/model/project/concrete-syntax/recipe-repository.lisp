@@ -232,6 +232,25 @@
       (when-let ((parent (parent kind)))
         (recipe-name repository parent path))))
 
+;;; Parents files
+
+(defun make-parents-filename (directory)
+  (make-pathname :name "parents" :defaults directory))
+
+(defun parse-parents-file (file)
+  (let ((document (%load-yaml file)))
+    (unless (typep document 'cons)
+      (object-error
+       (list (list document "non-sequence node" :error))
+       "~@<parents file must contain a non-empty sequence at the ~
+        top-level.~@:>"))
+    (map 'list (lambda (element)
+                 (unless (stringp element)
+                   (object-error (list (list element "here" :error))
+                                 "~@<Sequence element is not a string.~@:>"))
+                 element)
+         document)))
+
 ;;; Loading repositories
 
 (defvar *loading-repositories?* nil)

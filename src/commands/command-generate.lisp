@@ -109,7 +109,7 @@
                               (load-specifications kind files loader repository))))
               (values objects files))))
          ;; Templates
-         (template-patterns       (project:recipe-truenames repository :template :wild))
+         (template-patterns       (project:recipe-truenames repository :template :wild-inferiors))
          (templates               (locate-and-load
                                    :template template-patterns
                                    (rcurry #'project:load-template/yaml

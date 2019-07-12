@@ -18,13 +18,20 @@
         (list `(:directory ,pathname))
         (list `(:probe ,pathname)))))
 
-(defun make-populated-mock-repository (root-directory mode-or-modes files)
+(defun make-populated-mock-repository (root-directory mode-or-modes files &rest parents)
   (populate-recipe-repository!
    (make-instance 'mock-repository
                   :root-directory (pathname root-directory)
                   :mode           (ensure-mode mode-or-modes)
                   :pathnames      (map 'list (rcurry #'merge-pathnames root-directory)
-                                       files))))
+                                       files)
+                  :parents        parents)))
+
+(defun make-mock-repository-stack (mode-or-modes spec)
+  (let+ (((&labels+ rec ((name files &rest parents))
+            (apply #'make-populated-mock-repository
+                   name mode-or-modes files (map 'list #'rec parents)))))
+    (rec spec)))
 
 ;;; Tests
 
@@ -84,7 +91,14 @@
 (test recipe-name.smoke
   "Smoke test for the `recipe-name' generic function."
 
-  (let ((repository (make-populated-recipe-repository #P"/root/" '("ci" "_common"))))
+  ;; We use the `make-mock-repository-stack' for convenience - a
+  ;; `recipe-repository' instance instead of a `mock-repository'
+  ;; instance would work for this test.
+  (let ((repository (make-mock-repository-stack
+                     '("ci" "_common")
+                     '("/a/" ()
+                       ("/b/" ()
+                        ("/c/" ()))))))
     (mapc
      (lambda+ ((kind pathname expected))
        (flet ((do-it ()
@@ -93,68 +107,117 @@
            (error (signals error (do-it)))
            (t     (is (equal expected (do-it)))))))
 
-     `((:no-such-kind #P"/root/foo.no-such-kind"                     error)
+     `((:no-such-kind #P"/a/foo.no-such-kind"                     error)
 
-       (:template     #P"/root/templates/toolkit/foo.template"       nil)
-       (:template     #P"/root/templates/ci/foo.template"            "foo")
-       (:template     #P"/root/templates/_common/foo.template"       "foo")
-       (:template     #P"/root/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/a/templates/toolkit/foo.template"       nil)
+       (:template     #P"/a/templates/ci/foo.template"            "foo")
+       (:template     #P"/a/templates/_common/foo.template"       "foo")
+       (:template     #P"/a/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/b/templates/toolkit/foo.template"       nil)
+       (:template     #P"/b/templates/ci/foo.template"            "foo")
+       (:template     #P"/b/templates/_common/foo.template"       "foo")
+       (:template     #P"/b/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/c/templates/toolkit/foo.template"       nil)
+       (:template     #P"/c/templates/ci/foo.template"            "foo")
+       (:template     #P"/c/templates/_common/foo.template"       "foo")
+       (:template     #P"/c/templates/_common/bar/foo.template"   "bar/foo")
 
-       (:distribution #P"/root/distributions/foo.distribution"       "foo")
-       (:distribution #P"/root/distributions/stack/bar.distribution" "stack/bar")))))
+       (:distribution #P"/a/distributions/foo.distribution"       "foo")
+       (:distribution #P"/a/distributions/stack/bar.distribution" "stack/bar")
+       (:distribution #P"/b/distributions/foo.distribution"       "foo")
+       (:distribution #P"/b/distributions/stack/bar.distribution" "stack/bar")
+       (:distribution #P"/c/distributions/foo.distribution"       "foo")
+       (:distribution #P"/c/distributions/stack/bar.distribution" "stack/bar")))))
 
 (test recipe-truename.smoke
   "Smoke test for the `recipe-truename' generic function."
 
   ;; We use the `mock-repository' class to avoid hitting the actual
   ;; filesystem via `cl:probe-file' and `cl:directory'.
-  (let ((repository (make-populated-mock-repository
-                     "/a/" '("toolkit" "_common")
-                     '("templates/toolkit/1.template"
+  (let ((repository (make-mock-repository-stack
+                     '("toolkit" "_common")
+                     '("/a/" ("templates/toolkit/1.template"
 
-                       "templates/_common/2.template"
+                              "templates/_common/2.template"
 
-                       "templates/toolkit/99.template"
-                       "templates/_common/99.template"))))
-    (mapc
-     (lambda+ ((name expected))
-       (flet ((do-it ()
-                (recipe-truename repository :template (pathname name))))
-         (case expected
-           (error
-            (signals recipe-not-found-error
-              (do-it))
-            (handler-case (do-it)
-              (recipe-not-found-error (condition)
-                (is (eq repository (repository condition))))))
-           (t     (is (equal (pathname expected) (do-it)))))))
-     '(("no-such.template" error)
+                              "templates/toolkit/99.template"
+                              "templates/_common/99.template")
+                             ("/b/" ("templates/toolkit/3.template"
 
-       ("1.template"       "/a/templates/toolkit/1.template")
-       ("2.template"       "/a/templates/_common/2.template")
-       ("99.template"      "/a/templates/toolkit/99.template")))))
+                                     "templates/_common/4.template"
+
+                                     "templates/toolkit/99.template"
+                                     "templates/_common/99.template")
+                                    ("/c/" ("templates/toolkit/5.template"
+
+                                            "templates/_common/6.template"
+
+                                            "templates/toolkit/99.template"
+                                            "templates/_common/99.template")))))))
+    (mapc (lambda+ ((name expected))
+            (flet ((do-it ()
+                     (recipe-truename repository :template (pathname name))))
+              (case expected
+                (error
+                 (signals recipe-not-found-error
+                   (do-it))
+                 (handler-case (do-it)
+                   (recipe-not-found-error (condition)
+                     (is (eq repository (repository condition))))))
+                (t
+                 (is (equal (pathname expected) (do-it)))))))
+          '(("no-such.template" error)
+
+            ("1.template"       "/a/templates/toolkit/1.template")
+            ("2.template"       "/a/templates/_common/2.template")
+            ("3.template"       "/b/templates/toolkit/3.template")
+            ("4.template"       "/b/templates/_common/4.template")
+            ("5.template"       "/c/templates/toolkit/5.template")
+            ("6.template"       "/c/templates/_common/6.template")
+
+            ("99.template"      "/a/templates/toolkit/99.template")))))
 
 (test recipe-truenames.smoke
   "Smoke test for the `recipe-truenames' generic function."
 
   ;; We use the `mock-repository' class to avoid hitting the actual
   ;; filesystem via `cl:probe-file' and `cl:directory'.
-  (let ((repository (make-populated-mock-repository
-                     "/a/" '("toolkit" "_common")
-                     '("templates/toolkit/1.template"
+  (let ((repository (make-mock-repository-stack
+                     '("toolkit" "_common")
+                     '("/a/" ("templates/toolkit/1.template"
 
-                       "templates/_common/2.template"
+                              "templates/_common/2.template"
 
-                       "templates/toolkit/99.template"
-                       "templates/_common/99.template"))))
-    (mapc
-     (lambda+ ((name expected))
-       (let ((pathname (pathname name)))
-         (is (equal expected
-                    (recipe-truenames repository :template pathname)))))
-     `(("no-such.template" ())
+                              "templates/toolkit/99.template"
+                              "templates/_common/99.template")
+                             ("/b/" ("templates/toolkit/3.template"
 
-       ("1.template"       ((:probe ,#P"/a/templates/toolkit/1.template")))
-       ("2.template"       ((:probe ,#P"/a/templates/_common/2.template")))
-       ("99.template"      ((:probe ,#P "/a/templates/toolkit/99.template")
-                            (:probe ,#P "/a/templates/_common/99.template")))))))
+                                     "templates/_common/4.template"
+
+                                     "templates/toolkit/99.template"
+                                     "templates/_common/99.template")
+                                    ("/c/" ("templates/toolkit/5.template"
+
+                                            "templates/_common/6.template"
+
+                                            "templates/toolkit/99.template"
+                                            "templates/_common/99.template")))))))
+    (mapc (lambda+ ((name expected))
+            (let ((pathname (pathname name)))
+              (is (equal expected
+                         (recipe-truenames repository :template pathname)))))
+          `(("no-such.template" ())
+
+            ("1.template"       ((:probe ,#P"/a/templates/toolkit/1.template")))
+            ("2.template"       ((:probe ,#P"/a/templates/_common/2.template")))
+            ("3.template"       ((:probe ,#P"/b/templates/toolkit/3.template")))
+            ("4.template"       ((:probe ,#P"/b/templates/_common/4.template")))
+            ("5.template"       ((:probe ,#P"/c/templates/toolkit/5.template")))
+            ("6.template"       ((:probe ,#P"/c/templates/_common/6.template")))
+
+            ("99.template"      ((:probe ,#P "/a/templates/toolkit/99.template")
+                                 (:probe ,#P "/a/templates/_common/99.template")
+                                 (:probe ,#P "/b/templates/toolkit/99.template")
+                                 (:probe ,#P "/b/templates/_common/99.template")
+                                 (:probe ,#P "/c/templates/toolkit/99.template")
+                                 (:probe ,#P "/c/templates/_common/99.template")))))))

@@ -51,7 +51,14 @@
                         :reader   mode
                         :documentation
                         "The mode this repository should use to locate
-                         template recipes."))
+                         template recipes.")
+   (%parents            :initarg  :parents
+                        :type     list
+                        :reader   parents
+                        :initform '()
+                        :documentation
+                        "A list of parent repositories that should be
+                         searched for recipes not found in this one."))
   (:default-initargs
    :root-directory (missing-required-initarg 'recipe-repository :root-directory)
    :mode           (missing-required-initarg 'recipe-repository :mode))
@@ -62,11 +69,22 @@
   `((:root-path ,(root-directory object) "~A")
     (:mode      ,(name (mode object))    " ~A mode" ((:after :root-path)))))
 
-(defun make-recipe-repository (root-directory mode-or-modes)
+(defmethod describe-object ((object recipe-repository) stream)
+  (utilities.print-tree:print-tree
+   stream object
+   (utilities.print-tree:make-node-printer
+    (lambda (stream depth node)
+      (declare (ignore depth))
+      (print-items:format-print-items stream (print-items:print-items node))
+      nil)
+    nil #'parents)))
+
+(defun make-recipe-repository (root-directory mode-or-modes &key parents)
   (let ((root-directory (truename root-directory))
         (mode           (ensure-mode mode-or-modes)))
     (make-instance 'recipe-repository :root-directory root-directory
-                                      :mode           mode)))
+                                      :mode           mode
+                                      :parents        parents)))
 
 (defun populate-recipe-repository! (repository)
   (setf (recipe-directory :template     repository) #P"templates/"
@@ -75,9 +93,10 @@
         (recipe-directory :person       repository) #P"persons/")
   repository)
 
-(defun make-populated-recipe-repository (root-directory mode-or-modes)
+(defun make-populated-recipe-repository (root-directory mode-or-modes
+                                         &key parents)
   (populate-recipe-repository!
-   (make-recipe-repository root-directory mode-or-modes)))
+   (make-recipe-repository root-directory mode-or-modes :parents parents)))
 
 (defmethod recipe-directory ((kind t) (repository recipe-repository))
   (let ((relative (or (gethash kind (%recipe-directories repository))
@@ -156,8 +175,13 @@
                                     (kind       t)
                                     (name       t)
                                     &key
+                                    (recursive?        t)
                                     (if-does-not-exist #'error))
   (or (call-next-method repository kind name :if-does-not-exist nil)
+      (when recursive?
+        (some (rcurry #'recipe-truename kind name
+                      :if-does-not-exist nil)
+              (parents repository)))
       (error-behavior-restart-case
           (if-does-not-exist (recipe-not-found-error
                               :kind       kind
@@ -178,7 +202,8 @@
                             (name       t)
                             &key if-does-not-exist)
   (declare (ignore if-does-not-exist))
-  (recipe-truename repository (mode repository) name :if-does-not-exist nil))
+  (recipe-truename repository (mode repository) name
+                   :recursive? nil :if-does-not-exist nil))
 
 (defmethod recipe-truename ((repository recipe-repository)
                             (kind       mode)
@@ -187,50 +212,74 @@
   (declare (ignore if-does-not-exist))
   (or (call-next-method repository kind name :if-does-not-exist nil)
       (when-let ((parent (parent kind)))
-        (recipe-truename repository parent name :if-does-not-exist nil))))
+        (recipe-truename repository parent name
+                         :recursive? nil :if-does-not-exist nil))))
 
 ;;; `recipe-truenames'
 
+(defmethod recipe-truenames :around ((repository t) (kind t) (name t)
+                                     &key (recursive? t))
+  (let ((local-results (call-next-method)))
+    (if recursive?
+        (append local-results
+                (mappend (rcurry #'recipe-truenames kind name)
+                         (parents repository)))
+        local-results)))
+
 (defmethod recipe-truenames ((repository recipe-repository)
                              (kind       t)
-                             (name       t))
-  (let ((pathname (recipe-path repository kind name)))
-    (probe-recipe-pathname repository pathname)))
+                             (name       t)
+                             &key)
+  (probe-recipe-pathname repository (recipe-path repository kind name)))
 
 (defmethod recipe-truenames ((repository recipe-repository)
                              (kind       (eql :template))
-                             (name       t))
-  (recipe-truenames repository (mode repository) name))
+                             (name       t)
+                             &key)
+  (recipe-truenames repository (mode repository) name :recursive? nil))
 
 (defmethod recipe-truenames ((repository recipe-repository)
                              (kind       mode)
-                             (name       t))
-  (append (call-next-method repository kind name)
+                             (name       t)
+                             &key)
+  (append (call-next-method)
           (when-let ((parent (parent kind)))
-            (recipe-truenames repository parent name))))
+            (recipe-truenames repository parent name :recursive? nil))))
 
 ;;; Pathname -> name
 
+(defmethod recipe-name :around ((repository recipe-repository)
+                                (kind       t)
+                                (path       pathname)
+                                &key (recursive? t))
+  (or (call-next-method)
+      (when recursive?
+        (some (rcurry #'recipe-name kind path) (parents repository)))))
+
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       t)
-                        (path       pathname))
+                        (path       pathname)
+                        &key)
   (assert (uiop:absolute-pathname-p path))
   (let ((directory    (recipe-directory kind repository))
         (without-type (make-pathname :type nil :defaults path)))
-    (when (uiop:subpathp without-type directory)
-      (uiop:native-namestring (uiop:enough-pathname without-type directory)))))
+    (if (uiop:subpathp without-type directory)
+        (uiop:native-namestring (uiop:enough-pathname without-type directory))
+        (some (rcurry #'recipe-name kind path) (parents repository)))))
 
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       (eql :template))
-                        (path       pathname))
-  (recipe-name repository (mode repository) path))
+                        (path       pathname)
+                        &key)
+  (recipe-name repository (mode repository) path :recursive? nil))
 
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       mode)
-                        (path       pathname))
+                        (path       pathname)
+                        &key)
   (or (call-next-method)
       (when-let ((parent (parent kind)))
-        (recipe-name repository parent path))))
+        (recipe-name repository parent path :recursive? nil))))
 
 ;;; Parents files
 
@@ -275,7 +324,11 @@
       (call-next-method)
       (let ((*loading-repositories?* t))
         (with-trivial-progress (:load-repository)
-          (call-next-method)))))
+          (let ((result (call-next-method)))
+            (log:info "~@<~@;Loaded repository stack~@:_~A~@:>"
+                      (with-output-to-string (stream)
+                        (describe result stream)))
+            result)))))
 
 (defmethod load-repository ((source pathname) (mode t))
   (progress :load-repository nil "~A" source)

@@ -98,7 +98,8 @@
   (let+ (((&values path (&optional location &rest &ign))
           (structure-path position document))
          (thing (project::object-at location (locations document))))
-    (when (ends-with-subseq '(:templates) path)
+    (when (and (ends-with-subseq '(:templates) path)
+               (stringp thing)) ; HACK
       (list (make-instance 'template-name-context
                            :location location
                            :prefix   thing)))))

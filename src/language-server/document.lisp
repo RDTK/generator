@@ -14,7 +14,7 @@
                                     contrib:completion-contributors-mixin
                                     contrib:definition-contributors-mixin
                                     contrib:reference-contributors-mixin)
-  ((lsp::%workspace :initarg  :workspace
+  ((lsp::%workspace :initarg  :workspace ; TODO use lsp:workspace
                :reader   workspace)
    (%object    :accessor object
                :initform nil)

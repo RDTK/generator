@@ -109,7 +109,7 @@
 (defun main ()
   (log:config :thread :warn)
 
-  (let+ ((smart-terminal? (adapt-configuration-for-terminal))
+  (let+ ((smart-terminal? (adapt-configuration-for-environment))
          (arguments       (uiop:command-line-arguments))
          ((&flet execute-command-and-quit (code command &rest args)
             (commands:command-execute

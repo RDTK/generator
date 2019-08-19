@@ -219,3 +219,19 @@
       (setf (default-progress-style) :one-line
             (default-colored-output) t))
     (and interactive? smart?)))
+
+;;; Cache directory setup
+
+(defun (setf default-cache-directory) (new-value)
+  (reinitialize-instance (options:find-option
+                          '("global" "cache-directory") *schema*)
+                         :default new-value))
+
+(defun adapt-configuration-for-home ()
+  (setf (default-cache-directory) (uiop:xdg-cache-home "build-generator/")))
+
+;;; Environment adaptation
+
+(defun adapt-configuration-for-environment ()
+  (adapt-configuration-for-home)
+  (adapt-configuration-for-terminal))

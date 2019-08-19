@@ -157,7 +157,7 @@
                         var:direct-variables-mixin)
   ((templates :initarg  :templates
               :type     list ; of template
-              :reader   templates
+              :reader   direct-templates
               :initform '()
               :documentation
               "")
@@ -197,9 +197,15 @@
    (reduce #'var:merge-lookup-results
            (mapcar (lambda (template)
                      (multiple-value-list
-                      (var:lookup template name :if-undefined nil)))
-                   (templates thing))
+                      (var:direct-lookup template name)))
+                   (remove-duplicates (templates thing)))
            :initial-value (multiple-value-list (call-next-method)))))
+
+(defmethod templates ((thing project-spec))
+  (remove-duplicates (mappend (lambda (template)
+                                (list* template (inherit template)))
+                              (direct-templates thing))
+                     :from-end t))
 
 (defmethod aspects:aspects ((thing project-spec))
   (remove-duplicates (mappend #'aspects:aspects (templates thing))
@@ -287,7 +293,7 @@
                     var:direct-variables-mixin)
   ((inherit :initarg  :inherit
             :type     list
-            :reader   inherit
+            :reader   direct-inherit
             :initform '()
             :documentation
             "")
@@ -317,20 +323,26 @@
    (reduce #'var:merge-lookup-results
            (mapcar (lambda (inherited)
                      (multiple-value-list
-                      (var:lookup inherited name :if-undefined nil)))
+                      (var:direct-lookup inherited name)))
                    (inherit thing))
            :initial-value (multiple-value-list (call-next-method)))))
 
+(defmethod inherit ((thing template))
+  (remove-duplicates (mappend (lambda (inherit)
+                                (list* inherit (inherit inherit)))
+                              (direct-inherit thing))
+                     :from-end t))
+
 (defmethod aspects:aspects ((thing template))
   (remove-duplicates (append (direct-aspects thing)
-                             (mappend #'aspects:aspects (inherit thing)))
+                             (mappend #'aspects:aspects (direct-inherit thing)))
                      :test     #'string=
                      :key      #'model:name
                      :from-end t))
 
 (defmethod jobs ((thing template))
   (remove-duplicates (append (direct-jobs thing)
-                             (mappend #'jobs (inherit thing)))
+                             (mappend #'jobs (direct-inherit thing)))
                      :test     #'string=
                      :key      #'model:name
                      :from-end t))

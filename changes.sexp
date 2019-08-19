@@ -1,6 +1,11 @@
 ((:release "0.31" nil
 
   (:enhancement
+   "The analysis cache is now used by default. The default cache
+    directory is obtained by appending" (:verb "build-generator/") "to
+    the XDG user cache directory.")
+
+  (:enhancement
    "Template directories in recipe repositories can now contain
     a" (:verb "parents") "file referencing other template directories
     in the same repository."

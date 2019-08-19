@@ -35,7 +35,7 @@
                                     :spec-var spec
                                     :plugins  ("copyartifact"))
     (builder-defining-mixin)
-    ((((:upstream-dir upstream-dir)) :type string))
+    ((((:upstream-dir upstream-dir)) :type string)) ; TODO rename this
   "Configures artifact downloads for the generated job.
 
    Copy-artifact actions are generated to copy artifacts from all

@@ -363,7 +363,7 @@
                             (object-error
                              (list (list name "included here" :info))
                              "~A" error))))
-                (find-template name)))))
+                (find-or-load-template name repository "0.30.0")))))
          (instance (make-instance 'project-spec :name name)))
     (reinitialize-instance
      instance

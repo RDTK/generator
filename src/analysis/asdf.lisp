@@ -167,10 +167,14 @@
                 "(handler-bind ((warning #'muffle-warning)) ; TODO silence everything?
                    (asdf::load-asd pathname))")
                (read-from-string
-                "(let ((asdf::*source-registry*    nil)
-                       (asdf::*registered-systems* (copy-hash-table
-                                                    asdf::*registered-systems*))
-                       (asdf::*asdf-session*       nil))
+                "(let ((asdf:*system-definition-search-functions* nil)
+                       (asdf::*source-registry*                   nil)
+                       (asdf::*registered-systems*
+                        (let ((systems (make-hash-table :test #'equal)))
+                          (setf (gethash \"asdf\" systems)
+                                (gethash \"asdf\" asdf::*registered-systems*))
+                          systems))
+                       (asdf::*asdf-session*                      nil))
                    (asdf/system-registry:clear-registered-systems)
                    (asdf:initialize-source-registry
                     '(:source-registry :ignore-inherited-configuration))

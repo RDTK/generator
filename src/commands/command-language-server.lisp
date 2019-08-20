@@ -32,6 +32,10 @@
 (build-generator.commandline-options:define-option-mapping
     (*command-schema* "language-server"))
 
+(defclass context (protocol.language-server:context) ; TODO where to put this?
+  ((%cache-directory :initarg  :cache-directory
+                     :reader   cache-directory)))
+
 (defmethod command-execute ((command language-server))
   (log4cl:remove-all-appenders log4cl:*root-logger*)
   (log:config :info :daily "/tmp/build-generator-language-server.log")
@@ -46,7 +50,9 @@
                             *standard-input* *standard-output*)))
 
          (context    (protocol.language-server::make-context
-                      connection :workspace-class 'build-generator.language-server::workspace)))
+                      connection :class           'context
+                                 :workspace-class 'build-generator.language-server::workspace
+                                 :cache-directory *cache-directory*)))
     (handler-bind ((error (lambda (condition)
                             (format *error-output* "Unhandled error processing request~%")
                             (ignore-errors (format *error-output* "~A" condition))

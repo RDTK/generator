@@ -1,4 +1,4 @@
-((:release "0.31" nil
+((:release "0.31" "2019-08-20"
 
   (:enhancement
    "The analysis cache is now used by default. The default cache

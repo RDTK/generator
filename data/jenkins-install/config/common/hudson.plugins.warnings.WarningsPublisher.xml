@@ -79,5 +79,37 @@ return new Warning(fileName, lineNumber, &quot;Build Generator Dependency Parser
       <linkName>Build Generator Dependency Report</linkName>
       <trendName>Build Generator Dependencies</trendName>
     </hudson.plugins.warnings.GroovyParser>
+    <hudson.plugins.warnings.GroovyParser>
+      <name>SBCL</name>
+      <regexp>^; file: (.*)\n; in: (.*)\n(?:; (?!caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
+      <script>import hudson.plugins.warnings.parser.Warning
+import hudson.plugins.analysis.util.model.Priority
+
+String fileName = matcher.group(1)
+int lineNumber = 1
+String form = matcher.group(2)
+String category = matcher.group(3)
+String message = &quot;&quot;
+matcher.group(4).eachLine{ message += it.substring(4) + &apos;\n&apos; }
+Priority priority = Priority.NORMAL
+if (message.contains(&quot;undefined&quot;) || category.equals(&quot;ERROR&quot;)) {
+  priority = Priority.HIGH
+} else if (category.equals(&quot;STYLE-WARNING&quot;)) {
+  priority = Priority.LOW
+}
+
+return new Warning(fileName, lineNumber, &quot;SBCL Warning Parser&quot;, category, &quot;In &quot; + form + &quot;: &quot; + message, priority);</script>
+      <example>; file: /tmp/install-test/jobs/cl-text.source-location-future-ci-jmoringe-experimental/workspace/src/locations.lisp
+; in: DEFMETHOD SHARED-INITIALIZE :AFTER (LOCATION T)
+;
+;
+; caught STYLE-WARNING:
+;   The variable BOUNDS is defined but never used.
+;   Second line
+
+</example>
+      <linkName>SBCLWarnings Report</linkName>
+      <trendName>SBCL Warnings</trendName>
+    </hudson.plugins.warnings.GroovyParser>
   </groovyParsers>
 </hudson.plugins.warnings.WarningsDescriptor>

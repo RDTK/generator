@@ -115,24 +115,24 @@
 
    where
 
-     NATURE is the build system (or dependency management system)
+   * NATURE is the build system (or dependency management system)
      within which the requirement originates such as \"cmake\",
      \"maven\", \"pkg-config\"
 
-     NAME is the name of the required artifact within the namespace
+   * NAME is the name of the required artifact within the namespace
      designated by NATURE.
 
-     The optional VERSION specifies the provided version of the
+   * The optional VERSION specifies the provided version of the
      artifact.
 
-   Examples:
+   Example:
 
      nature: program
      target: sbin/spread
      version: 4.1
 
-       Version 4.1 of the program installed under the name
-       \"sbin/spread\" is provided by the platform.")
+   Version 4.1 of the program installed under the name \"sbin/spread\"
+   is provided by the platform.")
 
 ;;; Project variables
 
@@ -260,25 +260,24 @@
 
    where
 
-     NATURE is the build system (or dependency management system)
+   * NATURE is the build system (or dependency management system)
      within which the requirement originates such as \"cmake\",
      \"maven\", \"pkg-config\"
 
-     TARGET is the name of the required artifact within the namespace
+   * TARGET is the name of the required artifact within the namespace
      designated by NATURE.
 
-     The optional MIN-VERSION specifies the minimum version of the
+   * The optional MIN-VERSION specifies the minimum version of the
      artifact satisfying the requirement.
 
-   Examples:
+   Example:
 
      nature: program
      target: spread
      version: '4.1'
 
-       Version 4.1 of the program installed under the name
-       \"sbin/spread\" in the current installation prefix is
-       required.")
+   Version 4.1 of the program installed under the name \"sbin/spread\"
+   in the current installation prefix is required.")
 
 (var:define-variable :extra-provides (var:list-of dependency)
   :documentation
@@ -296,25 +295,24 @@
 
    where
 
-     NATURE is the build system (or dependency management system) by
+   * NATURE is the build system (or dependency management system) by
      which the artifact can be used such as \"cmake\", \"maven\",
      \"pkg-config\"
 
-     TARGET is the name of the provided artifact within the namespace
+   * TARGET is the name of the provided artifact within the namespace
      designated by NATURE.
 
-     The optional VERSION specifies the version of the provided
+   * The optional VERSION specifies the version of the provided
      artifact.
 
-   Examples:
+   Example:
 
      nature: program
      target: spread
      version: '4.1'
 
-       Version 4.1 of the program installed under the name
-       \"sbin/spread\" in the current installation prefix is
-       provided.")
+   Version 4.1 of the program installed under the name \"sbin/spread\"
+   in the current installation prefix is provided.")
 
 ;;; Project and distribution variables
 
@@ -354,9 +352,9 @@
          ⋮
 
    A list of packages that have to be installed when building on an
-   operating system of type *OPERATING-SYSTEM-TYPE* with version
-   *OPERATING-SYSTEM-VERSION*. Merged with version-independent
-   package-requirements for *OPERATING-SYSTEM-TYPE*.
+   operating system of type OPERATING-SYSTEM-TYPE with version
+   OPERATING-SYSTEM-VERSION. Merged with version-independent
+   package-requirements for OPERATING-SYSTEM-TYPE.
 
    Example values: for OPERATING-SYSTEM-VERSION when
    OPERATING-SYSTEM-TYPE is \"ubuntu\": \"precise\", \"trusty\".

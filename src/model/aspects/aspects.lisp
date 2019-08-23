@@ -132,7 +132,7 @@
        description Jenkins should present alongside the parameter.
 
        For more details, see Jenkins documentation."))
-  "Adds parameters to the created job."
+  "Adds parameters according to PARAMETERS to the created job."
   (with-interface (properties job) (parameters* (property/parameters))
     (mapc (lambda+ ((&whole spec &key name &allow-other-keys))
             (setf (parameters parameters*)
@@ -199,9 +199,9 @@
       "The name that should be used in the link to the GitHub page."))
   "Configures an associated GitHub page for the generated job.
 
-   The generated job will have a link to the GitHub page, links to
-   commits in the GitHub repository viewer and other similar
-   integration features."
+   The generated job will have a link to the GitHub page at
+   PROJECT-URL, links to commits in the GitHub repository viewer and
+   other similar integration features."
   (if project-url
       (with-interface (properties job) (github (property/github))
         (setf (jenkins.api:project-url github) project-url
@@ -223,14 +223,14 @@
       :documentation
       "Name of the Redmine project to which the generated job should
        be associated."))
-  "Configures Redmine integration for the created job.
+  "Configures Redmine integration with PROJECT for the created job.
 
    INSTANCE must refer to one of the Redmine instances in the global
    Jenkins configuration.
 
    It is recommended to use the full base URL of the actual Redmine as
    the respective name since the redmine-and-git aspect can reuse this
-   information.  "
+   information."
   (if (and instance project)
       (with-interface (properties job) (redmine (property/redmine))
         (setf (jenkins.api:instance     redmine) instance
@@ -376,6 +376,7 @@
     (((color-map "xterm") :type string
        :documentation
        "Name of the color map the plugin should use."))
+  "Adds console ANSI color support to the generated job."
   (with-interface (build-wrappers job) (nil (build-wrapper/ansi-color
                                              :color-map color-map))))
 
@@ -421,7 +422,7 @@
          [ \"SUBJECT\", [ \"ACTION-NAME₁\", \"ACTION-NAME₂\", … ] ]
 
        where SUBJECT is typically the username for whom permissions
-       are installed and ACTION-NAMEN are the components of the name
+       are installed and ACTION-NAMEₖ are the components of the name
        of the action that is being permitted for SUBJECT.
 
        Example:

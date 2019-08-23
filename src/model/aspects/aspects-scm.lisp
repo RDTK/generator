@@ -28,7 +28,7 @@
       "Name of the file in which the downloaded archive should be
        stored.")
      (((:sub-directory sub-directory) nil) :type string))
-  "Adds a build step that downloads a source archive.
+  "Adds a build step that downloads a source archive from URL as FILENAME.
 
    This may be useful when a SCM repository is not available but
    source archives are."
@@ -255,7 +255,7 @@
       :documentation
       "Controls whether the workspace is cleaned before each build.")
      (((:sub-directory sub-directory) nil) :type string))
-  "Configures a Mercurial repository in the generated job.
+  "Configures the Mercurial repository at URL for the generated job.
 
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."

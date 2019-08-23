@@ -20,3 +20,6 @@
   :in :build-generator
   :description
   "Unit tests for the model.project module.")
+
+(def-suite :build-generator.model.project.concrete-syntax
+  :in :build-generator.model.project)

@@ -219,7 +219,9 @@
                  :components ((:file     "package")
 
                               (:file     "recipe-repository"
-                               :pathname "concrete-syntax/recipe-repository"))))
+                               :pathname "concrete-syntax/recipe-repository")
+                              (:file     "builder"
+                               :pathname "concrete-syntax/builder"))))
 
   :perform     (test-op (operation component)
                  (uiop:symbol-call '#:build-generator.test '#:run-tests)))

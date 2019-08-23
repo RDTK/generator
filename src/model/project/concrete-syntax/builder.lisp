@@ -40,9 +40,6 @@
 (defun protect-string (string)
   (ppcre:regex-replace-all "\\${" string "\\${"))
 
-(let ((raw "${foo} \\${bar} \\baz $fez \\\\"))
-  (assert (equal raw (var:value-parse (protect-string raw)))))
-
 (defmethod language.yaml.construct::make-node-using-tag
     ((builder recipe-builder)
      (kind    (eql :scalar))

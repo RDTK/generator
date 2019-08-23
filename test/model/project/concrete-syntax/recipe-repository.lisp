@@ -36,7 +36,7 @@
 ;;; Tests
 
 (def-suite* :build-generator.model.project.concrete-syntax.recipe-repository
-  :in :build-generator.model.project)
+  :in :build-generator.model.project.concrete-syntax)
 
 (test make-populated-recipe-repository.smoke
   "Smoke test for the `make-populated-recipe-repository' function."

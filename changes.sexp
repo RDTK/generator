@@ -263,15 +263,15 @@ error        ::= \"object-error\" | \"simple-object-error\"
                  | \"deployment-error\" | \"report-error\"
 default      ::= action
 action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
-   ("Example:")
+   "Example:"
    (:verb "
   dependency-error=>continue:analysis-error=>fail:abort
 ")
-   ("The above continues the run with exit code zero in case")
+   "The above continues the run with exit code zero in case"
    (:verb "dependency-error") "s are encountered, continues and
-    returns a non-zero exit code for" (:verb "analysis-error") ("s and
-    immediately aborts with non-zero exit code for all other
-    errors."))
+   returns a non-zero exit code for" (:verb "analysis-error") "s and
+   immediately aborts with non-zero exit code for all other
+   errors.")
 
   (:enhancement
    "Distribution recipes can now include other distribution recipes in
@@ -488,7 +488,7 @@ action       ::= \"abort\" | \"fail\" | \"continue\" | \"debug\"")
       ("Old way for compatibility:"
        (:verb "[ \"NAME\", VERSION₁, VERSION₂, …]") "where
        each" (:verb "VERSION") "is either a string or"
-       (:verb "[ \"NAME\", { \"PARAMETER₁\": \"VALUE₁\", … } ] "))
+       (:verb "[ \"NAME\", { \"PARAMETER₁\": \"VALUE₁\", … } ]"))
       ("New way, compact:" (:verb "NAME@VERSION") "or"
        (:verb "NAME … @VERSION") "to allow the"
        (:verb "NAME₁             @VERSION₁
@@ -565,7 +565,7 @@ version: VERSION")
      way."
     "It is no longer possible to generate jobs and reports in the same
      invocation. The new \"report\" command is responsible for
-     generating reports. ")
+     generating reports.")
    "Currently supported commands are:"
    (:ul
     (:verb "analyze                Analyze project repositories w.r.t. dependencies and meta-data.")
@@ -582,7 +582,7 @@ version: VERSION")
     and the" (:file "build-generator.conf") "configuration file:"
    (:ul
     ("The old" (:code "general") "section is now
-      called" (:cold "global") ":"
+      called" (:code "global") ":"
      (:ul
       (:verb "general.cache-directory → global.cache-directory")
       (:verb "general.temp-directory  → global.temp-directory")
@@ -618,7 +618,7 @@ version: VERSION")
     no longer treated as an error.")
 
   (:enhancement
-   "Analysis of projects with" (:code "ros_package ") "nature provides
+   "Analysis of projects with" (:code "ros_package") "nature provides
     Maven artifacts in the" (:code "org.ros.rosjava_messages") "group.")
 
   (:enhancement

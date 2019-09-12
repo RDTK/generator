@@ -1,4 +1,10 @@
-((:release "0.32" nil)
+((:release "0.32" nil
+
+  (:bugfix
+   "Apparently, Jenkins at some point changed the way it installs and
+    loads plugins such that it now expects installed plugin file to
+    use the \"jpi\" extension. The" (:verb "install-jenkins") "command
+    now uses this extension."))
 
  (:release "0.31" "2019-08-20"
 

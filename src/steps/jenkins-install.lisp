@@ -90,7 +90,7 @@
 
 (defun jenkins-plugin-pathname (base-directory name)
   (merge-pathnames (make-pathname :name     name
-                                  :type     "hpi"
+                                  :type     "jpi"
                                   :defaults +jenkins-plugin-directory+)
                    base-directory))
 

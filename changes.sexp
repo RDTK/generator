@@ -21,7 +21,14 @@
     ((:verb "unstable") "- All upstream jobs must have
       unstable (e.g. with test failures) or successful builds.")
     ((:verb "any") "- The build of the downstream job can start
-      irregardless of the status of the upstream jobs."))))
+      irregardless of the status of the upstream jobs."))
+   "The new variable" (:verb "dependencies.required-result") "can be
+    used to specify the status of jobs required to trigger downstream
+    jobs. This can be used to relax the threshold established
+    via" (:verb "dependencies.required-upstream-result") "in cases in
+    which a known-unreliable upstream should still trigger downstream
+    jobs. Note that marking the upstream job avoids the need to adapt
+    the threshold in all downstream jobs."))
 
  (:release "0.31" "2019-08-20"
 

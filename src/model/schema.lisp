@@ -456,6 +456,35 @@
      The build of the downstream job can start irregardless of the
      status of the upstream jobs.")
 
+(var:define-variable :dependencies.required-result
+    (or (eql :success) (eql :unstable) (eql :any))
+  :documentation
+  "Specifies the status of jobs required to trigger downstream
+   jobs.
+
+   This can be used to relax the threshold established via
+   dependencies.required-upstream-result in cases in which a
+   known-unreliable upstream should still trigger downstream jobs.
+   Note that marking the upstream job avoids the need to adapt the
+   threshold in all downstream jobs.
+
+   \"success\" (default)
+
+     Only trigger downstream jobs if the build of the upstream job was
+     successful (unless some downstream jobs specify a less strict
+     threshold).
+
+   \"unstable\"
+
+     Trigger downstream jobs if the build result of the upstream job
+     was \"success\" or \"unstable\" (unless some downstream jobs
+     specify a less strict threshold).
+
+   \"any\"
+
+     Trigger downstream jobs irregardless of the build result of the
+     upstream job.")
+
 (var:define-variable :upstream-dir string
   :documentation
   "Directory in which artifacts copied from upstream jobs should be

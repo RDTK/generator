@@ -507,6 +507,21 @@
             (:unstable :unstable)
             (:any      :failure)))
         (job (model:implementation thing)))
+    ;; Look at required results in all upstream jobs, potentially
+    ;; relaxing REQUIRED-UPSTREAM-RESULT to `:unstable' or `:failure'.
+    (map nil (lambda (upstream-job)
+               (ecase (var:value/cast upstream-job :dependencies.required-result
+                                      :success)
+                 (:success)
+                 (:unstable
+                  (case required-upstream-result
+                    (:success
+                     (setf required-upstream-result :unstable))))
+                 (:any
+                  (case required-upstream-result
+                    ((:unstable :success)
+                     (setf required-upstream-result :failure))))))
+         relevant-dependencies)
     ;; Set threshold on "reverse" trigger based on required upstream
     ;; result.
     (aspects::with-interface (jenkins.api:triggers job)

@@ -4,7 +4,12 @@
    "Apparently, Jenkins at some point changed the way it installs and
     loads plugins such that it now expects installed plugin file to
     use the \"jpi\" extension. The" (:verb "install-jenkins") "command
-    now uses this extension."))
+    now uses this extension.")
+
+  (:enhancement
+   "Jenkins recently started using a stricter cross-site request
+    forgery (CSRF) protection scheme combining session cookies and a
+    CSRF protection token. This stricter scheme is now supported."))
 
  (:release "0.31" "2019-08-20"
 

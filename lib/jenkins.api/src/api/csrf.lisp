@@ -1,10 +1,12 @@
 ;;;; csrf.lisp --- Support Jenkins' CSRF protection.
 ;;;;
-;;;; Copyright (C) 2017, 2018 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.api)
+
+(defparameter *cookie-jar* (make-instance 'drakma:cookie-jar))
 
 (defparameter *csrf-protection-token-url*
   (make-instance 'puri:uri
@@ -16,6 +18,7 @@
     (log:info "Trying to obtain CSRF protection token from ~A" url)
     (let+ (((&values result code)
             (apply #'drakma:http-request url
+                   :cookie-jar *cookie-jar*
                    (when (and *username* *password*)
                      (list :basic-authorization
                            (list *username* *password*)))))
@@ -27,6 +30,7 @@
                      (t
                       (error "~@<Failed to obtain CSRF protection token (code ~D): ~A~@:>"
                              code result)))))
+      (log:info "~@<Got cookies ~{~A~^, ~}~@:>" (drakma:cookie-jar-cookies *cookie-jar*))
       (log:info "~@<~:[CSRF protection not enabled~;Got CSRF protection ~
                  token header ~:*~S~]~@:>"
                 header)
@@ -55,10 +59,11 @@
   (more-conditions:with-condition-translation
       (((error jenkins-connect-error) :url url))
     (let+ (((&values body code headers)
-            (apply #'drakma:http-request
-                   url (when (and username password)
-                         (list :basic-authorization
-                               (list username password))))))
+            (apply #'drakma:http-request url
+                   :cookie-jar *cookie-jar*
+                   (when (and username password)
+                     (list :basic-authorization
+                           (list username password))))))
       (unless (<= 200 code 399)
         (error "~@<Request failed (code ~D):~_~A~@:>"
                code body))

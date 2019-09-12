@@ -1,6 +1,6 @@
 ;;;; api.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -26,12 +26,13 @@
                                               :path    ,path
                                               :escaped t)
                                *base-url*)
-                              :parameters          (loop for (key value) on parameters :by #'cddr
-                                                         collect (cons (let ((*readtable* (copy-readtable)))
-                                                                         (setf (readtable-case *readtable*) :invert)
-                                                                         (format nil "~A" key))
-                                                                       (princ-to-string value)))
-                              :verify nil
+                              :parameters (loop for (key value) on parameters :by #'cddr
+                                                collect (cons (let ((*readtable* (copy-readtable)))
+                                                                (setf (readtable-case *readtable*) :invert)
+                                                                (format nil "~A" key))
+                                                              (princ-to-string value)))
+                              :verify     nil
+                              :cookie-jar *cookie-jar*
                               (append
                                (when-let ((header (ensure-csrf-protection-token)))
                                  (list :additional-headers (list header)))

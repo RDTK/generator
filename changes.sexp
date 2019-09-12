@@ -9,7 +9,19 @@
   (:enhancement
    "Jenkins recently started using a stricter cross-site request
     forgery (CSRF) protection scheme combining session cookies and a
-    CSRF protection token. This stricter scheme is now supported."))
+    CSRF protection token. This stricter scheme is now supported.")
+
+  (:enhancement
+   "The new variable" (:verb "dependencies.required-upstream-result")
+   "controls the required status of upstream jobs in order to trigger
+    builds of downstream jobs. Possible values are:"
+   (:ul
+    ((:verb "success") "- All upstream jobs must have successful
+      builds.")
+    ((:verb "unstable") "- All upstream jobs must have
+      unstable (e.g. with test failures) or successful builds.")
+    ((:verb "any") "- The build of the downstream job can start
+      irregardless of the status of the upstream jobs."))))
 
  (:release "0.31" "2019-08-20"
 

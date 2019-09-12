@@ -496,10 +496,23 @@
 
 (defmethod model:deploy-dependencies ((thing job))
   (let ((relevant-dependencies
-         (ecase (var:value/cast thing :dependencies.mode :direct)
-           (:direct  (model:direct-dependencies thing))
-           (:minimal (model:minimal-dependencies thing))
-           (:none    '()))))
+          (ecase (var:value/cast thing :dependencies.mode :direct)
+            (:direct  (model:direct-dependencies thing))
+            (:minimal (model:minimal-dependencies thing))
+            (:none    '())))
+        (required-upstream-result
+          (ecase (var:value/cast thing :dependencies.required-upstream-result
+                                 :success)
+            (:success  :success)
+            (:unstable :unstable)
+            (:any      :failure)))
+        (job (model:implementation thing)))
+    ;; Set threshold on "reverse" trigger based on required upstream
+    ;; result.
+    (aspects::with-interface (jenkins.api:triggers job)
+        (trigger (jenkins.api::trigger/reverse))
+      (setf (jenkins.api::threshold trigger) required-upstream-result))
+    ;; Install relations between JOB and its upstream jobs.
     (iter (for upstream-job in relevant-dependencies)
           (with-simple-restart (continue "~@<Do not relate ~A -> ~A~@:>"
                                          upstream-job thing)
@@ -507,6 +520,5 @@
                 ((error (lambda (condition)
                           (error "~@<Could not relate ~A -> ~A: ~A.~@:>"
                                  upstream-job thing condition))))
-              (jenkins.api:relate (model:implementation upstream-job)
-                                  (model:implementation thing)
+              (jenkins.api:relate (model:implementation upstream-job) job
                                   :if-related nil))))))

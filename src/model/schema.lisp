@@ -436,6 +436,26 @@
      No up/downstream relations should be established between
      generated jobs.")
 
+(var:define-variable :dependencies.required-upstream-result
+    (or (eql :success) (eql :unstable) (eql :any))
+  :documentation
+  "Controls the required status of upstream jobs in order to trigger
+   builds of downstream jobs.
+
+   \"success\" (default)
+
+     All upstream jobs must have successful builds.
+
+   \"unstable\"
+
+     All upstream jobs must have unstable (e.g. with test failures) or
+     successful builds.
+
+   \"any\"
+
+     The build of the downstream job can start irregardless of the
+     status of the upstream jobs.")
+
 (var:define-variable :upstream-dir string
   :documentation
   "Directory in which artifacts copied from upstream jobs should be

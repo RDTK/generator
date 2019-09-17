@@ -21,6 +21,11 @@
               (or (list (and version (type string))) '()))
        (result nature target version))
 
+      ;; Shorthand: NATURE: TARGET
+      ((list (cons (and nature (type keyword))
+                   (and target (type string))))
+       (result (string-downcase nature) target))
+
       ;; New syntax:
       ;; nature: NATURE
       ;; target: TARGET

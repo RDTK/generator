@@ -10,17 +10,18 @@
 
 (defun dependency-specification? (thing)
   (when (proper-list-p thing)
-    (let ((nature?  nil)
-          (target?  nil)
-          (version? nil))
-      (and (loop :for entry :in thing
-                 :always (and (typep entry '(cons keyword string))
-                              (let ((key (car entry)))
-                                (case key
-                                  (:nature  (unless nature?  (setf nature?  t)))
-                                  (:target  (unless target?  (setf target?  t)))
-                                  (:version (unless version? (setf version? t)))))))
-           (and nature? target?)))))
+    (or (typep thing '(cons (cons keyword string) null))
+        (let ((nature?  nil)
+              (target?  nil)
+              (version? nil))
+          (and (loop :for entry :in thing
+                     :always (and (typep entry '(cons keyword string))
+                                  (let ((key (car entry)))
+                                    (case key
+                                      (:nature  (unless nature?  (setf nature?  t)))
+                                      (:target  (unless target?  (setf target?  t)))
+                                      (:version (unless version? (setf version? t)))))))
+               (and nature? target?))))))
 
 (defun platform-dependency-variables? (variables)
   (if-let ((provides (assoc-value variables :extra-provides)))

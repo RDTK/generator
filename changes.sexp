@@ -28,7 +28,16 @@
     via" (:verb "dependencies.required-upstream-result") "in cases in
     which a known-unreliable upstream should still trigger downstream
     jobs. Note that marking the upstream job avoids the need to adapt
-    the threshold in all downstream jobs."))
+    the threshold in all downstream jobs.")
+
+  (:enhancement
+   "Dependency specifications (for example in the"
+   (:verb "extra-requires") "," (:verb "extra-provides") ","
+   (:verb "platform-requires") "and" (:verb "platform-provides")
+   "variables) can now use the following shorthand syntax:"
+   (:verb "NATURE: TARGET") "instead of the usual"
+   (:verb "nature: NATURE
+target: TARGET")))
 
  (:release "0.31" "2019-08-20"
 

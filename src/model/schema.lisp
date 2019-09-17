@@ -22,6 +22,11 @@
                                   (:version (unless version? (setf version? t)))))))
            (and nature? target?)))))
 
+(defun platform-dependency-variables? (variables)
+  (if-let ((provides (assoc-value variables :extra-provides)))
+    (every-dependency provides)
+    t))
+
 (defun platform-dependency-specification? (thing)
   (when (proper-list-p thing)
     (let ((name?      nil)
@@ -31,7 +36,8 @@
                            ((cons (eql :name) string)
                             (unless name? (setf name? t)))
                            ((cons (eql :variables) list)
-                            (unless variables? (setf variables? t)))))
+                            (and (unless variables? (setf variables? t))
+                                 (platform-dependency-variables? (cdr entry))))))
            name?))))
 
 (deftype dependency ()

@@ -113,6 +113,8 @@
 
    Entries are of one of the forms
 
+     NATURE: TARGET
+
      nature: NATURE
      target: NAME
 
@@ -258,6 +260,8 @@
 
    Entries are of one of the following forms
 
+     NATURE: TARGET
+
      nature: NATURE
      target: TARGET
 
@@ -292,6 +296,8 @@
    provides.
 
    Entries are of one of the following forms
+
+     NATURE: TARGET
 
      nature: NATURE
      target: TARGET

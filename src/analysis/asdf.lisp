@@ -70,9 +70,15 @@
                 (log:info "~@<Analyzing ~S.~@:>" file)
                 (with-simple-restart (continue "~@<Skip file ~S.~@:>" file)
                   (appending (analyze file :asdf/one-file)))))
-         (systems (remove-duplicates systems
-                                     :test #'equal
-                                     :key  (rcurry #'getf :provides)))
+         (systems (util:sort-with-partial-order
+                   (remove-duplicates systems
+                                      :test #'equal
+                                      :key  (rcurry #'getf :provides))
+                   (lambda (provider client)
+                     (some (lambda (provided)
+                             (some (rcurry #'dependency-matches? provided)
+                                   (getf client :requires)))
+                           (getf provider :provides)))))
          ((&flet property-values (name)
             (loop :for system       in systems
                   :for system-name  = (second (first (getf system :provides)))
@@ -81,16 +87,18 @@
                   :collect (list system-name system-value))))
          ;; Use the first value available in any of the analyzed
          ;; systems.
-         ((&flet+ test-system? (system-name)
+         ((&flet system-name (system)
+            (second (first (getf system :provides)))))
+         ((&flet+ test-system-name? (system-name)
             (ppcre:scan "tests?$" system-name)))
+         ((&flet+ test-system? (system)
+            (test-system-name? (system-name system))))
          ((&flet+ executable-system? (system)
             (and (getf system :executable-name)
                  (getf system :entry-point))))
-         ((&flet system-name (system)
-            (second (first (getf system :provides)))))
-         ((&flet system-names-if (predicate)
-            (remove-if (complement predicate)
-                       (map 'list #'system-name systems))))
+         ((&flet system-names-if (predicate )
+            (map 'list #'system-name
+                 (remove-if (complement predicate) systems))))
          ((&flet property-value/first (name)
             (second (first (property-values name)))))
          ((&flet maybe-property/first (name)
@@ -108,8 +116,8 @@
              (reduce #'append (property-values name) :key #'second))))
          ;; Combine descriptions of analyzed systems.
          ((&flet maybe-property/description (name)
-            (let ((values (remove-if #'test-system? (property-values name)
-                                     :key #'first)))
+            (let ((values (remove-if #'test-system-name?
+                                     (property-values name) :key #'first)))
               (case (length values)
                 (0 nil)
                 (1 `(,name ,(second (first values))))
@@ -118,16 +126,17 @@
                                          ~{~{~A: ~A~}~^~2%~}"
                                     (sort values #'string< :key #'first))))))))
          ;; Compute required and provided systems.
-         (requires (property-value/dependencies :requires))
-         (provides (property-value/dependencies :provides)))
+         (requires           (property-value/dependencies :requires))
+         (provides           (property-value/dependencies :provides))
+         (effective-requires (effective-requires requires provides)))
     `(:natures               (,kind)
       :provides              ,provides
-      :requires              ,(effective-requires requires provides)
+      :requires              ,effective-requires,
       :programming-languages ("Common Lisp")
+      :dependency-systems    ,(map 'list #'second effective-requires)
       :systems               ,(system-names-if (complement #'test-system?))
       :test-systems          ,(system-names-if #'test-system?)
-      :executable-systems    ,(map 'list #'system-name
-                                   (remove-if-not #'executable-system? systems))
+      :executable-systems    ,(system-names-if #'executable-system?)
       ,@(maybe-property/description   :description)
       ,@(maybe-property/merge-persons :authors)
       ,@(maybe-property/merge-persons :maintainers)

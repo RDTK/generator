@@ -57,10 +57,10 @@
 
 (defun identify-license (text &key (known-licenses *licenses*) (threshold 100))
   (when-let ((normalized (normalize-text text))) ; Could even warn here if empty
-    (let ((threshold (min (truncate threshold (/ (length normalized))) 2000)))
-      (or ;; Fast path: exact match.
-          (car (find normalized known-licenses :test #'string= :key #'cdr))
-          ;; Slow path: edit distance.
+    (or ;; Fast path: exact match.
+        (car (find normalized known-licenses :test #'string= :key #'cdr))
+        ;; Slow path: edit distance.
+        (let ((threshold (clamp (truncate threshold (/ (length normalized))) 1 2000)))
           (car (find normalized known-licenses
                      :test (lambda (text license)
                              (< (util:edit-distance

@@ -214,6 +214,7 @@
                                      branch
                                      username
                                      password
+                                     history-limit
                                      sub-directory
                                      cache-directory
                                      age-limit
@@ -222,8 +223,8 @@
   ;; If we already have analysis results for the commit that is
   ;; current in the remote repository, return right away.
   (when cache-directory
-    (with-simple-restart (continue "~@<Do not try to use cached ~
-                                    analysis results.~@:>")
+    (with-simple-restart (continue "~@<Do not use cached analysis ~
+                                    results.~@:>")
       (with-condition-translation (((error repository-access-error)
                                     :specification source))
         (log:info "~@<Determining current remote commit in ~A~@:>" source)
@@ -252,6 +253,7 @@
                         :branch          branch
                         :username        username
                         :password        password
+                        :history-limit   history-limit
                         :cache-directory cache-directory)))
          (key        (natures->key
                       natures (sub-directory->key
@@ -301,7 +303,7 @@
               (progress "~A" version)
               (with-simple-restart
                   (continue "~@<Ignore ~A and continue with the next ~
-                        version.~@:>"
+                             version.~@:>"
                             version)
                 (list (analyze-version version))))
             versions))

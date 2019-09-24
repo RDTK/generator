@@ -99,6 +99,7 @@
   (:method ((input pathname) &key natures)
     (let ((input (uiop:ensure-directory-pathname input)))
       (apply #'analysis:analyze input :auto
+             :history-limit 1
              (when natures
                `(:natures ,natures))))))
 

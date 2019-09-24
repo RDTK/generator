@@ -21,7 +21,7 @@
      |~
       (?:\"|\"\"\")((?:[^\"]|\\n)*)(?:\"|\"\"\")~
      |~
-      ((?:[^,]|\\n)*)~
+      ([a-zA-Z_][a-zA-Z0-9_]*)~
     )")))
 
 (defparameter *global-variable-scanner*
@@ -115,17 +115,23 @@
         (push (cons name values) result)))
     result))
 
+(defun maybe-substitute (spec globals)
+  (when (stringp spec)
+    (when-let ((entry (find spec globals :test #'string= :key #'car)))
+      (let ((value (first (cdr entry))))
+        (unless (string= value spec)
+          value)))))
+
 (defun process-version (spec globals)
-  (if-let ((values (when (stringp spec)
-                     (find spec globals :test #'string= :key #'car))))
-    (if (string= spec (first (cdr values)))
-        spec
-        (process-version (first (cdr values)) globals))
+  (if-let ((value (maybe-substitute spec globals)))
+    (process-version value globals)
     (when (ppcre:scan "^[-_.:0-9a-zA-Z]+$" spec)
       (version:parse-version spec))))
 
 (defun process-dependency (spec globals)
-  (or (ppcre:register-groups-bind (name relation version)
+  (or (when-let ((value (maybe-substitute spec globals)))
+        (process-dependency value globals))
+      (ppcre:register-groups-bind (name relation version)
           ("^([^ \\t\"'{}<>=]+)[ \\t]*([<>=]+)[ \\t]*([^ \\t]+)$" spec)
         (list (list* :setuptools name
                      (cond

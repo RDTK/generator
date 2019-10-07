@@ -241,6 +241,17 @@
                               (:file     "aspects")
                               (:file     "execution")))
 
+                (:module     "deployment-travis"
+                 :pathname   "src/deployment/travis"
+                 :depends-on ("model"
+                              "model-project"
+                              "model-aspects"
+                              "deployment")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "target")
+                              (:file     "aspects")))
+
                 (:module     "report"
                  :pathname   "src/report"
                  :depends-on ("util" "model-project")

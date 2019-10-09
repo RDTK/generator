@@ -202,7 +202,7 @@
              (collect (make-variable key value) :into variables)))
           (finally (return (values variables people))))))
 
-(defun analyze-version (version results)
+(defun add-analysis-results-to-version (version results)
   (let+ (((&plist-r/o (scm              :scm)
                       (branch-directory :branch-directory)
                       (requires         :requires)
@@ -222,7 +222,7 @@
      :requires  requires
      :provides  provides
      :variables (append
-                 (var::direct-variables version)
+                 (var:direct-variables version)
                  (when scm
                    (list (var:value-cons :scm (string-downcase scm))))
                  (when branch-directory
@@ -244,15 +244,18 @@
                         natures)))))
 
 (defun resolve-analysis-variables (version)
-  (let+ (((&flet maybe-key-fragment (version variable-and-transform)
-            (let+ (((variable . transform)
-                    (ensure-list variable-and-transform)))
-              (when-let ((value (var:value version variable nil)))
-                (list variable (if transform
-                                   (funcall transform value)
-                                   value)))))))
-    (mapcan (curry #'maybe-key-fragment version)
-            *analysis-variables*)))
+  ;; Return a plist of the values in VERSION of the variables in
+  ;; *ANALYSIS-VARIABLES*. The plist entries are in the order defined
+  ;; by *ANALYSIS-VARIABLES* which is important since these lists are
+  ;; de-duplicated using EQUAL in ANALYZE-PROJECT.
+  (flet ((maybe-key-fragment (variable-and-transform)
+           (let+ (((variable . transform)
+                   (ensure-list variable-and-transform)))
+             (when-let ((value (var:value version variable nil)))
+               (list variable (if transform
+                                  (funcall transform value)
+                                  value))))))
+    (mapcan #'maybe-key-fragment *analysis-variables*)))
 
 (defun analyze-project (project &rest args
                                 &key temp-directory
@@ -260,20 +263,40 @@
                                      age-limit)
   (declare (ignore temp-directory cache-directory age-limit))
   (let+ ((groups (group-project-versions-for-analysis project))
+         ((&flet+ compute-version-infos (versions)
+            ;; Within a group, versions can still produce identical
+            ;; repository information lists (for example when
+            ;; different versions use the same branch but differ in
+            ;; some non-version-control parameters). To address this
+            ;; issue, map versions to unique repository information
+            ;; lists, then map results back to versions.
+            (let ((infos         (make-hash-table :test #'equal))
+                  (version->info (make-hash-table :test #'eq)))
+              (map nil (lambda (version)
+                         (let* ((info        (resolve-analysis-variables
+                                              version))
+                                (unique-info (ensure-gethash
+                                              info infos info)))
+                           (setf (gethash version version->info) unique-info)
+                           info))
+                   versions)
+              (values (hash-table-values infos) version->info))))
          ((&flet+ analyze-group ((info . versions))
             (let+ (((&plist-r/o (repository :repository)) info)
-                   (other-info (remove-from-plist info :repository)))
-              (mapcan
-               (lambda (version results)
-                 (when results
-                   (list (analyze-version version results))))
-               versions
-               (apply #'analysis:analyze repository :auto
-                      :project  project
-                      :versions (map 'list #'resolve-analysis-variables
-                                     versions)
-                      (append other-info args)))))))
-    (mapc #'analyze-group groups)
+                   (other-info (remove-from-plist info :repository))
+                   ((&values version-infos version->info)
+                    (compute-version-infos versions))
+                   (results (apply #'analysis:analyze repository :auto
+                                   :project  project
+                                   :versions version-infos
+                                   (append other-info args))))
+              (map nil (lambda (version)
+                         (when-let* ((info   (gethash version version->info))
+                                     (index  (position info version-infos))
+                                     (result (nth index results)))
+                           (add-analysis-results-to-version version result)))
+                   versions)))))
+    (map nil #'analyze-group groups)
     project))
 
 (defun analyze-projects (projects &rest args

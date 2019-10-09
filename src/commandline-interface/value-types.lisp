@@ -39,7 +39,7 @@
 
       (model:instantiation-error                      . nil)
 
-      (model:deployment-error                         . nil)
+      (build-generator.deployment:deployment-error    . nil)
 
       (build-generator.report::report-error           . nil)))
 

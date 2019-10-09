@@ -133,7 +133,7 @@
 
                 (:module     "model-project"
                  :pathname   "src/model/project"
-                 :depends-on ("version" "analysis" "model" "model-variables" "model-aspects") ; TODO
+                 :depends-on ("version" "analysis" "model" "model-variables" "model-aspects" "deployment") ; TODO
                  :serial     t
                  :components ((:file     "package")
                               (:file     "util")
@@ -177,6 +177,13 @@
                               (:file     "aspects-artifacts")
                               (:file     "aspects-build")
                               (:file     "aspects-publish")))
+
+                (:module     "deployment"
+                 :pathname   "src/deployment"
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "conditions")
+                              (:file     "protocol")))
 
                 (:module     "report"
                  :pathname   "src/report"

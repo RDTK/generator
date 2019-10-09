@@ -370,15 +370,15 @@
           (mappend (rcurry #'platform-requires platform)
                    (direct-platform-dependencies object))))
 
-(defmethod model:deploy ((thing version))
+(defmethod build-generator.deployment:deploy ((thing version))
   (with-sequence-progress (:deploy/job (jobs thing))
-    (mapcar #'model:deploy (jobs thing))))
+    (mapcar #'build-generator.deployment:deploy (jobs thing))))
 
 (defvar *outermost-version?* t)
 
-(defmethod model:deploy :around ((thing version))
+(defmethod build-generator.deployment:deploy :around ((thing version))
   (if *outermost-version?*
-      (with-condition-translation (((error model:project-deployment-error)
+      (with-condition-translation (((error build-generator.deployment:project-deployment-error)
                                     :thing thing))
         (let ((*outermost-version?* nil))
           (call-next-method)))
@@ -428,7 +428,7 @@
                                dependency-name dependency (jobs dependency)))))
               (pushnew dependency (%direct-dependencies thing)))))))
 
-(defmethod model:deploy ((thing job))
+(defmethod build-generator.deployment:deploy ((thing job))
   (let+ ((id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
                      (var:value/cast thing :build-job-name)))
@@ -494,7 +494,7 @@
 
     thing))
 
-(defmethod model:deploy-dependencies ((thing job))
+(defmethod build-generator.deployment:deploy-dependencies ((thing job))
   (let ((relevant-dependencies
           (ecase (var:value/cast thing :dependencies.mode :direct)
             (:direct  (model:direct-dependencies thing))

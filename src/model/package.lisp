@@ -21,14 +21,7 @@
    #:instantiation-condition
    #:instantiation-condition-specification
 
-   #:instantiation-error
-
-   #:deployment-condition
-   #:deployment-condition-thing
-
-   #:deployment-error
-
-   #:project-deployment-error)
+   #:instantiation-error)
 
   ;; Name protocols and mixin classes
   (:export
@@ -74,11 +67,6 @@
    #:instantiate?
 
    #:conditional-mixin)
-
-  ;; Deployment protocol
-  (:export
-   #:deploy
-   #:deploy-dependencies)
 
   ;; Implementation protocol and mixin class
   (:export

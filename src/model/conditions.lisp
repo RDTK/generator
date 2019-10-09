@@ -33,39 +33,3 @@
   (:documentation
    "This error is signaled when an error is encountered during the
     instantiation of a specification."))
-
-;;; Deployment-related conditions
-
-(define-condition deployment-condition (chainable-condition)
-  ((thing :initarg  :thing
-          :reader   deployment-condition-thing
-          :documentation
-          "The thing the deployment of which caused the condition."))
-  (:default-initargs
-   :thing (missing-required-initarg 'deployment-condition :thing))
-  (:documentation
-   "Subclasses of this condition are signaled to indicate certain
-    conditions during the deployment of things."))
-
-(define-condition deployment-error (error
-                                    deployment-condition)
-  ()
-  (:report
-   (lambda (condition stream)
-     (format stream "~@<Error during deployment of ~
-                     ~A.~/more-conditions:maybe-print-cause/~@:>"
-             (deployment-condition-thing condition)
-             condition)))
-  (:documentation
-   "This error is signaled when an error is encountered during
-    deployment of a thing."))
-
-(define-condition project-deployment-error (deployment-error)
-  ()
-  (:report
-   (lambda (condition stream)
-     (format stream "~@<Error during deployment of project version ~
-                     ~/print-items:format-print-items/.~
-                     ~/more-conditions:maybe-print-cause/~@:>"
-             (print-items:print-items (deployment-condition-thing condition))
-             condition))))

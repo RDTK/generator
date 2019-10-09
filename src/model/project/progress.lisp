@@ -6,5 +6,5 @@
 
 (cl:in-package #:build-generator.model.project)
 
-(defmethod model:deploy :before ((thing job))
+(defmethod build-generator.deployment:deploy :before ((thing job))
   (progress :deploy/job nil "~A" thing))

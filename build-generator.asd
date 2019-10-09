@@ -133,7 +133,7 @@
 
                 (:module     "model-project"
                  :pathname   "src/model/project"
-                 :depends-on ("version" "analysis" "model" "model-variables" "model-aspects" "deployment") ; TODO
+                 :depends-on ("version" "analysis" "model" "model-variables" "model-aspects") ; TODO
                  :serial     t
                  :components ((:file     "package")
                               (:file     "util")
@@ -141,9 +141,7 @@
                               (:file     "protocol")
                               (:file     "mixins")
                               (:file     "classes-spec")
-                              (:file     "classes-model")
-
-                              (:file     "progress")))
+                              (:file     "classes-model")))
 
                 (:module     "concrete-syntax"
                  :pathname   "src/model/project/concrete-syntax"
@@ -180,10 +178,13 @@
 
                 (:module     "deployment"
                  :pathname   "src/deployment"
+                 :depends-on ("model-project"
+                              "model-aspects")
                  :serial     t
                  :components ((:file     "package")
                               (:file     "conditions")
-                              (:file     "protocol")))
+                              (:file     "protocol")
+                              (:file     "defaults")))
 
                 (:module     "report"
                  :pathname   "src/report"

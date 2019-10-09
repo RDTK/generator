@@ -6,25 +6,6 @@
 
 (cl:in-package #:build-generator.commands)
 
-;;; Deployment
-
-(defun deploy-projects (versions)
-  (with-sequence-progress (:deploy/project versions)
-    (iter (for version in versions)
-          (progress "~/print-items:format-print-items/"
-                    (print-items:print-items version))
-          (more-conditions::without-progress
-            (with-simple-restart
-                (continue "~@<Skip deploying project version ~S.~@:>" version)
-              (appending (flatten (build-generator.deployment:deploy version))))))))
-
-(defun deploy-job-dependencies (jobs)
-  (with-sequence-progress (:deploy/dependencies jobs)
-    (iter (for job in jobs)
-          (progress "~/print-items:format-print-items/"
-                    (print-items:print-items job))
-          (build-generator.deployment:deploy-dependencies job))))
-
 ;;; Toolkit specific stuff
 
 (defun configure-orchestration (distribution)
@@ -40,7 +21,7 @@
                            (reinitialize-instance project-spec
                                                   :versions (list version-spec))
                            (model:instantiate version-spec :parent distribution))))
-      (flatten (build-generator.deployment:deploy version)))))
+      (flatten (deploy:deploy version)))))
 
 (defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)

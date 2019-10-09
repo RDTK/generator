@@ -22,6 +22,7 @@
    (#:project  #:build-generator.model.project)
    (#:aspects  #:build-generator.model.aspects)
 
+   (#:deploy   #:build-generator.deployment)
    (#:steps    #:build-generator.steps))
 
   (:shadow

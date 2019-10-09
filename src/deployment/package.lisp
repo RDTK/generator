@@ -7,8 +7,15 @@
 (cl:defpackage #:build-generator.deployment
   (:use
    #:cl
+   #:alexandria
    #:let-plus
    #:more-conditions)
+
+  (:local-nicknames
+   (#:model   #:build-generator.model)
+   (#:var     #:build-generator.model.variables)
+   (#:project #:build-generator.model.project)
+   (#:aspects #:build-generator.model.aspects))
 
   ;; Conditions
   (:export

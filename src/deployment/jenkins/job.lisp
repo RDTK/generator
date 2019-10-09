@@ -8,7 +8,7 @@
 
 ;;; Deploy `distribution'
 
-(defmethod deploy:deploy :around ((thing project:distribution))
+(defmethod deploy:deploy ((thing project:distribution) (target target))
   (let ((jobs (call-next-method)))
     (when-let ((dependency-jobs
                 (remove :none jobs
@@ -17,13 +17,13 @@
         (map nil (lambda (job)
                    (progress "~/print-items:format-print-items/"
                              (print-items:print-items job))
-                   (deploy:deploy-dependencies job))
+                   (deploy:deploy-dependencies job target))
              dependency-jobs)))
     jobs))
 
 ;;; Deploy `job'
 
-(defmethod deploy:deploy ((thing project::job))
+(defmethod deploy:deploy ((thing project::job) (target target))
   (let+ ((id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
                      (var:value/cast thing :build-job-name)))
@@ -85,7 +85,7 @@
 
     thing))
 
-(defmethod deploy:deploy-dependencies ((thing project::job))
+(defmethod deploy:deploy-dependencies ((thing project::job) (target target))
   (let ((relevant-dependencies
           (ecase (var:value/cast thing :dependencies.mode :direct)
             (:direct  (model:direct-dependencies thing))
@@ -153,3 +153,9 @@
     (with-sequence-progress (:delete-other generated-jobs)
       (mapc (progressing #'jenkins.api:delete-job :delete-other)
             generated-jobs))))
+
+(defun maybe-delete-other-jobs (distributions all-jobs target)
+  (let+ (((&accessors-r/o delete-other? delete-other-pattern) target))
+    (when delete-other?
+      (delete-other-jobs all-jobs (make-delete-other-pattern
+                                   delete-other-pattern distributions)))))

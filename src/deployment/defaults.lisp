@@ -8,7 +8,7 @@
 
 ;;; `project:distribution'
 
-(defmethod deploy ((thing project:distribution))
+(defmethod deploy ((thing project:distribution) (target t))
   (let ((versions (project:versions thing)))
     (with-sequence-progress (:deploy/project versions)
       (mappend (lambda (version)
@@ -17,26 +17,26 @@
                  (more-conditions::without-progress
                    (with-simple-restart
                        (continue "~@<Skip deploying project version ~S.~@:>" version)
-                     (flatten (deploy version)))))
+                     (flatten (deploy version target)))))
                versions))))
 
 ;;; `project:version'
 
 (defvar *outermost-version?* t)
 
-(defmethod deploy :around ((thing project:version))
+(defmethod deploy :around ((thing project:version) (target t))
   (if *outermost-version?*
       (with-condition-translation (((error project-deployment-error)
-                                    :thing thing))
+                                    :thing thing :target target))
         (let ((*outermost-version?* nil))
           (call-next-method)))
       (call-next-method)))
 
-(defmethod deploy ((thing project:version))
+(defmethod deploy ((thing project:version) (target t))
   (let ((jobs (project:jobs thing)))
     (with-sequence-progress (:deploy/job jobs)
       (mappend (lambda (job)
                  (progress "~/print-items:format-print-items/"
                            (print-items:print-items job))
-                 (list (deploy job)))
+                 (list (deploy job target)))
                jobs))))

@@ -21,6 +21,7 @@
   (:export
    #:deployment-condition
    #:thing
+   #:target
 
    #:deployment-error
 
@@ -29,4 +30,10 @@
   ;; Deployment protocol
   (:export
    #:deploy
-   #:deploy-dependencies))
+   #:deploy-dependencies)
+
+  ;; Target service
+  (:export
+   #:target                         ; service name
+
+   #:make-target))

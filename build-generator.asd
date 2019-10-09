@@ -194,6 +194,7 @@
                               "deployment")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "target")
                               (:file     "job")))
 
                 (:module     "report"

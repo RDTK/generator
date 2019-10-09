@@ -77,10 +77,12 @@
                     distributions))))
     (as-phase (:check-access ; :continuable? nil
                )
-      (check-distribution-access distributions))
-    (generate-deploy distributions
-                     :delete-other?        delete-other?
-                     :delete-other-pattern delete-other-pattern)))
+              (check-distribution-access distributions))
+    (let ((target (deploy:make-target
+                   :jenkins
+                   :delete-other?        delete-other?
+                   :delete-other-pattern delete-other-pattern)))
+      (generate-deploy distributions target))))
 
 ;;; Functions
 
@@ -164,24 +166,19 @@
                           (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
 
-(defun generate-deploy (distributions
-                        &key
-                        delete-other?
-                        delete-other-pattern)
-  (let+ ((jobs/specs (as-phase (:deploy/project)
-                       (mappend #'deploy:deploy distributions)))
-         (jobs       (mappend #'model:implementations jobs/specs))
-         ((&values &ign orchestration-jobs)
-          (as-phase (:orchestration)
-            (configure-distributions distributions)))
-         (all-jobs   (append jobs (mappend #'model:implementations
-                                           orchestration-jobs))))
-    (when delete-other?
-      (as-phase (:delete-other-jobs)
-        (build-generator.deployment.jenkins::delete-other-jobs
-         all-jobs
-         (build-generator.deployment.jenkins::make-delete-other-pattern
-          delete-other-pattern distributions))))
+(defun generate-deploy (distributions target)
+  (let* ((jobs/specs         (as-phase (:deploy/project)
+                               (mappend (rcurry #'deploy:deploy target)
+                                        distributions)))
+         (jobs               (mappend #'model:implementations jobs/specs))
+         (orchestration-jobs (as-phase (:orchestration)
+                               (nth-value
+                                1 (configure-distributions distributions target))))
+         (all-jobs           (append jobs (mappend #'model:implementations
+                                                   orchestration-jobs))))
+    (as-phase (:delete-other-jobs)
+      (build-generator.deployment.jenkins::maybe-delete-other-jobs
+       distributions all-jobs target))
 
     (as-phase (:list-credentials)
       (list-credentials jobs))))

@@ -8,7 +8,7 @@
 
 ;;; Toolkit specific stuff
 
-(defun configure-orchestration (distribution)
+(defun configure-orchestration (distribution target)
   (with-trivial-progress (:orchestration "Configuring orchestration jobs")
     (let* ((templates    (list (project:find-template "orchestration")))
            (project-spec (make-instance 'project::project-spec
@@ -21,7 +21,7 @@
                            (reinitialize-instance project-spec
                                                   :versions (list version-spec))
                            (model:instantiate version-spec :parent distribution))))
-      (flatten (deploy:deploy version)))))
+      (flatten (deploy:deploy version target)))))
 
 (defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)
@@ -35,11 +35,11 @@
       (jenkins.api:commit! view)
       view)))
 
-(defun configure-distribution (distribution)
+(defun configure-distribution (distribution target)
   (let* ((jobs               (mappend #'project:jobs (project:versions distribution)))
          (orchestration-jobs (with-simple-restart
                                  (continue "~@<Continue without configuring orchestration jobs~@:>")
-                               (configure-orchestration distribution)))
+                               (configure-orchestration distribution target)))
          (all-jobs           (mapcan (lambda (job)
                                        (when-let ((jenkins-job (model:implementation job)))
                                          (list jenkins-job)))
@@ -53,11 +53,11 @@
                  (when columns (list :columns columns))))))
     (values jobs orchestration-jobs all-jobs)))
 
-(defun configure-distributions (distributions)
+(defun configure-distributions (distributions target)
   (values-list
    (reduce (lambda+ ((jobs orchestration-jobs all-jobs) distribution)
              (let+ (((&values jobs1 orchestration-jobs1 all-jobs1)
-                     (configure-distribution distribution)))
+                     (configure-distribution distribution target)))
                (list (append jobs1               jobs)
                      (append orchestration-jobs1 orchestration-jobs)
                      (append all-jobs1           all-jobs))))

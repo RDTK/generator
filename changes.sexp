@@ -6,6 +6,9 @@
     use the \"jpi\" extension. The" (:verb "install-jenkins") "command
     now uses this extension.")
 
+  (:bugfix
+   "The JSON report kind works again.")
+
   (:enhancement
    "Jenkins recently started using a stricter cross-site request
     forgery (CSRF) protection scheme combining session cookies and a

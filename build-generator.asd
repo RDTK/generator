@@ -186,6 +186,16 @@
                               (:file     "protocol")
                               (:file     "defaults")))
 
+                (:module     "deployment-jenkins"
+                 :pathname   "src/deployment/jenkins"
+                 :depends-on ("model"
+                              "model-project"
+                              "model-aspects"
+                              "deployment")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "job")))
+
                 (:module     "report"
                  :pathname   "src/report"
                  :depends-on ("util" "model-project")

@@ -168,14 +168,8 @@
                         &key
                         delete-other?
                         delete-other-pattern)
-  (let+ ((projects (mappend #'project:versions distributions))
-         (jobs/specs (as-phase (:deploy/project)
-                       (let ((jobs (mappend #'deploy:deploy distributions)))
-                         (when (some (lambda (job)
-                                       (not (eq (var:value/cast job :dependencies.mode) :none)))
-                                     jobs)
-                           (deploy::deploy-job-dependencies jobs))
-                         jobs)))
+  (let+ ((jobs/specs (as-phase (:deploy/project)
+                       (mappend #'deploy:deploy distributions)))
          (jobs       (mappend #'model:implementations jobs/specs))
          ((&values &ign orchestration-jobs)
           (as-phase (:orchestration)
@@ -183,31 +177,11 @@
          (all-jobs   (append jobs (mappend #'model:implementations
                                            orchestration-jobs))))
     (when delete-other?
-      (delete-other-jobs all-jobs (make-delete-other-pattern
-                                   delete-other-pattern distributions)))
+      (as-phase (:delete-other-jobs)
+        (build-generator.deployment.jenkins::delete-other-jobs
+         all-jobs
+         (build-generator.deployment.jenkins::make-delete-other-pattern
+          delete-other-pattern distributions))))
 
     (as-phase (:list-credentials)
       (list-credentials jobs))))
-
-(defun generated? (job)
-  (search "automatically generated" (jenkins.api:description job)))
-
-(defun make-delete-other-pattern (pattern distributions)
-  (cond (pattern)
-        ((length= 1 distributions)
-         `(:sequence ,(model:name (first distributions)) :end-anchor))
-        (t
-         `(:sequence
-           (:alternation ,@(map 'list #'model:name distributions))
-           :end-anchor))))
-
-(defun delete-other-jobs (all-jobs pattern)
-  (as-phase (:delete-other-jobs)
-    (log:info "Deleting other jobs using pattern ~S" pattern)
-    (let* ((other-jobs     (set-difference
-                            (jenkins.api:all-jobs pattern) all-jobs
-                            :key #'jenkins.api:id :test #'string=))
-           (generated-jobs (remove-if-not #'generated? other-jobs)))
-      (with-sequence-progress (:delete-other generated-jobs)
-        (mapc (progressing #'jenkins.api:delete-job :delete-other)
-              generated-jobs)))))

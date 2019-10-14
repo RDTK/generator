@@ -81,7 +81,7 @@ return new Warning(fileName, lineNumber, &quot;Build Generator Dependency Parser
     </hudson.plugins.warnings.GroovyParser>
     <hudson.plugins.warnings.GroovyParser>
       <name>SBCL</name>
-      <regexp>^; file: (.*)\n; in: (.*)\n(?:; (?!caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
+      <regexp>^; file: (.*)\n; in:(?:\n;)? +(.*)\n(?:;(?! caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
       <script>import hudson.plugins.warnings.parser.Warning
 import hudson.plugins.analysis.util.model.Priority
 
@@ -108,7 +108,7 @@ return new Warning(fileName, lineNumber, &quot;SBCL Warning Parser&quot;, catego
 ;   Second line
 
 </example>
-      <linkName>SBCLWarnings Report</linkName>
+      <linkName>SBCL Warnings Report</linkName>
       <trendName>SBCL Warnings</trendName>
     </hudson.plugins.warnings.GroovyParser>
   </groovyParsers>

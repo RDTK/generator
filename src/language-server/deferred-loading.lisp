@@ -145,3 +145,65 @@
                      (setf (gethash (rosetta.model:name person) persons) person)))
                  :person container)
     persons))
+
+;;; Analysis results
+
+(defclass deferred-analysis (deferred-collection)
+  ((%object :initarg :object
+            :accessor object)
+   (%key    :accessor %key
+            :initform nil)))
+
+(defmethod (setf object) :after ((new-value t) (object deferred-analysis))
+  (let* ((project-version (object object))
+         (repository      (handler-case
+                              (var:value project-version :repository    nil)
+                            (var:undefined-variable-error () nil)))
+         (sub-directory   (handler-case
+                              (var:value project-version :sub-directory nil)
+                            (var:undefined-variable-error () nil)))
+         (natures         (handler-case
+                              (var:value project-version :natures       '())
+                            (var:undefined-variable-error () nil)))
+         (branches        (handler-case
+                              (var:value project-version :branches      '())
+                            (var:undefined-variable-error () nil)))
+         (new-key         (list repository branches sub-directory natures))
+         (old-key         (%key object)))
+    (when (not (equal old-key new-key))
+      (setf (%key object)      new-key
+            (%elements object) nil))))
+
+(defmethod load-elements ((container deferred-analysis))
+  (let+ (((&accessors-r/o ((repository branches sub-directory natures) %key))
+          container)
+         (natures  (mappend (lambda (name)
+                              (when-let ((symbol (intern (string-upcase name)
+                                                         '#:keyword)))
+                                (list symbol)))
+                            natures))
+         (versions (list (list :branch        (first branches)
+                               :sub-directory (when sub-directory
+                                                (uiop:ensure-directory-pathname sub-directory))
+                               :natures       natures)))
+         (errors   '())
+         (results  (handler-case
+                       (handler-bind (((and error util:continuable-error)
+
+                                        (lambda (condition)
+                                          (when-let ((restart (find-restart 'continue condition)))
+                                            (push condition errors)
+                                            (invoke-restart restart)))))
+                         (build-generator.analysis:analyze
+                          repository :auto :versions versions))
+                     (error (condition)
+                       condition))))
+    (let ((table (make-hash-table)))
+      (setf (gethash t table) (typecase results
+                                (condition
+                                 results)
+                                (cons
+                                 (list (first results) (first branches) natures))
+                                (t
+                                 (first errors))))
+      table)))

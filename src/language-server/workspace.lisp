@@ -39,7 +39,7 @@
                                   (lsp:root-directory instance) "toolkit"
                                   :cache-directory cache-directory)))
 
-  (setf (%templates instance)     (make-instance 'deferred-templates     :workspace instance)
+  (setf (%templates instance)     (make-instance 'deferred-templates     :workspace instance) ; TODO only in initialize-instance?
         (%projects instance)      (make-instance 'deferred-projects      :workspace instance)
         (%distributions instance) (make-instance 'deferred-distributions :workspace instance)
         (%persons instance)       (make-instance 'deferred-persons       :workspace instance)))

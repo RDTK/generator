@@ -105,42 +105,33 @@
 
 (defun analyze-1 (document context branch)
   (let+ (((&values body title)
-          (let ((existing (analysis-results document)))
+          (let ((existing (analysis-results document :if-unavailable nil)))
             (cond ((null existing)
-                   (setf (analysis-results document)
-                         (lparallel:task-handler-bind
-                             ((error #'lparallel:invoke-transfer-error))
-                           (lparallel:future
-                             (multiple-value-list
-                              (maybe-analyze (object document) branch)))))
+                   #+no (setf (analysis-results document)
+                              (lparallel:task-handler-bind
+                                  ((error #'lparallel:invoke-transfer-error))
+                                (lparallel:future
+                                  (multiple-value-list
+                                   (maybe-analyze (object document) branch)))))
                    (values "*pending*" "Repository not yet analyzed"))
-                  ((lparallel:fulfilledp existing)
-                   (handler-case
-                       (let+ (((results branch natures)
-                               (lparallel:force existing)))
-                         (values (format-analysis-results results)
-                                 (format nil "Analysis results for branch `~A` with nature~P ~{`~A`~^, ~}"
-                                         branch (length natures) natures)))
-                     (error (condition)
-                       (values (format nil "```~%~A~%```" condition)
-                               "Failed to analyze repository"))))
-                  (t
-                   (values "*pending*" "Analyzing repository"))))))
+                  ((typep existing 'condition)
+                   (values (format nil "```~%~A~%```" existing)
+                           "Failed to analyze repository"))
+                  (t #+no (lparallel:fulfilledp existing)
+                     (handler-case
+                         (let+ (((results branch natures) existing))
+                           (values (format-analysis-results results)
+                                   (format nil "Analysis results for branch `~A` with nature~P ~{`~A`~^, ~}"
+                                           branch (length natures) natures)))
+                       (error (condition)
+                         (values (format nil "```~%~A~%```" condition)
+                                 "Failed to analyze repository"))))
+                  #+no (t
+                        (values "*pending*" "Analyzing repository"))))))
     (values body (sloc:range (location context)) title)))
 
 (defun maybe-analyze (object branch)
-  (let* ((repository    (var:value object :repository))
-         (sub-directory (var:value object :sub-directory nil))
-         (natures       (mappend (lambda (name)
-                                   (when-let ((symbol (intern (string-upcase name)
-                                                              '#:keyword)))
-                                     (list symbol)))
-                                 (var:value object :natures)))
-         (results       (build-generator.analysis:analyze
-                         repository :auto :versions (list (list :branch        branch
-                                                                :sub-directory sub-directory
-                                                                :natures       natures)))))
-    (values (first results) branch natures)))
+  )
 
 (defun format-analysis-results (results)
   (with-output-to-string (stream)
@@ -158,5 +149,3 @@
                  (format stream " `~A`" value)))
           :when next
           :do (terpri stream))))
-
-(format-analysis-results '(:foo :bar))

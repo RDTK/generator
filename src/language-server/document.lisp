@@ -161,13 +161,24 @@
 ;;; `project-document'
 
 (define-document-class project-document
-    ((%analysis-results :accessor analysis-results
+    ((%analysis-results :accessor %analysis-results
                         :initform nil))
   (contrib:context    template-name-context-contributor)
   (contrib:hover      analysis-results-hover-contributor)
   (contrib:completion template-name-completion-contributor)
   (contrib:definition template-definition-contributor)
   (contrib:reference  project-reference-contributor))
+
+(defmethod initialize-instance :after ((instance project-document) &key)
+  (setf (%analysis-results instance)
+        (make-instance 'deferred-analysis :object instance)))
+
+(defmethod analysis-results ((container project-document) &key if-unavailable)
+  (find-element t (%analysis-results container) :if-unavailable if-unavailable))
+
+(defmethod (setf object) :after ((new-value project::project-spec)
+                                 (object    project-document))
+  (setf (object (%analysis-results object)) new-value))
 
 (defmethod parse ((document project-document) (text string) (pathname t))
   (let* ((workspace            (workspace document))

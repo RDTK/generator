@@ -343,7 +343,7 @@
   (let+ (((&values path (&optional location &rest &ign))
           (structure-path position document))
          (thing (project::object-at location (locations document))))
-    (when (ends-with-subseq '(:include) path)
+    (when (and (stringp thing) (ends-with-subseq '(:include) path))
       (list (make-instance 'distribution-name-context
                            :location location
                            :prefix   thing)))))

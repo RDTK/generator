@@ -182,28 +182,29 @@
                                                          '#:keyword)))
                                 (list symbol)))
                             natures))
-         (versions (list (list :branch        (first branches)
-                               :sub-directory (when sub-directory
-                                                (uiop:ensure-directory-pathname sub-directory))
-                               :natures       natures)))
+         (versions (loop :for branch :in branches
+                         :collect (list :branch        branch
+                                        :sub-directory (when sub-directory
+                                                         (uiop:ensure-directory-pathname sub-directory))
+                                        :natures       natures)))
          (errors   '())
          (results  (handler-case
                        (handler-bind (((and error util:continuable-error)
-
                                         (lambda (condition)
-                                          (when-let ((restart (find-restart 'continue condition)))
+                                          (when-let ((restart (util:find-continue-restart condition)))
                                             (push condition errors)
                                             (invoke-restart restart)))))
                          (build-generator.analysis:analyze
                           repository :auto :versions versions))
                      (error (condition)
                        condition))))
-    (let ((table (make-hash-table)))
-      (setf (gethash t table) (typecase results
-                                (condition
-                                 results)
-                                (cons
-                                 (list (first results) (first branches) natures))
-                                (t
-                                 (first errors))))
+    (let ((table (make-hash-table :test #'equal)))
+      (loop :for version :in versions
+            :for branch  =   (getf version :branch)
+            :for result  :in results
+            :do (setf (gethash branch table)
+                      (typecase results
+                        (condition results)
+                        (cons      (list result branch natures))
+                        (t         (first errors)))))
       table)))

@@ -164,7 +164,8 @@
     ((%analysis-results :accessor %analysis-results
                         :initform nil))
   (contrib:context    template-name-context-contributor)
-  (contrib:hover      analysis-results-hover-contributor)
+  (contrib:hover      analysis-results-hover-contributor
+                      effective-platform-requirements-contributor)
   (contrib:completion template-name-completion-contributor)
   (contrib:definition template-definition-contributor)
   (contrib:reference  project-reference-contributor))
@@ -173,8 +174,8 @@
   (setf (%analysis-results instance)
         (make-instance 'deferred-analysis :object instance)))
 
-(defmethod analysis-results ((container project-document) &key if-unavailable)
-  (find-element t (%analysis-results container) :if-unavailable if-unavailable))
+(defmethod analysis-results ((version t) (container project-document) &key if-unavailable)
+  (find-element version (%analysis-results container) :if-unavailable if-unavailable))
 
 (defmethod (setf object) :after ((new-value project::project-spec)
                                  (object    project-document))
@@ -229,6 +230,13 @@
                                      projects-files+versions repository
                                      :generator-version "0.26.0" ; generator-version
                                      )))
+    (map nil (lambda (project)
+               (setf (project:find-project (model:name project)) project))
+         projects)
+    (reinitialize-instance
+     distribution :direct-versions (uiop:symbol-call '#:build-generator.commands
+                                                     '#:resolve-project-versions
+                                                     (project:versions distribution)))
     distribution))
 
 ;;; `template-document'

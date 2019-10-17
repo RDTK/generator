@@ -80,13 +80,43 @@
 (defmethod contrib:hover-contribution
     ((workspace   t)
      (document    t)
-     (context     system-package-name-context )
+     (context     system-package-name-context)
      (contributor system-package-name-hover-contributor))
   (when-let* ((packages (lparallel:force (ensure-platform-packages workspace)))
               (package  (find (word context) packages :test #'string= :key #'first)))
     (values (format nil "name: ~A~%version: ~A" (first package) (second package))
             (sloc:range (location context))
             "Package Information")))
+
+;;; Effective platform requirements contributor
+
+(defclass effective-platform-requirements-contributor () ())
+
+(defmethod contrib:hover-contribution
+    ((workspace   t)
+     (document    project-document)
+     (context     known-variable-value-context)
+     (contributor effective-platform-requirements-contributor))
+  (when-let ((variable (variable-node context))
+             (project  (object document)))
+    (when (eq (var:variable-info-name variable) :platform-requires)
+      (progn ; handler-bind ((error #'invoke-debugger))
+        (let* ((results      (first (analysis-results "master" document :if-unavailable nil)))
+               (version-spec (make-instance 'project::version-spec
+                                            :name      "dummy"
+                                            :parent    project
+                                            :variables '()
+                                            :requires  (getf results :requires)))
+               (version      (make-instance 'project::version
+                                            :name          "dummy"
+                                            :specification version-spec
+                                            :jobs          '())))
+          (handler-bind (((and error util:continuable-error) #'continue))
+            (model:add-dependencies! version :providers (make-hash-table))
+            ; (clouseau:inspect version)
+            (values (princ-to-string (project:platform-requires version '("ubuntu" "xenial")))
+                    (sloc:range (location context))
+                    "Effective Platform Requirements")))))))
 
 ;;; Analysis results
 
@@ -101,11 +131,14 @@
              (project  (object document)))
     (case (var:variable-info-name variable)
       (:repository (analyze-1 document context (first (var:value project :branches))))
-      (:branches   (analyze-1 document context (first (var:value project :branches)) #+maybe (sloc:content (location context)))))))
+      (:branches   (analyze-1 document context (word context)
+                              :fallback (first (var:value project :branches)))))))
 
-(defun analyze-1 (document context branch)
+(defun analyze-1 (document context branch &key fallback)
   (let+ (((&values body title)
-          (let ((existing (analysis-results document :if-unavailable nil)))
+          (let ((existing (or (analysis-results branch document :if-unavailable nil)
+                              (when fallback
+                                (analysis-results fallback document :if-unavailable nil)))))
             (cond ((null existing)
                    #+no (setf (analysis-results document)
                               (lparallel:task-handler-bind

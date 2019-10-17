@@ -468,6 +468,17 @@ foo"))))
       :programming-languages ("C++") ; TODO actual analysis
       :secondary-files       ,(append config-mode-files pkg-config-files))))
 
+(defvar *source-stack* '())
+
+(defmethod analyze :around ((source pathname)
+                            (kind   (eql :cmake/one-file))
+                            &key &allow-other-keys)
+  (let ((source-stack *source-stack*))
+    (if (find source source-stack :test #'equal)
+        nil
+        (let ((*source-stack* (list* source source-stack)))
+          (call-next-method)))))
+
 (defmethod analyze ((source pathname)
                     (kind   (eql :cmake/one-file))
                     &key

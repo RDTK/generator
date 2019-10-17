@@ -127,7 +127,8 @@
                                                                :format-control "~A"
                                                                :format-arguments (list condition))))))
                                      (var:value-cons key (cdr (first cells))))))
-                     (setf (location-of new-cell) (location-of (first cells)))
+                     (when-let ((old-location (location-of (first cells))))
+                       (setf (location-of new-cell) old-location))
                      new-cell))))
 
 ;;; Uniqueness check

@@ -1,4 +1,20 @@
-((:release "0.33" nil)
+((:release "0.33" nil
+
+  (:enhancement
+   "The variable" (:verb "message") "can be used to specify a message
+    that should be displayed after processing a project or
+    distribution. The" (:verb "generate") "command displays all such
+    messages as the final output before terminating the generator
+    process."
+   "Example message for a distribution:"
+   (:verb "job-list: |
+  * ${jobs.list}
+message: >-
+  Will install your stuff into ${toolkit.dir}.
+
+  Generated the following jobs:
+
+  @{job-list}")))
 
  (:release "0.32" "2019-10-29"
 

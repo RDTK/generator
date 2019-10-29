@@ -181,4 +181,26 @@
        distributions all-jobs target))
 
     (as-phase (:list-credentials)
-      (list-credentials jobs))))
+      (list-credentials jobs))
+
+    (as-phase (:display-messages)
+      (map nil #'display-messages distributions))))
+
+(defun display-messages (distribution &key (stream *standard-output*))
+  (let+ ((first? t)
+         ((&labels display-message (object message)
+            (if first?
+                (setf first? nil)
+                (format stream "~2%"))
+            (format stream "Message for ~/print-items:format-print-items/~@
+                            ~@
+                            ~2@T~@<~@;~A~:>"
+                    (print-items:print-items object) message)))
+         ((&labels maybe-display-message (object variable)
+            (when-let ((message (var:value object variable nil)))
+              (display-message object message)))))
+    (maybe-display-message distribution :message)
+    (map nil (rcurry #'maybe-display-message :message)
+         (project:versions distribution))
+    (unless first?
+      (fresh-line stream))))

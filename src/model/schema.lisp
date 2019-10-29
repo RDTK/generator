@@ -83,6 +83,11 @@
   :documentation
   "A short description of the project, distribution, etc.")
 
+(var:define-variable :message string
+  :inheritance nil
+  :documentation
+  "A message to display after processing the project,distribution, etc.")
+
 (var:define-variable :keywords (var:list-of string)
   :inheritance nil
   :aggregation :histogram

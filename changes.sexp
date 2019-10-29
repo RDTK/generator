@@ -1,4 +1,4 @@
-((:release "0.32" nil
+((:release "0.32" "2019-10-29"
 
   (:bugfix
    "Apparently, Jenkins at some point changed the way it installs and

@@ -237,7 +237,7 @@
                            :conditions (lookup :conditions spec))))
          ;; Inherit
          (inherit-seen (make-uniqueness-checker
-                        "~@<Duplicate inherit specification.~@:>"))
+                        "~@<Duplicate inherit specification \"~A\".~@:>"))
          ((&flet process-inherit (name)
             (with-uniqueness-check (inherit-seen name name)
               (find-or-load-template name repository generator-version))))
@@ -327,7 +327,7 @@
                                        :parent    parent
                                        :variables variables))))))
          ;; Templates
-         (templates-seen (make-uniqueness-checker "~@<Duplicate template.~@:>"))
+         (templates-seen (make-uniqueness-checker "~@<Duplicate template \"~A\".~@:>"))
          ((&flet process-template (name)
             (with-uniqueness-check (templates-seen name name)
               (handler-bind
@@ -392,7 +392,7 @@
                  condition)))))
          ;; Distribution includes
          (includes-seen (make-uniqueness-checker
-                         "~@<Duplicate distribution include.~@:>"))
+                         "~@<Duplicate distribution include \"~A~\".~@:>"))
          ((&flet process-include (spec)
             (with-simple-restart
                 (continue "~@<Continue without including the ~
@@ -410,10 +410,10 @@
                                      :variables    parameters))))))
          ;; Project includes
          (projects-seen (make-uniqueness-checker
-                         "~@<Project entry followed by another entry ~
-                          for same project. Multiple project versions ~
-                          have to be described in a single ~
-                          entry.~@:>"))
+                         "~@<Project entry for \"~A\" followed by ~
+                          another entry for the same project. Multiple ~
+                          project versions have to be described in a ~
+                          single entry.~@:>"))
          ((&flet+ process-version ((name . parameters) note-success)
             (with-simple-restart
                 (continue "~@<Continue without the project version~@:>")

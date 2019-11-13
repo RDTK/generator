@@ -124,7 +124,7 @@
                (object-error
                 (list (list previous "initial definition"   :note)
                       (list key      "offending definition" :error))
-                format-control)))))))
+                format-control key)))))))
 
 (defun call-with-uniqueness-check (thunk checker key
                                    &key (value nil value-supplied?))

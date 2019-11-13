@@ -433,9 +433,10 @@
                                      (find-or-load-distribution
                                       name repository generator-version
                                       :overwrites overwrites))))
-                (list (make-instance 'distribution-include
-                                     :distribution distribution
-                                     :variables    parameters))))))
+                (list (copy-location
+                       spec (make-instance 'distribution-include
+                                           :distribution distribution
+                                           :variables    parameters)))))))
          ;; Project includes
          (projects-seen (make-uniqueness-checker
                          "~@<Project entry for \"~A\" followed by ~

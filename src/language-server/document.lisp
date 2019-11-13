@@ -115,11 +115,6 @@
   (reinitialize-instance position :column (max 0 (1- (sloc:column position))))
   (call-next-method))
 
-(defmethod methods:symbols ((workspace t) (document build-generator-document))
-  (when-let ((object (object document)))
-    (list (proto:make-symbol-information
-           (model:name object) :object (project::location-of object (locations document))))))
-
 (defmethod methods:highlight-in-document ((workspace t)
                                           (document  build-generator-document)
                                           (version   t)

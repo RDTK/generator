@@ -41,6 +41,7 @@
                               (:file       "hover")
                               (:file       "signature-help")
                               (:file       "highlight")
+                              (:file       "symbols")
                               (:file       "completion")
                               (:file       "definition")
                               (:file       "reference")

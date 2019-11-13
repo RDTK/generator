@@ -14,7 +14,8 @@
                        :reader   repository
                        :writer   (setf %repository))
    ;; Documents by kind
-   (%project-documents :accessor project-documents
+   (%project-documents :type     list
+                       :accessor project-documents
                        :initform '())
    ;;
    (%templates         :accessor %templates)

@@ -72,19 +72,21 @@
 
 ;;; Utilities
 
+(defun option-value-source (option)
+  (let ((values (configuration.options:option-values option)))
+    (getf (rest (find-if #'consp values)) :source)))
+
 (defun option-value-string (option)
   (let+ (((&values value value?) (configuration.options:value
                                   option :if-no-value nil)))
     (cond ((not value?)
            "«no value»")
-          ((configuration.options:name-matches
-            (configuration.options:make-name "**.password")
-            (configuration.options:option-name option))
+          ((and (not (eq (option-value-source option) :default))
+                (sensitive-option? option))
            "«secret»")
           (t
            (let ((schema-item (configuration.options:option-schema-item option)))
-             (configuration.options:value->string
-              schema-item value))))))
+             (configuration.options:value->string schema-item value))))))
 
 (defun print-option-lines (stream lines)
   (let+ (((&flet name-string (name)
@@ -103,10 +105,14 @@
 (defun make-option-line (option prefix)
   (let* ((name           (configuration.options:option-name option))
          (full-name      (configuration.options:merge-names prefix name))
-         (values         (configuration.options:option-values option))
          (value-string   (option-value-string option))
-         (source         (getf (rest (find-if #'consp values)) :source))
-         (source-string  (if source
-                             (princ-to-string source)
-                             "«no source»")))
+         (source         (option-value-source option))
+         (source-string  (cond ((null source)
+                                "«no source»")
+                               ((typep source 'configuration.options.sources::file-source)
+                                (uiop:native-namestring
+                                 (configuration.options.sources::source-pathname
+                                  source)))
+                               (t
+                                (princ-to-string source)))))
     (list full-name value-string source-string)))

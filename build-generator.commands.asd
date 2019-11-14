@@ -61,6 +61,7 @@
                               (:file       "conditions")
                               (:file       "protocol")
 
+                              (:file       "util")
                               (:file       "phases")
 
                               (:file       "value-types")

@@ -1,6 +1,6 @@
 ;;;; classes.lisp --- Classes used by the api module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -19,7 +19,8 @@
    (environment :type      tree-map/plist
                 :xpath     "/slave/nodeProperties/hudson.slaves.EnvironmentVariablesNodeProperty/envVars/tree-map"))
   (:get-func (lambda (id)      (node-config id)))
-  (:put-func (lambda (id data) (setf (node-config id) data))))
+  (:put-func (lambda (id data) (setf (node-config id) data)))
+  (:name-slot nil))
 
 (defmethod print-object ((object node) stream)
   (print-unreadable-object (object stream :type t :identity t)
@@ -35,7 +36,8 @@
                  :xpath "builtOn/text()")
      (result     :type  keyword
                  :xpath "result/text()"))
-  (:get-func (lambda (id) (build-config id))))
+  (:get-func (lambda (id) (build-config id)))
+  (:name-slot nil))
 
 (defmethod job ((build build) &key &allow-other-keys)
   (job (first (split-sequence #\/ (id build)))))

@@ -186,11 +186,10 @@
        (define-operation (,rename-name :path ,rename-path) (source-name new-name)
          ;; Some objects cannot be renamed while they are "busy" in
          ;; some sense. Retry until renaming becomes possible.
-         (iter:iter
-           (let+ (((&values &ign &ign props) (request :|newName| new-name
-                                                      :method    :post)))
-             (iter:while (ppcre:scan "rename\\?newName" (cdr (assoc :location props))))
-             (sleep 1)))
+         (loop :for props = (nth-value
+                             2 (request :|newName| new-name :method :post))
+               :while (ppcre:scan "rename\\?newName" (cdr (assoc :location props)))
+               :do (sleep 1))
          ,(if config?
               `(,name new-name)
               t))

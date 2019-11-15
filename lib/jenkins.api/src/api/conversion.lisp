@@ -1,6 +1,6 @@
 ;;;; conversion.lisp --- Conversions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -203,10 +203,9 @@
                        inner-types
                        &allow-other-keys)
   (let ((element-type (list* 'equals-string/cons (rest inner-types))))
-    (iter (for line in (xloc:xml-> value `(,(first inner-types) string)))
-          (let+ (((key . value) (xloc:xml-> line element-type)))
-            (collect key)
-            (collect value)))))
+    (loop :for line :in (xloc:xml-> value `(,(first inner-types) string))
+          :for (key . value) = (xloc:xml-> line element-type)
+          :collect key :collect value)))
 
 (defmethod xloc:->xml ((value list)
                        (dest  (eql 'string))
@@ -215,9 +214,8 @@
                        inner-types
                        &allow-other-keys)
   (let ((element-type (list* 'equals-string/cons (rest inner-types))))
-    (xloc:->xml (iter (for (key value1) on value :by #'cddr)
-                      (collect
-                          (xloc:->xml (cons key value1) dest element-type)))
+    (xloc:->xml (loop :for (key value1) :on value :by #'cddr
+                      :collect (xloc:->xml (cons key value1) dest element-type))
                 dest `(,(first inner-types) string))))
 
 ;;; equals+newline/plist
@@ -231,12 +229,13 @@
                        inner-types
                        &allow-other-keys)
   (let ((element-type (list* 'equals-string/cons inner-types)))
-    (iter (for line in (xloc:xml-> value '(list/newline string)))
-          (with-simple-restart (continue "Skip the line")
-            (let+ (((key . value) (handler-bind ((xloc:xml->-conversion-error #'continue))
-                                    (xloc:xml-> line element-type))))
-              (collect key)
-              (collect value))))))
+    (loop :for line :in (xloc:xml-> value '(list/newline string))
+          :for (key . value) = (with-simple-restart (continue "Skip the line")
+                                 (handler-bind
+                                     ((xloc:xml->-conversion-error #'continue))
+                                   (xloc:xml-> line element-type)))
+          :when key
+          :collect key :and :collect value)))
 
 (defmethod xloc:->xml ((value list)
                        (dest  (eql 'string))
@@ -245,9 +244,8 @@
                        inner-types
                        &allow-other-keys)
   (let ((element-type (list* 'equals-string/cons inner-types)))
-    (xloc:->xml (iter (for (key value1) on value :by #'cddr)
-                      (collect
-                          (xloc:->xml (cons key value1) dest element-type)))
+    (xloc:->xml (loop :for (key value1) :on value :by #'cddr
+                      :collect (xloc:->xml (cons key value1) dest element-type))
                 dest '(list/newline string))))
 
 ;;; `tree-map/plist'
@@ -273,9 +271,8 @@
       (((:val items :type 'string/node) "./string"
         :if-multiple-matches :all))
       value
-    (iter:iter (iter:for (key value) on items :by #'cddr)
-               (iter:collect (make-keyword key))
-               (iter:collect value))))
+    (loop :for (key value) :on items :by #'cddr
+          :collect (make-keyword key) :collect value)))
 
 (defmethod xloc:->xml ((value list)
                        (dest  stp:element)

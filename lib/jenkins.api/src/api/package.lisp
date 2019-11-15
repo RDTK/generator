@@ -9,7 +9,6 @@
    #:cl
    #:alexandria
    #:split-sequence
-   #:iterate
    #:let-plus
    #:more-conditions)
 

@@ -15,7 +15,6 @@
   :depends-on  ("alexandria"
                 (:version "split-sequence"  "1.1")
                 (:version "closer-mop"      "0.61")
-                "iterate"
                 (:version "let-plus"        "0.1")
                 (:version "more-conditions" "0.1.0")
                 (:version "log4cl"          "1.1.3")

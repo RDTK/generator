@@ -1,6 +1,6 @@
 ;;;; release.lisp ---
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2014, 2015, 2016 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -40,17 +40,17 @@
 
     ;; Modify environment variables.
     (setf (environment job)
-          (iter (for (name value) on (environment job) :by #'cddr)
-                (case name
-                  (:package_revision
-                   (collect name)
-                   (regex-modification
-                    (format-symbol :keyword "~A/~A" :environment name)
-                    value "^-b(.*)$" "-r\\1")
-                   (collect value))
-                  (t
-                   (collect name)
-                   (collect value)))))
+          (loop :for (name value) :on (environment job) :by #'cddr
+                :do (case name
+                      (:package_revision
+                       (collect name)
+                       (regex-modification
+                        (format-symbol :keyword "~A/~A" :environment name)
+                        value "^-b(.*)$" "-r\\1")
+                       (collect value))
+                      (t
+                       (collect name)
+                       (collect value)))))
 
     ;; Modify source projects of copy artifact build steps.
     (dolist (builder (builders job))

@@ -316,4 +316,4 @@
    #:jobs)
 
   (:documentation
-   "TODO"))
+   "Model classes for Jenkins configuration and functions for using the REST API."))

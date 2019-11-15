@@ -1,6 +1,6 @@
 ;;;; interface.lisp --- Implementations of Jenkins interfaces.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -8,13 +8,17 @@
 
 (defmacro define-interface-implementations ((name
                                              &key
+                                             (selectors?     t)
+                                             (plural-name    (symbolicate name '#:s))
                                              (class-location '(xloc:name ".")))
                                             &body implementations)
   (let+ (((class-accessor class-path) class-location)
-         (name->class-table (format-symbol *package* "*NAME->~A-CLASS*" name))
-         (class->name-table (format-symbol *package* "*CLASS->~A-NAME*" name))
+         (name->class-table (symbolicate '#:*NAME-> name '#:-CLASS*))
+         (class->name-table (symbolicate '#:*CLASS-> name '#:-NAME*))
+         (of-type-name/list (symbolicate plural-name '#:-of-type))
+         (of-type-name/one  (symbolicate name        '#:-of-type))
          ((&flet+ make-implementation (((key class &key plugin) (&rest slots) &body options))
-            (let ((class-name (format-symbol *package* "~A/~A" name key)))
+            (let ((class-name (symbolicate name '#:/ key)))
               `((setf (gethash ,class       ,name->class-table) ',class-name
                       (gethash ',class-name ,class->name-table) ,class)
 
@@ -32,8 +36,14 @@
        (defvar ,name->class-table (make-hash-table :test #'equal))
        (defvar ,class->name-table (make-hash-table :test #'eq))
 
-       (defmethod xloc:xml-> ((value stp:element)
-                              (type  (eql ',name))
+       ,@(when selectors?
+           `((defmethod ,of-type-name/list (type container)
+               (remove-if-not (of-type type) (,plural-name container)))
+
+             (defmethod ,of-type-name/one (type container)
+               (find-if (of-type type) (,plural-name container)))))
+
+       (defmethod xloc:xml-> ((value stp:element) (type (eql ',name))
                               &key &allow-other-keys)
          ;; Try to look up the implementation class for the
          ;; implementation name stored in VALUE. If the class cannot be
@@ -68,9 +78,9 @@
                               (dest  stp:element)
                               (type  (eql ',name))
                               &key &allow-other-keys)
-         "This helper method ensures that XML substree DEST is still in
-         sync with the XML substree stored in the unmapped
-         implementation marker VALUE."
+         ;; This helper method ensures that XML substree DEST is still
+         ;; in sync with the XML substree stored in the unmapped
+         ;; implementation marker VALUE.
          (check-type value unmapped-marker)
          (assert (eq dest (fourth value))))
 

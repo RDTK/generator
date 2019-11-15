@@ -49,7 +49,7 @@
             default1     (or default ""))))
   dest)
 
-(define-interface-implementations (property)
+(define-interface-implementations (property :plural-name properties)
   ((discard-builds "jenkins.model.BuildDiscarderProperty")
    ((keep-builds/days     :type     (or (eql -1) positive-integer)
                           :xpath    "strategy[@class=\"hudson.tasks.LogRotator\"]/daysToKeep/text()"

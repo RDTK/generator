@@ -31,6 +31,7 @@
   (:tag    "TAG"))
 
 (define-interface-implementations (scm
+                                   :selectors?     nil
                                    :class-location (xloc:val "@class"))
   ((svn "hudson.scm.SubversionSCM"
         :plugin "subversion@1.43")
@@ -729,24 +730,6 @@
         (when plugin
           (setf (stp:attribute-value root "plugin") plugin))
         new-value))
-
-(macrolet ((define-of-type-methods (interface
-                                    &optional
-                                    (plural (symbolicate interface '#:s)))
-             (let ((name/list (symbolicate plural    '#:-of-type))
-                   (name/one  (symbolicate interface '#:-of-type)))
-               `(progn
-                  (defmethod ,name/list (type job)
-                    (remove-if-not (of-type type) (,plural job)))
-
-                  (defmethod ,name/one (type job)
-                    (find-if (of-type type) (,plural job)))))))
-
-  (define-of-type-methods property properties)
-  (define-of-type-methods trigger)
-  (define-of-type-methods build-wrapper)
-  (define-of-type-methods builder)
-  (define-of-type-methods publisher))
 
 (defmethod upstream ((object job))
   (when-let ((reverse (trigger-of-type 'trigger/reverse object)))

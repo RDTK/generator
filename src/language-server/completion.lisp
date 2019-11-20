@@ -106,7 +106,7 @@
                       #+todo :when #+todo (starts-with-subseq
                                            prefix (string-downcase (var:variable-info-name variable)))
                    :collect (make-item variable))))
-         (make-local-variable-items (context object)
+         (make-local-variable-items (context container)
            (map 'list (lambda+ ((name . &ign))
                         (let ((title (string-downcase name)))
                           (proto:make-completion-item
@@ -115,7 +115,7 @@
                                         ; :detail
                            :range    (prefix-range context)
                            :new-text (make-new-text (kind context) title))))
-                (var:variables object)))
+                (var:variables container)))
          (make-next-value-item (context default?)
            (let* ((kind          (kind context))
                   (documentation "The next value of this variable")
@@ -210,9 +210,9 @@
      (contriubutor variable-value-completion-contributor))
   (let ((variable (variable-node context)))
     (cond ((member (var:variable-info-name variable) '(:branches :branch))
-           (remote-refs (object document) :branch))
+           (remote-refs (container context) :branch))
           ((member (var:variable-info-name variable) '(:tags :tag))
-           (remote-refs (object document) :tag))
+           (remote-refs (container context) :tag))
           ((eq (var:variable-info-name variable) :recipe.maintainer)
            (complete-person context workspace))
           (t

@@ -114,9 +114,25 @@
     (when (eql depth 0)
       (list (make-instance 'template-name-context
                            :location (first (lookup:lookup position (index document))))))))
+
+;;; Variable context
+
+(defclass variable-context (context)
+  ((%container :initarg :container
+               :reader  container)))
+
+;; TODO make a variant that returns the whole hierarchy
+(defun find-variable-container (locations document)
+  (let ((document-locations (locations document)))
+    (map nil (lambda (location)
+               (let ((object (project::object-at location document-locations)))
+                 (when (typep object 'var:direct-variables-mixin)
+                   (return-from find-variable-container object))))
+         locations)))
+
 ;;; Variable name context
 
-(defclass variable-name-context (context
+(defclass variable-name-context (variable-context
                                  prefix-mixin
                                  print-items:print-items-mixin)
   ((%prefix-range :initarg :prefix-range
@@ -190,7 +206,7 @@
 
 ;;; Variable value context
 
-(defclass variable-value-context (context)
+(defclass variable-value-context (variable-context)
   ((%variable-location :initarg :variable-location
                        :reader  variable-location)
 
@@ -215,20 +231,23 @@
      (document     t)
      (position     t)
      (contriubutor variable-value-context-contributor))
-  (let+ (((&values path (&optional location &rest &ign))
-          (structure-path position document)))
+  (let+ (((&values path (&whole locations &optional location &rest &ign))
+          (structure-path position document))
+         (container (find-variable-container locations document)))
     (when-let* ((position (position :variables path))
                 (name     (when (plusp position)
                             (nth (1- position) path))))
       (list (if-let ((variable (var:find-variable name :if-does-not-exist nil)))
               (make-instance 'known-variable-value-context
                              :location          location
+                             :container         container
                              :variable-location location ; TODO
                              :variable-node     variable
                                         ; :prefix-range
                              )
               (make-instance 'unknown-variable-value-context
                              :location          location
+                             :container         container
                              :variable-location location
                              :variable-name     name))))))
 

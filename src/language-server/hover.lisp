@@ -28,33 +28,33 @@
 
 (defclass effective-value-hover-contributor () ())
 
-(flet ((effective-value (object variable-name variable-location)
-         (when object
+(flet ((effective-value (container variable-name variable-location)
+         (when container
            (values (format nil "```yaml~@
                                 ~A~@
                                 ```"
                            (handler-case
-                               (var:value object variable-name)
+                               (var:value container variable-name)
                              (error (condition)
                                condition)))
                    variable-location
-                   (format nil "Effective Value of `~(~A~)`" variable-name)))))
+                   (format nil "Effective Value of `~(~A~)` in `~/print-items:format-print-items/`"
+                           variable-name (print-items:print-items container))))))
 
   (defmethod contrib:hover-contribution
       ((workspace   t)
        (document    t)
        (context     variable-value-context)
        (contributor effective-value-hover-contributor))
-    (let+ (((&accessors-r/o object) document)
-           ((&accessors-r/o variable-name variable-location) context))
-      (effective-value object variable-name (sloc:range variable-location))))
+    (let+ (((&accessors-r/o container variable-name variable-location) context))
+      (effective-value container variable-name (sloc:range variable-location))))
 
   (defmethod contrib:hover-contribution
       ((workspace   t)
        (document    t)
        (context     variable-reference-context)
        (contributor effective-value-hover-contributor))
-    (effective-value (object document)
+    (effective-value (container context)
                      (make-keyword (string-upcase (variable-name context))) ; TODO
                      (prefix-range context))))
 
@@ -97,14 +97,14 @@
      (document    project-document)
      (context     known-variable-value-context)
      (contributor effective-platform-requirements-contributor))
-  (when-let ((variable (variable-node context))
-             (project  (object document)))
+  (when-let ((variable  (variable-node context))
+             (container (container context)))
     (when (eq (var:variable-info-name variable) :platform-requires)
       (progn ; handler-bind ((error #'invoke-debugger))
         (let* ((results      (first (analysis-results "master" document :if-unavailable nil)))
                (version-spec (make-instance 'project::version-spec
                                             :name      "dummy"
-                                            :parent    project
+                                            :parent    container
                                             :variables '()
                                             :requires  (getf results :requires)))
                (version      (make-instance 'project::version

@@ -20,19 +20,28 @@
   ;; Conditions
   (:export
    #:request-failed-error
+   #:endpoint
+   #:relative-url
+   #:absolute-url
    #:code
-   #:body
+   ; #:body
+
    #:object-not-found-error
 
    #:communication-condition
    #:failed-to-obtain-csrf-token-error
    #:jenkins-connect-error)
 
-  ;; Variables
+  ;; Credentials and endpoint
   (:export
-   #:*base-url*
-   #:*username*
-   #:*password*)
+   #:make-username+password-credentials
+   #:make-token-credentials
+
+   #:make-endpoint
+
+   #:*endpoint*
+   #:call-with-endpoint
+   #:with-endpoint)
 
   ;; API
   (:export

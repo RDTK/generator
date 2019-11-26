@@ -13,17 +13,18 @@
 
   :version     "0.1.0"
   :depends-on  ("alexandria"
-                (:version "split-sequence"  "1.1")
-                (:version "closer-mop"      "0.61")
-                (:version "let-plus"        "0.1")
-                (:version "more-conditions" "0.1.0")
-                (:version "log4cl"          "1.1.3")
+                (:version "split-sequence"        "1.1")
+                (:version "closer-mop"            "0.61")
+                (:version "let-plus"              "0.1")
+                (:version "more-conditions"       "0.1.0")
+                (:version "utilities.print-items" "0.1")
+                (:version "log4cl"                "1.1.3")
 
-                (:version "cl-ppcre"        "2.0.3")
+                (:version "cl-ppcre"              "2.0.3")
                 "puri"
-                (:version "drakma"          "1.2.8")
-                (:version "xml.location"    "0.2.0")
-                (:version "cl-json"         "0.4.1"))
+                (:version "drakma"                "1.2.8")
+                (:version "xml.location"          "0.2.0")
+                (:version "cl-json"               "0.4.1"))
 
   :components  ((:module     "api-early"
                  :pathname   "src/api"
@@ -32,7 +33,6 @@
                               (:file     "types")
                               (:file     "conditions")
                               (:file     "util")
-                              (:file     "variables")
                               (:file     "protocol")
                               (:file     "conversion")))
 

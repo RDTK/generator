@@ -13,38 +13,37 @@
                  :path  "crumbIssuer/api/xml"
                  :query "xpath=concat(//crumbRequestField,\":\",//crumb)"))
 
-(defun obtain-csrf-protection-token (&key (base-url *base-url*))
-  (let ((url (puri:merge-uris *csrf-protection-token-url* base-url)))
-    (log:info "Trying to obtain CSRF protection token from ~A" url)
-    (more-conditions:with-condition-translation
-        (((request-failed-error failed-to-obtain-csrf-token-error)
-          :base-url base-url)
-         ((error jenkins-connect-error)
-          :base-url base-url))
-      (let* ((result (checked-request url :if-not-found nil))
-             (header (when result
-                       (apply #'cons (split-sequence #\: result)))))
-        (log:info "~@<Got cookies ~{~A~^, ~}~@:>"
-                  (drakma:cookie-jar-cookies *cookie-jar*))
-        (log:info "~@<~:[CSRF protection not enabled~;Got CSRF protection ~
-                   token header ~:*~S~]~@:>"
-                  header)
-        header))))
+(defun obtain-csrf-protection-token (&key (endpoint *endpoint*))
+  (log:info "Trying to obtain CSRF protection token from ~A" endpoint)
+  (more-conditions:with-condition-translation
+      (((request-failed-error failed-to-obtain-csrf-token-error)
+        :endpoint     endpoint
+        :relative-url *csrf-protection-token-url*)
+       ((error jenkins-connect-error)
+        :endpoint endpoint))
+    (let* ((result (checked-request *csrf-protection-token-url*
+                                    :if-not-found nil))
+           (header (when result
+                     (apply #'cons (split-sequence #\: result)))))
+      (log:info "~@<Got cookies ~{~A~^, ~}~@:>"
+                (drakma:cookie-jar-cookies (cookies endpoint)))
+      (log:info "~@<~:[CSRF protection not enabled~;Got CSRF protection ~
+                 token header ~:*~S~]~@:>"
+                header)
+      (or header t))))
 
-(defvar *csrf-protection-token*)
-
-(defun ensure-csrf-protection-token ()
-  (if (boundp '*csrf-protection-token*)
-      *csrf-protection-token*
-      (setf *csrf-protection-token* (obtain-csrf-protection-token))))
+(defun ensure-csrf-protection-token (&key (endpoint *endpoint*))
+  (or (csrf-token endpoint)
+      (setf (csrf-token endpoint)
+            (obtain-csrf-protection-token :endpoint endpoint))))
 
 ;;; Jenkins version
 
-(defun jenkins-version (&key (base-url *base-url*))
-  (log:info "~@<Trying to contact Jenkins instance at ~A~@:>" base-url)
+(defun jenkins-version (&key (endpoint *endpoint*))
+  (log:info "~@<Trying to contact Jenkins instance at ~A~@:>" endpoint)
   (more-conditions:with-condition-translation
-      (((error jenkins-connect-error) :base-url base-url))
-    (let+ (((&values &ign &ign headers) (checked-request base-url))
+      (((error jenkins-connect-error) :endpoint endpoint))
+    (let+ (((&values &ign &ign headers) (checked-request "" :endpoint endpoint))
            (version (assoc-value headers :x-jenkins)))
       (unless version
         (error "~@<Reply from Jenkins did not include X-Jenkins ~
@@ -52,7 +51,10 @@
       (log:info "~@<Jenkins version is ~A~@:>" version)
       version)))
 
-(defun verify-jenkins ()
-  (prog1
-      (jenkins-version)
-    (ensure-csrf-protection-token)))
+(defun ensure-jenkins-version (&key (endpoint *endpoint*))
+  (or (version endpoint)
+      (setf (version endpoint) (jenkins-version :endpoint endpoint))))
+
+(defun verify-jenkins (&key (endpoint *endpoint*))
+  (ensure-csrf-protection-token :endpoint endpoint)
+  (ensure-jenkins-version :endpoint endpoint))

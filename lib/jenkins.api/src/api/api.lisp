@@ -20,26 +20,21 @@
                                   args-and-parameters
                                   :method :content-type :content :if-not-found)))
                 (apply #'checked-request
-                       (puri:merge-uris
-                        (make-instance 'puri:uri :path ,path :escaped t)
-                        *base-url*)
+                       (make-instance 'puri:uri :path ,path :escaped t)
                        :parameters (loop for (key value) on parameters :by #'cddr
                                          collect (cons (let ((*readtable* (copy-readtable)))
                                                          (setf (readtable-case *readtable*) :invert)
                                                          (format nil "~A" key))
                                                        (princ-to-string value)))
                        :verify nil
-                       (append
-                        (when-let ((header (ensure-csrf-protection-token)))
-                          (list :additional-headers (list header)))
-                        (when if-not-found-supplied?
-                          (list :if-not-found if-not-found))
-                        (when method
-                          (list :method method))
-                        (when content-type
-                          (list :content-type content-type))
-                        (when content
-                          (list :content content)))))))
+                       (append (when if-not-found-supplied?
+                                 (list :if-not-found if-not-found))
+                               (when method
+                                 (list :method method))
+                               (when content-type
+                                 (list :content-type content-type))
+                               (when content
+                                 (list :content content)))))))
        ,@body)))
 
 (defmacro define-operation/json ((name &key path) (&rest args)

@@ -9,37 +9,45 @@
 ;;; Request-related errors
 
 (define-condition request-failed-error (error)
-  ((%url  :initarg :url
-          :reader  url)
-   (%code :initarg :code
-          :reader  code)
-   (%body :initarg :body
-          :reader  body))
-  (:report (lambda (condition stream)
-             (format stream "~@<Request to ~A failed (code ~D):~@:_~
-                             ~@:_~
-                             ~2@T~@<~@:;~A~@:>~@:>"
-                     (url condition) (code condition) (body condition))))
+  ((%endpoint     :initarg :endpoint
+                  :reader  endpoint)
+   (%relative-url :initarg :relative-url
+                  :reader  relative-url)
+   (%code         :initarg :code
+                  :reader  code)
+   (%body         :initarg :body
+                  :reader  body))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Request to ~A failed (code ~D):~@:_~
+                     ~@:_~
+                     ~2@T~@<~@:;~A~@:>~@:>"
+             (absolute-url condition) (code condition) (body condition))))
   (:documentation
    "Signaled when an HTTP request fails."))
 
+(defmethod absolute-url ((condition request-failed-error))
+  (puri:merge-uris (relative-url condition)
+                   (base-url (endpoint condition))))
+
 (define-condition object-not-found-error (request-failed-error)
   ()
-  (:report (lambda (condition stream)
-             (format stream "~@<Object not found at ~A (code ~D):~@:_~
-                             ~@:_~
-                             ~2@T~@<~@:;~A~@:>~@:>"
-                     (url condition) (code condition) (body condition))))
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Object not found at ~A (code ~D):~@:_~
+                     ~@:_~
+                     ~2@T~@<~@:;~A~@:>~@:>"
+             (absolute-url condition) (code condition) (body condition))))
   (:documentation
    "Signaled when an object cannot be found on the server."))
 
 ;;; Higher-level communication conditions
 
 (define-condition communication-condition (condition)
-  ((%base-url :initarg :base-url
-              :reader  base-url))
+  ((%endpoint :initarg :endpoint
+              :reader  endpoint))
   (:default-initargs
-   :base-url (missing-required-initarg 'communication-condition :base-url))
+   :endpoint (missing-required-initarg 'communication-condition :endpoint))
   (:documentation
    "Supertype for high-level communication conditions."))
 
@@ -64,7 +72,7 @@
    (lambda (condition stream)
      (format stream "~@<Could not connect to Jenkins instance at ~A.~
                      ~/more-conditions:maybe-print-cause/~@:>"
-             (base-url condition) condition)))
+             (base-url (endpoint condition)) condition)))
   (:documentation
    "Signaled when an initial connection to a Jenkins instance fails."))
 

@@ -91,12 +91,17 @@
    "Adds infrastructure for accessing a Jenkins server to command classes."))
 
 (defmethod command-execute :around ((command jenkins-access-mixin))
-  (let+ (((&accessors-r/o (jenkins.api:*base-url* base-uri)
-                          (jenkins.api:*username* username)
-                          password api-token)
-          command)
-         (jenkins.api:*password* (or api-token password)))
-    (call-next-method)))
+  (let+ (((&accessors-r/o base-uri username password api-token) command)
+         (credentials (cond (api-token
+                             (jenkins.api:make-token-credentials
+                              username api-token))
+                            ((and username password)
+                             (jenkins.api:make-username+password-credentials
+                              username password))))
+         (endpoint    (jenkins.api:make-endpoint
+                       base-uri :credentials credentials)))
+    (jenkins.api:with-endpoint (endpoint)
+      (call-next-method))))
 
 (defmethod command-execute :before ((command jenkins-access-mixin))
   (as-phase (:verify-jenkins) (jenkins.api::verify-jenkins)))

@@ -11,43 +11,35 @@
   `(defun ,name ,args
      (flet ((request (&rest args-and-parameters
                       &key
+                      (if-not-found nil if-not-found-supplied?)
                       method
                       content-type
                       content
                       &allow-other-keys)
               (let+ ((parameters (alexandria:remove-from-plist
                                   args-and-parameters
-                                  :method :content-type :content))
-                     ((&whole result body code &rest &ign)
-                      (multiple-value-list
-                       (apply #'drakma:http-request
-                              (puri:merge-uris
-                               (make-instance 'puri:uri
-                                              :path    ,path
-                                              :escaped t)
-                               *base-url*)
-                              :parameters (loop for (key value) on parameters :by #'cddr
-                                                collect (cons (let ((*readtable* (copy-readtable)))
-                                                                (setf (readtable-case *readtable*) :invert)
-                                                                (format nil "~A" key))
-                                                              (princ-to-string value)))
-                              :verify     nil
-                              :cookie-jar *cookie-jar*
-                              (append
-                               (when-let ((header (ensure-csrf-protection-token)))
-                                 (list :additional-headers (list header)))
-                               (when (and *username* *password*)
-                                 (list :basic-authorization (list *username* *password*)))
-                               (when method
-                                 (list :method method))
-                               (when content-type
-                                 (list :content-type content-type))
-                               (when content
-                                 (list :content content)))))))
-                (unless (<= 200 code 399)
-                  (error "~@<Request failed (code ~D):~_~A~@:>"
-                         code body))
-                (values-list result))))
+                                  :method :content-type :content :if-not-found)))
+                (apply #'checked-request
+                       (puri:merge-uris
+                        (make-instance 'puri:uri :path ,path :escaped t)
+                        *base-url*)
+                       :parameters (loop for (key value) on parameters :by #'cddr
+                                         collect (cons (let ((*readtable* (copy-readtable)))
+                                                         (setf (readtable-case *readtable*) :invert)
+                                                         (format nil "~A" key))
+                                                       (princ-to-string value)))
+                       :verify nil
+                       (append
+                        (when-let ((header (ensure-csrf-protection-token)))
+                          (list :additional-headers (list header)))
+                        (when if-not-found-supplied?
+                          (list :if-not-found if-not-found))
+                        (when method
+                          (list :method method))
+                        (when content-type
+                          (list :content-type content-type))
+                        (when content
+                          (list :content content)))))))
        ,@body)))
 
 (defmacro define-operation/json ((name &key path) (&rest args)
@@ -57,10 +49,10 @@
                              &key
                              (depth 1)
                              &allow-other-keys)
-                (json:decode-json-from-string
-                 (sb-ext:octets-to-string
-                  (apply #'request :depth depth
-                         (remove-from-plist args :depth)))))
+                (when-let ((response (apply #'request :depth depth
+                                            (remove-from-plist args :depth))))
+                  (json:decode-json-from-string
+                   (sb-ext:octets-to-string response))))
               (field (structure spec)
                 (cdr (or (assoc spec structure)
                          (error "~@<No such field: ~S~@:>" spec)))))
@@ -147,10 +139,13 @@
                 names))))
 
        (defun ,exists-name (name)
-         (handler-case (progn (,get-name name :depth -1) t) (simple-error () nil)))
+         (when (,get-name name :depth -1 :if-not-found nil)
+           t))
 
-       (define-operation/json (,get-name :path ,get-path) (name &key (depth 1))
-         (request/json :depth depth))
+       (define-operation/json (,get-name :path ,get-path)
+           (name &key (depth        1)
+                      (if-not-found #'error))
+         (request/json :depth depth :if-not-found if-not-found))
 
        ,@(when config?
            `((define-operation/xml (,config-name :path ,config-path) (name)

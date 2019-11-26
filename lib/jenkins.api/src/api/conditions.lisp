@@ -1,10 +1,74 @@
 ;;;; conditions.lisp --- Conditions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013, 2015 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.api)
+
+;;; Request-related errors
+
+(define-condition request-failed-error (error)
+  ((%url  :initarg :url
+          :reader  url)
+   (%code :initarg :code
+          :reader  code)
+   (%body :initarg :body
+          :reader  body))
+  (:report (lambda (condition stream)
+             (format stream "~@<Request to ~A failed (code ~D):~@:_~
+                             ~@:_~
+                             ~2@T~@<~@:;~A~@:>~@:>"
+                     (url condition) (code condition) (body condition))))
+  (:documentation
+   "Signaled when an HTTP request fails."))
+
+(define-condition object-not-found-error (request-failed-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "~@<Object not found at ~A (code ~D):~@:_~
+                             ~@:_~
+                             ~2@T~@<~@:;~A~@:>~@:>"
+                     (url condition) (code condition) (body condition))))
+  (:documentation
+   "Signaled when an object cannot be found on the server."))
+
+;;; Higher-level communication conditions
+
+(define-condition communication-condition (condition)
+  ((%base-url :initarg :base-url
+              :reader  base-url))
+  (:default-initargs
+   :base-url (missing-required-initarg 'communication-condition :base-url))
+  (:documentation
+   "Supertype for high-level communication conditions."))
+
+(define-condition failed-to-obtain-csrf-token-error (error
+                                                     communication-condition
+                                                     more-conditions:chainable-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Could not obtain CSRF token from Jenkins ~
+                     instance at ~A.~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (base-url condition) condition)))
+  (:documentation
+   "Signaled when a CSRF token cannot be obtained."))
+
+(define-condition jenkins-connect-error (error
+                                         communication-condition
+                                         more-conditions:chainable-condition)
+  ()
+  (:report
+   (lambda (condition stream)
+     (format stream "~@<Could not connect to Jenkins instance at ~A.~
+                     ~/more-conditions:maybe-print-cause/~@:>"
+             (base-url condition) condition)))
+  (:documentation
+   "Signaled when an initial connection to a Jenkins instance fails."))
+
+;;; Serialization-related conditions
 
 (define-condition unmapped-class (condition)
   ((interface :initarg :interface

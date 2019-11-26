@@ -1,6 +1,6 @@
 ;;;; variables.lisp --- Dynamic variables used by the api module.
 ;;;;
-;;;; Copyright (C) 2012, 2013 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,3 +16,5 @@
 
 (defvar *password* nil
   "TODO")
+
+(defparameter *cookie-jar* (make-instance 'drakma:cookie-jar))

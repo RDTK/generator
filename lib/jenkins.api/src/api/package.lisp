@@ -17,6 +17,17 @@
    #:job-name-character?
    #:job-name?           #:job-name)
 
+  ;; Conditions
+  (:export
+   #:request-failed-error
+   #:code
+   #:body
+   #:object-not-found-error
+
+   #:communication-condition
+   #:failed-to-obtain-csrf-token-error
+   #:jenkins-connect-error)
+
   ;; Variables
   (:export
    #:*base-url*

@@ -57,5 +57,7 @@
                  :depends-on ("api-early" "model")
                  :serial     t
                  :components ((:file     "classes")
+
+                              (:file     "http")
                               (:file     "csrf")
                               (:file     "api")))))

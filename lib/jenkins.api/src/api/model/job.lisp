@@ -364,7 +364,7 @@
    (:name-slot nil))
 
   ((issues-recorder "io.jenkins.plugins.analysis.core.steps.IssuesRecorder"
-                    :plugin "warnings-ng@4.0.0")
+                    :plugin "warnings-ng@7.2.1")
    ((analysis-tools                  :type      analysis-tool
                                      :xpath     ("analysisTools/*"
                                                  :if-multiple-matches :all)
@@ -394,6 +394,9 @@
                                      :initform  0)
     (minimum-severity                :type      string
                                      :xpath     (:version
+                                                 ("warnings-ng@7.2.1" "minimumSeverity[@plugin='analysis-model-api@7.0.2']/name/text()")
+                                                 ("warnings-ng@7.0.0" "minimumSeverity[@plugin='analysis-model-api@7.0.1']/name/text()")
+                                                 ("warnings-ng@5.1.0" "minimumSeverity[@plugin='analysis-model-api@5.1.1']/name/text()")
                                                  ("warnings-ng@4.0.0" "minimumSeverity[@plugin='analysis-model-api@3.0.0']/name/text()")
                                                  ("warnings-ng@3.0.3" "minimumSeverity[@plugin='analysis-model-api@2.1.2']/name/text()")
                                                  ("warnings-ng@2.1.2" "minimumSeverity[@plugin='analysis-model-api@2.0.2']/name/text()")

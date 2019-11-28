@@ -59,3 +59,13 @@
                       'output-directory-mixin :output-directory))
   (:documentation
    "Adds an output-directory slot to command classes."))
+
+;;; `context-elements-cache-mixin'
+
+(defclass context-elements-cache-mixin ()
+  ((%context-elements :accessor %context-elements
+                      :initform '())))
+
+(defmethod context-elements :around ((command context-elements-cache-mixin))
+  (or (%context-elements command)
+      (setf (%context-elements command) (call-next-method))))

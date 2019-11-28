@@ -14,7 +14,8 @@
 ;;; registered using this class and `target-provider' (defined below).
 
 (defclass generate-target (distribution-input-mixin
-                           mode-mixin)
+                           mode-mixin
+                           context-elements-cache-mixin)
   ((%target :initarg  :target
             :reader   target))
   (:default-initargs

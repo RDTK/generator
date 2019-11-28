@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the commands module.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,15 +18,20 @@
 
 ;;; Command protocol
 
-(defgeneric command-execute (command)
-  (:documentation
-   "Execute the already-configured COMMAND."))
-
 (defgeneric make-command (provider &rest args)
   (:method ((provider t) &rest args)
     (apply #'service-provider:make-provider 'command provider args))
   (:documentation
    "Make and return a command according to PROVIDER and ARGS."))
+
+(defgeneric command-execute (command)
+  (:documentation
+   "Execute the already-configured COMMAND."))
+
+(defgeneric context-elements (command)
+  (:method-combination append)
+  (:method append ((command t))
+    '()))
 
 ;;; Command configuration
 
@@ -77,6 +82,15 @@
 (defvar *cache-directory*)
 (defvar *age-limit*)
 
+(defun make-context-function (command)
+  (let ((elements (context-elements command)))
+    (lambda (worker-function)
+      (funcall
+       (reduce (lambda (function next)
+                 (lambda ()
+                   (funcall function next)))
+               elements :initial-value worker-function :from-end t)))))
+
 (defun execute-command (command
                         &key
                         configuration
@@ -95,7 +109,9 @@
 
   (let ((main-thread (bt:current-thread))
         (lock        (bt:make-lock)))
-    (setf lparallel:*kernel* (lparallel:make-kernel num-processes))
+    (setf lparallel:*kernel* (lparallel:make-kernel
+                              num-processes
+                              :context (make-context-function command)))
     (unwind-protect-case ()
         (handler-bind ((error   error-policy)
                        (warning error-policy)

@@ -120,7 +120,11 @@ message: >-
    (:verb
     "!b!include patches/patch.diff            → /home/recipes/projects/patches/patch.diff
 !b!include /usr/share/patches/patch.diff → /usr/share/patches/patch.diff
-!b!include //patches/patch.diff          → /home/recipes/patches/patch.diff")))
+!b!include //patches/patch.diff          → /home/recipes/patches/patch.diff"))
+
+  (:enhancement
+   "Jenkins job configurations can now be uploaded in parallel which
+    speeds up generation of Jenkins jobs for large distributions."))
 
  (:release "0.32" "2019-10-29"
 

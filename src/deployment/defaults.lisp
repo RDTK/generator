@@ -11,14 +11,15 @@
 (defmethod deploy ((thing project:distribution) (target t))
   (let ((versions (project:versions thing)))
     (with-sequence-progress (:deploy/project versions)
-      (mappend (lambda (version)
-                 (progress "~/print-items:format-print-items/"
-                           (print-items:print-items version))
-                 (more-conditions::without-progress
-                   (with-simple-restart
-                       (continue "~@<Skip deploying project version ~S.~@:>" version)
-                     (flatten (deploy version target)))))
-               versions))))
+      (lparallel:pmapcan
+       (lambda (version)
+         (progress "~/print-items:format-print-items/"
+                   (print-items:print-items version))
+         (more-conditions::without-progress
+           (with-simple-restart
+               (continue "~@<Skip deploying project version ~S.~@:>" version)
+             (flatten (deploy version target)))))
+       :parts most-positive-fixnum versions))))
 
 ;;; `project:version'
 

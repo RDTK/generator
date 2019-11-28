@@ -15,11 +15,11 @@
                 (remove :none jobs
                         :key (rcurry #'var:value/cast :dependencies.mode))))
       (with-sequence-progress (:deploy/dependencies jobs)
-        (map nil (lambda (job)
-                   (progress "~/print-items:format-print-items/"
-                             (print-items:print-items job))
-                   (deploy:deploy-dependencies job target))
-             dependency-jobs)))
+        (lparallel:pmapc (lambda (job)
+                           (progress "~/print-items:format-print-items/"
+                                     (print-items:print-items job))
+                           (deploy:deploy-dependencies job target))
+                         :parts most-positive-fixnum dependency-jobs)))
     ;; Configure orchestration for the distribution.
     (with-simple-restart
         (continue "~@<Do not create orchestration jobs for ~

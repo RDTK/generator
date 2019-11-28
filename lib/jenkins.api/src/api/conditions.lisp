@@ -60,7 +60,7 @@
      (format stream "~@<Could not obtain CSRF token from Jenkins ~
                      instance at ~A.~
                      ~/more-conditions:maybe-print-cause/~@:>"
-             (base-url condition) condition)))
+             (base-url (endpoint condition)) condition)))
   (:documentation
    "Signaled when a CSRF token cannot be obtained."))
 

@@ -28,11 +28,13 @@
 
   ((sonar "hudson.plugins.sonar.SonarBuildWrapper"
           :plugin "sonar@2.6.1")
-   ())
+   ()
+   (:name-slot nil))
 
   ((timestamper "hudson.plugins.timestamper.TimestamperBuildWrapper"
                 :plugin "timestamper@1.9")
-   ())
+   ()
+   (:name-slot nil))
 
   ((ansi-color "hudson.plugins.ansicolor.AnsiColorBuildWrapper"
                :plugin "ansicolor@0.6.2")

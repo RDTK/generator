@@ -85,7 +85,8 @@
                   :xpath    "projectUrl/text()")
     (display-name :type     string
                   :xpath    "displayName/text()"
-                  :initform nil)))
+                  :initform nil))
+   (:name-slot display-name))
 
   ((docker "it.dockins.dockerslaves.spec.ContainerSetDefinition"
            :plugin "docker-slaves@1.0.5")

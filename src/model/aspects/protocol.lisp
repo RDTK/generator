@@ -122,7 +122,17 @@
 
     ;; Methods on `extend!' add entries to `*step-constraints*' and
     ;; push builders onto (builders job).
-    (reduce (rcurry #'extend! spec) aspects :initial-value job)
+    (reduce (lambda (job aspect)
+              (restart-case
+                  (extend! job aspect spec)
+                (continue (&optional condition)
+                  :report (lambda (stream)
+                            (format stream "~@<Skip applying aspect ~A ~
+                                            to ~A.~@:>"
+                                    aspect job))
+                  (declare (ignore condition))
+                  job)))
+            aspects :initial-value job)
 
     (sort-phase 'build   #'builders   #'(setf builders))
     (sort-phase 'publish #'publishers #'(setf publishers))))

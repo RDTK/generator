@@ -97,9 +97,9 @@
               :accessor ,accessor
               ,@(remove-from-plist options :type :xpath :optional?))))
 
-         ((&flet+ make-default-initarg ((name
+         ((&flet+ make-default-initarg ((slot-name
                                          &key
-                                         (initarg       (make-keyword name))
+                                         (initarg       (make-keyword slot-name))
                                          (optional? t)
                                          (initform  nil initform-supplied?)
                                          &allow-other-keys))

@@ -22,6 +22,7 @@
        ((error jenkins-connect-error)
         :endpoint endpoint))
     (let* ((result (checked-request *csrf-protection-token-url*
+                                    :endpoint     endpoint
                                     :if-not-found nil))
            (header (when result
                      (apply #'cons (split-sequence #\: result)))))

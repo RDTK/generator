@@ -78,11 +78,16 @@
     (as-phase (:check-access ; :continuable? nil
                )
               (check-distribution-access distributions))
-    (let ((target (deploy:make-target
-                   :jenkins
-                   :delete-other?        delete-other?
-                   :delete-other-pattern delete-other-pattern)))
-      (generate-deploy distributions target))))
+    (let* ((target (deploy:make-target
+                    :jenkins
+                    :delete-other?        delete-other?
+                    :delete-other-pattern delete-other-pattern))
+           (jobs   (as-phase (:deploy)
+                     (deploy:deploy distributions target))))
+      (as-phase (:list-credentials)
+        (build-generator.deployment.jenkins::list-credentials jobs))
+      (as-phase (:display-messages)
+        (map nil #'display-messages distributions)))))
 
 ;;; Functions
 
@@ -165,26 +170,6 @@
          (distributions (as-phase (:resolve/distribution)
                           (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
-
-(defun generate-deploy (distributions target)
-  (let* ((jobs/specs         (as-phase (:deploy/project)
-                               (mappend (rcurry #'deploy:deploy target)
-                                        distributions)))
-         (jobs               (mappend #'model:implementations jobs/specs))
-         (orchestration-jobs (as-phase (:orchestration)
-                               (nth-value
-                                1 (configure-distributions distributions target))))
-         (all-jobs           (append jobs (mappend #'model:implementations
-                                                   orchestration-jobs))))
-    (as-phase (:delete-other-jobs)
-      (build-generator.deployment.jenkins::maybe-delete-other-jobs
-       distributions all-jobs target))
-
-    (as-phase (:list-credentials)
-      (list-credentials jobs))
-
-    (as-phase (:display-messages)
-      (map nil #'display-messages distributions))))
 
 (defun display-messages (distribution &key (stream *standard-output*))
   (let+ ((first? t)

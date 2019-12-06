@@ -6,23 +6,6 @@
 
 (cl:in-package #:build-generator.deployment.jenkins)
 
-;;; Deploy `distribution'
-
-(defmethod deploy:deploy ((thing project:distribution) (target target))
-  (let ((jobs (call-next-method)))
-    (when-let ((dependency-jobs
-                (remove :none jobs
-                        :key (rcurry #'var:value/cast :dependencies.mode))))
-      (with-sequence-progress (:deploy/dependencies jobs)
-        (map nil (lambda (job)
-                   (progress "~/print-items:format-print-items/"
-                             (print-items:print-items job))
-                   (deploy:deploy-dependencies job target))
-             dependency-jobs)))
-    jobs))
-
-;;; Deploy `job'
-
 (defmethod deploy:deploy ((thing project::job) (target target))
   (let+ ((id        (substitute-if-not
                      #\_ #'jenkins.api:job-name-character?
@@ -129,33 +112,3 @@
                    (jenkins.api:relate (model:implementation upstream-job) job
                                        :if-related nil))))
          relevant-dependencies)))
-
-;;; Deleting old jobs
-
-(defun generated? (job)
-  (search "automatically generated" (jenkins.api:description job)))
-
-(defun make-delete-other-pattern (pattern distributions)
-  (cond (pattern)
-        ((length= 1 distributions)
-         `(:sequence ,(model:name (first distributions)) :end-anchor))
-        (t
-         `(:sequence
-           (:alternation ,@(map 'list #'model:name distributions))
-           :end-anchor))))
-
-(defun delete-other-jobs (all-jobs pattern)
-  (log:info "Deleting other jobs using pattern ~S" pattern)
-  (let* ((other-jobs     (set-difference
-                          (jenkins.api:all-jobs pattern) all-jobs
-                          :key #'jenkins.api:id :test #'string=))
-         (generated-jobs (remove-if-not #'generated? other-jobs)))
-    (with-sequence-progress (:delete-other generated-jobs)
-      (mapc (progressing #'jenkins.api:delete-job :delete-other)
-            generated-jobs))))
-
-(defun maybe-delete-other-jobs (distributions all-jobs target)
-  (let+ (((&accessors-r/o delete-other? delete-other-pattern) target))
-    (when delete-other?
-      (delete-other-jobs all-jobs (make-delete-other-pattern
-                                   delete-other-pattern distributions)))))

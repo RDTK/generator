@@ -195,6 +195,7 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "target")
+                              (:file     "distribution")
                               (:file     "job")))
 
                 (:module     "report"

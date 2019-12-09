@@ -45,6 +45,7 @@
 
                               (:file     "build")
 
+                              (:file     "job-scm")
                               (:file     "job-builder")
                               (:file     "job-build-wrapper")
                               (:file     "job-property")

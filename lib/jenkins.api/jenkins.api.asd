@@ -46,9 +46,9 @@
                               (:file     "build")
 
                               (:file     "job-build-wrapper")
-                              (:file     "job")
                               (:file     "job-property")
                               (:file     "job-publisher")
+                              (:file     "job")
 
                               (:file     "view")))
 

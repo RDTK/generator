@@ -1,4 +1,4 @@
-;;;; job-build-wrapper.lisp --- Model classes for builder-wrappre implementations.
+;;;; job-build-wrapper.lisp --- Model classes for build-wrapper implementations.
 ;;;;
 ;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;

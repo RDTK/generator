@@ -6,62 +6,82 @@
 
 (cl:in-package #:build-generator.deployment.jenkins)
 
-(defmethod deploy:deploy ((thing project::job) (target target))
-  (let+ ((id        (jenkins-job-id thing))
-         (kind      (let+ (((kind &optional plugin)
-                            (ensure-list (var:value thing :kind))))
-                      (if plugin
-                          (list kind plugin)
-                          (make-keyword (string-upcase kind)))))
-         (disabled? (var:value/cast thing :build-job.disabled? nil))
-         ((&flet make-new-job (&optional existing-job)
-            (let ((job (jenkins.api:job id :check-id? t
-                                           :kind      kind
-                                           :populate? t)))
-              ;; Retain value of disabled slot unless
-              ;; `:force-disabled' has been specified.
-              (setf (jenkins.api:disabled? job)
-                    (cond ((eq disabled? :force-disabled)
-                           t)
-                          ((not existing-job)
-                           disabled?)
-                          (t
-                           (jenkins.api:disabled? existing-job))))
+(defmethod make-job-using-job ((thing        project::job)
+                               (id           t)
+                               (kind         t)
+                               (existing-job null))
+  (jenkins.api:job id :check-id? t
+                      :kind      kind
+                      :populate? t))
 
-              (push job (model:implementations thing))
+(defmethod make-job-using-job ((thing        project::job)
+                               (id           t)
+                               (kind         t)
+                               (existing-job t))
+  (if (eq kind (jenkins.api:kind existing-job))
+      existing-job
+      (make-job-using-job thing id kind nil)))
 
-              ;; Apply aspects, respecting declared ordering, and sort
-              ;; generated builders according to declared ordering.
-              (aspects:extend! (aspects:aspects thing) thing job :jenkins)
+(defmethod compute-job-config ((thing        project::job)
+                               (id           t)
+                               (kind         t)
+                               (job          t)
+                               (existing-job t))
+  (let ((disabled? (var:value/cast thing :build-job.disabled? nil)))
+    ;; Retain value of disabled slot unless `:force-disabled' has been
+    ;; specified.
+    (setf (jenkins.api:disabled? job)
+          (cond ((eq disabled? :force-disabled)
+                 t)
+                ((not existing-job)
+                 disabled?)
+                (t
+                 (jenkins.api:disabled? existing-job))))
 
-              ;; TODO temp
-              (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job/project)
+    ;; Apply aspects, respecting declared ordering, and sort
+    ;; generated builders according to declared ordering.
+    (aspects:extend! (aspects:aspects thing) thing job :jenkins)
 
-              job)))
-         (existing-job  (when (jenkins.api:job? id)
-                          (jenkins.api:job id)))
-         (existing-kind (when existing-job
-                          (jenkins.api:kind existing-job)))
-         (config        (jenkins.api::%data (make-new-job existing-job))))
+    ;; TODO temp
+    (xloc:->xml job (stp:root (jenkins.api::%data job)) (type-of job))
 
-    ;; Create the Jenkins job.
+    (jenkins.api::%data job)))
+
+(defmethod update-job! ((thing         project::job)
+                        (id            t)
+                        (kind          t)
+                        (config        t)
+                        (job           t)
+                        (existing-job  t))
+  (let ((existing-kind (when existing-job
+                         (jenkins.api:kind existing-job))))
     (cond ((not existing-job)
            (log:info "~@<Creating new job ~A~@:>" id)
            (jenkins.api:make-job id config))
 
-          ((or (equal kind existing-kind)
-               (case kind
-                 (:project (string= existing-kind "project"))
-                 (:matrix  (string= existing-kind "matrix-project"))))
+          ((eq kind existing-kind)
            (log:info "~@<Updating existing job ~A~@:>" existing-job)
            (setf (jenkins.api:job-config id) config))
 
           (t
            (log:warn "~@<Deleting job ~A to change kind ~A -> ~(~A~)~@:>"
-                     id (jenkins.api:kind existing-job) kind)
+                     existing-job existing-kind kind)
            (jenkins.api:delete-job id)
-           (jenkins.api:make-job id config)))
+           (jenkins.api:make-job id config)))))
 
+(defmethod deploy:deploy ((thing project::job) (target target))
+  (let* ((id           (jenkins-job-id thing))
+         (existing-job (when (jenkins.api:job? id)
+                         (jenkins.api:job id)))
+         (kind         (let+ (((kind &optional plugin)
+                               (ensure-list (var:value thing :kind))))
+                         (if plugin
+                             (list kind plugin)
+                             (make-keyword (string-upcase kind)))))
+         (job          (make-job-using-job thing id kind existing-job))
+         (config       (compute-job-config thing id kind job existing-job)))
+    (update-job! thing id kind config job existing-job)
+    (push job (model:implementations thing))
     thing))
 
 (defmethod deploy:deploy-dependencies ((thing project::job) (target target))

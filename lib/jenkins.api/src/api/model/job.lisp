@@ -133,7 +133,8 @@
       (setf (kind instance) kind))))
 
 (defmethod kind ((object job/project))
-  (stp:local-name (stp:document-element (%data object))))
+  (let ((element-name (stp:local-name (stp:document-element (%data object)))))
+    (make-keyword (string-upcase element-name))))
 
 (defmethod (setf kind) ((new-value (eql :project))
                         (object    job/project))

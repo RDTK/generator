@@ -33,7 +33,7 @@
        Depending on the global Jenkins configuration, the description
        is either interpreted as plain text or HTML."))
   "Adds a description to the generated job."
-  (setf (description job) description))
+  (setf (jenkins.api:description job) description))
 
 ;;; Parameters aspect
 
@@ -133,10 +133,11 @@
 
        For more details, see Jenkins documentation."))
   "Adds parameters according to PARAMETERS to the created job."
-  (with-interface (properties job) (parameters* (property/parameters))
+  (with-interface (jenkins.api:properties job)
+      (parameters* (jenkins.api:property/parameters))
     (mapc (lambda+ ((&whole spec &key name &allow-other-keys))
-            (setf (parameters parameters*)
-                  (list* spec (remove name (parameters parameters*)
+            (setf (jenkins.api:parameters parameters*)
+                  (list* spec (remove name (jenkins.api:parameters parameters*)
                                       :key (rcurry #'getf :name)))))
           parameters)))
 
@@ -169,11 +170,12 @@
        \"false\" to keep an unlimited number of builds with
        artifacts."))
   "Configures retention of builds and artifacts for the created job."
-  (with-interface (properties job) (discard-builds (property/discard-builds))
-    (setf (keep-builds/days     discard-builds) (or keep-builds/days     -1)
-          (keep-builds/count    discard-builds) (or keep-builds/count    -1)
-          (keep-artifacts/days  discard-builds) (or keep-artifacts/days  -1)
-          (keep-artifacts/count discard-builds) (or keep-artifacts/count -1))))
+  (with-interface (jenkins.api:properties job)
+      (discard-builds (jenkins.api:property/discard-builds))
+    (setf (jenkins.api:keep-builds/days     discard-builds) (or keep-builds/days     -1)
+          (jenkins.api:keep-builds/count    discard-builds) (or keep-builds/count    -1)
+          (jenkins.api:keep-artifacts/days  discard-builds) (or keep-artifacts/days  -1)
+          (jenkins.api:keep-artifacts/count discard-builds) (or keep-artifacts/count -1))))
 
 ;;; JDK aspect
 
@@ -203,10 +205,11 @@
    PROJECT-URL, links to commits in the GitHub repository viewer and
    other similar integration features."
   (if project-url
-      (with-interface (properties job) (github (property/github))
+      (with-interface (jenkins.api:properties job)
+          (github (jenkins.api:property/github))
         (setf (jenkins.api:project-url github) project-url
               (jenkins.api:display-name github) display-name))
-      (removef (properties job) 'property/github :key #'type-of)))
+      (removef (jenkins.api:properties job) 'property/github :key #'type-of)))
 
 ;;; Redmine aspects
 
@@ -232,10 +235,11 @@
    the respective name since the redmine-and-git aspect can reuse this
    information."
   (if (and instance project)
-      (with-interface (properties job) (redmine (property/redmine))
+      (with-interface (jenkins.api:properties job)
+          (redmine (jenkins.api:property/redmine))
         (setf (jenkins.api:instance     redmine) instance
               (jenkins.api:project-name redmine) project))
-      (removef (properties job) 'property/redmine :key #'type-of)))
+      (removef (jenkins.api:properties job) 'property/redmine :key #'type-of)))
 
 (define-aspect (redmine-and-git
                 :job-var     job
@@ -259,11 +263,11 @@
 
    The aspect only works correctly if the generated job is configured
    with a git repository."
-  (let ((repository (repository job)))
-    (unless (typep repository 'scm/git)
+  (let ((repository (jenkins.api:repository job)))
+    (unless (typep repository 'jenkins.api:scm/git)
       (error "~@<Could not find git repository in ~A.~@:>" job))
-    (setf (browser-kind repository) :redmine-web
-          (browser-url  repository)
+    (setf (jenkins.api:browser-kind repository) :redmine-web
+          (jenkins.api:browser-url  repository)
           (format nil "~A/projects/~A/repository/~@[~A/~]"
                   instance project repository-id))))
 
@@ -340,8 +344,9 @@
       "Number of minutes a build of the generated job can run before
        it should time out and fail."))
   "Adds a timeout for builds of the generated job."
-  (with-interface (build-wrappers job) (timeout (build-wrapper/timeout))
-    (setf (timeout/minutes timeout) timeout/minutes)))
+  (with-interface (jenkins.api:build-wrappers job)
+      (timeout (jenkins.api:build-wrapper/timeout))
+    (setf (jenkins.api:timeout/minutes timeout) timeout/minutes)))
 
 ;;; sonar cube scanner aspect
 
@@ -359,7 +364,8 @@
   "Adds SonarCube Scanner configuration."
   (ecase mode
     (:inject
-     (with-interface (build-wrappers job) (nil (build-wrapper/sonar))))
+     (with-interface (jenkins.api:build-wrappers job)
+         (nil (jenkins.api:build-wrapper/sonar))))
     (:explicit
      (error "Not implemented."))))
 
@@ -368,7 +374,8 @@
 (define-aspect (console-timestamper :plugins ("timestamper")) ()
     ()
   "Configures the console timestamper."
-  (with-interface (build-wrappers job) (nil (build-wrapper/timestamper))))
+  (with-interface (jenkins.api:build-wrappers job)
+      (nil (jenkins.api:build-wrapper/timestamper))))
 
 ;;; ANSI color aspect
 
@@ -377,8 +384,9 @@
        :documentation
        "Name of the color map the plugin should use."))
   "Adds console ANSI color support to the generated job."
-  (with-interface (build-wrappers job) (nil (build-wrapper/ansi-color
-                                             :color-map color-map))))
+  (with-interface (jenkins.api:build-wrappers job)
+      (nil (jenkins.api:build-wrapper/ansi-color
+            :color-map color-map))))
 
 ;;; Slaves aspect
 
@@ -398,11 +406,11 @@
        configuration for details."))
   "Configures the generated job to run on specific slaves."
   (when slaves
-    (setf (slaves job) slaves))
+    (setf (jenkins.api:slaves job) slaves))
   (if restrict-to-slaves
-      (setf (can-roam? job)          nil
-            (restrict-to-slaves job) restrict-to-slaves)
-      (setf (can-roam? job) t)))
+      (setf (jenkins.api:can-roam? job)          nil
+            (jenkins.api:restrict-to-slaves job) restrict-to-slaves)
+      (setf (jenkins.api:can-roam? job) t)))
 
 ;;; Permissions aspect
 
@@ -436,4 +444,5 @@
             (list subject (mapcar (compose #'make-keyword #'string-upcase)
                                   action)))))
     (unless (eq permissions :keep)
-      (setf (permissions job) (mapcar #'normalize-permission permissions)))))
+      (setf (jenkins.api:permissions job)
+            (mapcar #'normalize-permission permissions)))))

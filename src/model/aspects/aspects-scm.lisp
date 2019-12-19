@@ -34,7 +34,7 @@
    source archives are."
   ;; In case we are updating an existing job, remove any repository
   ;; configuration.
-  (setf (repository job) (make-instance 'scm/null))
+  (setf (jenkins.api:repository job) (make-instance 'jenkins.api:scm/null))
 
   ;; Generate archive download and extraction as a shell builder.
   (let* ((url/parsed (puri:uri url))
@@ -59,7 +59,7 @@
                                                sub-directory)))))))))
     (push (constraint! (build ((:before t)))
             (make-instance 'jenkins.api:builder/shell :command command))
-          (builders job))))
+          (jenkins.api:builders job))))
 
 (define-aspect (git :job-var    job
                     :aspect-var aspect
@@ -131,7 +131,7 @@
          (credentials (or credentials
                           (unless (model:check-access aspect :public)
                             (puri:uri-host url/parsed)))))
-    (setf (repository job)
+    (setf (jenkins.api:repository job)
           (make-instance 'jenkins.api:scm/git
                          :url                    (build-generator.analysis::format-git-url
                                                   url/parsed username password)
@@ -153,7 +153,7 @@
             (make-instance 'jenkins.api:builder/shell
                            :command (make-focus-sub-directory-command
                                      sub-directory :exclude '(".git"))))
-          (builders job))))
+          (jenkins.api:builders job))))
 
 (define-aspect (git-repository-browser
                 :job-var     job
@@ -163,11 +163,11 @@
     (((kind (bail)) :type keyword)
      ((url  (bail)) :type string))
   "Configures the GIT-specific repository browser of the generated job "
-  (let ((repository (repository job)))
-    (unless (typep repository 'scm/git)
+  (let ((repository (jenkins.api:repository job)))
+    (unless (typep repository 'jenkins.api:scm/git)
       (error "~@<Could not find git repository in ~A.~@:>" job))
-    (setf (browser-kind repository) kind
-          (browser-url  repository) url)))
+    (setf (jenkins.api:browser-kind repository) kind
+          (jenkins.api:browser-url  repository) url)))
 
 (define-aspect (subversion :job-var    job
                            :aspect-var aspect
@@ -219,7 +219,7 @@
          (credentials  (or credentials
                            (unless (model:check-access aspect :public)
                              (puri:uri-host url/parsed)))))
-    (setf (repository job)
+    (setf (jenkins.api:repository job)
           (make-instance 'jenkins.api:scm/svn
                          :url               url/revision
                          :credentials       credentials
@@ -267,7 +267,7 @@
     (when (and branch tag)
       (error "~@<Cannot specify branch ~S and tag ~S at the same time.~@:>"
              branch tag))
-    (setf (repository job)
+    (setf (jenkins.api:repository job)
           (make-instance 'jenkins.api:scm/mercurial
                          :url           url
                          :credentials   credentials
@@ -285,7 +285,7 @@
             (make-instance 'jenkins.api:builder/shell
                            :command (make-focus-sub-directory-command
                                      sub-directory :exclude '(".hg"))))
-          (builders job))))
+          (jenkins.api:builders job))))
 
 (define-aspect (trigger/scm) ()
     ((spec :type (or null string)
@@ -295,7 +295,7 @@
 
        See Jenkins documentation for details."))
   "Configures the generated job such that it polls the SCM repository."
-  (removef (triggers job) 'trigger/scm :key #'type-of)
+  (removef (jenkins.api:triggers job) 'jenkins.api:trigger/scm :key #'type-of)
   (when spec
     (push (make-instance 'jenkins.api:trigger/scm :spec spec)
-          (triggers job))))
+          (jenkins.api:triggers job))))

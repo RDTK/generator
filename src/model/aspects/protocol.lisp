@@ -134,8 +134,8 @@
                   job)))
             aspects :initial-value job)
 
-    (sort-phase 'build   #'builders   #'(setf builders))
-    (sort-phase 'publish #'publishers #'(setf publishers))))
+    (sort-phase 'build   #'jenkins.api:builders   #'(setf jenkins.api:builders))
+    (sort-phase 'publish #'jenkins.api:publishers #'(setf jenkins.api:publishers))))
 
 ;;; Aspect creation protocol
 

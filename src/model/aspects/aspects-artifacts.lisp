@@ -20,13 +20,14 @@
    When multiple instances of this aspect are applied to a single job,
    the union of the respective FILE-PATTERNs is configured as the
    pattern of files to archive."
-  (removef (publishers job) 'publisher/archive-artifacts :key #'type-of)
+  (removef (jenkins.api:publishers job) 'jenkins.api:publisher/archive-artifacts
+           :key #'type-of)
   (when file-pattern
     (push (constraint! (publish)
-                       (make-instance 'publisher/archive-artifacts
-                                      :files        (list file-pattern)
-                                      :only-latest? nil))
-          (publishers job))))
+            (make-instance 'jenkins.api:publisher/archive-artifacts
+                           :files        (list file-pattern)
+                           :only-latest? nil))
+          (jenkins.api:publishers job))))
 
 ;;; Dependency download aspect
 
@@ -90,7 +91,7 @@
                                         :target       upstream-dir
                                         :flatten?     t
                                         :clazz        "hudson.plugins.copyartifact.StatusBuildSelector"))
-                       (builders job))
+                       (jenkins.api:builders job))
                  (setf copy-artifacts? t)))))
 
       ;; Shell builder which unpacks dependencies. Has to run after
@@ -102,4 +103,4 @@
           (push (constraint! (build ((:before cmake/unix)
                                     (:after copy-artifact)))
                   (make-instance 'jenkins.api:builder/shell :command command))
-                (builders job)))))))
+                (jenkins.api:builders job)))))))

@@ -22,16 +22,17 @@ move ..\*.zip .")))
 
 (define-aspect (debian-package :job-var job) () ()
   ;; Add console-based parser for lintian.
-  (with-interface (publishers job) (warnings (publisher/warnings))
-    (pushnew (make-instance 'warning-parser/console :name "Lintian")
-             (console-parsers warnings)
+  (with-interface (jenkins.api:publishers job) (warnings (jenkins.api:publisher/warnings))
+    (pushnew (make-instance 'jenkins.api:warning-parser/console :name "Lintian")
+             (jenkins.api:console-parsers warnings)
              :test #'string=
              :key  #'name))
 
   ;; Archive the generated Debian package.
-  (with-interface (publishers job) (archiver (publisher/archive-artifacts
-                                              :files        nil
-                                              :only-latest? nil))
+  (with-interface (jenkins.api:publishers job)
+      (archiver (jenkins.api:publisher/archive-artifacts
+                 :files        nil
+                 :only-latest? nil))
     (pushnew #?"${(var/typed :build-dir 'string)}/*.deb" (files archiver)
              :test #'string=)))
 
@@ -47,4 +48,4 @@ umask 022
 \${FAKEROOT_FOR_CPACK} make package
 lintian -i *.deb || true
 ")))
-        (builders job)))
+        (jenkins.api:builders job)))

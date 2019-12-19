@@ -20,7 +20,7 @@
   (push (constraint! (build)
           (make-instance 'jenkins.api:builder/shell
                          :command (wrapped-shell-command (:aspect.shell) command)))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 ;;; Batch aspect
 
@@ -35,7 +35,7 @@
    ordering constraints."
   (push (constraint! (build)
           (make-instance 'jenkins.api:builder/batch :command command))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 ;;; CMake aspects
 
@@ -66,7 +66,7 @@
           (make-instance 'jenkins.api:builder/shell
                          :command (wrapped-shell-command (:aspect.cmake/unix)
                                     command)))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 (var:define-variable :aspect.cmake/unix.find-commands list ; :write
   :documentation
@@ -155,7 +155,7 @@
    ordering constraints."
   (push (constraint! (build ((:after dependency-download)))
           (make-instance 'jenkins.api:builder/batch :command command))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 ;;; Maven aspect
 
@@ -212,7 +212,7 @@
                          :private-repository? private-repository?
                          :settings            (or settings-file :default)
                          :global-settings     (or global-settings-file :default)))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 ;;; Setuptools aspect
 
@@ -247,7 +247,7 @@
           (make-instance 'jenkins.api:builder/shell
                          :command (wrapped-shell-command (:aspect.setuptools)
                                     command)))
-        (builders job)))
+        (jenkins.api:builders job)))
 
 (defmethod var:lookup ((thing aspect-setuptools)
                        (name  (eql :aspect.setuptools.option-lines))
@@ -294,4 +294,4 @@
                                     :sandbox? sandbox?))
             (:normal (make-instance 'jenkins.api:builder/groovy
                                     :code code))))
-        (builders job)))
+        (jenkins.api:builders job)))

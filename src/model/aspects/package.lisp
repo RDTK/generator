@@ -12,9 +12,7 @@
    #:iterate
    #:let-plus
    #:more-conditions
-   #:print-items
-
-   #:jenkins.api)
+   #:print-items)
 
   (:local-nicknames
    (#:util  #:build-generator.util)

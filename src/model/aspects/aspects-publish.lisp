@@ -34,20 +34,22 @@
   "Adds an open tasks publisher to the generated job."
   (case implementation
     (:ng
-     (with-interface (publishers job) (issues-recorder (publisher/issues-recorder))
-       (removef (analysis-tools issues-recorder) 'analysis-tool/open-tasks
+     (with-interface (jenkins.api:publishers job)
+         (issues-recorder (jenkins.api:publisher/issues-recorder))
+       (removef (jenkins.api:analysis-tools issues-recorder)
+                'jenkins.api:analysis-tool/open-tasks
                 :key #'type-of)
-       (push (analysis-tool/open-tasks
-              "open-tasks"
-              :name                "Open Tasks"
-              :include-pattern     pattern
-              :exclude-pattern     exclude
-              :high-tags           keywords.high
-              :normal-tags         keywords.normal
-              :low-tags            keywords.low
-              :ignore-case?        t
-              :regular-expression? nil)
-             (analysis-tools issues-recorder))))
+       (push (make-instance 'jenkins.api:analysis-tool/open-tasks
+                            :id                  "open-tasks"
+                            :name                "Open Tasks"
+                            :include-pattern     pattern
+                            :exclude-pattern     exclude
+                            :high-tags           keywords.high
+                            :normal-tags         keywords.normal
+                            :low-tags            keywords.low
+                            :ignore-case?        t
+                            :regular-expression? nil)
+             (jenkins.api:analysis-tools issues-recorder))))
     (:legacy
      (push (constraint! (publish)
              (make-instance 'jenkins.api:publisher/tasks
@@ -56,7 +58,7 @@
                             :keywords/low    keywords.low
                             :keywords/normal keywords.normal
                             :keywords/high   keywords.high))
-           (publishers job)))))
+           (jenkins.api:publishers job)))))
 
 ;;; SLOCcount aspect
 
@@ -76,11 +78,11 @@
                                (:before maven)
                                (:before setuptools)))
             (make-instance 'jenkins.api:builder/shell :command command))
-          (builders job)))
+          (jenkins.api:builders job)))
 
   (push (constraint! (publish)
           (make-instance 'jenkins.api::publisher/sloccount :pattern "sloccount.sc"))
-        (publishers job)))
+        (jenkins.api:publishers job)))
 
 ;;; Warnings aspect
 
@@ -88,24 +90,25 @@
                               &key
                               (name    nil)
                               (pattern nil))
-  (remove tool-class (analysis-tools issues-recorder) :key #'type-of)
+  (remove tool-class (jenkins.api:analysis-tools issues-recorder)
+          :key #'type-of)
   (push (funcall tool-class id
                  :name    name
                  :pattern pattern)
-        (analysis-tools issues-recorder)))
+        (jenkins.api:analysis-tools issues-recorder)))
 
 (defun install-parser/groovy (issues-recorder parser)
   (when-let ((tools (find-if (lambda (tool)
-                               (and (typep tool 'analysis-tool/groovy)
-                                    (equal (jenkins.api::parser tool) parser)))
-                             (analysis-tools issues-recorder))))
-    (removef (analysis-tools issues-recorder) parser))
-  (push (analysis-tool/groovy
-         (format nil "groovy-~(~A~)" parser)
-         :name   (format nil "Groovy-based ~A parser"
-                         parser)
-         :parser parser)
-        (analysis-tools issues-recorder)))
+                               (and (typep tool 'jenkins.api:analysis-tool/groovy)
+                                    (equal (jenkins.api:parser tool) parser)))
+                             (jenkins.api:analysis-tools issues-recorder))))
+    (removef (jenkins.api:analysis-tools issues-recorder) parser))
+  (push (make-instance 'jenkins.api:analysis-tool/groovy
+                       :id     (format nil "groovy-~(~A~)" parser)
+                       :name   (format nil "Groovy-based ~A parser"
+                                       parser)
+                       :parser parser)
+        (jenkins.api:analysis-tools issues-recorder)))
 
 (define-aspect (warnings :job-var job
                          :plugins ("warnings"))
@@ -124,7 +127,8 @@
   (cond
     ((not parsers))
     ((eq implementation :ng)
-     (with-interface (publishers job) (issues-recorder (publisher/issues-recorder))
+     (with-interface (jenkins.api:publishers job)
+         (issues-recorder (jenkins.api:publisher/issues-recorder))
        (let+ (((&flet match-parser (parser clause)
                  (let ((scanner (ppcre:create-scanner clause :case-insensitive-mode t)))
                    (ppcre:scan scanner parser))))
@@ -155,10 +159,11 @@
          (map nil #'install-parser parsers))))
 
     ((eq implementation :legacy)
-     (with-interface (publishers job) (warnings (publisher/warnings))
+     (with-interface (jenkins.api:publishers job)
+         (warnings (jenkins.api:publisher/warnings))
        (iter (for parser in parsers)
-             (pushnew (make-instance 'warning-parser/console :name parser)
-                      (console-parsers warnings)
+             (pushnew (make-instance 'jenkins.api:warning-parser/console :name parser)
+                      (jenkins.api:console-parsers warnings)
                       :test #'string=
                       :key  #'jenkins.api:name))))))
 
@@ -183,25 +188,27 @@
                    display-name)
           (case implementation
             (:ng
-             (with-interface (publishers job)
-                 (issues-recorder (publisher/issues-recorder))
-               (removef (analysis-tools issues-recorder) ',tool-name
+             (with-interface (jenkins.api:publishers job)
+                 (issues-recorder (jenkins.api:publisher/issues-recorder))
+               (removef (jenkins.api:analysis-tools issues-recorder) ',tool-name
                         :key #'type-of)
-               (push (,tool-name ,id
-                                 :name    ,display-name
-                                 :pattern pattern)
-                     (analysis-tools issues-recorder))))
+               (push (make-instance ',tool-name
+                                    :id      ,id
+                                    :name    ,display-name
+                                    :pattern pattern)
+                     (jenkins.api:analysis-tools issues-recorder))))
             (:legacy
-             (removef (publishers job) ',publisher-name :key #'type-of)
+             (removef (jenkins.api:publishers job) ',publisher-name
+                      :key #'type-of)
              (when pattern
                (push (constraint! (publish)
                        (make-instance ',publisher-name :pattern pattern))
-                     (publishers job))))))))
-  (define checkstyle (analysis-tool/checkstyle "checkstyle")
-                     (publisher/checkstyle     "CheckStyle")
+                     (jenkins.api:publishers job))))))))
+  (define checkstyle (jenkins.api:analysis-tool/checkstyle "checkstyle")
+                     (jenkins.api:publisher/checkstyle     "CheckStyle")
                      ("warnings-ng" "checkstyle"))
-  (define pmd        (analysis-tool/pmd        "pmd")
-                     (publisher/pmd            "PMD")
+  (define pmd        (jenkins.api:analysis-tool/pmd        "pmd")
+                     (jenkins.api:publisher/pmd            "PMD")
                      ("warnings-ng" "pmd")))
 
 ;;; Test result aspects
@@ -216,18 +223,19 @@
      (delete-output-files?      :type boolean)
      (stop-processing-if-error? :type boolean))
   "Configures a publisher for XUnit test results for the generated job."
-  (with-interface (publishers job) (publisher (publisher/xunit))
-    (removef (types publisher) kind :test #'string= :key #'kind)
+  (with-interface (jenkins.api:publishers job)
+      (publisher (jenkins.api:publisher/xunit))
+    (removef (jenkins.api:types publisher) kind
+             :test #'string= :key #'jenkins.api:kind)
     (when pattern
-      (push (make-instance
-             'xunit/type
-             :kind                      kind
-             :pattern                   pattern
-             :skip-if-no-test-files?    skip-if-no-test-files?
-             :fail-if-not-new?          fail-if-not-new?
-             :delete-output-files?      delete-output-files?
-             :stop-processing-if-error? stop-processing-if-error?)
-            (types publisher)))))
+      (push (make-instance 'jenkins.api:xunit/type
+                           :kind                      kind
+                           :pattern                   pattern
+                           :skip-if-no-test-files?    skip-if-no-test-files?
+                           :fail-if-not-new?          fail-if-not-new?
+                           :delete-output-files?      delete-output-files?
+                           :stop-processing-if-error? stop-processing-if-error?)
+            (jenkins.api:types publisher)))))
 
 (define-aspect (junit :job-var job
                       :plugins ("junit"))
@@ -249,16 +257,17 @@
        failure."))
   "Configures a publisher for JUnit test results for the generated job."
   ;; Remove previous configuration, if any.
-  (removef (publishers job) 'publisher/junit :key #'type-of)
+  (removef (jenkins.api:publishers job) 'jenkins.api:publisher/junit
+           :key #'type-of)
   ;; Add new configuration.
   (when pattern
     (push (constraint! (publish)
-            (make-instance 'publisher/junit
+            (make-instance 'jenkins.api:publisher/junit
                            :pattern              pattern
                            :keep-long-stdio?     keep-long-stdio?
                            :health-scale-factor  health-scale-factor
                            :allow-empty-results? allow-empty-results?))
-          (publishers job))))
+          (jenkins.api:publishers job))))
 
 ;;; Email notification
 
@@ -274,13 +283,14 @@
       "Controls whether the authors of build-breaking commits are
        treated as additional recipients."))
   "Adds email notification in case of failed builds to a generated job."
-  (removef (publishers job) 'publisher/email-notification :key #'type-of)
+  (removef (jenkins.api:publishers job) 'jenkins.api:publisher/email-notification
+           :key #'type-of)
   (when recipients
     (push (constraint! (publish)
-            (make-instance 'publisher/email-notification
+            (make-instance 'jenkins.api:publisher/email-notification
                            :recipients           recipients
                            :send-to-individuals? send-to-perpetrator?))
-          (publishers job))))
+          (jenkins.api:publishers job))))
 
 ;;; Upload aspect
 
@@ -316,7 +326,7 @@
                          :remove-prefix    remove-prefix
                          :remote-directory remote-directory
                          :verbose?         verbose?))
-        (publishers job)))
+        (jenkins.api:publishers job)))
 
 ;;; HTML report aspect
 
@@ -346,11 +356,13 @@
       "Controls whether a missing report should make the build
        fail."))
   "Adds a publisher for arbitrary HTML-based reports."
-  (let ((html (ensure-interface (publishers job) (publisher/html))))
-    (push (make-instance 'html-report :name           name
-                                      :base-directory base-directory
-                                      :include        include
-                                      :index-files    index-files
-                                      :keep-all?      keep-all?
-                                      :allow-missing? allow-missing?)
-          (reports html))))
+  (let ((html (ensure-interface (jenkins.api:publishers job)
+                  (jenkins.api:publisher/html))))
+    (push (make-instance 'jenkins.api:html-report
+                         :name           name
+                         :base-directory base-directory
+                         :include        include
+                         :index-files    index-files
+                         :keep-all?      keep-all?
+                         :allow-missing? allow-missing?)
+          (jenkins.api:reports html))))

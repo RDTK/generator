@@ -71,9 +71,9 @@
 
   ;; Job
   (:export
-   #:job
+   #:job/project
 
-   #:job ; TODO find-job?
+   #:job ; for backward compatibility
    #:all-jobs ; TODO jobs?
    #:job-config
    #:job?

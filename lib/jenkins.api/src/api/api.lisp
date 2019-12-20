@@ -90,6 +90,8 @@
            (prefix      :prefix)
            (id          :id          #+no (missing-required-argument :id))
 
+           (class-name  :class-name  name)
+
            (all-name    :all-name    (format-symbol *package* "ALL-~AS" name))
            (all-path    :all-path    (format nil "~@[~A/~]api/json" prefix))
            (all-filter  :all-filter  (format nil "~(~A~)[~A]" prefix id))
@@ -185,7 +187,7 @@
               t))
 
        (define-operation/name-or-object (,delete-name :path ,delete-path)
-           ((name ,name))
+           ((name ,class-name))
          (request :method :post)
          (values)))))
 
@@ -233,6 +235,8 @@
   (:prefix     "job")
   (:id         "name")
 
+  (:class-name job/project)
+
   (:all-path   "api/json")
   (:all-filter "jobs[name]")
   (:all-field  :jobs))
@@ -249,19 +253,19 @@
 
 (define-operation/name-or-object
     (build! :path (format nil "job/~A/build" job))
-    ((job job))
+    ((job job/project))
   (request :method :post)
   (values))
 
 (define-operation/name-or-object
     (enable! :path (format nil "job/~A/enable" job))
-    ((job job))
+    ((job job/project))
   (request :method :post)
   (values))
 
 (define-operation/name-or-object
     (disable! :path (format nil "job/~A/disable" job))
-    ((job job))
+    ((job job/project))
   (request :method :post)
   (values))
 
@@ -272,18 +276,18 @@
                             &rest args &key &allow-other-keys)
             (apply #',name (job parent) (job child) args))
 
-          (defmethod ,name ((parent string) (child job)
+          (defmethod ,name ((parent string) (child job/project)
                             &rest args &key &allow-other-keys)
             (apply #',name (job parent) child args))
 
-          (defmethod ,name ((parent job) (child string)
+          (defmethod ,name ((parent job/project) (child string)
                             &rest args &key &allow-other-keys)
             (apply #',name parent (job child) args)))))
 
   (define-name-resolving-methods relate)
   (define-name-resolving-methods unrelate))
 
-(defmethod relate ((parent job) (child job) &key if-related)
+(defmethod relate ((parent job/project) (child job/project) &key if-related)
   (when (member (id parent) (upstream parent) :test #'string=)
     (return-from relate
       (error-behavior-restart-case
@@ -299,7 +303,7 @@
   (push (id parent) (upstream child))
   (commit! child))
 
-(defmethod unrelate ((parent job) (child job) &key if-not-related)
+(defmethod unrelate ((parent job/project) (child job/project) &key if-not-related)
   (unless (member (id parent) (upstream child) :test #'string=)
     (return-from unrelate
       (error-behavior-restart-case
@@ -313,7 +317,7 @@
   (removef (upstream child) (id parent) :test #'string=)
   (commit! child))
 
-(defmethod last-build ((job job))
+(defmethod last-build ((job job/project))
   ()
   )
 

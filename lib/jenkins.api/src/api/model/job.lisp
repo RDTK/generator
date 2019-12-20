@@ -6,7 +6,7 @@
 
 (cl:in-package #:jenkins.api)
 
-;;; `job' class
+;;; `job/project' class
 ;;;
 ;;; Aggregated classes:
 ;;;
@@ -16,7 +16,7 @@
 ;;; * `builder'
 ;;; * `publisher'
 
-(define-model-class job ()
+(define-model-class job/project ()
   ((description                :type     string
                                :initform nil)
    (disabled?                  :type     boolean
@@ -76,6 +76,10 @@
   (:get-func (lambda (id)      (job-config id)))
   (:put-func (lambda (id data) (setf (job-config id) data))))
 
+;;; For backward-compatibility
+(defmethod job ((id t) &rest initargs &key &allow-other-keys)
+  (apply #'job/project id initargs))
+
 (defun job-name-character? (character)
   (or (alphanumericp character) (member character '(#\- #\_ #\.))))
 
@@ -98,7 +102,7 @@
                                 character~P: ~{~{~A (~@[~A~])~}~^, ~}.~@:>"
              :format-arguments (list name (length offenders) offenders)))))
 
-(defmethod shared-initialize :around ((instance   job)
+(defmethod shared-initialize :around ((instance   job/project)
                                       (slot-names t)
                                       &rest args &key
                                       populate?)
@@ -109,7 +113,7 @@
       (call-next-method)
       (apply #'call-next-method instance '(id get-func put-func) args)))
 
-(defmethod initialize-instance :before ((instance job)
+(defmethod initialize-instance :before ((instance job/project)
                                         &key
                                         id
                                         check-id?
@@ -119,9 +123,9 @@
   ;; Setting the kind requires the `%data' slot to be initialized
   ;; which is only the case when POPULATE? is true.
   (when (and kind (not populate?))
-    (incompatible-initargs 'job :kind kind :populate? populate?)))
+    (incompatible-initargs 'job/project :kind kind :populate? populate?)))
 
-(defmethod initialize-instance :after ((instance job)
+(defmethod initialize-instance :after ((instance job/project)
                                        &key
                                        kind
                                        populate?)
@@ -133,24 +137,24 @@
     (when kind
       (setf (kind instance) kind))))
 
-(defmethod kind ((object job))
+(defmethod kind ((object job/project))
   (stp:local-name (stp:document-element (%data object))))
 
 (defmethod (setf kind) ((new-value (eql :project))
-                        (object    job))
+                        (object    job/project))
   (setf (kind object) "project"))
 
 (defmethod (setf kind) ((new-value (eql :matrix))
-                        (object    job))
+                        (object    job/project))
   (setf (kind object) '("matrix-project" "matrix-project@1.4")))
 
 (defmethod (setf kind) ((new-value string)
-                        (object    job))
+                        (object    job/project))
   (setf (kind object) (list new-value))
   new-value)
 
 (defmethod (setf kind) ((new-value cons)
-                        (object    job))
+                        (object    job/project))
   (let+ (((local-name &optional plugin) new-value)
          (root (stp:document-element (%data object))))
         (setf (stp:local-name root) local-name)
@@ -158,11 +162,11 @@
           (setf (stp:attribute-value root "plugin") plugin))
         new-value))
 
-(defmethod upstream ((object job))
+(defmethod upstream ((object job/project))
   (when-let ((reverse (trigger-of-type 'trigger/reverse object)))
             (upstream-projects reverse)))
 
-(defmethod (setf upstream) ((new-value list) (object job))
+(defmethod (setf upstream) ((new-value list) (object job/project))
   (let ((reverse (or (trigger-of-type 'trigger/reverse object) ; TODO make a function or macro ensure-...
                      (let ((instance (make-instance 'trigger/reverse)))
                        (appendf (triggers object) (list instance))
@@ -171,11 +175,11 @@
 
 ;;; Permissions
 
-(defmethod grant ((job job) (subject string) (action cons))
+(defmethod grant ((job job/project) (subject string) (action cons))
   (pushnew (list subject action) (permissions job) :test #'equal)
   (permissions job))
 
-(defmethod revoke ((job job) (subject string) (action cons))
+(defmethod revoke ((job job/project) (subject string) (action cons))
   (removef (permissions job) (list subject action) :test #'equal)
   (permissions job))
 
@@ -185,7 +189,7 @@
           (defmethod ,name ((job string) (subject t) (action t))
             (,name (job job) subject action))
 
-          (defmethod ,name ((job job) (subject list) (action t))
+          (defmethod ,name ((job job/project) (subject list) (action t))
             (mapc #'(lambda (subject) (,name job subject action)) subject)
             (permissions job)))))
 

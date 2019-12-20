@@ -17,7 +17,7 @@
                           (make-keyword (string-upcase kind)))))
          (disabled? (var:value/cast thing :build-job.disabled? nil))
          ((&flet make-new-job (&optional existing-job)
-            (let ((job (make-instance 'jenkins.api:job
+            (let ((job (make-instance 'jenkins.api:job/project
                                       :id        id
                                       :check-id? t
                                       :kind      kind
@@ -39,7 +39,7 @@
               (aspects:extend! job (aspects:aspects thing) thing)
 
               ;; TODO temp
-              (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job)
+              (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job/project)
 
               job)))
          (existing-job  (when (jenkins.api:job? id)

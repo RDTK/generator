@@ -9,7 +9,7 @@
 ;;; Archive artifact
 
 (define-aspect (archive-artifacts :job-var job) (publisher-defining-mixin)
-    (((file-pattern (bail)) :type (or null string)
+    (((file-pattern (bail)) :type (or null (var:list-of string) string)
       :documentation
       "An Ant-style file pattern designating the files that should be
        archived.
@@ -25,7 +25,7 @@
   (when file-pattern
     (push (constraint! (publish)
             (make-instance 'jenkins.api:publisher/archive-artifacts
-                           :files        (list file-pattern)
+                           :files        (ensure-list file-pattern)
                            :only-latest? nil))
           (jenkins.api:publishers job))))
 
@@ -87,7 +87,7 @@
                                            copy-artifact)
                          (make-instance 'jenkins.api:builder/copy-artifact
                                         :project-name reference
-                                        :filter       pattern
+                                        :filter       (ensure-list pattern)
                                         :target       upstream-dir
                                         :flatten?     t
                                         :clazz        "hudson.plugins.copyartifact.StatusBuildSelector"))
@@ -101,6 +101,6 @@
                                     find . -name '*.tar.gz' -exec tar -xzf '{}' \\;"
                                upstream-dir)))
           (push (constraint! (build ((:before cmake/unix)
-                                    (:after copy-artifact)))
+                                     (:after copy-artifact)))
                   (make-instance 'jenkins.api:builder/shell :command command))
                 (jenkins.api:builders job)))))))

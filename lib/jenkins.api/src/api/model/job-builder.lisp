@@ -85,18 +85,18 @@
 
   ((copy-artifact "hudson.plugins.copyartifact.CopyArtifact"
                   :plugin "copyartifact@1.27")
-   ((project-name :type  string
-                  :xpath (:version
-                          ("copyartifact@1.25" "projectName/text()")
-                          (t                   "project/text()")))
-    (filter       :type  string
+   ((project-name :type      string
+                  :xpath     (:version
+                              ("copyartifact@1.25" "projectName/text()")
+                              (t                   "project/text()")))
+    (filter       :type      (list/comma string)
                   :optional? t)
-    (target       :type  string)
-    (flatten?     :type  boolean
-                  :xpath "flatten/text()")
+    (target       :type      string)
+    (flatten?     :type      boolean
+                  :xpath     "flatten/text()")
     ;; TODO(jmoringe, 2012-12-13): temp
-    (clazz        :type  string
-                  :xpath "selector/@class"))
+    (clazz        :type      string
+                  :xpath     "selector/@class"))
    (:name-slot project-name))
 
   ((groovy "hudson.plugins.groovy.Groovy"

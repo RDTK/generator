@@ -99,8 +99,8 @@
     ;; Set threshold on "reverse" trigger based on required upstream
     ;; result.
     (aspects::with-interface (jenkins.api:triggers job)
-        (trigger (jenkins.api::trigger/reverse))
-      (setf (jenkins.api::threshold trigger) required-upstream-result))
+        (trigger (jenkins.api:trigger/reverse))
+      (setf (jenkins.api:threshold trigger) required-upstream-result))
     ;; Install relations between JOB and its upstream jobs.
     (map nil (lambda (upstream-job)
                (with-simple-restart (continue "~@<Do not relate ~A -> ~A~@:>"

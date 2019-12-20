@@ -175,7 +175,12 @@
    #:spec
 
    #:trigger/github
-   #:spec)
+   #:spec
+
+   #:trigger/reverse
+   #:spec
+   #:upstream-projects
+   #:threshold)
 
   ;; Build-wrapper interface
   (:export

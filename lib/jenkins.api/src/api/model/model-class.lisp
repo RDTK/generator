@@ -6,42 +6,64 @@
 
 (cl:in-package #:jenkins.api)
 
-(defvar *initializing?* nil)
+;;; `standard-model-object'
 
 (defclass standard-model-object ()
+  ()
+  (:documentation
+   "A superclass for model object classes."))
+
+;;; `root-model-object'
+
+(defclass root-model-object (standard-model-object)
   ((id       :initarg  :id
              :accessor id
              :documentation
-             "")
+             "The unique id of this object.")
    (data     :initarg  :data
              :accessor %data
              :documentation
-             "")
+             "An XML document storing a serialized version of the data
+              in this object.")
    (get-func :initarg  :get-func
-             :type     function
+             :type     (or null function)
              :accessor get-func
+             :initform nil
              :documentation
-             "")
+             "A function that is called with one argument, the object
+              id, and retrieves and returns the XML data for the
+              specified object from the server.")
    (put-func :initarg  :put-func
              :type     (or null function)
              :accessor put-func
              :initform nil
              :documentation
-             ""))
+             "A function that is called with two argument, an XML
+              document containing the new data for the object and the
+              object id, and stores the supplied data for specified
+              object on the server."))
   (:default-initargs
-   :id       (missing-required-initarg 'standard-model-object :id)
-   :get-func (missing-required-initarg 'standard-model-object :get-func))
+   :id (missing-required-initarg 'standard-model-object :id))
   (:documentation
-   "A superclass for model classes."))
+   "Class for model objects, that are roots.
 
-(defmethod shared-initialize :around ((instance    standard-model-object)
+    Root objects store an XML document in the non-root elements of
+    which correspond to non-root model objects.
+
+    Root objects can also store \"get\" and \"put\" functions which
+    download and upload this XML configuration from/to Jenkins
+    respectively."))
+
+(defvar *initializing?* nil)
+
+(defmethod shared-initialize :around ((instance    root-model-object)
                                       (slots-names t)
                                       &key)
   (let ((*initializing?* t))
     (call-next-method)))
 
 (defmethod slot-unbound :around ((class     t)
-                                 (instance  standard-model-object)
+                                 (instance  root-model-object)
                                  (slot-name t))
   (setf (%data instance) nil)
   (update! instance)
@@ -49,17 +71,33 @@
       (slot-value instance slot-name)
       (call-next-method)))
 
-(defmethod (setf closer-mop:slot-value-using-class) :around ((new-value t)
-                                                             (class     t)
-                                                             (instance  standard-model-object)
-                                                             (slot      t))
-  (when (and (not (member (closer-mop:slot-definition-name slot) '(id data get-func put-func)))
+(defmethod (setf closer-mop:slot-value-using-class)
+    :around ((new-value t)
+             (class     t)
+             (instance  root-model-object)
+             (slot      t))
+  (when (and (not (member (c2mop:slot-definition-name slot)
+                          '(id data get-func put-func)))
              (not (slot-boundp instance 'data))
              (not *initializing?*))
     (update! instance))
   (call-next-method))
 
-;; TODO(jmoringe, 2013-02-21): rename root? -> toplevel? ? make option?
+(defmethod update! ((object root-model-object))
+  (let+ (((&accessors id (data %data) get-func) object))
+    (setf data (funcall get-func id))
+    (xloc:xml-> (stp:root data) object)))
+
+(defmethod commit! ((object root-model-object))
+  (let+ (((&accessors-r/o id (data %data) put-func) object))
+    (unless put-func
+      (error "~@<Read-only object ~A.~@:>" object))
+    (xloc:->xml object (stp:root data) (class-name (class-of object)))
+    (funcall put-func id data))
+  object)
+
+;;; `define-model-class' macro
+
 (defmacro define-model-class (name () (&rest slots) &body options)
   (let+ (((&flet maybe-version-case (spec &key (transform #'identity))
             (typecase spec
@@ -150,7 +188,7 @@
          (put-func     (second (find :put-func options :key #'first)))
          (root?        (or get-func put-func)))
     `(progn
-       (defclass ,name (,@(when root? '(standard-model-object)))
+       (defclass ,name (,@(when root? '(root-model-object)))
          (,@(mapcar #'make-slot-spec slots))
          (:default-initargs
           ,@(append
@@ -186,20 +224,6 @@
            ,@(when version-slot '((declare (ignorable #'version))))
            ,@(mapcar #'make-slot->xml slots))
          dest)
-
-       ,@(when root?
-           `((defmethod update! ((object ,name))
-               (let+ (((&accessors id (data %data) get-func) object))
-                 (setf data (funcall get-func id))
-                 (xloc:xml-> (stp:root data) object)))
-
-             (defmethod commit! ((object ,name))
-               (let+ (((&accessors-r/o id (data %data) put-func) object))
-                 (unless put-func
-                   (error "~@<Read-only object ~A.~@:>" object))
-                 (xloc:->xml object (stp:root data) ',name)
-                 (funcall put-func id data))
-               object)))
 
        ,@(when name-slot
            `((defmethod print-object ((object ,name) stream)

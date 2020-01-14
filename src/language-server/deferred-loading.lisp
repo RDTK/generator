@@ -1,6 +1,6 @@
 ;;;; deferred-loading.lisp --- Deferred loading of recipes.
 ;;;;
-;;;; Copyright (C) 2019 Jan Moringen
+;;;; Copyright (C) 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -46,8 +46,11 @@
 ;;; Recipe loading
 
 (defclass deferred-recipes-mixin ()
-  ((%workspace :initarg :workspace
-               :reader  workspace)))
+  ((%workspace :initarg  :workspace
+               :reader   workspace)
+   (%locations :initarg  :locations
+               :reader   locations
+               :initform (make-instance 'project::locations))))
 
 (defun map-recipes (function kind container)
   (let* ((repository (repository (workspace container)))
@@ -60,11 +63,12 @@
                                   kind condition)
                        (invoke-restart
                         (util:find-continue-restart condition)))))
-      (map nil (lambda (filename)
-                 (with-simple-restart (continue "Skip project recipe ~A"
-                                                filename)
-                   (funcall function filename repository)))
-           files))))
+      (let ((project::*locations* (locations container)))
+        (map nil (lambda (filename)
+                   (with-simple-restart (continue "Skip ~(~A~) recipe ~A"
+                                                  kind filename)
+                     (funcall function filename repository)))
+             files)))))
 
 ;;; Templates
 
@@ -73,8 +77,8 @@
   ())
 
 (defmethod load-elements ((container deferred-templates))
-  (let ((project::*templates* (make-hash-table :test #'equal))
-         (project::*templates-lock* (bt:make-lock)))
+  (let ((project::*templates*      (make-hash-table :test #'equal))
+        (project::*templates-lock* (bt:make-lock)))
     (map-recipes (lambda (filename repository)
                    (project:load-template/yaml
                     filename :repository repository))
@@ -86,7 +90,7 @@
 (defclass deferred-projects (deferred-collection
                              deferred-recipes-mixin)
   ())
-
+projects::*distributions*
 (defmethod load-elements ((container deferred-projects))
   (let* ((workspace                (workspace container))
          (project::*templates*     (templates/table workspace :if-unavailable :block))
@@ -115,10 +119,9 @@
   (let* ((workspace                (workspace container))
          (project::*templates*     (templates/table workspace :if-unavailable :block))
          (project::*projects*      nil)
-         (distributions            (make-hash-table :test #'equal))
          (project::*projects-lock* (bt:make-lock))
-         ; (project::*distributions-lock* (bt:make-lock))
-         )
+         (distributions            (make-hash-table :test #'equal))
+         (project::*distributions* distributions))
     (map-recipes
      (lambda (filename repository)
        (let ((distribution (project:load-distribution/yaml

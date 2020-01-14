@@ -42,7 +42,7 @@
     (mappend (lambda (distribution)
                (mappend (lambda (include)
                           (when (string= (project:project include) name)
-                            (list (project::location-of include))))
+                            (list (project::location-of (project:project include) (locations (%distributions workspace))))))
                         (project:versions distribution)))
              distributions)))
 

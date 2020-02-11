@@ -1,6 +1,6 @@
 ;;;; distribution.lisp --- Deployment of distributions as Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -62,7 +62,7 @@
 (defun configure-view (name jobs &key columns)
   (with-trivial-progress (:view "~A" name)
     (let ((jenkins-jobs (mappend #'model:implementations jobs))
-          (view         (make-instance 'jenkins.api:view :id name)))
+          (view         (jenkins.api:view name)))
       (if (jenkins.api::view? name)
           (jenkins.api::update! view)
           (jenkins.api:make-view name (jenkins.api::%data view)))

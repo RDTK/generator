@@ -1,6 +1,6 @@
 ;;;; view.lisp --- View model class.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -60,8 +60,7 @@
                   :optional? nil))
   (:default-initargs
    :data (stp:make-document (stp:make-element "hudson.model.ListView")))
-  (:get-func (lambda (id)      (view-config id)))
-  (:put-func (lambda (id data) (setf (view-config id) data))))
+  (:root? t))
 
 ;;; HACK: Jenkins requires a sorted list
 ;;; (w.r.t. hudson.util.CaseInsensitiveComparator).

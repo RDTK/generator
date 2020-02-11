@@ -1,6 +1,6 @@
 ;;;; api.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -103,7 +103,7 @@
            (get-name    :get-name    (format-symbol *package* "~A/JSON" name))
            (get-path    :get-path    `(format nil "~@[~A/~]~A/api/json" ,prefix name))
 
-           (config?     :config?     t)
+           (writable?   :writable?   t)
 
            (config-name :config-name (format-symbol *package* "~A-CONFIG" name))
            (config-path :config-path `(format nil "~@[~A/~]~A/config.xml" ,prefix name))
@@ -144,11 +144,26 @@
                       (if-not-found #'error))
          (request/json :depth depth :if-not-found if-not-found))
 
-       ,@(when config?
-           `((define-operation/xml (,config-name :path ,config-path) (name)
-               (request/xml))
+       (defmethod ,name ((id string) &rest initargs &key &allow-other-keys)
+         (apply #'make-instance ',class-name
+                :id       id
+                :get-func (let ((endpoint *endpoint*))
+                            (lambda (id)
+                              (with-endpoint (endpoint)
+                                (,config-name id))))
+                ,@(when writable?
+                    `(:put-func (let ((endpoint *endpoint*))
+                                  (lambda (id new-value)
+                                    (with-endpoint (endpoint)
+                                      (funcall (function ,setf-config-name)
+                                               new-value id))))))
+                initargs))
 
-             (define-operation (,setf-config-name :path ,config-path) (config name)
+       (define-operation/xml (,config-name :path ,config-path) (name)
+         (request/xml))
+
+       ,@(when writable?
+           `((define-operation (,setf-config-name :path ,config-path) (config name)
                (request :name         name
                         :method       :post
                         :content-type "application/xml; charset=utf-8"
@@ -162,34 +177,30 @@
                         :content-type "application/xml; charset=utf-8"
                         :content      (coerce
                                        (stp:serialize config (cxml:make-octet-vector-sink))
-                                       '(simple-array (unsigned-byte 8) (*)))))))
+                                       '(simple-array (unsigned-byte 8) (*)))))
 
-       ;; TODO name or object
-       (define-operation (,copy-name :path ,make-path) (source-name new-name)
-         (request :name   new-name
-                  :mode   "copy"
-                  :from   source-name
-                  :method :post)
-         ,(if config?
-              `(,name new-name)
-              t))
+             ;; TODO name or object
+             (define-operation (,copy-name :path ,make-path) (source-name new-name)
+               (request :name   new-name
+                        :mode   "copy"
+                        :from   source-name
+                        :method :post)
+               (,name new-name))
 
-       ;; TODO name or object
-       (define-operation (,rename-name :path ,rename-path) (source-name new-name)
-         ;; Some objects cannot be renamed while they are "busy" in
-         ;; some sense. Retry until renaming becomes possible.
-         (loop :for props = (nth-value
-                             2 (request :|newName| new-name :method :post))
-               :while (ppcre:scan "rename\\?newName" (cdr (assoc :location props)))
-               :do (sleep 1))
-         ,(if config?
-              `(,name new-name)
-              t))
+             ;; TODO name or object
+             (define-operation (,rename-name :path ,rename-path) (source-name new-name)
+               ;; Some objects cannot be renamed while they are "busy" in
+               ;; some sense. Retry until renaming becomes possible.
+               (loop :for props = (nth-value
+                                   2 (request :|newName| new-name :method :post))
+                     :while (ppcre:scan "rename\\?newName" (cdr (assoc :location props)))
+                     :do (sleep 1))
+               (,name new-name))
 
-       (define-operation/name-or-object (,delete-name :path ,delete-path)
-           ((name ,class-name))
-         (request :method :post)
-         (values)))))
+             (define-operation/name-or-object (,delete-name :path ,delete-path)
+                 ((name ,class-name))
+               (request :method :post)
+               (values)))))))
 
 ;;; Node-related operations
 
@@ -367,6 +378,15 @@
                 (remove-if (complement (curry #'cl-ppcre:scan regex)) names)
                 names))))
 
+(defun build (id &rest initargs &key &allow-other-keys)
+  (apply #'make-instance 'build
+         :id       id
+         :get-func (let ((endpoint *endpoint*))
+                     (lambda (id)
+                       (with-endpoint (endpoint)
+                         (build-config id))))
+         initargs))
+
 (define-operation/json (build/json :path (format nil "job/~A/api/json" name))
     (name &key (depth 1))
   (request/json :depth depth))
@@ -390,7 +410,9 @@
   (:all-filter  "items[id]")
   (:all-field   :items)
 
-  (:config-path (format nil "queue/~A/api/xml" name)))
+  (:config-path (format nil "queue/~A/api/xml" name))
+
+  (:writable?   nil))
 
 (define-operation/name-or-object
     (cancel! :path (format nil "queue/item/~A/cancelQueue" item))

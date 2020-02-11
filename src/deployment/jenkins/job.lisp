@@ -1,6 +1,6 @@
 ;;;; job.lisp --- Deployment of Jenkins jobs.
 ;;;;
-;;;; Copyright (C) 2012, 2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -17,11 +17,9 @@
                           (make-keyword (string-upcase kind)))))
          (disabled? (var:value/cast thing :build-job.disabled? nil))
          ((&flet make-new-job (&optional existing-job)
-            (let ((job (make-instance 'jenkins.api:job/project
-                                      :id        id
-                                      :check-id? t
-                                      :kind      kind
-                                      :populate? t)))
+            (let ((job (jenkins.api:job id :check-id? t
+                                           :kind      kind
+                                           :populate? t)))
               ;; Retain value of disabled slot unless
               ;; `:force-disabled' has been specified.
               (setf (jenkins.api:disabled? job)

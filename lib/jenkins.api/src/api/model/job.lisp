@@ -73,12 +73,11 @@
    (jdk             :type     string
                     :xpath    "jdk/text()"
                     :initform nil))
-  (:get-func (lambda (id)      (job-config id)))
-  (:put-func (lambda (id data) (setf (job-config id) data))))
+  (:root? t))
 
 ;;; For backward-compatibility
 (defmethod job ((id t) &rest initargs &key &allow-other-keys)
-  (apply #'job/project id initargs))
+  (apply #'make-instance 'job/project :id id initargs))
 
 (defun job-name-character? (character)
   (or (alphanumericp character) (member character '(#\- #\_ #\.))))

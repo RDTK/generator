@@ -1,6 +1,6 @@
 ;;;; build.lisp --- Build model class.
 ;;;;
-;;;; Copyright (C) 2012-2018 Jan Moringen
+;;;; Copyright (C) 2012-2019 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -37,7 +37,7 @@
                :xpath ("*[(local-name() = 'action' or local-name() = 'changeSet')
                         and @*[local-name() = '_class']]"
                        :if-multiple-matches :all)))
-  (:get-func (lambda (id) (build-config id)))
+  (:root?     t)
   (:name-slot nil))
 
 (defmethod job ((build build) &key &allow-other-keys)

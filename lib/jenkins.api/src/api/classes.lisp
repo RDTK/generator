@@ -18,8 +18,7 @@
                 :xpath     "label/text()")
    (environment :type      tree-map/plist
                 :xpath     "/slave/nodeProperties/hudson.slaves.EnvironmentVariablesNodeProperty/envVars/tree-map"))
-  (:get-func (lambda (id)      (node-config id)))
-  (:put-func (lambda (id data) (setf (node-config id) data)))
+  (:root?     t)
   (:name-slot nil))
 
 (defmethod print-object ((object node) stream)
@@ -32,7 +31,7 @@
 (define-model-class item ()
     ((job-name :type  string
                :xpath "task/name/text()"))
-  (:get-func (lambda (id) (item-config id))))
+  (:root? t))
 
 (defmethod job ((item item) &key &allow-other-keys)
   (job (job-name item)))

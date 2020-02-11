@@ -184,27 +184,18 @@
          (name-slot    (second (or (find :name-slot options :key #'first)
                                    '(:name-slot id))))
          (version-slot (second (find :version-slot options :key #'first)))
-         (get-func     (second (find :get-func options :key #'first)))
-         (put-func     (second (find :put-func options :key #'first)))
-         (root?        (or get-func put-func)))
+         (root?        (second (find :root? options :key #'first))))
     `(progn
        (defclass ,name (,@(when root? '(root-model-object)))
          (,@(mapcar #'make-slot-spec slots))
          (:default-initargs
           ,@(append
-             (when get-func `(:get-func ,get-func))
-             (when put-func `(:put-func ,put-func))
              (mappend #'make-default-initarg slots)
              (rest (find :default-initargs options :key #'first))))
          ,@(remove-if (lambda (key)
-                        (member key '(:name-slot :version-slot
-                                      :get-func :put-func
+                        (member key '(:name-slot :version-slot :root?
                                       :default-initargs)))
                       options :key #'first))
-
-       ;; TODO(jmoringe, 2013-01-03): get rid of this
-       (defmethod ,name ((id t) &rest initargs &key &allow-other-keys)
-         (apply #'make-instance ',name :id id initargs))
 
        (defmethod xloc:xml-> ((value stp:element)
                               (type  ,name)

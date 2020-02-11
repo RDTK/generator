@@ -1,6 +1,6 @@
 ;;;; aspects-publish.lisp --- Definitions of publisher-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -87,14 +87,13 @@
 ;;; Warnings aspect
 
 (defun install-parser/native (issues-recorder tool-class id
-                              &key
-                              (name    nil)
-                              (pattern nil))
+                              &key (name    nil)
+                                   (pattern nil))
   (remove tool-class (jenkins.api:analysis-tools issues-recorder)
           :key #'type-of)
-  (push (funcall tool-class id
-                 :name    name
-                 :pattern pattern)
+  (push (make-instance tool-class :id      id
+                                  :name    name
+                                  :pattern pattern)
         (jenkins.api:analysis-tools issues-recorder)))
 
 (defun install-parser/groovy (issues-recorder parser)
@@ -124,48 +123,47 @@
       "Which of Jenkins' architectures for scanning and reporting
        warnings should be used?"))
   "Configures a warnings publisher for the generated job."
-  (cond
-    ((not parsers))
-    ((eq implementation :ng)
-     (with-interface (jenkins.api:publishers job)
-         (issues-recorder (jenkins.api:publisher/issues-recorder))
-       (let+ (((&flet match-parser (parser clause)
-                 (let ((scanner (ppcre:create-scanner clause :case-insensitive-mode t)))
-                   (ppcre:scan scanner parser))))
-              ((&flet install-parser (parser)
-                 (eswitch (parser :test #'match-parser)
-                   ;; Builtin
-                   ("^gnu (?:c )?compiler 4 \\(gcc\\)$"
-                    (install-parser/native
-                     issues-recorder 'jenkins.api::analysis-tool/gcc4
-                     "gcc4"))
-                   ("^apple llvm compiler \\(clang\\)$")
-                   ("^maven$"
-                    (install-parser/native
-                     issues-recorder 'jenkins.api::analysis-tool/maven "maven"))
-                   ("^java compiler \\(javac\\)$"
-                    (install-parser/native
-                     issues-recorder 'jenkins.api::analysis-tool/java "java"))
-                   ("^doxygen$")
-                   ("^sphinx-build$")
-                   ;; Groovy-based
-                   ("^cmake$"
-                    (install-parser/groovy issues-recorder "cmake"))
-                   ("^build generator$"
-                    (install-parser/groovy issues-recorder "build-generator"))
-                   ("^build generator dependencies$"
-                    (install-parser/groovy
-                     issues-recorder "build-generator-dependencies"))))))
-         (map nil #'install-parser parsers))))
+  (cond ((not parsers))
+        ((eq implementation :ng)
+         (with-interface (jenkins.api:publishers job)
+             (issues-recorder (jenkins.api:publisher/issues-recorder))
+           (let+ (((&flet match-parser (parser clause)
+                     (let ((scanner (ppcre:create-scanner clause :case-insensitive-mode t)))
+                       (ppcre:scan scanner parser))))
+                  ((&flet install-parser (parser)
+                     (eswitch (parser :test #'match-parser)
+                       ;; Builtin
+                       ("^gnu (?:c )?compiler 4 \\(gcc\\)$"
+                        (install-parser/native
+                         issues-recorder 'jenkins.api::analysis-tool/gcc4
+                         "gcc4"))
+                       ("^apple llvm compiler \\(clang\\)$")
+                       ("^maven$"
+                        (install-parser/native
+                         issues-recorder 'jenkins.api::analysis-tool/maven "maven"))
+                       ("^java compiler \\(javac\\)$"
+                        (install-parser/native
+                         issues-recorder 'jenkins.api::analysis-tool/java "java"))
+                       ("^doxygen$")
+                       ("^sphinx-build$")
+                       ;; Groovy-based
+                       ("^cmake$"
+                        (install-parser/groovy issues-recorder "cmake"))
+                       ("^build generator$"
+                        (install-parser/groovy issues-recorder "build-generator"))
+                       ("^build generator dependencies$"
+                        (install-parser/groovy
+                         issues-recorder "build-generator-dependencies"))))))
+             (map nil #'install-parser parsers))))
 
-    ((eq implementation :legacy)
-     (with-interface (jenkins.api:publishers job)
-         (warnings (jenkins.api:publisher/warnings))
-       (iter (for parser in parsers)
-             (pushnew (make-instance 'jenkins.api:warning-parser/console :name parser)
-                      (jenkins.api:console-parsers warnings)
-                      :test #'string=
-                      :key  #'jenkins.api:name))))))
+        ((eq implementation :legacy)
+         (with-interface (jenkins.api:publishers job)
+             (warnings (jenkins.api:publisher/warnings))
+           (iter (for parser in parsers)
+                 (pushnew (make-instance 'jenkins.api:warning-parser/console :name parser)
+                          (jenkins.api:console-parsers warnings)
+                          :test #'string=
+                          :key  #'jenkins.api:name))))))
 
 ;;; Checkstyle and PMD aspects
 

@@ -252,6 +252,19 @@
                               (:file     "target")
                               (:file     "aspects")))
 
+                (:module     "deployment-github-actions"
+                 :pathname   "src/deployment/github-actions"
+                 :depends-on ("model"
+                              "model-project"
+                              "model-aspects"
+                              "deployment")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "model")
+                              (:file     "output")
+                              (:file     "target")
+                              (:file     "aspects")))
+
                 (:module     "report"
                  :pathname   "src/report"
                  :depends-on ("util" "model-project")

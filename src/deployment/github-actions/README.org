@@ -1,0 +1,36 @@
+* Introduction
+
+  This target generates workflow descriptions for the [[https://help.github.com/en/actions][GitHub Actions]] service.
+  In this context, a workflow is a collection of interdependent, potentially concurrent jobs consisting of individual steps.
+  Concretely, it generates files that can be placed in GitHub-hosted repositories under the names =.github/workflows/NAME.yml= such that the GitHub Actions system detects and executes the specified workflows in response to certain events.
+
+  Currently, this target can only operate in one mode which generates one or more workflow descriptions for an entire distribution.
+  This means a single GitHub repository will be (ab)used to build the distribution (as opposed to the involved project repositories getting "their own" workflows).
+  This seems like the only viable mode of operation for now because
+
+  1. Artifacts can be transferred between jobs running in a single workflow run, but not between different workflows or different runs.
+
+  2. It is not clear whether workflows can "trigger" each other which would be needed for a meta workflow spanning multiple repositories.
+
+  3. Attaching workflows to repositories requires modifying the repository contents which is not an option for 3rd-party projects and may be undesirable for other reasons.
+
+* Noteworthy Technical Details
+
+** Artifacts
+
+   Since each project is built in its own job, artifacts produced by upstream builds must be made available in the workspaces of downstream builds.
+   GitHub Actions provides the ~upload-artifact~ and ~download-artifact~ actions for this.
+   At the end of each project job, we archive the generated artifacts according to the project recipe using the ~upload-artifact~ action.
+   Conversely, one of the first actions of each project job is obtaining and extracting the artifact(s) from its upstream job(s).
+
+** Cache
+
+   The builtin caching feature of GitHub Actions is not used at moment.
+
+* References
+
+  + Documentation :: https://help.github.com/en/actions
+
+  + Artifact download :: https://github.com/actions/download-artifact
+
+  + Artifact upload :: https://github.com/actions/upload-artifact

@@ -198,3 +198,9 @@
 ;;; Command for travis target
 
 (define-generate-command (:generate-travis :travis))
+
+;;; Command for github-actions target
+
+(define-generate-command (:generate-github-actions :github-actions)
+  (("--output-directory" "-o") "output-directory" "DIRECTORY" t)
+  (("--platforms" "-p")        "platforms"        "PLATFORMS" t))

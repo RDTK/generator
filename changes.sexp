@@ -21,6 +21,12 @@
     filesystem.")
 
   (:enhancement
+   "The new" (:verb "generate-github-actions") "command can be used to
+    write one or more GitHub Actions workflows into a specified
+    repository directory which build one or more distributions when
+    executed in the GitHub Actions system.")
+
+  (:enhancement
    "The new" (:verb "build") "command builds or installs one or more
     distributions in the filesystem under the direct control of the
     generator process.")

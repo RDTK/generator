@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Mixin classes for aspect classes.
 ;;;;
-;;;; Copyright (C) 2012-2017, 2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -44,11 +44,13 @@
           (setf *step-constraints* index)
           table))))
 
-(defun register-constraints (aspect phase step tag constraints)
+(defun register-constraints (aspect phase step tag constraints
+                             &key (target-phase phase)
+                                  step-string)
   (let* ((constraints (append constraints
-                              (step-constraints aspect phase step)))
+                              (step-constraints aspect phase (or step-string step))))
          (cell        (ensure-gethash
-                       step (constraints-table phase)
+                       step (constraints-table target-phase)
                        (list tag (model:name aspect) '()))))
     (log:trace "~@<All constraints for ~A~@:_~
                 ~/build-generator.model.aspects::format-constraints/~@:>"
@@ -65,11 +67,15 @@
 (defmethod step-constraints ((aspect aspect-builder-defining-mixin)
                              (phase  (eql 'build))
                              (step   t))
-  (let+ ((step-type       (type-of step))
+  (let+ ((step-string     (typecase step
+                            (string
+                             step)
+                            (t
+                             (let ((type-string (string (type-of step))))
+                               (subseq type-string (length "builder/"))))))
          (variable        (format-symbol
                            :keyword "ASPECT.BUILDER-CONSTRAINTS.~@:(~A~)"
-                           (let ((type-string (string step-type)))
-                             (subseq type-string (length "builder/")))))
+                           step-string))
          (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~
@@ -87,11 +93,15 @@
 (defmethod step-constraints ((aspect aspect-publisher-defining-mixin)
                              (phase  (eql 'publish))
                              (step   t))
-  (let+ ((step-type       (type-of step))
+  (let+ ((step-string     (typecase step
+                            (string
+                             step)
+                            (t
+                             (let ((type-string (string (type-of step))))
+                               (subseq type-string (length "builder/"))))))
          (variable        (format-symbol
                            :keyword "ASPECT.PUBLISHER-CONSTRAINTS.~@:(~A~)"
-                           (let ((type-string (string step-type)))
-                             (subseq type-string (length "publisher/")))))
+                           step-string))
          (constraints/raw (var:value aspect variable nil))
          (constraints     (mapcar #'parse-constraint constraints/raw)))
     (log:trace "~@<Constraints for ~A in ~A~:@_~

@@ -1,6 +1,6 @@
 ;;;; document.lisp --- Document classes for different recipe types.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -183,7 +183,7 @@
      text
      :pathname          pathname
      :repository        (repository workspace)
-     :generator-version "0.26.0"
+     :generator-version (generator-version workspace)
      :version-test      (lambda (name pattern)
                           (cond (name
                                  t)
@@ -214,7 +214,7 @@
                           text
                           :pathname          pathname
                           :repository        (repository workspace)
-                          :generator-version "0.26.0")))
+                          :generator-version (generator-version workspace))))
          (projects-files+versions (uiop:symbol-call '#:build-generator.commands '#:locate-projects
                                                     (list distribution) repository))
          (project::*templates*        (templates/table (workspace document) :if-unavailable :block))
@@ -223,8 +223,7 @@
                                                                    :hook nil))
          (projects (uiop:symbol-call '#:build-generator.commands '#:load-projects/versioned
                                      projects-files+versions repository
-                                     :generator-version "0.26.0" ; generator-version
-                                     )))
+                                     :generator-version (generator-version workspace))))
     (map nil (lambda (project)
                (setf (project:find-project (model:name project)) project))
          projects)
@@ -254,4 +253,4 @@
        text
        :pathname          pathname
        :repository        (repository workspace)
-       :generator-version "0.26.0"))))
+       :generator-version (generator-version workspace)))))

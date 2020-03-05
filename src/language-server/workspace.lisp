@@ -1,6 +1,6 @@
 ;;;; workspace.lisp --- TODO.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,7 +10,12 @@
                      lsp:document-container-mixin
                      lsp:root-uri-mixin
                      print-items:print-items-mixin)
-  ((%repository        :initarg  :repository
+  (;; Global information
+   (%generator-version :initarg  :generator-version
+                       :reader   generator-version
+                       :initform "99.99.99")
+   ;;
+   (%repository        :initarg  :repository
                        :reader   repository
                        :writer   (setf %repository))
    ;; Documents by kind

@@ -90,7 +90,7 @@
 (defclass deferred-projects (deferred-collection
                              deferred-recipes-mixin)
   ())
-projects::*distributions*
+
 (defmethod load-elements ((container deferred-projects))
   (let* ((workspace                (workspace container))
          (project::*templates*     (templates/table workspace :if-unavailable :block))
@@ -101,7 +101,7 @@ projects::*distributions*
      (lambda (filename repository)
        (let ((project (project:load-project-spec/yaml
                        filename :repository        repository
-                       :generator-version "0.30.0"
+                       :generator-version (generator-version workspace)
                        :version-test      (lambda (name pattern)
                                             (declare (ignore name pattern))
                                             '()))))
@@ -126,7 +126,7 @@ projects::*distributions*
      (lambda (filename repository)
        (let ((distribution (project:load-distribution/yaml
                             filename :repository        repository
-                            :generator-version "0.30.0")))
+                                     :generator-version (generator-version workspace))))
          (setf (gethash (model:name distribution) distributions) distribution)))
      :distribution container)
     distributions))
@@ -144,7 +144,7 @@ projects::*distributions*
     (map-recipes (lambda (filename repository)
                    (let ((person (project:load-person/yaml
                                   filename :repository        repository
-                                           :generator-version "0.28.0")))
+                                           :generator-version (generator-version workspace))))
                      (setf (gethash (rosetta.model:name person) persons) person)))
                  :person container)
     persons))

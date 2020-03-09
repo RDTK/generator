@@ -1,6 +1,6 @@
 ;;;; job.lisp --- Job model class.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -74,10 +74,6 @@
                     :xpath    "jdk/text()"
                     :initform nil))
   (:root? t))
-
-;;; For backward-compatibility
-(defmethod job ((id t) &rest initargs &key &allow-other-keys)
-  (apply #'make-instance 'job/project :id id initargs))
 
 (defun job-name-character? (character)
   (or (alphanumericp character) (member character '(#\- #\_ #\.))))

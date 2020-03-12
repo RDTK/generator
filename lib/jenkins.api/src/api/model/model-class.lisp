@@ -1,6 +1,6 @@
 ;;;; model-class.lisp --- Superclass for model classes.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -98,7 +98,8 @@
 
 ;;; `define-model-class' macro
 
-(defmacro define-model-class (name () (&rest slots) &body options)
+(defmacro define-model-class (name (&rest superclasses) (&rest slots)
+                              &body options)
   (let+ (((&flet maybe-version-case (spec &key (transform #'identity))
             (typecase spec
               ((cons (eql :version))
@@ -186,7 +187,8 @@
          (version-slot (second (find :version-slot options :key #'first)))
          (root?        (second (find :root? options :key #'first))))
     `(progn
-       (defclass ,name (,@(when root? '(root-model-object)))
+       (defclass ,name (,@superclasses
+                        ,@(when root? '(root-model-object)))
          (,@(mapcar #'make-slot-spec slots))
          (:default-initargs
           ,@(append
@@ -200,6 +202,7 @@
        (defmethod xloc:xml-> ((value stp:element)
                               (type  ,name)
                               &key &allow-other-keys)
+         (when (next-method-p) (call-next-method))
          (flet (,@(when version-slot
                     `((version () (,version-slot type)))))
            ,@(when version-slot '((declare (ignorable #'version))))
@@ -210,6 +213,10 @@
                               (dest  stp:element)
                               (type  (eql ',name))
                               &key &allow-other-keys)
+         ,@(when superclasses
+             (map 'list (lambda (superclass)
+                          `(xloc:->xml value dest ',superclass))
+                  superclasses))
          (flet (,@(when version-slot
                     `((version () (,version-slot value)))))
            ,@(when version-slot '((declare (ignorable #'version))))

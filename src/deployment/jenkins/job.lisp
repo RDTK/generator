@@ -19,7 +19,9 @@
                                (kind         t)
                                (existing-job t))
   (if (eq kind (jenkins.api:kind existing-job))
-      existing-job
+      (jenkins.api:job id :check-id? t
+                          :kind      kind
+                          :populate? t) ; existing-job
       (make-job-using-job thing id kind nil)))
 
 (defmethod compute-job-config ((thing        project::job)

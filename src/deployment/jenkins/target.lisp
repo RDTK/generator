@@ -1,6 +1,6 @@
 ;;;; target.lisp --- Deployment target for Jenkins.
 ;;;;
-;;;; Copyright (C) 2018, 2019, 2022 Jan Moringen
+;;;; Copyright (C) 2018-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -62,10 +62,8 @@
 (service-provider:register-provider/class
  'deploy:target :jenkins :class 'target)
 
-(defmethod deploy:deploy ((thing sequence) (target target))
-  (unless (every (of-type 'project:distribution) thing)
-    (return-from deploy:deploy (call-next-method)))
-
+(defmethod deploy:context-elements append ((target target))
+  (log:debug "Computing context elements for ~A" target)
   (let+ (((&accessors-r/o base-uri username password api-token) target)
          (credentials (cond (api-token
                              (jenkins.api:make-token-credentials
@@ -76,26 +74,34 @@
          (endpoint    (jenkins.api:make-endpoint
                        base-uri :credentials credentials)))
     (progn ; TODO as-phase (:verify-jenkins)
-      (jenkins.api::verify-jenkins :endpoint endpoint))
+      (jenkins.api::verify-jenkins :endpoint endpoint))  ; TODO do this here?
 
-    (jenkins.api:with-endpoint (endpoint)
-      (let+ (((jobs orchestration-jobs &ign)
-              (reduce (lambda+ ((all-jobs all-orchestration-jobs all-views) distribution)
-                        (let+ (((&values jobs orchestration-jobs views)
-                                (deploy:deploy distribution target)))
-                          (list (append all-jobs               jobs)
-                                (append all-orchestration-jobs orchestration-jobs)
-                                (append all-views              views))))
-                      thing :initial-value '(() () ())))
-             (all-jobs     (append jobs orchestration-jobs))
-             (jenkins-jobs (mappend #'model:implementations all-jobs)))
-        (when (delete-other? target)
-          (with-simple-restart (continue "~@<Do not delete other jobs~@:>")
-            (delete-other-jobs
-             thing jenkins-jobs (delete-other-pattern target))))
+    (list (lambda (next)
+            (log:debug "Applying ~A for ~A" endpoint target)
+            (jenkins.api:with-endpoint (endpoint)
+              (funcall next))))))
 
-        (progn ; TODO as-phase (:list-credentials)
-          (list-credentials jenkins-jobs))))))
+(defmethod deploy:deploy ((thing sequence) (target target))
+  (unless (every (of-type 'project:distribution) thing)
+    (return-from deploy:deploy (call-next-method)))
+
+  (let+ (((jobs orchestration-jobs &ign)
+          (reduce (lambda+ ((all-jobs all-orchestration-jobs all-views) distribution)
+                    (let+ (((&values jobs orchestration-jobs views)
+                            (deploy:deploy distribution target)))
+                      (list (append all-jobs               jobs)
+                            (append all-orchestration-jobs orchestration-jobs)
+                            (append all-views              views))))
+                  thing :initial-value '(() () ())))
+         (all-jobs     (append jobs orchestration-jobs))
+         (jenkins-jobs (mappend #'model:implementations all-jobs)))
+    (when (delete-other? target)
+      (with-simple-restart (continue "~@<Do not delete other jobs~@:>")
+        (delete-other-jobs
+         thing jenkins-jobs (delete-other-pattern target))))
+
+    (progn ; TODO as-phase (:list-credentials)
+      (list-credentials jenkins-jobs))))
 
 ;;; Deleting jobs
 

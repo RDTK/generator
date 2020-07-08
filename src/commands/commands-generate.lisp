@@ -23,6 +23,13 @@
   (:documentation
    "Generate non-Jenkins things for a given distribution."))
 
+(defmethod context-elements append ((command generate-target))
+  (log:debug "Computing context elements for ~A" command)
+  (deploy:context-elements (target command)))
+
+(defmethod command-execute :around ((command generate-target))
+  (funcall (make-context-function command) #'call-next-method))
+
 (defmethod command-execute ((command generate-target))
   (let+ (((&accessors-r/o distributions mode overwrites target)
           command)

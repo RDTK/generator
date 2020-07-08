@@ -8,6 +8,11 @@
 
 ;;; Deployment protocol
 
+(defgeneric context-elements (target)
+  (:method-combination append)
+  (:method append ((target t))
+    '()))
+
 (defgeneric deploy (thing target)
   (:documentation
    "Deploy THING for TARGET.

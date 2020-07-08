@@ -31,6 +31,7 @@
 
   ;; Deployment protocol
   (:export
+   #:context-elements
    #:deploy
    #:deploy-dependencies)
 

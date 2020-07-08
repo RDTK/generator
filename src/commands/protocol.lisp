@@ -91,16 +91,14 @@
                    (funcall function next)))
                elements :initial-value worker-function :from-end t)))))
 
-(defun execute-command (command
-                        &key
-                        configuration
-                        (num-processes  1)
-                        (error-policy   #'error)
-                        (progress-style :cmake)
-                        temp-directory
-                        cache-directory
-                        age-limit
-                        trace-variables)
+(defun execute-command (command &key configuration
+                                     (num-processes  1)
+                                     (error-policy   #'error)
+                                     (progress-style :cmake)
+                                     temp-directory
+                                     cache-directory
+                                     age-limit
+                                     trace-variables)
   ;; We modify the global value so that all threads pick up the value
   ;; without additional work.
   (setf var:*traced-variables* (map 'list (compose #'make-keyword

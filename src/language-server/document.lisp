@@ -180,16 +180,15 @@
   (let* ((workspace            (workspace document))
          (project::*templates* (templates/table workspace :if-unavailable :block)))
     (project::load-project-spec/yaml
-     text
-     :pathname          pathname
-     :repository        (repository workspace)
-     :generator-version (generator-version workspace)
-     :version-test      (lambda (name pattern)
-                          (cond (name
-                                 t)
-                                (pattern
-                                 (remove pattern '("foo")
-                                         :test-not #'ppcre:scan)))))))
+     text :pathname          pathname
+          :repository        (repository workspace)
+          :generator-version (generator-version workspace)
+          :version-test      (lambda (name pattern)
+                               (cond (name
+                                      t)
+                                     (pattern
+                                      (remove pattern '("foo")
+                                              :test-not #'ppcre:scan)))))))
 
 ;;; `distribution-document'
 

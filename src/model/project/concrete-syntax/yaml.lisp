@@ -1,6 +1,6 @@
 ;;;; yaml.lisp --- YAML syntax for templates and projects.
 ;;;;
-;;;; Copyright (C) 2016-2019 Jan Moringen
+;;;; Copyright (C) 2016-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -327,7 +327,7 @@
 
 (define-yaml-loader
     (project-spec ((:templates t list) (:variables t list) (:versions nil list) :catalog))
-    (spec (name :pathname) version-test)
+    (spec (name :pathname) version-test repository generator-version)
   (let+ (((&flet make-version-spec (spec parent requested-names)
             (check-keys spec '((:name      t   string :conflicts :pattern)
                                (:pattern   t   string :conflicts :name)
@@ -363,7 +363,7 @@
                             (object-error
                              (list (list name "included here" :info))
                              "~A" error))))
-                (find-or-load-template name repository "0.30.0")))))
+                (find-or-load-template name repository generator-version)))))
          (instance (make-instance 'project-spec :name name)))
     (reinitialize-instance
      instance

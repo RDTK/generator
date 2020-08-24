@@ -345,7 +345,7 @@
 ;;; build
 
 (define-operation/json (all-builds :path "/api/json") (&key filter count)
-  (let* ((jobs (field (request/json :tree "jobs[name,builds[number]]") :jobs))
+  (let* ((jobs (field (request/json :tree "jobs[name,allBuilds[number]]") :jobs))
          (jobs (if filter
                    (remove-if-not (lambda (job)
                                     (cl-ppcre:scan filter (field job :name)))
@@ -353,7 +353,7 @@
                    jobs)))
     (mapcan (lambda (job)
               (let* ((job-name (field job :name))
-                     (builds   (field job :builds))
+                     (builds   (field job :all-builds))
                      (builds   (if count
                                    (subseq builds 0 (min (length builds) count))
                                    builds)))
@@ -394,6 +394,11 @@
 (define-operation/xml (build-config :path (format nil "job/~A/api/xml" name))
     (name)
   (request/xml))
+
+(define-operation/name-or-object (delete-build :path (format nil "job/~A/doDelete" name))
+    ((name build))
+  (request :method :post)
+  (values))
 
 (define-operation/name-or-object
     (stop! :path (format nil "job/~a/stop" build))

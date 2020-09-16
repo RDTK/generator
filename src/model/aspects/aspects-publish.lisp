@@ -148,7 +148,8 @@
                        ("^sphinx-build$")
                        ;; Groovy-based
                        ("^cmake$"
-                        (install-parser/groovy issues-recorder "cmake"))
+                        (install-parser/native
+                         issues-recorder 'jenkins.api::analysis-tool/cmake "cmake"))
                        ("^build generator$"
                         (install-parser/groovy issues-recorder "build-generator"))
                        ("^build generator dependencies$"

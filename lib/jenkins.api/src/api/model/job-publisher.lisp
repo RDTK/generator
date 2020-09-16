@@ -157,6 +157,20 @@
                      :xpath    "reportEncoding/text()"
                      :initform nil)))
 
+  ((cmake "io.jenkins.plugins.analysis.warnings.Cmake.")
+   (;; Name
+    (id              :type     string
+                     :xpath    "id/text()")
+    (name            :type     string
+                     :xpath    "name/text")
+    ;; Files
+    (pattern         :type     (list/comma string)
+                     :xpath    "pattern/text()"
+                     :initform '())
+    (report-encoding :type     string
+                     :xpath    "reportEncoding/text()"
+                     :initform nil)))
+
   ((groovy "io.jenkins.plugins.analysis.warnings.groovy.GroovyScript")
    (;; Name
     (id              :type     string

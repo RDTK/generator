@@ -1,6 +1,6 @@
 ;;;; build-generator.asd --- System definition for the build-generator system
 ;;;;
-;;;; Copyright (C) 2011-2019 Jan Moringen
+;;;; Copyright (C) 2011-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -16,6 +16,7 @@
                 (:version "split-sequence"                               "1.1")
                 "iterate"
                 (:version "let-plus"                                     "0.1")
+                (:version "optima"                                       "1.0")
                 (:version "more-conditions"                              "0.1.0")
                 (:version "utilities.print-items"                        "0.1.0")
                 (:version "utilities.print-tree"                         "0.1.0")
@@ -216,7 +217,9 @@
   :description "Unit tests for the build-generator system"
 
   :version     (:read-file-form "version-string.sexp")
-  :depends-on  ((:version "fiveam"          "1.4")
+  :depends-on  ((:version "optima"          "1.0")
+
+                (:version "fiveam"          "1.4")
 
                 (:version "build-generator" (:read-file-form "version-string.sexp")))
 

@@ -1,6 +1,6 @@
 ;;;; build-generator.commands.asd --- System definition for generator commands.
 ;;;;
-;;;; Copyright (C) 2016, 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2016, 2017, 2018, 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -14,6 +14,7 @@
   :version     (:read-file-form "version-string.sexp")
   :depends-on  ("alexandria"
                 (:version "let-plus"                                   "0.2")
+                (:version "optima"                                     "1.0")
                 (:version "more-conditions"                            "0.2")
 
                 (:version "configuration.options"                      "0.10")

@@ -631,6 +631,112 @@ jobs:
           name: cl-language.yaml@future
           path: artifacts
 
+  cl-protocol_language-server_future:
+    runs-on: ubuntu-16.04
+    needs: [cl-launch_master,quicklisp_current,cl-text_source-location_future]
+    steps:
+      - name: install-platform-dependencies
+        run: |
+          export WORKSPACE=$(pwd)
+          DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
+              && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
+                sloccount git tar
+
+
+
+      - name: git.repository
+        run: |
+          export WORKSPACE=$(pwd)
+          git clone -b future https://github.com/scymtym/protocol.language-server.git .
+
+
+      - name: download-artifact-cl-model.transform.trace@future
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-model.transform.trace@future
+          path: upstream
+      - name: download-artifact-cl-architecture.builder-protocol@master
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-architecture.builder-protocol@master
+          path: upstream
+      - name: download-artifact-cl-architecture.service-provider@master
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-architecture.service-provider@master
+          path: upstream
+      - name: download-artifact-cl-text.source-location@future
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-text.source-location@future
+          path: upstream
+      - name: download-artifact-sbcl@master
+        uses: actions/download-artifact@v1
+        with:
+          name: sbcl@master
+          path: upstream
+      - name: download-artifact-quicklisp@current
+        uses: actions/download-artifact@v1
+        with:
+          name: quicklisp@current
+          path: upstream
+      - name: download-artifact-cl-launch@master
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-launch@master
+          path: upstream
+
+
+      - name: extract-upstream-artiacts
+        run: |
+          export WORKSPACE=$(pwd)
+          cd upstream
+          find . -name '*.tar.gz' -exec tar -xzf '{}' \;
+
+      - name: common-lisp-source.shell
+        run: |
+          export WORKSPACE=$(pwd)
+          # Set up environment
+          export "ASDF_OUTPUT_TRANSLATIONS=/:${WORKSPACE}/fasl-cache/"
+
+
+          # Execute tests
+          ${WORKSPACE}/upstream/install/bin/cl-launch                                        \
+            --wrap 'SBCL_OPTIONS="  ${SBCL_OPTIONS}"' \
+            -S "(:source-registry                                              \
+                   (:tree \""$(pwd)"\")                                       \
+                   (:tree \"${WORKSPACE}/upstream/share/common-lisp/source\")      \
+                   :ignore-inherited-configuration)"                           \
+            -s protocol.language-server/test                                        \
+            '(mapc (function asdf:test-system) (list :protocol.language-server/test ))'
+
+
+
+      - name: common-lisp-source.archive-source-code
+        run: |
+          export WORKSPACE=$(pwd)
+          # Package source code
+          temp=$(mktemp -u).tar.gz
+          tar \
+            --transform 's#^\.\(.*\)#cl-protocol.language-server-future\1#'            \
+            --exclude sloccount.sc --exclude fasl-cache --exclude upstream --exclude .git --exclude .svn  \
+            -czf "${temp}"                                                         \
+            .
+          mv "${temp}" "cl-protocol.language-server-future.tar.gz"
+
+
+      - name: gather-artifacts
+        run: |
+          export WORKSPACE=$(pwd)
+          mkdir -p artifacts
+          mv -v cl-protocol.language-server-future.tar.gz artifacts/
+
+      - name: upload-artifact-cl-protocol.language-server@future
+        uses: actions/upload-artifact@v1
+        with:
+          name: cl-protocol.language-server@future
+          path: artifacts
+
   rosetta-cl_master:
     runs-on: ubuntu-16.04
     needs: [cl-launch_master,quicklisp_current,cl-architecture_service-provider_master,cl-architecture_builder-protocol_master]
@@ -824,7 +930,7 @@ jobs:
           name: rosetta-project-cl@master
           path: artifacts
 
-  build-generator_master:
+  build-generator_wip-language-server:
     runs-on: ubuntu-16.04
     needs: [cl-launch_master,quicklisp_current,cl-configuration_options_master,cl-language_yaml_future,cl-text_source-location_future,rosetta-cl_master,rosetta-project-cl_master]
     steps:
@@ -842,6 +948,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: download-artifact-cl-protocol.language-server@future
+        uses: actions/download-artifact@v1
+        with:
+          name: cl-protocol.language-server@future
+          path: upstream
       - name: download-artifact-rosetta-project-cl@master
         uses: actions/download-artifact@v1
         with:
@@ -960,27 +1071,27 @@ jobs:
           # Package source code
           temp=$(mktemp -u).tar.gz
           tar                                                                       \
-            --transform 's#^\.\(.*\)#build-generator-master\1#'            \
+            --transform 's#^\.\(.*\)#build-generator-wip-language-server\1#'            \
             --exclude sloccount.sc --exclude fasl-cache --exclude upstream --exclude install --exclude .git --exclude .svn  \
             -czf "${temp}"                                                         \
             .
-          mv "${temp}" "build-generator-master.tar.gz"
+          mv "${temp}" "build-generator-wip-language-server.tar.gz"
 
 
           # Package installed artifacts
-          tar -czf build-generator-master-install.tar.gz install
+          tar -czf build-generator-wip-language-server-install.tar.gz install
 
 
       - name: gather-artifacts
         run: |
           export WORKSPACE=$(pwd)
           mkdir -p artifacts
-          mv -v build-generator-master.tar.gz  build-generator-master-install.tar.gz  install/bin/build-generator artifacts/
+          mv -v build-generator-wip-language-server.tar.gz  build-generator-wip-language-server-install.tar.gz  install/bin/build-generator artifacts/
 
-      - name: upload-artifact-build-generator@master
+      - name: upload-artifact-build-generator@wip-language-server
         uses: actions/upload-artifact@v1
         with:
-          name: build-generator@master
+          name: build-generator@wip-language-server
           path: artifacts
 
   sbcl_master:

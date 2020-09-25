@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration plugin="warnings-ng@1.0.1">
+<io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration plugin="warnings-ng@8.4.2">
   <parsers>
     <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
       <id>build-generator</id>
@@ -101,9 +101,8 @@ Call Stack (most recent call first):
     <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
       <id>sbcl</id>
       <name>SBCL</name>
-      <regexp>^; file: (.*)\n; in: (.*)\n(?:; (?!caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
-      <script>import hudson.plugins.warnings.parser.Warning
-import hudson.plugins.analysis.util.model.Priority
+      <regexp>^; file: (.*)\n; in: (.*)\n(?:;(?! caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
+      <script>import edu.hm.hafner.analysis.Severity
 
 String fileName = matcher.group(1)
 int lineNumber = 1
@@ -111,14 +110,21 @@ String form = matcher.group(2)
 String category = matcher.group(3)
 String message = &quot;&quot;
 matcher.group(4).eachLine{ message += it.substring(4) + &apos;\n&apos; }
-Priority priority = Priority.NORMAL
+Severity severity = Severity.WARNING_NORMAL
 if (message.contains(&quot;undefined&quot;) || category.equals(&quot;ERROR&quot;)) {
-  priority = Priority.HIGH
+  severity = Severity.WARNING_HIGH
 } else if (category.equals(&quot;STYLE-WARNING&quot;)) {
-  priority = Priority.LOW
+  severity = Severity.WARNING_LOW
 }
 
-return new Warning(fileName, lineNumber, &quot;SBCL Warning Parser&quot;, category, &quot;In &quot; + form + &quot;: &quot; + message, priority);</script>
+builder.setFileName(fileName)
+       .setLineStart(lineNumber)
+       .setSeverity(severity)
+       .setType( &quot;SBCL Warning&quot;)
+       .setCategory(category)
+       .setMessage(&quot;In &quot; + form + &quot;: &quot; + message)
+
+return builder.buildOptional();</script>
       <example>; file: /tmp/install-test/jobs/cl-text.source-location-future-ci-jmoringe-experimental/workspace/src/locations.lisp
 ; in: DEFMETHOD SHARED-INITIALIZE :AFTER (LOCATION T)
 ;

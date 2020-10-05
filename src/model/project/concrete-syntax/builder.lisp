@@ -1,6 +1,6 @@
 ;;;; builder.lisp --- Builder used for recipe concrete syntax.
 ;;;;
-;;;; Copyright (C) 2016-2019 Jan Moringen
+;;;; Copyright (C) 2016-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -15,8 +15,21 @@
 ;;; `recipe-builder'
 
 (defclass recipe-builder (language.yaml.construct::native-builder)
-  ((base-path :initarg :base-path
-              :reader  base-path))
+  ((base-path :initarg  :base-path
+              :reader   base-path)
+   (root-path :initarg  :root-path
+              :type     (or null
+                            (and pathname (satisfies uiop:directory-pathname-p)))
+              :reader   root-path
+              :initform nil
+              :documentation
+              "Root path for root-relative includes.
+
+               Usually root directory of the repository containing the
+               recipe file that is being processed by the builder.
+
+               Can be `nil', for example, when reading repository
+               \"parents\" files."))
   (:default-initargs
    :base-path (missing-required-initarg 'recipe-builder :base-path)))
 
@@ -65,10 +78,14 @@
                                                :tag     "tag:yaml.org,2002:str"
                                                :content protected))))
 
-(defun make-builder (source)
-  (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder
-                 :target   (make-instance 'recipe-builder
-                                          :base-path (text.source-location:name source))
-                 :source   source
-                 :callback (lambda (object location)
-                             (setf (location-of object) location))))
+(defun make-builder (source &key (root-path nil root-path-supplied?))
+  (let* ((base-path (text.source-location:name source))
+         (builder   (apply #'make-instance 'recipe-builder
+                           :base-path base-path
+                           (when root-path-supplied?
+                             (list :root-path root-path)))))
+    (make-instance 'text.source-location.source-tracking-builder::callback-source-tracking-builder
+                   :target   builder
+                   :source   source
+                   :callback (lambda (object location)
+                               (setf (location-of object) location)))))

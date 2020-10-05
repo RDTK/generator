@@ -18,10 +18,14 @@
             (result  (build-generator.model.project::expand-pathname
                       builder pathname)))
        (is (equalp expected result))))
-   '((#P"/directory/name.type" "foo.bar"      #P"/directory/foo.bar")
+   '((#P"/directory/name.type" "foo"          #P"/directory/foo")
+     (#P"/directory/name.type" "foo.bar"      #P"/directory/foo.bar")
+     (#P"/directory/name.type" "sub/foo"      #P"/directory/sub/foo")
      (#P"/directory/name.type" "sub/foo.bar"  #P"/directory/sub/foo.bar")
 
+     (#P"/directory/name.type" "/foo"         #P"/foo")
      (#P"/directory/name.type" "/foo.bar"     #P"/foo.bar")
+     (#P"/directory/name.type" "/sub/foo"     #P"/sub/foo")
      (#P"/directory/name.type" "/sub/foo.bar" #P"/sub/foo.bar")
 
      (#P"/directory/name"      "foo"          #P"/directory/foo")

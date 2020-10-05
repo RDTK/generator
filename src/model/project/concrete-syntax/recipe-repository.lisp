@@ -1,6 +1,6 @@
 ;;;; recipe-repository.lisp --- A repository for directory and filename information.
 ;;;;
-;;;; Copyright (C) 2019 Jan Moringen
+;;;; Copyright (C) 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -275,9 +275,16 @@
                                 (kind       t)
                                 (path       pathname)
                                 &key (recursive? t))
-  (or (call-next-method)
-      (when recursive?
-        (some (rcurry #'recipe-name kind path) (parents repository)))))
+  (multiple-value-bind (name container) (call-next-method)
+    (cond (name
+           (values name container))
+          (recursive?
+           (map nil (lambda (parent)
+                      (multiple-value-bind (name container)
+                          (recipe-name parent kind path)
+                        (when name
+                          (return-from recipe-name (values name container)))))
+                (parents repository))))))
 
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       t)
@@ -286,9 +293,10 @@
   (assert (uiop:absolute-pathname-p path))
   (let ((directory    (recipe-directory kind repository))
         (without-type (make-pathname :type nil :defaults path)))
-    (if (uiop:subpathp without-type directory)
-        (uiop:native-namestring (uiop:enough-pathname without-type directory))
-        (some (rcurry #'recipe-name kind path) (parents repository)))))
+    (when (uiop:subpathp without-type directory)
+      (let ((namestring (uiop:native-namestring
+                         (uiop:enough-pathname without-type directory))))
+        (values namestring repository)))))
 
 (defmethod recipe-name ((repository recipe-repository)
                         (kind       (eql :template))
@@ -300,9 +308,11 @@
                         (kind       mode)
                         (path       pathname)
                         &key)
-  (or (call-next-method)
-      (when-let ((parent (parent kind)))
-        (recipe-name repository parent path :recursive? nil))))
+  (multiple-value-bind (name container) (call-next-method)
+    (if name
+        (values name container)
+        (when-let ((parent (parent kind)))
+          (recipe-name repository parent path :recursive? nil)))))
 
 ;;; Parents files
 

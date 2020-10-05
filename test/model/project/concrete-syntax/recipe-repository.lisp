@@ -1,6 +1,6 @@
 ;;;; recipe-repository.lisp --- Unit tests for the recipe repository.
 ;;;;
-;;;; Copyright (C) 2019 Jan Moringen
+;;;; Copyright (C) 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -102,34 +102,38 @@
                        ("/b/" ()
                         ("/c/" ()))))))
     (mapc
-     (lambda+ ((kind pathname expected))
+     (lambda+ ((kind pathname expected-name &optional expected-repository))
        (flet ((do-it ()
                 (recipe-name repository kind pathname)))
-         (case expected
+         (case expected-name
            (error (signals error (do-it)))
-           (t     (is (equal expected (do-it)))))))
+           (t     (let+ (((&values name repository) (do-it)))
+                    (is (equal expected-name name))
+                    (if (null expected-repository)
+                        (is (eq nil repository))
+                        (is (equal expected-repository (name repository)))))))))
 
      `((:no-such-kind #P"/a/foo.no-such-kind"                     error)
 
        (:template     #P"/a/templates/toolkit/foo.template"       nil)
-       (:template     #P"/a/templates/ci/foo.template"            "foo")
-       (:template     #P"/a/templates/_common/foo.template"       "foo")
-       (:template     #P"/a/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/a/templates/ci/foo.template"            "foo"     "a")
+       (:template     #P"/a/templates/_common/foo.template"       "foo"     "a")
+       (:template     #P"/a/templates/_common/bar/foo.template"   "bar/foo" "a")
        (:template     #P"/b/templates/toolkit/foo.template"       nil)
-       (:template     #P"/b/templates/ci/foo.template"            "foo")
-       (:template     #P"/b/templates/_common/foo.template"       "foo")
-       (:template     #P"/b/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/b/templates/ci/foo.template"            "foo"     "b")
+       (:template     #P"/b/templates/_common/foo.template"       "foo"     "b")
+       (:template     #P"/b/templates/_common/bar/foo.template"   "bar/foo" "b")
        (:template     #P"/c/templates/toolkit/foo.template"       nil)
-       (:template     #P"/c/templates/ci/foo.template"            "foo")
-       (:template     #P"/c/templates/_common/foo.template"       "foo")
-       (:template     #P"/c/templates/_common/bar/foo.template"   "bar/foo")
+       (:template     #P"/c/templates/ci/foo.template"            "foo"     "c")
+       (:template     #P"/c/templates/_common/foo.template"       "foo"     "c")
+       (:template     #P"/c/templates/_common/bar/foo.template"   "bar/foo" "c")
 
-       (:distribution #P"/a/distributions/foo.distribution"       "foo")
-       (:distribution #P"/a/distributions/stack/bar.distribution" "stack/bar")
-       (:distribution #P"/b/distributions/foo.distribution"       "foo")
-       (:distribution #P"/b/distributions/stack/bar.distribution" "stack/bar")
-       (:distribution #P"/c/distributions/foo.distribution"       "foo")
-       (:distribution #P"/c/distributions/stack/bar.distribution" "stack/bar")))))
+       (:distribution #P"/a/distributions/foo.distribution"       "foo"       "a")
+       (:distribution #P"/a/distributions/stack/bar.distribution" "stack/bar" "a")
+       (:distribution #P"/b/distributions/foo.distribution"       "foo"       "b")
+       (:distribution #P"/b/distributions/stack/bar.distribution" "stack/bar" "b")
+       (:distribution #P"/c/distributions/foo.distribution"       "foo"       "c")
+       (:distribution #P"/c/distributions/stack/bar.distribution" "stack/bar" "c")))))
 
 (test recipe-truename.smoke
   "Smoke test for the `recipe-truename' generic function."

@@ -1,15 +1,17 @@
 ;;;; yaml.lisp --- YAML syntax for templates and projects.
 ;;;;
-;;;; Copyright (C) 2016-2019 Jan Moringen
+;;;; Copyright (C) 2016-2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:build-generator.model.project)
 
-(defun %load-yaml (file)
+(defun %load-yaml (file &key (root-path nil root-path-supplied?))
   (let* ((source  (text.source-location:make-source
                    file :content (read-file-into-string file)))
-         (builder (make-builder source)))
+         (builder (apply #'make-builder source
+                         (when root-path-supplied?
+                           (list :root-path root-path)))))
     (handler-case
         (language.yaml:load file :builder builder)
       (esrap:esrap-parse-error (condition)
@@ -148,22 +150,27 @@
        (defun ,read-name (pathname &key repository generator-version ,@other-args)
          (declare (ignore ,@other-args
                           ,@(when (eq name-kind :data) '(repository))))
-         (let ((spec (%load-yaml pathname)))
+         (let+ (,@(when (eq name-kind :pathname)
+                    `(((&values name repository)
+                       (recipe-name
+                        repository
+                        ,(ecase concept
+                           (one-template     :template)
+                           (one-distribution :distribution)
+                           (project-spec     :project))
+                        pathname))))
+                (spec (%load-yaml
+                       pathname
+                       ,@(when (eq name-kind :pathname)
+                           `(:root-path (root-directory repository)))))
+                ,@(when (eq name-kind :data)
+                    `((name (assoc-value spec :name)))))
            (check-keys spec '((:minimum-generator-version nil string)
                               ,@(when (eq name-kind :data)
                                   '((:name t string)))
                               ,@keys))
            (check-generator-version spec generator-version ,context)
-           (let ((name ,@(ecase name-kind
-                           (:data     `((assoc-value spec :name)))
-                           (:pathname `((recipe-name
-                                         repository
-                                         ,(ecase concept
-                                            (one-template     :template)
-                                            (one-distribution :distribution)
-                                            (project-spec     :project))
-                                         pathname))))))
-             (values spec name pathname))))
+           (values spec name pathname)))
 
        (defun ,parse-name (,spec-var ,name-var &key ,@all-args)
          (declare (ignore ,@(set-difference all-args args)))

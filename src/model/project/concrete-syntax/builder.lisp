@@ -39,11 +39,17 @@
           "tag:build-generator,2018:")))
 
 (defmethod expand-pathname ((builder recipe-builder) (pathname string))
-  ;; Use only the directory component of the base path so that
-  ;; `merge-pathnames' does not add type or version when PATHNAME does
-  ;; not have them.
-  (let ((base-path (uiop:pathname-directory-pathname (base-path builder))))
-    (merge-pathnames pathname base-path)))
+  (cond ((starts-with-subseq "//" pathname)
+         (merge-pathnames (subseq pathname 2) (root-path builder)))
+        ((starts-with-subseq "/" pathname)
+         (pathname pathname))
+        (t
+         ;; Use only the directory component of the base path so that
+         ;; `merge-pathnames' does not add type or version when
+         ;; PATHNAME does not have them.
+         (let ((base-path (uiop:pathname-directory-pathname
+                           (base-path builder))))
+           (merge-pathnames pathname base-path)))))
 
 (defmethod language.yaml.construct::make-node-using-tag
     ((builder recipe-builder)

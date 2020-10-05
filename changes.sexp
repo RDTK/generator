@@ -14,7 +14,29 @@ message: >-
 
   Generated the following jobs:
 
-  @{job-list}")))
+  @{job-list}"))
+
+  (:enhancement
+   "The" (:verb "!b!include FILENAME") "and"
+    (:verb "!b!literal-include FILENAME") "constructs can now refer to
+    the to-be-included file in three ways"
+   (:ul
+    ((:verb "FILENAME-NOT-STARTING-WITH-/") "is interpreted as a
+     filename relative to the directory of the recipe file in which
+     the include construct occurs.")
+    ((:verb "/REST-OF-FILENAME-NOT-STARTING-WITH-/") "is interpreted
+     as an absolute filename.")
+    ((:verb "//REST-OF-FILENAME") "is interpreted as a filename
+     relative to the root directory of the repository containing the
+     recipe file in which the include construct occurs, that
+     is" (:verb "REPOSITORY-ROOT/REST-OF-FILENAME") "."))
+   "So assuming a repository" (:verb "/home/recipes") "containing a
+    recipe" (:verb "/home/recipes/projects/my-project.project") ",
+    include filename would be resolved as follows"
+   (:verb
+    "!b!include patches/patch.diff            → /home/recipes/projects/patches/patch.diff
+!b!include /usr/share/patches/patch.diff → /usr/share/patches/patch.diff
+!b!include //patches/patch.diff          → /home/recipes/patches/patch.diff")))
 
  (:release "0.32" "2019-10-29"
 

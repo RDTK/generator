@@ -25,7 +25,7 @@
     (setf (language.yaml.tags:find-shorthand "b" expander)
           "tag:build-generator,2018:")))
 
-(defmethod expand-pathname ((builder recipe-builder) (pathname t))
+(defmethod expand-pathname ((builder recipe-builder) (pathname string))
   (merge-pathnames pathname (base-path builder)))
 
 (defmethod language.yaml.construct::make-node-using-tag

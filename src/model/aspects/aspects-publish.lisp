@@ -131,13 +131,15 @@
                      (let ((scanner (ppcre:create-scanner clause :case-insensitive-mode t)))
                        (ppcre:scan scanner parser))))
                   ((&flet install-parser (parser)
-                     (eswitch (parser :test #'match-parser)
+                     (switch (parser :test #'match-parser)
                        ;; Builtin
                        ("^gnu (?:c )?compiler 4 \\(gcc\\)$"
                         (install-parser/native
                          issues-recorder 'jenkins.api::analysis-tool/gcc4
                          "gcc4"))
                        ("^apple llvm compiler \\(clang\\)$")
+                       ("^cmake$"
+                        issues-recorder 'jenkins.api::analysis-tool/cmake "cmake")
                        ("^maven$"
                         (install-parser/native
                          issues-recorder 'jenkins.api::analysis-tool/maven "maven"))
@@ -147,14 +149,13 @@
                        ("^doxygen$")
                        ("^sphinx-build$")
                        ;; Groovy-based
-                       ("^cmake$"
-                        (install-parser/native
-                         issues-recorder 'jenkins.api::analysis-tool/cmake "cmake"))
                        ("^build generator$"
                         (install-parser/groovy issues-recorder "build-generator"))
                        ("^build generator dependencies$"
                         (install-parser/groovy
-                         issues-recorder "build-generator-dependencies"))))))
+                         issues-recorder "build-generator-dependencies"))
+                       (t
+                        (install-parser/groovy issues-recorder parser))))))
              (map nil #'install-parser parsers))))
 
         ((eq implementation :legacy)

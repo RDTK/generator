@@ -1,5 +1,27 @@
 ((:release "0.33" nil
 
+  (:incompatible-change
+   "The following Jenkins plugins have been deprecated and seem to no
+    longer be available for download:"
+   (:ul
+    "Warnings"
+    "Task Scanner"
+    "Checkstyle"
+    "PMD")
+   "For this reason, the generator no longer attempts to install the
+    plugins when installing a new Jenkins instance. The \"Warnings
+    NG\" plugin has replaced the above plugins. The generator
+    therefore now generates configuration data for the \"Warnings NG\"
+    plugin by default."
+   "For Jenkins instances that have the deprecated plugins installed,
+    the previous generator behavior can be selected by setting the
+    following variables:"
+   (:verb
+    "-D aspect.checkstyle.implementation=legacy
+-D aspect.pmd.implementation=legacy
+-D aspect.tasks.implementation=legacy
+-D aspect.warnings.implementation=legacy"))
+
   (:enhancement
    "The variable" (:verb "message") "can be used to specify a message
     that should be displayed after processing a project or

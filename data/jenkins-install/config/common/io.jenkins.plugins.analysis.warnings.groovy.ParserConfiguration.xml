@@ -56,49 +56,6 @@ return builder.buildOptional();</script>
       <example>No provider for CMAKE RST</example>
     </io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
     <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
-      <id>cmake</id>
-      <name>CMake</name>
-      <regexp>^CMake (Deprecation Warning|Warning|Warning \(dev\)|Error) at(?: )+(.+):(\d+) \((.+)\):\n(  .+\n)?(.+\n(  .+\n)*)?</regexp>
-      <script>import edu.hm.hafner.analysis.Severity
-
-String messageType = matcher.group(1)
-String fileName = matcher.group(2)
-String lineNumber = Integer.parseInt(matcher.group(3))
-String scope = matcher.group(4)
-String cmakeMessage = matcher.group(5)
-String callStack = matcher.group(6)
-
-String message = &quot;&quot;
-if (cmakeMessage) {
-     message += cmakeMessage + &quot;&lt;br /&gt;&quot;
-}
-if (callStack) {
-     message += &quot;&lt;pre&gt;&quot; + callStack + &quot;&lt;/pre&gt;&quot;
-}
-
-Severity priority = Severity.WARNING_NORMAL
-if (messageType == &quot;Deprecation Warning&quot;) {
-     priority = Severity.WARNING_LOW
-} else if (messageType == &quot;Error&quot;) {
-     priority = Severity.WARNING_HIGH
-}
-
-builder.setFileName(fileName)
-        .setLineStart(lineNumber)
-        .setSeverity(priority)
-        .setType(&quot;CMake&quot;)
-        .setCategory(scope)
-        .setMessage(message)
-
-return builder.buildOptional();</script>
-      <example>CMake Warning at /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:166 (message):
-  catkin_package() DEPENDS on &apos;openrave&apos; but neither &apos;openrave_INCLUDE_DIRS&apos;
-  nor &apos;openrave_LIBRARIES&apos; is defined.
-Call Stack (most recent call first):
-  /opt/ros/kinetic/share/catkin/cmake/catkin_package.cmake:102 (_catkin_package)
-  openrave_tools/openrave_catkin/CMakeLists.txt:7 (catkin_package)</example>
-    </io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
-    <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
       <id>sbcl</id>
       <name>SBCL</name>
       <regexp>^; file: (.*)\n; in: (.*)\n(?:;(?! caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>

@@ -27,7 +27,7 @@
      ((keywords.high   '()) :type (var:list-of string)
       :documentation
       "Keywords indicating high-priority open tasks.")
-     ((implementation  :legacy) :type (or (eql :legacy) (eql :ng))
+     ((implementation  :ng) :type (or (eql :legacy) (eql :ng))
       :documentation
       "Which of Jenkins' architectures for scanning and reporting
        warnings should be used?"))
@@ -112,13 +112,13 @@
 (define-aspect (warnings :job-var job
                          :plugins ("warnings"))
     (publisher-defining-mixin)
-    ((parsers                  :type (var:list-of string)
+    ((parsers              :type (var:list-of string)
       :documentation
       "Names of parsers to apply to the output of the generated job.
 
        Parsers can be either builtin or defined in the global Jenkins
        configuration.")
-     ((implementation :legacy) :type (or (eql :legacy) (eql :ng))
+     ((implementation :ng) :type (or (eql :legacy) (eql :ng))
       :documentation
       "Which of Jenkins' architectures for scanning and reporting
        warnings should be used?"))
@@ -176,11 +176,11 @@
        `(define-aspect (,name :job-var job
                               :plugins ,plugins)
             (publisher-defining-mixin)
-            ((pattern                  :type list
+            ((pattern              :type list
               :documentation
               "Analysis results should be read from files matching the
                pattern.")
-             ((implementation :legacy) :type (or (eql :legacy) (eql :ng))
+             ((implementation :ng) :type (or (eql :legacy) (eql :ng))
               :documentation
               "Which of Jenkins' architectures for scanning and
                reporting warnings should be used?"))

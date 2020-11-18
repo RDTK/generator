@@ -64,9 +64,9 @@
                             Jenkins installation."))
    ;; Profile
    (profile              :initarg  :profile
-                         :type     (member :single-user :local-docker)
+                         :type     null
                          :reader   profile
-                         :initform :single-user
+                         :initform nil
                          :documentation
                          #.(format nil "A Jenkins usage profile to ~
                             which the installation should be ~
@@ -124,6 +124,19 @@
       ~@
       • Optionally, if username, email and password are supplied, set ~
         up a user account.")))
+
+;;; Adjust type and initform of the profile slot based on the profiles
+;;; in `*profiles*'.
+(let* ((class        (find-class 'install-jenkins))
+       (direct-slots (c2mop:class-direct-slots class))
+       (slot         (find 'profile direct-slots
+                           :key #'c2mop:slot-definition-name))
+       (profiles     (map 'list #'car *profiles*))
+       (default      (first profiles)))
+  (reinitialize-instance slot :type         `(member ,@profiles)
+                              :initform     default
+                              :initfunction (constantly default))
+  (reinitialize-instance class))
 
 (service-provider:register-provider/class
  'command :install-jenkins :class 'install-jenkins)

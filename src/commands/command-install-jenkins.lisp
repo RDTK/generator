@@ -1,6 +1,6 @@
 ;;;; command-install-jenkins.lisp --- Install a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017, 2018, 2019, 2020 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -46,11 +46,11 @@
 
 (defparameter *profiles*
   (flet ((profile (name &optional extra-plugins)
-           `(,name . ,(make-instance 'profile
-                                     :name          name
-                                     :extra-plugins extra-plugins))))
+           `(,name . ,(make-instance 'profile :name          name
+                                              :extra-plugins extra-plugins))))
     `(,(profile :single-user)
-      ,(profile :local-docker '("docker-plugin")))))
+      ,(profile :local-docker    '("docker-plugin"))
+      ,(profile :legacy-warnings '("tasks" "warnings" "pmd" "checkstyle")))))
 
 (defun find-profile (name)
   (assoc-value *profiles* name))

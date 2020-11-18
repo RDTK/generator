@@ -8,7 +8,7 @@
 
 ;;; Tasks aspect
 
-(define-aspect (tasks :plugins ("tasks" "warnings-ng"))
+(define-aspect (tasks :plugins ("warnings-ng"))
     (publisher-defining-mixin)
     ((pattern               :type (var:list-of string)
       :documentation
@@ -110,7 +110,7 @@
         (jenkins.api:analysis-tools issues-recorder)))
 
 (define-aspect (warnings :job-var job
-                         :plugins ("warnings"))
+                         :plugins ("warnings-ng"))
     (publisher-defining-mixin)
     ((parsers              :type (var:list-of string)
       :documentation
@@ -206,10 +206,10 @@
                      (jenkins.api:publishers job))))))))
   (define checkstyle (jenkins.api:analysis-tool/checkstyle "checkstyle")
                      (jenkins.api:publisher/checkstyle     "CheckStyle")
-                     ("warnings-ng" "checkstyle"))
+                     ("warnings-ng"))
   (define pmd        (jenkins.api:analysis-tool/pmd        "pmd")
                      (jenkins.api:publisher/pmd            "PMD")
-                     ("warnings-ng" "pmd")))
+                     ("warnings-ng")))
 
 ;;; Test result aspects
 

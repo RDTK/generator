@@ -252,7 +252,10 @@
                                                  :if-multiple-matches :all)
                                      :optional? nil
                                      :initform  '())
-    ;;
+    ;; Control
+    (is-enabled-for-failure?         :type      boolean
+                                     :xpath     "isEnabledForFailure/text()"
+                                     :initform  t)
     (ignore-quality-gate?            :type      boolean
                                      :xpath     "ignoreQualityGate/text()"
                                      :optional? nil
@@ -409,7 +412,10 @@
 
   ((sloccount "hudson.plugins.sloccount.SloccountPublisher"
               :plugin "sloccount@1.8")
-   ((pattern :type string))
+   ((pattern               :type     string)
+    (ignore-build-failure? :type     boolean
+                           :xpath    "ignoreBuildFailure/text()"
+                           :initform t))
    (:name-slot pattern))
 
   ((cobertura "hudson.plugins.cobertura.CoberturaPublisher"

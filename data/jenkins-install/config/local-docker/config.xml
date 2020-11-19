@@ -78,7 +78,6 @@
       </disabled>
     </com.nirima.jenkins.plugins.docker.DockerCloud>
   </clouds>
-  <slaves/>
   <quietPeriod>0</quietPeriod>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
   <views>

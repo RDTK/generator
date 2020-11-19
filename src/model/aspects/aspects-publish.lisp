@@ -103,10 +103,11 @@
                              (jenkins.api:analysis-tools issues-recorder))))
     (removef (jenkins.api:analysis-tools issues-recorder) parser))
   (push (make-instance 'jenkins.api:analysis-tool/groovy
-                       :id     (format nil "groovy-~(~A~)" parser)
-                       :name   (format nil "Groovy-based ~A parser"
-                                       parser)
-                       :parser parser)
+                       :id      (format nil "groovy-~(~A~)" parser)
+                       :name    (format nil "~@(~{~A~^ ~}~)"
+                                        (split-sequence #\- parser))
+                       :pattern (list (format nil "~(~A~)-output.log" parser))
+                       :parser  (string-downcase parser))
         (jenkins.api:analysis-tools issues-recorder)))
 
 (define-aspect (warnings :job-var job

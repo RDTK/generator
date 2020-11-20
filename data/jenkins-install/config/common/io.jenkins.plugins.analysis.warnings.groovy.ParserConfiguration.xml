@@ -58,20 +58,30 @@ return builder.buildOptional();</script>
     <io.jenkins.plugins.analysis.warnings.groovy.GroovyParser>
       <id>sbcl</id>
       <name>SBCL</name>
-      <regexp>^; file: (.*)\n; in: (.*)\n(?:;(?! caught).*\n)*; caught (.*):\n((?:;   .*\n)+)</regexp>
+      <regexp>^(?:; file: (.*)\n; in:(?:\n;)? +(.*)\n(?:;(?! caught).*\n)*; caught (.*):\n((?:;   .*\n)+)|WARNING:(?: |\n   )(redefining) ((?:(?! in )(?:.|\n))+) in (.*))</regexp>
       <script>import edu.hm.hafner.analysis.Severity
 
-String fileName = matcher.group(1)
-int lineNumber = 1
-String form = matcher.group(2)
-String category = matcher.group(3)
-String message = &quot;&quot;
-matcher.group(4).eachLine{ message += it.substring(4) + &apos;\n&apos; }
+String fileName = &quot;uknown file&quot;;
+int lineNumber = 1;
+String form;
+String category;
+String message = &quot;&quot;;
 Severity severity = Severity.WARNING_NORMAL
-if (message.contains(&quot;undefined&quot;) || category.equals(&quot;ERROR&quot;)) {
-  severity = Severity.WARNING_HIGH
-} else if (category.equals(&quot;STYLE-WARNING&quot;)) {
-  severity = Severity.WARNING_LOW
+
+if (matcher.group(5).equals(&quot;redefining&quot;)) {
+    form = &quot;(&quot; + matcher.group(7) + &quot; &quot; + matcher.group(6) + &quot;...)&quot;;
+    category = &quot;REDEFINITION&quot;;
+    message = &quot;redefining &quot; + matcher.group(7);
+} else {
+    fileName = matcher.group(1);
+    form = matcher.group(2);
+    category = matcher.group(3);
+    message = matcher.group(4).eachLine{ message += it.substring(4) + &apos;\n&apos; };
+    if (message.contains(&quot;undefined&quot;) || category.equals(&quot;ERROR&quot;)) {
+        severity = Severity.WARNING_HIGH
+    } else if (category.equals(&quot;STYLE-WARNING&quot;)) {
+        severity = Severity.WARNING_LOW
+    }
 }
 
 builder.setFileName(fileName)
@@ -81,7 +91,30 @@ builder.setFileName(fileName)
        .setCategory(category)
        .setMessage(&quot;In &quot; + form + &quot;: &quot; + message)
 
-return builder.buildOptional();</script>
+return builder.buildOptional();
+
+/*
+WARNING: redefining CLIM-DEMO::DISPLAY in DEFGENERIC
+
+WARNING:
+   redefining CLIM-DEMO::DISPLAY in DEFGENERIC
+
+WARNING:
+   redefining (COMMON-LISP:SETF CLIM-INTERNALS::%SHEET-MEDIUM) in DEFGENERIC
+
+WARNING:
+   redefining TEXT-STYLE-CHARACTER-WIDTH (#&lt;SB-PCL:SYSTEM-CLASS COMMON-LISP:T&gt;
+                                          #&lt;SB-PCL:SYSTEM-CLASS COMMON-LISP:T&gt;
+                                          #&lt;SB-PCL:SYSTEM-CLASS COMMON-LISP:T&gt;) in DEFMETHOD
+
+; file: /tmp/install-test/jobs/cl-text.source-location-future-ci-jmoringe-experimental/workspace/src/locations.lisp
+; in: DEFMETHOD SHARED-INITIALIZE :AFTER (LOCATION T)
+;
+;
+; caught STYLE-WARNING:
+;   The variable BOUNDS is defined but never used.
+;   Second line
+*/</script>
       <example>; file: /tmp/install-test/jobs/cl-text.source-location-future-ci-jmoringe-experimental/workspace/src/locations.lisp
 ; in: DEFMETHOD SHARED-INITIALIZE :AFTER (LOCATION T)
 ;

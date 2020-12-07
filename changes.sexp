@@ -1,4 +1,4 @@
-((:release "0.33" nil
+((:release "0.33" "2020-12-07"
 
   (:incompatible-change
    "The following Jenkins plugins have been deprecated and seem to no

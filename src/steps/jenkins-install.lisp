@@ -89,7 +89,7 @@
   :test #'string=)
 
 (define-constant +jenkins-plugins-base-url+
-    (puri:uri "https://updates.jenkins-ci.org/latest/")
+    (puri:uri "https://updates.jenkins-ci.org/stable/latest/")
   :test #'puri:uri=)
 
 (defun jenkins-plugin-pathname (base-directory name)

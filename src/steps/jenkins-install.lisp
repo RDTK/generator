@@ -1,6 +1,6 @@
 ;;;; jenkins-install.lisp --- Steps for setting up a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2019 Jan Moringen
+;;;; Copyright (C) 2015-2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,7 +39,11 @@
           (queue?
            :stopped)
           ((and (not queue?) queue-backup?)
-           :running))))
+           :running)
+          (t
+           (error "~@<Failed to determine execution state of Jenkins ~
+                   directory ~A.~@:>"
+                  directory)))))
 
 (defun ensure-jenkins-directory-state (expected directory)
   "Ensure that Jenkins installation in DIRECTORY is in EXPECTED state.

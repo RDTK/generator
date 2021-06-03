@@ -1,6 +1,6 @@
 ;;;; command-install-jenkins.lisp --- Install a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019, 2020 Jan Moringen
+;;;; Copyright (C) 2017-2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -179,7 +179,8 @@
          (extra-plugins    (extra-plugins profile))
          (all-plugins      (remove-duplicates
                             (append required-plugins extra-plugins plugins)
-                            :test #'string=)))
+                            :test #'string=))
+         (jenkins-version))
     (log:info "~@<Installing profile ~A with plugins~@:_~
                  ~2@Trequired     ~<~{~A~^, ~}~@:>~@:_~
                  ~2@Tfrom profile ~<~{~A~^, ~}~@:>~@:_~
@@ -191,7 +192,10 @@
       (with-trivial-progress (:install/core)
         (steps:execute (steps:make-step :jenkins/install-core) nil
                        :destination-directory output-directory
-                       :url                   jenkins-download-url))
+                       :url                   jenkins-download-url)
+        (setf jenkins-version
+              (steps:execute (steps:make-step :jenkins/determine-version) nil
+                             :destination-directory output-directory)))
 
       (steps:execute
        (steps:make-step :jenkins/install-plugins-with-dependencies) nil
@@ -199,6 +203,9 @@
        :plugins               all-plugins))
 
     (as-phase (:configure)
+      (steps:execute (steps:make-step :jenkins/write-wizard-state) nil
+                     :destination-directory output-directory
+                     :version               jenkins-version)
       (steps:execute (steps:make-step :jenkins/install-config-files) nil
                      :destination-directory output-directory
                      :profile               (name profile))
@@ -208,4 +215,7 @@
                        :destination-directory output-directory
                        :username              username
                        :email                 email
-                       :password              password)))))
+                       :password              password)))
+
+    (format t "~@<Installed Jenkins version ~A into ~A.~@:>~%"
+            jenkins-version output-directory)))

@@ -25,6 +25,28 @@
 
 ;;; Utilities
 
+(define-constant +jenkins-war-filename+
+  "jenkins.war"
+  :test #'string=)
+
+(define-constant +jenkins-war-manifest-filename+
+  "META-INF/MANIFEST.MF"
+  :test #'string=)
+
+(defun determine-jenkins-version (directory)
+  (let* ((war-name (merge-pathnames +jenkins-war-filename+ directory))
+         (content  (zip:with-zipfile (zip war-name)
+                     (let ((manifest (zip:get-zipfile-entry
+                                      +jenkins-war-manifest-filename+ zip)))
+                       (sb-ext:octets-to-string
+                        (zip:zipfile-entry-contents manifest))))))
+    (multiple-value-bind (success? groups)
+        (cl-ppcre:scan-to-strings "Jenkins-Version: ([0-9.]+)" content)
+      (unless success?
+        (error "~@<Could not determine Jenkins version based on ~A.~@:>"
+               war-name))
+      (aref groups 0))))
+
 (declaim (ftype (function ((or string pathname))
                           (values jenkins-directory-state &optional))
                 jenkins-directory-state))
@@ -77,6 +99,27 @@
     (ensure-directories-exist pathname)
     (when (not (probe-file pathname))
       (analysis::download-file url pathname))))
+
+;;; `jenkins/determine-version'
+
+(define-step (jenkins/determine-version)
+    (destination-directory)
+  (let ((version (determine-jenkins-version destination-directory)))
+    (log:info "~@<Jenkins version is ~A~@:>" version)
+    version))
+
+;;; `jenkins/write-wizard-state'
+
+(define-constant +jenkins-wizard-state-filename+
+  "jenkins.install.UpgradeWizard.state"
+  :test #'string=)
+
+(define-step (jenkins/write-wizard-state)
+    (destination-directory version)
+  (let ((wizard-state-filename (merge-pathnames +jenkins-wizard-state-filename+
+                                                destination-directory)))
+    (with-output-to-file (stream wizard-state-filename)
+      (write-string version stream))))
 
 ;;; `jenkins/install-plugins[-with-dependencies]' steps
 

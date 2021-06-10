@@ -276,6 +276,7 @@
     (minimum-severity                :type      string
                                      :xpath     (:version
                                                  ("warnings-ng@8.10.1" "minimumSeverity[@plugin='analysis-model-api@9.8.1']/name/text()")
+                                                 ("warnings-ng@8.9.2" "minimumSeverity[@plugin='analysis-model-api@9.8.0']/name/text()")
                                                  ("warnings-ng@8.9.1" "minimumSeverity[@plugin='analysis-model-api@9.8.0']/name/text()")
                                                  ("warnings-ng@8.4.4" "minimumSeverity[@plugin='analysis-model-api@9.3.1']/name/text()")
                                                  ("warnings-ng@8.4.3" "minimumSeverity[@plugin='analysis-model-api@9.0.1']/name/text()")

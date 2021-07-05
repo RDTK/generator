@@ -1,6 +1,11 @@
 ((:release "0.34" nil
 
   (:enhancement
+   "The parameters aspect now supports the parameter kind
+    \"password\". However, a default value cannot be specified for
+    parameters of this kind.")
+
+  (:enhancement
    "When a variant of the" (:verb "--on-error ") "commandline option is
     supplied, errors during the analysis of a git repository (for example
     due to the repository being private) should no longer prevent the

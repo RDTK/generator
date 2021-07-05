@@ -1,6 +1,6 @@
 ;;;; aspects.lisp --- Aspect definitions
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -65,16 +65,21 @@
                 (kind (assoc-value value :kind))
                 (kind (var:as kind '(or (eql :text)
                                         (eql :string)
-                                        (eql :boolean))
+                                        (eql :boolean)
+                                        (eql :password))
                               :if-type-mismatch nil)))
-      (values
-       (list* :name name
-              :kind kind
-              (append (when-let ((default (assoc-value value :default)))
-                        `(:default ,default))
-                      (when-let ((description (assoc-value value :description)))
-                        `(:description ,description))))
-       t))))
+      (let ((default (assoc-value value :default)))
+        (cond ((and (eq kind :password) default)
+               nil)
+              (t
+               (values
+                (list* :name name
+                       :kind kind
+                       (append (when default
+                                 `(:default ,default))
+                               (when-let ((description (assoc-value value :description)))
+                                 `(:description ,description))))
+                t)))))))
 
 (defmethod var:as ((value t) (type (eql 'parameter-entry/legacy))
                    &key if-type-mismatch)
@@ -121,12 +126,13 @@
 
        NAME is the name of the parameter.
 
-       KIND is either text or string and controls which values are
-       acceptable for the parameter and NAME is the name of the
-       parameter.
+       KIND is one of \"text\", \"string\", \"boolean\" or
+       \"password\" and controls which values are acceptable for the
+       parameter and NAME is the name of the parameter.
 
        DEFAULT is optional and, if present, specifies the default
-       value of the parameter.
+       value of the parameter. The kind \"password\" does not allow a
+       default value.
 
        DESCRIPTION is optional and, if present, specifies a
        description Jenkins should present alongside the parameter.

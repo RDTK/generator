@@ -1,6 +1,6 @@
 ;;;; job-property.lisp --- Model classes for property implementations.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -20,10 +20,11 @@
                                            :if-no-match :do-nothing))
       value
     (list* :kind (switch (class :test #'string=)
-                   ("hudson.model.TextParameterDefinition"    :text)
-                   ("hudson.model.StringParameterDefinition"  :string)
-                   ("hudson.model.BooleanParameterDefinition" :boolean)
-                   (t                                         class))
+                   ("hudson.model.TextParameterDefinition"     :text)
+                   ("hudson.model.StringParameterDefinition"   :string)
+                   ("hudson.model.BooleanParameterDefinition"  :boolean)
+                   ("hudson.model.PasswordParameterDefinition" :password)
+                   (t                                          class))
            :name name
            (append
             (when description (list :description description))
@@ -40,10 +41,11 @@
       dest
     (let+ (((&key kind name description default) value))
       (setf class        (case kind
-                           (:text    "hudson.model.TextParameterDefinition")
-                           (:string  "hudson.model.StringParameterDefinition")
-                           (:boolean "hudson.model.BooleanParameterDefinition")
-                           (t        kind))
+                           (:text     "hudson.model.TextParameterDefinition")
+                           (:string   "hudson.model.StringParameterDefinition")
+                           (:boolean  "hudson.model.BooleanParameterDefinition")
+                           (:password "hudson.model.PasswordParameterDefinition")
+                           (t         kind))
             name1        name
             description1 (or description "")
             default1     (or default ""))))

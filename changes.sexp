@@ -1,5 +1,11 @@
 ((:release "0.34" nil
 
+  (:enhancement
+   "When a variant of the" (:verb "--on-error ") "commandline option is
+    supplied, errors during the analysis of a git repository (for example
+    due to the repository being private) should no longer prevent the
+    generation of a basic SCM configuration for the corresponding job.")
+
   (:bugfix
    "The" (:verb "install-jenkins") "command is now more careful about
     downloading plugin versions that are compatible with the downloaded

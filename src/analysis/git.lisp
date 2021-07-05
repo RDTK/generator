@@ -1,6 +1,6 @@
 ;;;; git.lisp --- Analysis of git repositories.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -301,11 +301,20 @@
            (mapcan
             (lambda (version)
               (progress "~A" version)
-              (with-simple-restart
-                  (continue "~@<Ignore ~A and continue with the next ~
-                             version.~@:>"
-                            version)
-                (list (analyze-version version))))
+              (restart-case
+                  (list (analyze-version version))
+                (continue (&optional condition)
+                  :report (lambda (stream)
+                            (format stream "~@<Ignore ~A and continue with ~
+                                            the next version.~@:>"
+                                    version))
+                  (declare (ignore condition))
+                  (list (append '(:scm :git)
+                                (when-let ((commit (getf version :commit)))
+                                  (list :commit commit))
+                                (when-let ((branch (or (getf version :tag)
+                                                       (getf version :branch))))
+                                  (list :branch branch)))))))
             versions))
       (util:ensure-deleted temp-directory))))
 

@@ -15,7 +15,11 @@
    "The" (:verb "install-jenkins") "command is now more careful about
     downloading plugin versions that are compatible with the downloaded
     Jenkins core. The command also tries to prevent newer Jenkins versions
-    from entering the setup wizard when started for the first time."))
+    from entering the setup wizard when started for the first time.")
+
+  (:bugfix
+   "Configurations involving the" (:verb "warnings-ng") "plugin should no
+    longer break with every update of the plugin (Thanks to Robert Haschke)."))
 
  (:release "0.33" "2020-12-07"
 

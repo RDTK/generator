@@ -274,24 +274,7 @@
                                      :optional? nil
                                      :initform  0)
     (minimum-severity                :type      string
-                                     :xpath     (:version
-                                                 ("warnings-ng@9.3.0" "minimumSeverity[@plugin='analysis-model-api@10.2.5']/name/text()")
-                                                 ("warnings-ng@8.10.1" "minimumSeverity[@plugin='analysis-model-api@9.8.1']/name/text()")
-                                                 ("warnings-ng@8.9.2" "minimumSeverity[@plugin='analysis-model-api@9.8.0']/name/text()")
-                                                 ("warnings-ng@8.9.1" "minimumSeverity[@plugin='analysis-model-api@9.8.0']/name/text()")
-                                                 ("warnings-ng@8.4.4" "minimumSeverity[@plugin='analysis-model-api@9.3.1']/name/text()")
-                                                 ("warnings-ng@8.4.3" "minimumSeverity[@plugin='analysis-model-api@9.0.1']/name/text()")
-                                                 ("warnings-ng@8.4.1" "minimumSeverity[@plugin='analysis-model-api@8.2.1']/name/text()")
-                                                 ("warnings-ng@7.2.2" "minimumSeverity[@plugin='analysis-model-api@7.0.2']/name/text()")
-                                                 ("warnings-ng@7.2.1" "minimumSeverity[@plugin='analysis-model-api@7.0.2']/name/text()")
-                                                 ("warnings-ng@7.0.0" "minimumSeverity[@plugin='analysis-model-api@7.0.1']/name/text()")
-                                                 ("warnings-ng@5.1.0" "minimumSeverity[@plugin='analysis-model-api@5.1.1']/name/text()")
-                                                 ("warnings-ng@4.0.0" "minimumSeverity[@plugin='analysis-model-api@3.0.0']/name/text()")
-                                                 ("warnings-ng@3.0.3" "minimumSeverity[@plugin='analysis-model-api@2.1.2']/name/text()")
-                                                 ("warnings-ng@2.1.2" "minimumSeverity[@plugin='analysis-model-api@2.0.2']/name/text()")
-                                                 ("warnings-ng@2.0.0" "minimumSeverity[@plugin='analysis-model-api@2.0.1']/name/text()")
-                                                 ("warnings-ng@1.0.1" "minimumSeverity[@plugin='analysis-model-api@1.0.0']/name/text()")
-                                                 (t                   "minimumSeverity[@plugin='analysis-model-api@3.0.0']/name/text()"))
+                                     :xpath     "minimumSeverity/name/text()"
                                      :optional? nil
                                      :initform  "HIGH")
     (threshold-unstable-total-all    :type      non-negative-integer

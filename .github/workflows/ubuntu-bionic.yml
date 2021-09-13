@@ -22,10 +22,10 @@ jobs:
           git clone -b master https://github.com/scymtym/architecture.service-provider.git .
 
 
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -106,10 +106,10 @@ jobs:
           git clone -b master https://github.com/scymtym/architecture.builder-protocol.git .
 
 
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -190,10 +190,10 @@ jobs:
           git clone -b future https://github.com/scymtym/model.transform.trace.git .
 
 
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -289,10 +289,10 @@ jobs:
         with:
           name: cl-architecture.service-provider@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -388,10 +388,10 @@ jobs:
         with:
           name: cl-architecture.service-provider@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -477,10 +477,10 @@ jobs:
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -566,10 +566,10 @@ jobs:
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -660,10 +660,10 @@ jobs:
         with:
           name: cl-architecture.service-provider@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -759,10 +759,10 @@ jobs:
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -887,10 +887,10 @@ jobs:
         with:
           name: cl-configuration.options@master
           path: upstream
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -983,7 +983,7 @@ jobs:
           name: build-generator@master
           path: artifacts
 
-  sbcl_master:
+  sbcl_sbcl-2_1_8:
     runs-on: ubuntu-18.04
     steps:
       - name: install-platform-dependencies
@@ -998,7 +998,7 @@ jobs:
       - name: git.repository
         run: |
           export WORKSPACE=$(pwd)
-          git clone -b master https://git.code.sf.net/p/sbcl/sbcl .
+          git clone -b sbcl-2.1.8 https://git.code.sf.net/p/sbcl/sbcl .
 
 
       - name: freestyle.shell
@@ -1023,15 +1023,15 @@ jobs:
           mkdir -p artifacts
           mv -v sbcl.tar.gz artifacts/
 
-      - name: upload-artifact-sbcl@master
+      - name: upload-artifact-sbcl@sbcl-2.1.8
         uses: actions/upload-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: artifacts
 
   cl-launch_master:
     runs-on: ubuntu-18.04
-    needs: [quicklisp_current,sbcl_master]
+    needs: [quicklisp_current,sbcl_sbcl-2_1_8]
     steps:
       - name: install-platform-dependencies
         run: |
@@ -1048,10 +1048,10 @@ jobs:
           git clone -b master https://gitlab.common-lisp.net/xcvb/cl-launch.git .
 
 
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -1115,7 +1115,7 @@ jobs:
 
   quicklisp_current:
     runs-on: ubuntu-18.04
-    needs: [sbcl_master]
+    needs: [sbcl_sbcl-2_1_8]
     steps:
       - name: install-platform-dependencies
         run: |
@@ -1126,10 +1126,10 @@ jobs:
 
 
 
-      - name: download-artifact-sbcl@master
+      - name: download-artifact-sbcl@sbcl-2.1.8
         uses: actions/download-artifact@v1
         with:
-          name: sbcl@master
+          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: extract-upstream-artiacts
         run: |

@@ -3,7 +3,10 @@
   (:enhancement
    "The parameters aspect now supports the parameter kind
     \"password\". However, a default value cannot be specified for
-    parameters of this kind.")
+    parameters of this kind. Consult the entry for"
+   (:verb "warnings-effect")
+   "in the output of" (:verb "build-generator info-aspects") "for
+    details.")
 
   (:enhancement
    "When a variant of the" (:verb "--on-error ") "commandline option is
@@ -19,7 +22,11 @@
 
   (:bugfix
    "Configurations involving the" (:verb "warnings-ng") "plugin should no
-    longer break with every update of the plugin (Thanks to Robert Haschke)."))
+    longer break with every update of the plugin (Thanks to Robert Haschke).")
+
+  (:enhancement
+   "The new aspect" (:verb "warnings-effects") "controls the effects of
+    identify warnings on the build status and health of generated jobs."))
 
  (:release "0.33" "2020-12-07"
 

@@ -207,6 +207,15 @@
 
 ;;; Publisher interface
 
+(define-model-class quality-gate ()
+    ((threshold :type  positive-integer
+                :xpath "threshold/text()")
+     (type1     :type  keyword
+                :xpath "type/text()")
+     (status    :type  keyword
+                :xpath "status/text()"))
+  (:name-slot nil))
+
 (define-interface-implementations (publisher)
   ((ssh "jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin"
         :plugin "publish-over-ssh@1.10")
@@ -273,10 +282,14 @@
                                      :xpath     "unhealthy/text()"
                                      :optional? nil
                                      :initform  0)
-    (minimum-severity                :type      string
+    (minimum-severity                :type      keyword ; (member :error :normal :low)
                                      :xpath     "minimumSeverity/name/text()"
                                      :optional? nil
-                                     :initform  "HIGH")
+                                     :initform  :high)
+    (quality-gates                   :type      quality-gate
+                                     :xpath     ("qualityGates/io.jenkins.plugins.analysis.core.util.QualityGate"
+                                                 :if-multiple-matches :all)
+                                     :initform  '())
     ;; Blame
     (blame-disabled?                 :type      boolean
                                      :xpath     "isBlameDisabled/text()"

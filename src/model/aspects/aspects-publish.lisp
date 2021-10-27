@@ -1,6 +1,6 @@
 ;;;; aspects-publish.lisp --- Definitions of publisher-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2020 Jan Moringen
+;;;; Copyright (C) 2012-2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -167,6 +167,94 @@
                           (jenkins.api:console-parsers warnings)
                           :test #'string=
                           :key  #'jenkins.api:name))))))
+
+;;; Warnings health aspect
+
+(define-aspect (warnings-effects :job-var job :plugins ("warnings-ng"))
+    (publisher-defining-mixin)
+    (;; Build health computation.
+     ((healthy-threshold nil)         :type (or null (integer 0))
+      :documentation
+      "If the number of warnings (of relevant severity) is greater or equal
+       to this threshold, the build is considered not 100% healthy.")
+     ((unhealthy-threshold nil)       :type (or null (integer 0))
+      :documentation
+      "If the number of warnings (of relevant severity) is greater than this
+       threshold, the build is considered unhealthy (that is 0%
+       healthy).")
+     ((health-minimum-severity :high) :type (or (eql :high) (eql :normal) (eql :low))
+      :documentation
+      "Warnings the severity of which is greater than this minimum severity
+       are included in the warning count against which the healthy and
+       unhealthy threshold are checked.")
+     ;; Build result computation
+     ((result-threshold nil)          :type (or null (integer 1))
+      :documentation
+      "If the number of warnings matching the age and severity filters is
+       greater or equal to this threshold, the build status is set to
+       the configured failure status (unstable or failed).")
+     ((result-count-method :any)      :type (or null
+                                                (eql :any) (eql :new) (eql :delta))
+      :documentation
+      "Method for computing the warning count to compare against the
+       threshold.
+
+       Possible values are:
+
+       any
+         The number of warnings in the current build that match the
+         severity filter.
+
+       new
+         The number of warnings in the current build that match the
+         severity filter and were not present in the reference build.
+
+       delta
+         The difference between number of warnings in the current
+         build that match the severity filter and the number of
+         warnings in the previous build that match the severity
+         filter.")
+     ((result-severity-filter nil)    :type (or null (eql :any) (eql :error)
+                                                (eql :high) (eql :normal) (eql :low))
+      :documentation
+      "Only warnings of the configured severity or a higher severity count
+       towards the threshold that controls the build status.")
+     ((result-status :unstable)       :type (or (eql :unstable) (eql :failed))
+      :documentation
+      "The status to use if the number of warnings matching the filters
+       exceeds the configured threshold."))
+  "Configures warnings-based health and build result for the generated job."
+  (with-interface (jenkins.api:publishers job)
+      (issues-recorder (jenkins.api:publisher/issues-recorder))
+    ;; Configure health computation.
+    (setf (jenkins.api:healthy-threshold issues-recorder)
+          healthy-threshold
+          (jenkins.api:unhealthy-threshold issues-recorder)
+          unhealthy-threshold
+          (jenkins.api:minimum-severity issues-recorder)
+          health-minimum-severity)
+    ;; Configuration result computation as a single quality gate.
+    (let ((quality-gate (or (first (jenkins.api:quality-gates issues-recorder))
+                            (let ((quality-gate (make-instance 'jenkins.api:quality-gate)))
+                              (setf (jenkins.api:quality-gates issues-recorder)
+                                    (list quality-gate))
+                              quality-gate)))
+          ;; Map the combination of RESULT-AGE-FILTER and
+          ;; RESULT-SEVERITY-FILTER to a single "type".
+          (type         (cond ((and (eq result-count-method :any)
+                                    (eq result-severity-filter :any))
+                               :any)
+                              (t
+                               (find-symbol (format nil "~A_~A"
+                                                    result-count-method
+                                                    result-severity-filter)
+                                            '#:keyword))))
+          (status       (ecase result-status
+                          (:unstable :warning)
+                          (:failed   :failed))))
+      (setf (jenkins.api:threshold quality-gate) result-threshold
+            (jenkins.api:type1     quality-gate) type
+            (jenkins.api:status    quality-gate) status))))
 
 ;;; Checkstyle and PMD aspects
 

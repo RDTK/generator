@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for api module.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -293,6 +293,10 @@
 
    #:publisher/issues-recorder
    #:analysis-tools
+   #:healthy-threshold
+   #:unhealthy-threshold
+   #:minimum-severity
+   #:quality-gates
 
    #:analysis-tool/open-tasks
 
@@ -307,7 +311,12 @@
    #:analysis-tool/pmd
 
    #:analysis-tool/groovy
-   #:parser)
+   #:parser
+
+   #:quality-gate
+   #:threshold
+   #:type1
+   #:status)
 
   ;; Build
   (:export

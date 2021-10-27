@@ -1,6 +1,6 @@
 ;;;; evaluation.lisp --- Evaluation of value expressions.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -190,6 +190,22 @@
 (defmethod as ((value string) (type (eql 'keyword)) &key if-type-mismatch)
   (declare (ignore if-type-mismatch))
   (values (make-keyword (string-upcase value)) t))
+
+(defmethod as ((value string) (type (eql 'integer)) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (handler-case
+      (values (parse-integer value) t)
+    (error ()
+      nil)))
+
+(defmethod as ((value string) (type cons) &key if-type-mismatch)
+  (declare (ignore if-type-mismatch))
+  (case (first type)
+    (integer
+     (when-let ((integer (as value 'integer)))
+       (as integer type)))
+    (t
+     (call-next-method))))
 
 (defmethod as ((value t) (type cons) &key if-type-mismatch)
   (declare (ignore if-type-mismatch))

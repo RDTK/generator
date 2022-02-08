@@ -1,6 +1,6 @@
 ;;;; functions-input.lisp --- Functions for loading recipes.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -282,8 +282,15 @@
                    versions)
               (values (hash-table-values infos) version->info))))
          ((&flet+ analyze-group ((info . versions))
-            (let+ (((&plist-r/o (repository :repository)) info)
-                   (other-info (remove-from-plist info :repository))
+            (let+ (((&plist-r/o (repository :repository)
+                                (username   :scm.username)
+                                (password   :scm.password))
+                    info)
+                   (other-info (append
+                                (remove-from-plist
+                                 info :repository :scm.username :scm.password)
+                                (when username (list :username username))
+                                (when password (list :password password))))
                    ((&values version-infos version->info)
                     (compute-version-infos versions))
                    (results (apply #'analysis:analyze repository :auto

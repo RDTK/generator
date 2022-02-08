@@ -19,7 +19,11 @@
 
   (:bugfix
    "Configurations involving the" (:verb "warnings-ng") "plugin should no
-    longer break with every update of the plugin (Thanks to Robert Haschke)."))
+    longer break with every update of the plugin (Thanks to Robert Haschke).")
+
+  (:bugfix
+   "The variables" (:verb "scm.username") "and" (:verb "scm.password")
+   "are handled correctly."))
 
  (:release "0.33" "2020-12-07"
 

@@ -43,7 +43,7 @@
   (let+ ((file          "changes.sexp")
          (content       (read-file-into-string file))
          (cst           (with-input-from-string (stream content)
-                          (eclector.concrete-syntax-tree:cst-read stream)))
+                          (eclector.concrete-syntax-tree:read stream)))
          (version       (cst:second (cst:first cst)))
          (date          (cst:third (cst:first cst)))
          ((start . end) (cst:source date))
@@ -64,7 +64,7 @@
   (let+ ((file           "changes.sexp")
          (content        (read-file-into-string file))
          (cst            (with-input-from-string (stream content)
-                           (eclector.concrete-syntax-tree:cst-read stream)))
+                           (eclector.concrete-syntax-tree:read stream)))
          (release        (cst:first cst))
          ((start . &ign) (cst:source release)))
     (setf content (format nil "~A~

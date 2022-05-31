@@ -1,4 +1,4 @@
-((:release "0.34" nil
+((:release "0.34" "2022-05-31"
 
   (:enhancement
    "The parameters aspect now supports the parameter kind

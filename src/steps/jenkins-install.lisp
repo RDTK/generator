@@ -1,6 +1,6 @@
 ;;;; jenkins-install.lisp --- Steps for setting up a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2015-2021 Jan Moringen
+;;;; Copyright (C) 2015-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -87,7 +87,7 @@
 ;;; `jenkins/install-core' step
 
 (define-constant +default-jenkins-download-url+
-    (puri:uri "http://mirrors.jenkins-ci.org/war-stable/latest/jenkins.war")
+    (puri:uri "https://mirrors.jenkins-ci.org/war-stable/latest/jenkins.war")
   :test #'puri:uri=)
 
 (define-step (jenkins/install-core)

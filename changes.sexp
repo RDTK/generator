@@ -1,4 +1,8 @@
-((:release "0.35" nil)
+((:release "0.35" nil
+
+  (:enhancement
+   "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
+    download server now seems to reply with a 308 redirect otherwise."))
 
  (:release "0.34" "2022-05-31"
 

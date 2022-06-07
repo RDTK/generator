@@ -914,7 +914,7 @@ jobs:
           # Get precise version from git and write into version-string.sexp
           tag='release-*'
           git describe --long --dirty=-dirty --tags --match "${tag}"                              \
-            | sed -re 's/release-([0-9])+\.([0-9]+)-([0-9]+)-(.*)/echo "\\"\1.$((\2 + 1)).\3\\""/' \
+            | sed -re 's/release-([0-9])+\.([0-9]+(\.[0-9]+)?)-([0-9]+)-(.*)/echo "\\"\1.\2.\4\\""/' \
             | sh                                                                                   \
             > version-string.sexp
 

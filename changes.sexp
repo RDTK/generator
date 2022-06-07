@@ -1,6 +1,10 @@
 ((:release "0.34" "2022-05-31"
 
   (:enhancement
+   "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
+    download server now seems to reply with a 308 redirect otherwise.")
+
+  (:enhancement
    "The parameters aspect now supports the parameter kind
     \"password\". However, a default value cannot be specified for
     parameters of this kind.")

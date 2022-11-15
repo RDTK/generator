@@ -2,7 +2,11 @@
 
   (:enhancement
    "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
-    download server now seems to reply with a 308 redirect otherwise."))
+    download server now seems to reply with a 308 redirect otherwise.")
+
+  (:enhancement
+   "Consume and produce both the current and the legacy Jenkins permission
+    configuration format."))
 
  (:release "0.34" "2022-05-31"
 

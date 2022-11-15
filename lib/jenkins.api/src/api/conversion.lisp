@@ -1,6 +1,6 @@
 ;;;; conversion.lisp --- Conversions used by the api module.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -371,34 +371,79 @@
 (deftype access-control-rule ()
   "Values are of the form
 
-     (SUBJECT (ACTION1 ACTION2 ...))
+     (SUBJECT (ACTION1 ACTION2 ...) [:kind {:user | :group}])
 
    where SUBJECT is the name of the user or group as a string and
    ACTION1, ACTION2, ... are keywords naming the action in question.
 
    A typical example looks like this:
 
-     (\"joeuser\" (:item :build))
+     (\"joeuser\" (:item :build) :kind :user)
 
    ."
-  `(cons string (cons (cons keyword list) null)))
+  `(cons string (cons (cons (or keyword string) list)
+                      (or null (cons (eql :kind)
+                                     (cons (member :user :group) null))))))
+
+(assert      (typep '("joeuser" ("action1" "action2"))                  'access-control-rule))
+(assert (not (typep '("joeuser" ())                                     'access-control-rule)))
+(assert      (typep '("joeuser" ("action1" "action2") :kind :user)      'access-control-rule))
+(assert (not (typep '("joeuser" ("action1" "action2") :kind :something) 'access-control-rule)))
+
+(declaim (ftype (function (string) (values access-control-rule &optional nil))
+                parse-permission))
+(defun parse-permission (string)
+  (let+ (((&values success? groups)
+          (ppcre:scan-to-strings "^(?:([^:]+):)?([^:]+):(.+)$" string)))
+    (when success?
+      (let+ ((#(kind/raw action/raw subject) groups)
+             (kind   (when kind/raw
+                       (or (find-symbol kind/raw '#:keyword)
+                           (error "Unknown permission kind ~S" kind/raw))))
+             (action (if (starts-with-subseq #1="hudson.model." action/raw)
+                         (mapcar (compose #'make-keyword #'string-upcase)
+                                 (split-sequence
+                                  #\. (subseq action/raw (length #1#))))
+                         (split-sequence #\. action/raw))))
+        (list* subject action (when kind (list :kind kind)))))))
+
+(assert (equal (parse-permission "GROUP:hudson.model.Item.Read:authenticated")
+               '("authenticated" (:item :read) :kind :group)))
+(assert (equal (parse-permission "USER:hudson.model.Item.Read:joeuser")
+               '("joeuser" (:item :read) :kind :user)))
+(assert (equal (parse-permission "USER:something:joeuser")
+               '("joeuser" ("something") :kind :user)))
+(assert (equal (parse-permission "hudson.model.Item.Read:joeuser")
+               '("joeuser" (:item :read))))
+
+(defun unparse-permission (spec)
+  (let+ (((subject (&whole action first &rest &ign) &key kind) spec)
+         (action (if (keywordp first)
+                     (format nil "hudson.model.~{~@(~A~)~^.~}" action)
+                     (format nil "~{~A~^.~}" action))))
+    (format nil "~@[~A:~]~A:~A" kind action subject)))
+
+(assert (string= (unparse-permission '("authenticated" (:item :read) :kind :group))
+                 "GROUP:hudson.model.Item.Read:authenticated"))
+(assert (string= (unparse-permission '("joeuser" (:item :read) :kind :user))
+                 "USER:hudson.model.Item.Read:joeuser"))
+(assert (string= (unparse-permission '("joeuser" ("something") :kind :user))
+                 "USER:something:joeuser"))
+(assert (string= (unparse-permission '("joeuser" (:item :read)))
+                 "hudson.model.Item.Read:joeuser"))
 
 (defmethod xloc:xml-> ((value stp:element)
                        (type  (eql 'access-control-rule))
                        &key &allow-other-keys)
   (xloc:with-locations-r/o (((:val action-and-subject :type 'string) "text()"))
       value
-    (let+ (((action subject) (split-sequence #\: action-and-subject))
-           (action-parts (split-sequence #\. action :start (length "hudson.model."))))
-      (list subject (mapcar (compose #'make-keyword #'string-upcase) action-parts)))))
+    (parse-permission action-and-subject)))
 
 (defmethod xloc:->xml ((value cons)
                        (dest  stp:element)
                        (type  (eql 'access-control-rule))
                        &key &allow-other-keys)
   (check-type value access-control-rule)
-  (let+ (((subject action) value))
-    (xloc:with-locations (((:val action-and-subject :type 'string) "text()"))
-        dest
-      (setf action-and-subject (format nil "hudson.model.~{~@(~A~)~^.~}:~A"
-                                       action subject)))))
+  (xloc:with-locations (((:val action-and-subject :type 'string) "text()"))
+      dest
+    (setf action-and-subject (unparse-permission value))))

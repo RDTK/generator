@@ -1,6 +1,6 @@
 ;;;; aspects.lisp --- Aspect definitions
 ;;;;
-;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -447,8 +447,9 @@
        ."))
   "Configures user and group permissions for the generated job."
   (let+ (((&flet+ normalize-permission ((subject action))
-            (list subject (mapcar (compose #'make-keyword #'string-upcase)
-                                  action)))))
+            (let ((action (mapcar (compose #'make-keyword #'string-upcase)
+                                  action)))
+              (list subject action :kind :user)))))
     (unless (eq permissions :keep)
       (setf (jenkins.api:permissions job)
             (mapcar #'normalize-permission permissions)))))

@@ -11,7 +11,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -21,11 +21,6 @@ jobs:
           git clone -b master https://github.com/scymtym/architecture.service-provider.git .
 
 
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
         with:
@@ -95,7 +90,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -105,11 +100,6 @@ jobs:
           git clone -b master https://github.com/scymtym/architecture.builder-protocol.git .
 
 
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
         with:
@@ -179,7 +169,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -189,11 +179,6 @@ jobs:
           git clone -b future https://github.com/scymtym/model.transform.trace.git .
 
 
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
         with:
@@ -263,7 +248,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -287,11 +272,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.service-provider@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -362,7 +342,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -386,11 +366,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.service-provider@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -461,7 +436,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -475,11 +450,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.builder-protocol@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -550,7 +520,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -564,11 +534,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.builder-protocol@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -639,7 +604,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -658,11 +623,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.service-provider@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -733,7 +693,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar
+                sloccount git tar sbcl
 
 
 
@@ -757,11 +717,6 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: cl-architecture.builder-protocol@master
-          path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
@@ -832,7 +787,7 @@ jobs:
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount tar git file unzip unp libssl3
+                sloccount tar git file unzip unp libssl3 sbcl
 
 
 
@@ -886,11 +841,6 @@ jobs:
         with:
           name: cl-configuration.options@master
           path: upstream
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
         with:
@@ -922,19 +872,22 @@ jobs:
 
 
           # Build binary
-          ${WORKSPACE}/upstream/install/bin/cl-launch                                        \
-            --wrap 'SBCL_OPTIONS="--dynamic-space-size 4Gb ${SBCL_OPTIONS}"' \
-            -S "(:source-registry \
-            (:tree \""$(pwd)"\")                                  \
-            (:tree \"${WORKSPACE}/upstream/share/common-lisp/source\") \
-            :ignore-inherited-configuration)
-          "                                            \
-            -s build-generator.commandline-interface                                        \
-            -e "asdf::(defmethod perform ((o image-op) (c system)) (dump-image (output-file o c) :executable  (typep o (quote program-op)) :compression 9))" \
-                                                    \
-            --dump ! --output "install/bin/build-generator"                            \
-               -r "build-generator.commandline-interface:main"                                     \
-
+          sbcl \
+            --dynamic-space-size 4Gb \
+            --eval "(require :asdf)" \
+            --eval "(asdf:initialize-source-registry (quote (:source-registry \
+              (:tree \""$(pwd)"\")                                  \
+              (:tree \"${WORKSPACE}/upstream/share/common-lisp/source\") \
+              :ignore-inherited-configuration)))" \
+            --load "$(pwd)/upstream/install/share/common-lisp/quicklisp/setup.lisp" \
+            --eval '(ql:quickload "cl+ssl/config")' \
+            --eval '(cl+ssl/config:define-libssl-path "/usr/lib/x86_64-linux-gnu/libssl.so.3")' \
+            --eval '(cl+ssl/config:define-libcrypto-path "/usr/lib/x86_64-linux-gnu/libcrypto.so.3")' \
+            --eval '(ql:quickload "build-generator.commandline-interface")' \
+            --eval "asdf::(defmethod perform ((o image-op) (c system)) (dump-image (output-file o c) :executable  (typep o (quote program-op)) :compression 9))" \
+            --eval '(asdf:make "build-generator.commandline-interface")'
+          mkdir -p ${WORKSPACE}/install/bin/
+          mv build-generator ${WORKSPACE}/install/bin/
 
           # Smoke test binary
           BUILD_GENERATOR_CONFIG_FILES=%pwd ${WORKSPACE}/install//bin/build-generator version --changelog=1
@@ -982,62 +935,17 @@ jobs:
           name: build-generator@master
           path: artifacts
 
-  sbcl_sbcl-2_1_8:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: install-platform-dependencies
-        run: |
-          export WORKSPACE=$(pwd)
-          DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
-              && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount zlib1g-dev time make sbcl gcc git
-
-
-
-      - name: git.repository
-        run: |
-          export WORKSPACE=$(pwd)
-          git clone -b sbcl-2.1.8 https://git.code.sf.net/p/sbcl/sbcl .
-
-
-      - name: freestyle.shell
-        run: |
-          export WORKSPACE=$(pwd)
-
-          sh make.sh \
-            --xc-host="sbcl --no-sysinit --no-userinit" \
-            --fancy \
-
-
-
-          # later ( cd tests && sh run-tests.sh )
-
-          INSTALL_ROOT="$(pwd)/install" sh install.sh
-          tar -czf sbcl.tar.gz install/
-
-
-      - name: gather-artifacts
-        run: |
-          export WORKSPACE=$(pwd)
-          mkdir -p artifacts
-          mv -v sbcl.tar.gz artifacts/
-
-      - name: upload-artifact-sbcl@sbcl-2.1.8
-        uses: actions/upload-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: artifacts
 
   cl-launch_master:
     runs-on: ubuntu-22.04
-    needs: [quicklisp_current,sbcl_sbcl-2_1_8]
+    needs: [quicklisp_current]
     steps:
       - name: install-platform-dependencies
         run: |
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount git tar make
+                sloccount git tar make sbcl
 
 
 
@@ -1047,11 +955,6 @@ jobs:
           git clone -b master https://gitlab.common-lisp.net/xcvb/cl-launch.git .
 
 
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
       - name: download-artifact-quicklisp@current
         uses: actions/download-artifact@v1
         with:
@@ -1086,7 +989,6 @@ jobs:
           cat  > "${WORKSPACE}/install//etc/cl-launchrc" <<"EOF"
           export SBCL_HOME=${WORKSPACE}/upstream/install/lib/sbcl/
 
-          SBCL=${SBCL:-"${WORKSPACE}/upstream/install/bin/sbcl"}
           SBCL_OPTIONS=${SBCL_OPTIONS:-"--noinform --no-userinit"}
 
           LISPS=sbcl
@@ -1114,27 +1016,14 @@ jobs:
 
   quicklisp_current:
     runs-on: ubuntu-22.04
-    needs: [sbcl_sbcl-2_1_8]
+    needs: []
     steps:
       - name: install-platform-dependencies
         run: |
           export WORKSPACE=$(pwd)
           DEBIAN_FRONTEND=noninteractive sudo apt-get -qq update \
               && DEBIAN_FRONTEND=noninteractive sudo apt-get -qq --assume-yes install \
-                sloccount curl
-
-
-
-      - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
-        with:
-          name: sbcl@sbcl-2.1.8
-          path: upstream
-      - name: extract-upstream-artiacts
-        run: |
-          export WORKSPACE=$(pwd)
-          cd upstream
-          find . -name '*.tar.gz' -exec tar -xzf '{}' \;
+                sloccount curl sbcl
 
       - name: freestyle.shell
         run: |
@@ -1144,8 +1033,7 @@ jobs:
             curl -O https://beta.quicklisp.org/quicklisp.lisp
 
             # Execute installation
-            SBCL_HOME=${WORKSPACE}/upstream/install/bin/../lib/sbcl ${WORKSPACE}/upstream/install/bin/sbcl \
-            --core ${WORKSPACE}/upstream/install/bin/../lib/sbcl/sbcl.core                 \
+            sbcl \
             --noinform --no-userinit --disable-debugger                                    \
               --load quicklisp.lisp                            \
               --eval '(quicklisp-quickstart:install
@@ -1155,8 +1043,7 @@ jobs:
           else
             (
               flock 9
-              SBCL_HOME=${WORKSPACE}/upstream/install/bin/../lib/sbcl ${WORKSPACE}/upstream/install/bin/sbcl \
-            --core ${WORKSPACE}/upstream/install/bin/../lib/sbcl/sbcl.core                 \
+              sbcl \
             --noinform --no-userinit --disable-debugger                              \
                 --load "${WORKSPACE}/install//share/common-lisp/quicklisp/setup.lisp"                     \
                 --eval '(ql:update-client :prompt nil)'    \

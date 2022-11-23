@@ -1,6 +1,6 @@
 ;;;; aspect.lisp --- Basic infrastructure for job aspects.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -42,9 +42,10 @@
            ((&values default default?) default-value))
           object)
          ((&accessors-r/o (type var:variable-info-type)) variable))
-    `((:binding-name ,binding-name)
-      (:type         ,type ":~A" ((:after :binding-name)))
-      ,@(when default? `((:default ,default " = ~S" ((:after :type))))))))
+    `((:binding-name                         "~A"  ,binding-name)
+      ((:type        (:after :binding-name)) ":~A" ,type)
+      ,@(when default?
+          `(((:default (:after :type)) " = ~S" ,default))))))
 
 (defmethod aspect-parameter-default-value ((parameter aspect-parameter))
   (if (slot-boundp parameter 'default-value)

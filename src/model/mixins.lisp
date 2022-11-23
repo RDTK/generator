@@ -1,6 +1,6 @@
 ;;;; mixins.lisp --- Generic mixin classes used by project, templates, etc.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -34,7 +34,7 @@
    "Intended to be mixed into classes representing named model objects."))
 
 (defmethod print-items:print-items append ((object named-mixin))
-  `((:name ,(reverse (ancestor-names object)) "~{~A~^:~}")))
+  `((:name "~{~A~^:~}" ,(reverse (ancestor-names object)))))
 
 ;;; `named+builtin-entries-mixin'
 

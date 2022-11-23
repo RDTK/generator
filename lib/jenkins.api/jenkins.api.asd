@@ -1,6 +1,6 @@
 ;;;; jenkins.api.asd --- System definition for the jenkins.api system.
 ;;;;
-;;;; Copyright (C) 2011-2019 Jan Moringen
+;;;; Copyright (C) 2011-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -17,7 +17,7 @@
                 (:version "closer-mop"            "0.61")
                 (:version "let-plus"              "0.1")
                 (:version "more-conditions"       "0.1.0")
-                (:version "utilities.print-items" "0.1")
+                (:version "utilities.print-items" "0.3")
                 (:version "log4cl"                "1.1.3")
 
                 (:version "cl-ppcre"              "2.0.3")

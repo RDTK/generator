@@ -1,12 +1,12 @@
 ;;;; http.lisp --- Utilities for making HTTP requests.
 ;;;;
-;;;; Copyright (C) 2019 Jan Moringen
+;;;; Copyright (C) 2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:jenkins.api)
 
-;;;
+;;; `endpoint'
 
 (defclass endpoint (utilities.print-items:print-items-mixin)
   ((%base-url    :initarg  :base-url
@@ -31,16 +31,15 @@
   (let ((credentials (when-let ((credentials (credentials object)))
                        (print-items:print-items credentials))))
     `(,@(when credentials
-          `((:credentations ,credentials "~/print-items:format-print-items/")
-            (:separator     nil          "@"                                 ((:after  :credentials)
-                                                                              (:before :base-url)))))
-      (:base-url ,(base-url object) "~A")
-      (:version  ,(version object)  " version ~:[?~;~:*~A~]" ((:after :base-url))))))
+          `((:credentations                                         "~/print-items:format-print-items/" ,credentials)
+            ((:separator (:after :credentials) (:before :base-url)) "@")))
+      (:base-url                      "~A"                     ,(base-url object))
+      ((:version (:after :base-url))  " version ~:[?~;~:*~A~]" ,(version object)))))
 
 (defun make-endpoint (base-url &key credentials)
   (make-instance 'endpoint :base-url base-url :credentials credentials))
 
-;;;
+;;; Credentials
 
 (defmethod credentials-initargs ((credentials null))
   '())
@@ -52,9 +51,9 @@
               :reader   password)))
 
 (defmethod print-items:print-items append ((object basic-credentials))
-  `((:username  ,(username object) "~A")
-    (:separator nil                ":"        ((:after :username)))
-    (:password  nil                "********" ((:after :separator)))))
+  `((:username                        "~A"       ,(username object))
+    ((:separator (:after :username))  ":")
+    ((:password  (:after :separator)) "********")))
 
 (defmethod credentials-initargs ((credentials basic-credentials))
   (list :basic-authorization (list (username credentials)

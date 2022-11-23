@@ -1,6 +1,6 @@
 ;;;; cmake.lisp --- Analysis functionality for the CMake build system.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -296,8 +296,8 @@ foo"))))
               (1+ (depth parent))
               0)))
          (variable-count (hash-table-count (%variables object))))
-    `((:variable-count ,variable-count "~:D variable~:P")
-      (:depth          ,(depth object) " @~D"            ((:after :variable-count))))))
+    `((:variable-count                           "~:D variable~:P" ,variable-count)
+      ((:depth         (:after :variable-count)) " @~D"            ,(depth object)))))
 
 (defmethod lookup ((name string) (environment environment))
   (or (gethash name (%variables environment))

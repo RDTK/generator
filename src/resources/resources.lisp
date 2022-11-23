@@ -1,6 +1,6 @@
 ;;;; resources.lisp --- Operations and classes of the resources module.
 ;;;;
-;;;; Copyright (C) 2019 Jan Moringen
+;;;; Copyright (C) 2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -24,11 +24,9 @@
    :content (missing-required-initarg 'entry :content)))
 
 (defmethod print-items:print-items append ((object entry))
-  `((:name        ,(name object)             "~A")
-    (:octet-count ,(length (content object)) " ~:D octet~:P"
-                  ((:after :name)))
-    (:info        ,(info object)             "~@[ ~S~]"
-                  ((:after :octet-count)))))
+  `((:name                                "~A"            ,(name object))
+    ((:octet-count (:after :name))        " ~:D octet~:P" ,(length (content object)))
+    ((:info        (:after :octet-count)) "~@[ ~S~]"      ,(info object))))
 
 ;;; `group'
 
@@ -50,9 +48,10 @@
   (setf (find-group name parent) instance))
 
 (defmethod print-items:print-items append ((object group))
-  `((:name        ,(name object)                        "~A")
-    (:entry-count ,(hash-table-count (%entries object)) " ~:D entr~:@P"
-                  ((:after :name)))))
+  (let ((name  (name object))
+        (count (hash-table-count (%entries object))))
+    `((:name                         "~A"            ,name)
+      ((:entry-count (:after :name)) " ~:D entr~:@P" ,count))))
 
 (defmethod entries ((container group))
   (hash-table-values (%entries container)))
@@ -118,11 +117,12 @@
                                        :weakness :key-and-value))))
 
 (defmethod print-items:print-items append ((object resources))
-  `((:group-count ,(hash-table-count (groups object)) "~:D group~:P")
-    (:datum-count ,(hash-table-count (data object))   " ~:D datum~:P"
-                  ((:after :group-count)))
-    (:octet-count ,(octet-count object)               " ~:D octet~:P"
-                  ((:after :datum-count)))))
+  (let ((group-count (hash-table-count (groups object)))
+        (datum-count (hash-table-count (data object)))
+        (octet-count (octet-count object)))
+   `((:group-count                         "~:D group~:P"  ,group-count)
+     ((:datum-count (:after :group-count)) " ~:D datum~:P" ,datum-count)
+     ((:octet-count (:after :datum-count)) " ~:D octet~:P" ,octet-count))))
 
 (defmethod octet-count ((container resources))
   (reduce #'+ (hash-table-keys (data container)) :key #'length))

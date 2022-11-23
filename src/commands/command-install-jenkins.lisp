@@ -1,6 +1,6 @@
 ;;;; command-install-jenkins.lisp --- Install a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2017-2021 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -42,7 +42,7 @@
                    :reader  extra-plugins)))
 
 (defmethod print-items:print-items append ((object profile))
-  `((:name ,(name object) "~A")))
+  `((:name "~A" ,(name object))))
 
 (defparameter *profiles*
   (flet ((profile (name &optional extra-plugins)

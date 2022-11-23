@@ -1,6 +1,6 @@
 ;;;; schema.lisp --- Meta-data and checks for defined variables..
 ;;;;
-;;;; Copyright (C) 2014-2019 Jan Moringen
+;;;; Copyright (C) 2014-2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -62,8 +62,8 @@
 
 (defmethod print-items:print-items append ((object variable-info))
   (let+ (((&structure-r/o variable-info- name type) object))
-    `((:name ,name "~A")
-      (:type ,type ": ~A" ((:after :name))))))
+    `((:name                  "~A"   ,name)
+      ((:type (:after :name)) ": ~A" ,type))))
 
 (defvar *variables* (make-hash-table :test #'eq))
 

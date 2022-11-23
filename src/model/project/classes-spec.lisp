@@ -1,6 +1,6 @@
 ;;;; spec-classes.lisp ---
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,7 +39,7 @@
 
 (defmethod print-items:print-items append ((object distribution-include))
   (let ((distribution (model:name (distribution object))))
-    `((:distribution ,distribution "~A"))))
+    `((:distribution "~A" ,distribution))))
 
 ;;; `project-include'
 
@@ -53,8 +53,8 @@
             :reader  version)))
 
 (defmethod print-items:print-items append ((object project-include))
-  `((:project ,(project object) "~A")
-    (:version ,(version object) "@~A" ((:after :project)))))
+  `((:project                     "~A"  ,(project object))
+    ((:version (:after :project)) "@~A" ,(version object))))
 
 ;;; `resolved-project-include'
 
@@ -66,7 +66,7 @@
 
 (defmethod print-items:print-items append ((object resolved-project-include))
   (let ((version (print-items:print-items (version object))))
-    `((:version ,version "~/print-items:format-print-items/"))))
+    `((:version "~/print-items:format-print-items/" ,version))))
 
 ;;; `distribution-spec' class
 

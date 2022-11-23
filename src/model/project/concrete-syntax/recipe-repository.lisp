@@ -1,6 +1,6 @@
 ;;;; recipe-repository.lisp --- A repository for directory and filename information.
 ;;;;
-;;;; Copyright (C) 2019, 2020 Jan Moringen
+;;;; Copyright (C) 2019, 2020, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -21,7 +21,7 @@
    "Represents a processing mode, ultimately selecting template recipes."))
 
 (defmethod print-items:print-items append ((object mode))
-  `((:name ,(name object) "~A")))
+  `((:name "~A" ,(name object))))
 
 (defun ensure-mode (thing)
   (labels ((rec (thing)
@@ -78,9 +78,9 @@
     (setf (%name instance) (lastcar (pathname-directory root-directory)))))
 
 (defmethod print-items:print-items append ((object recipe-repository))
-  `((:name      ,(name object)           "~A")
-    (:mode      ,(name (mode object))    " ~A mode" ((:after :name)))
-    (:root-path ,(root-directory object) " [~A]"    ((:after :mode)))))
+  `((:name                       "~A"       ,(name object))
+    ((:mode      (:after :name)) " ~A mode" ,(name (mode object)))
+    ((:root-path (:after :mode)) " [~A]"    ,(root-directory object))))
 
 (defmethod describe-object ((object recipe-repository) stream)
   (utilities.print-tree:print-tree

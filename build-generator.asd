@@ -1,6 +1,6 @@
 ;;;; build-generator.asd --- System definition for the build-generator system
 ;;;;
-;;;; Copyright (C) 2011-2020 Jan Moringen
+;;;; Copyright (C) 2011-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -18,7 +18,7 @@
                 (:version "let-plus"                                     "0.1")
                 (:version "optima"                                       "1.0")
                 (:version "more-conditions"                              "0.1.0")
-                (:version "utilities.print-items"                        "0.1.0")
+                (:version "utilities.print-items"                        "0.3.0")
                 (:version "utilities.print-tree"                         "0.1.0")
                 "local-time"
                 "lparallel"

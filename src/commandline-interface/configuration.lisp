@@ -1,6 +1,6 @@
 ;;;; configuration.lisp --- Configuration for the commandline-interface module.
 ;;;;
-;;;; Copyright (C) 2013-2019 Jan Moringen
+;;;; Copyright (C) 2013-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -155,7 +155,6 @@
                                 "help"))
            (local-arguments (when command-index
                               (subseq arguments (1+ command-index)))))
-
       ;; Process local (i.e. consumed by command) commandline options.
       (commands:configure-command
        synchronizer command local-arguments)

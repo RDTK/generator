@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the deployment module.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -30,13 +30,15 @@
     (call-next-method)))
 
 (defmethod deploy ((thing sequence) (target t))
-  (let ((result (mappend (lambda (element)
-                           (with-simple-restart
-                               (continue "~@<Skip deployment of ~A for ~A.~@:>"
-                                         element target)
-                             (deploy element target)))
-                         thing)))
-    (coerce result (class-of thing))))
+  (flet ((deploy-one (element)
+           (with-simple-restart
+               (continue "~@<Skip deployment of ~A for ~A.~@:>"
+                         element target)
+             (deploy element target))))
+    (if (listp thing)
+        (mappend #'deploy-one thing)
+        (let ((result (mappend #'deploy-one (coerce thing 'list))))
+          (coerce result (class-of thing))))))
 
 (defmethod deploy-dependencies :around ((thing t) (target t))
   (with-condition-translation (((error deployment-error)

@@ -195,6 +195,7 @@
                               "deployment")
                  :serial     t
                  :components ((:file     "package")
+                              (:file     "util")
                               (:file     "target")
                               (:file     "distribution")
                               (:file     "job")))

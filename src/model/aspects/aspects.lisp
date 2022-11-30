@@ -304,21 +304,26 @@
                                 (member character '(#\_)))))
                  string))
 
-(defun wrap-shell-command (command pre post)
-  (cond
-    ((or pre post)
-     (let+ (((rest &optional (shebang ""))
-             (if (starts-with-subseq "#!" command)
-                 (let ((index (position #\Newline command)))
-                   (list (subseq command (1+ index)) (subseq command 0 (1+ index))))
-                 (list command))))
-       (concatenate 'string shebang (or pre "") rest (or post ""))))
-    (t
-     command)))
+(defun wrap-shell-command (stream command pre post)
+  (flet ((do-it (stream)
+           (if (or pre post)
+               (destructuring-bind (rest &optional (shebang ""))
+                   (if (starts-with-subseq "#!" command)
+                       (let ((index (position #\Newline command)))
+                         (list (subseq command (1+ index)) (subseq command 0 (1+ index))))
+                       (list command))
+                 (write-string shebang stream)
+                 (when pre (write-string pre stream))
+                 (write-string rest stream)
+                 (when post (write-string post stream)))
+               (write-string command stream))))
+    (if (null stream)
+        (with-output-to-string (stream) (do-it stream))
+        (do-it stream))))
 
-(defmacro wrapped-shell-command ((aspect-name
-                                  &optional (builder-name '#:command))
-                                 &body body)
+(defmacro as-shell-command ((stream aspect-name
+                             &optional (builder-name '#:command))
+                            &body body)
   (let+ (((&flet make-variable (suffix when)
             (let ((name (let ((*package* (find-package '#:keyword)))
                           (symbolicate aspect-name '#:. builder-name suffix)))
@@ -334,7 +339,8 @@
           (make-variable '#:.prefix "before"))
          ((&values suffix-var-name suffix-var-form)
           (make-variable '#:.suffix "after")))
-    `(wrap-shell-command (progn
+    `(wrap-shell-command ,stream
+                         (progn
                            ,prefix-var-form
                            ,suffix-var-form
                            ,@body)

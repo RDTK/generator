@@ -1,6 +1,6 @@
 ;;;; aspects-build.lisp --- Definitions of builder-creating aspects
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -17,10 +17,19 @@
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (build)
-          (make-instance 'jenkins.api:builder/shell
-                         :command (wrapped-shell-command (:aspect.shell) command)))
-        (jenkins.api:builders job)))
+  (declare (ignore command))
+  (let ((command (extend! aspect spec 'string :command)))
+    (push (constraint! (build)
+            (make-instance 'jenkins.api:builder/shell :command command))
+          (jenkins.api:builders job))))
+
+(defmethod extend! ((aspect aspect-shell)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (catch '%bail
+    (destructuring-bind (command) (aspect-process-parameters aspect)
+      (as-shell-command (output :aspect.shell) command))))
 
 ;;; Batch aspect
 
@@ -62,11 +71,18 @@
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (push (constraint! (build ((:after dependency-download)))
-          (make-instance 'jenkins.api:builder/shell
-                         :command (wrapped-shell-command (:aspect.cmake/unix)
-                                    command)))
-        (jenkins.api:builders job)))
+  (declare (ignore command))
+  (let ((command (extend! aspect spec 'string :command)))
+    (push (constraint! (build ((:after dependency-download)))
+            (make-instance 'jenkins.api:builder/shell :command command))
+          (jenkins.api:builders job))))
+
+(defmethod extend! ((aspect aspect-cmake/unix)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (command) (aspect-process-parameters aspect)
+    (as-shell-command (output :aspect.cmake/unix) command)))
 
 (var:define-variable :aspect.cmake/unix.find-commands list ; :write
   :documentation
@@ -214,6 +230,20 @@
                          :global-settings     (or global-settings-file :default)))
         (jenkins.api:builders job)))
 
+(defmethod extend! ((aspect aspect-maven)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (properties targets &rest rest)
+      (aspect-process-parameters aspect)
+    (declare (ignore rest))
+    (format output "mvn \\~%~
+                      ~{~2@T-D~A~^ \\~%~}~
+                      ~@[ \\~%~
+                        ~2@T~{~A~^ ~}~
+                      ~]"
+            properties targets)))
+
 ;;; Setuptools aspect
 
 (deftype setuptools-option ()
@@ -242,12 +272,19 @@
 
    The ordering w.r.t. to other build steps is controlled via builder
    ordering constraints."
-  (declare (ignore options))
-  (push (constraint! (build ((:after dependency-download)))
-          (make-instance 'jenkins.api:builder/shell
-                         :command (wrapped-shell-command (:aspect.setuptools)
-                                    command)))
-        (jenkins.api:builders job)))
+  (declare (ignore options command))
+  (let ((command (extend! aspect spec 'string :command)))
+    (push (constraint! (build ((:after dependency-download)))
+            (make-instance 'jenkins.api:builder/shell :command command))
+         (jenkins.api:builders job))))
+
+(defmethod extend! ((aspect aspect-setuptools)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (options command) (aspect-process-parameters aspect)
+    (declare (ignore options))
+    (as-shell-command (output :aspect.setuptools) command)))
 
 (defmethod var:lookup ((thing aspect-setuptools)
                        (name  (eql :aspect.setuptools.option-lines))

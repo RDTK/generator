@@ -12,21 +12,25 @@
  (string= (make-remove-directory-contents/unix :exclude '("b\"ar" "foo"))
           "find . -mindepth 1 -maxdepth 1 -not \\( -name \"b\\\"ar\" -o -name \"foo\" \\) -exec rm -rf {} \\;"))
 
-;; `wrapped-shell-command' smoke test
+;; `wrap-shell-command' smoke test
 
-(assert (string= (wrap-shell-command "foo" nil   nil)   "foo"))
-(assert (string= (wrap-shell-command "foo" nil   "baz") "foobaz"))
-(assert (string= (wrap-shell-command "foo" "bar" nil)   "barfoo"))
-(assert (string= (wrap-shell-command "foo" "bar" "baz") "barfoobaz"))
+(flet ((test-case (expected command pre post)
+         (let ((actual (with-output-to-string (stream)
+                         (wrap-shell-command stream "foo" nil   nil))))
+           (assert (string= expected actual)))))
+  (test-case "foo"       "foo" nil   nil)
+  (test-case "foobaz"    "foo" nil   "baz")
+  (test-case "barfoo"    "foo" "bar" nil)
+  (test-case "barfoobaz" "foo" "bar" "baz")
 
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   nil)
-                 (format nil "#!/bin/sh~%foo")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") nil   "baz")
-                 (format nil "#!/bin/sh~%foobaz")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" nil)
-                 (format nil "#!/bin/sh~%barfoo")))
-(assert (string= (wrap-shell-command (format nil "#!/bin/sh~%foo") "bar" "baz")
-                 (format nil "#!/bin/sh~%barfoobaz")))
+  (test-case (format nil "#!/bin/sh~%foo")
+             (format nil "#!/bin/sh~%foo") nil   nil)
+  (test-case (format nil "#!/bin/sh~%foobaz")
+             (format nil "#!/bin/sh~%foo") nil   "baz")
+  (test-case (format nil "#!/bin/sh~%barfoo")
+             (format nil "#!/bin/sh~%foo") "bar" nil)
+  (test-case (format nil "#!/bin/sh~%barfoobaz")
+             (format nil "#!/bin/sh~%foo") "bar" "baz"))
 
 ;; `parse-constraint' smoke test
 

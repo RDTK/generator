@@ -1,23 +1,24 @@
 ;;;; aspects-scm.lisp --- Definitions of SCM-related aspects
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:build-generator.model.aspects)
 
-(defun make-focus-sub-directory-command (sub-directory &key exclude)
+(defun focus-sub-directory-command (stream sub-directory &key exclude)
   (let+ ((sub-directory (uiop:ensure-directory-pathname sub-directory))
          ((&whole components first &rest &ign)
           (rest (pathname-directory sub-directory))))
-    (format nil "~A~@
-                 ~@
-                 ~A"
+    (format stream "~A~@
+                    ~@
+                    ~A"
             (make-remove-directory-contents/unix
              :exclude (list* first exclude))
             (make-move-stuff-upwards/unix components))))
 
-(define-aspect (archive) (builder-defining-mixin)
+(define-aspect (archive :aspect-var aspect :spec-var spec :job-var job)
+    (builder-defining-mixin)
     ((url                                  :type string
       :documentation
       "URL from which the archive should be downloaded.
@@ -32,37 +33,47 @@
 
    This may be useful when a SCM repository is not available but
    source archives are."
+  (declare (ignore url filename sub-directory))
   ;; In case we are updating an existing job, remove any repository
   ;; configuration.
   (setf (jenkins.api:repository job) (make-instance 'jenkins.api:scm/null))
 
   ;; Generate archive download and extraction as a shell builder.
-  (let* ((url/parsed (puri:uri url))
-         (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed))))
-         (command    (format nil "# Clean workspace.~@
-                                  ~A~@
-                                  ~@
-                                  # Unpack archive.~@
-                                  wget --no-verbose \"~A\" --output-document=\"~A\"~@
-                                  unp -U \"~:*~A\"~@
-                                  rm \"~:*~A\"~@
-                                  directory=$(find . -mindepth 1 -maxdepth 1)~@
-                                  ~@
-                                  ~A"
-                             (make-remove-directory-contents/unix)
-                             url archive
-                             (make-move-stuff-upwards/unix
-                              (list* "${directory}"
-                                     (when sub-directory
-                                       (rest (pathname-directory
-                                              (uiop:ensure-directory-pathname
-                                               sub-directory)))))))))
+  (let ((command (extend! aspect spec 'string :command)))
     (push (constraint! (build ((:before t)))
-            (make-instance 'jenkins.api:builder/shell :command command))
+            (make-instance 'jenkins.api.builder/shell :command command))
           (jenkins.api:builders job))))
+
+(defmethod extend! ((aspect aspect-archive)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (url filename sub-directory)
+      (aspect-process-parameters aspect)
+    (let* ((url/parsed (puri:uri url))
+           (archive    (or filename (lastcar (puri:uri-parsed-path url/parsed)))))
+      (format output "# Clean workspace.~@
+                        ~A~@
+                        ~@
+                        # Unpack archive.~@
+                        wget --no-verbose \"~A\" --output-document=\"~A\"~@
+                        unp -U \"~:*~A\"~@
+                        rm \"~:*~A\"~@
+                        directory=$(find . -mindepth 1 -maxdepth 1)~@
+                        ~@
+                        ~A"
+              (make-remove-directory-contents/unix)
+              url archive
+              (make-move-stuff-upwards/unix
+               (list* "${directory}"
+                      (when sub-directory
+                        (rest (pathname-directory
+                               (uiop:ensure-directory-pathname
+                                sub-directory))))))))))
 
 (define-aspect (git :job-var    job
                     :aspect-var aspect
+                    :spec-var   spec
                     :plugins    ("git"))
     (builder-defining-mixin)
     ((url                                   :type string
@@ -149,11 +160,38 @@
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (push (constraint! (build ((:before t)))
-            (make-instance 'jenkins.api:builder/shell
-                           :command (make-focus-sub-directory-command
-                                     sub-directory :exclude '(".git"))))
-          (jenkins.api:builders job))))
+    (let ((command (extend! aspect spec 'string :sub-directory-command)))
+      (push (constraint! (build ((:before t)))
+              (make-instance 'jenkins.api:builder/shell :command command))
+            (jenkins.api:builders job)))))
+
+(defmethod extend! ((aspect aspect-git)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :sub-directory-command)))
+  (destructuring-bind (url username password credentials branches local-branch
+                       clone-timeout wipe-out-workspace? clean-before-checkout?
+                       checkout-submodules? shallow? sub-directory)
+      (aspect-process-parameters aspect)
+    (declare (ignore url username password credentials branches local-branch
+                     clone-timeout wipe-out-workspace? clean-before-checkout?
+                     checkout-submodules? shallow?))
+    (when sub-directory
+      (focus-sub-directory-command output sub-directory :exclude '(".git")))))
+
+(defmethod extend! ((aspect aspect-git)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (url username password credentials branches local-branch
+                       clone-timeout wipe-out-workspace? clean-before-checkout?
+                       checkout-submodules? shallow? sub-directory)
+      (aspect-process-parameters aspect)
+    (declare (ignore username password credentials local-branch
+                     clone-timeout wipe-out-workspace? clean-before-checkout?
+                     sub-directory))
+    (format output "git clone~:[~; --recursive~]~:[~; --depth=1~] -b ~A ~A .~%"
+            checkout-submodules? shallow? (first branches) url)))
 
 (define-aspect (git-repository-browser
                 :job-var     job
@@ -210,21 +248,37 @@
 
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."
-  (let* ((url/parsed   (puri:uri url))
-         (url/parsed   (puri:copy-uri
-                        url/parsed
-                        :path (ppcre:regex-replace-all
-                               "//+" (puri:uri-path url/parsed) "/")))
-         (url/revision (format nil "~A~@[@~A~]" url/parsed revision))
-         (credentials  (or credentials
-                           (unless (model:check-access aspect :public)
-                             (puri:uri-host url/parsed)))))
+  (let+ (((&values url/revision url/parsed)
+          (format-subversion-url url revision))
+         (credentials (or credentials
+                          (unless (model:check-access aspect :public)
+                            (puri:uri-host url/parsed)))))
     (setf (jenkins.api:repository job)
           (make-instance 'jenkins.api:scm/svn
                          :url               url/revision
                          :credentials       credentials
                          :local-directory   local-dir
                          :checkout-strategy checkout-strategy))))
+
+(defmethod extend! ((aspect aspect-subversion)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (url revision credentials local-dir checkout-strategy)
+      (aspect-process-parameters aspect)
+    (declare (ignore credentials checkout-strategy))
+    (format output "svn co \"~A\" \"~A\""
+            (format-subversion-url url revision)
+            (or local-dir "."))))
+
+(defun format-subversion-url (url revision)
+  (let* ((url/parsed     (puri:uri url))
+         (url/fixed-path (puri:copy-uri
+                          url/parsed
+                          :path (ppcre:regex-replace-all
+                                 "//+" (puri:uri-path url/parsed) "/")))
+         (url/revision   (format nil "~A~@[@~A~]" url/fixed-path revision)))
+    (values url/revision url/parsed)))
 
 (define-aspect (mercurial :job-var    job
                           :aspect-var aspect
@@ -244,13 +298,13 @@
       "Name of the branch in the mercurial repository that should be
        checked out.
 
-       Mutually exclusive with the tag parameter.")
+       Mutually exclusive with the TAG parameter.")
      ((tag                            nil) :type string
       :documentation
       "Name of the tag in the mercurial repository that should be
        checked out.
 
-       Mutually exclusive with the branch parameter.")
+       Mutually exclusive with the BRANCH parameter.")
      (clean?                                :type boolean
       :documentation
       "Controls whether the workspace is cleaned before each build.")
@@ -281,11 +335,30 @@
   ;; move the contents of that sub-directory to the top-level
   ;; workspace directory before proceeding.
   (when sub-directory
-    (push (constraint! (build ((:before t)))
-            (make-instance 'jenkins.api:builder/shell
-                           :command (make-focus-sub-directory-command
-                                     sub-directory :exclude '(".hg"))))
-          (jenkins.api:builders job))))
+    (let ((command (extend! aspect spec 'string :sub-directory-command)))
+      (push (constraint! (build ((:before t)))
+              (make-instance 'jenkins.api:builder/shell :command command))
+            (jenkins.api:builders job)))))
+
+(defmethod extend! ((aspect aspect-mercurial)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :sub-directory-command)))
+  (destructuring-bind (url credentials branch tag clean? sub-directory)
+      (aspect-process-parameters aspect)
+    (declare (ignore url credentials branch tag clean?))
+    (when sub-directory
+      (focus-sub-directory-command output sub-directory :exclude '(".hg")))))
+
+(defmethod extend! ((aspect aspect-mercurial)
+                    (spec   t)
+                    (output stream)
+                    (target (eql :command)))
+  (destructuring-bind (url credentials branch tag clean? sub-directory)
+      (aspect-process-parameters aspect)
+    (declare (ignore credentials clean? sub-directory))
+    (format output "hg --noninteractive clone~@[ -b ~A~] -u ~A ~A .~%"
+            branch (or branch tag) url)))
 
 (define-aspect (trigger/scm) ()
     ((spec :type (or null string)

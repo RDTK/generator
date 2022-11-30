@@ -91,6 +91,16 @@
 (defmethod step-constraints ((aspect t) (phase t) (step t))
   '())
 
+(defmethod extend! ((aspect t)
+                    (spec   t)
+                    (output (eql 'string))
+                    (target t))
+  (let ((result (with-output-to-string (stream)
+                  (extend! aspect spec stream target))))
+    (if (emptyp result)
+        nil
+        result)))
+
 (defmethod extend! ((aspect list)
                     (spec   t)
                     (output jenkins.api:job/project)

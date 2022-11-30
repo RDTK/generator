@@ -32,7 +32,7 @@
 
               ;; Apply aspects, respecting declared ordering, and sort
               ;; generated builders according to declared ordering.
-              (aspects:extend! job (aspects:aspects thing) thing)
+              (aspects:extend! (aspects:aspects thing) thing job :jenkins)
 
               ;; TODO temp
               (xloc:->xml job (stp:root (jenkins.api::%data job)) 'jenkins.api:job/project)

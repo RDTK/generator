@@ -1,6 +1,6 @@
 ;;;; macros.lisp --- Macros provided by the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -123,9 +123,10 @@
         'aspect ,(make-keyword name) :class ',class-name)
 
        ,@(when body
-           `((defmethod extend! progn ((,job-var    jenkins.api:job/project)
-                                       (,aspect-var ,class-name)
-                                       (,spec-var   t #+actually job))
+           `((defmethod extend! progn ((,aspect-var ,class-name)
+                                       (,spec-var   t #+actually job)
+                                       (,job-var    jenkins.api:job/project)
+                                       (target      (eql :jenkins)))
                (log:debug "Applying ~A to ~A" ,aspect-var ,job-var)
                ,(make-aspect-extend!-body
                  aspect-var parameters

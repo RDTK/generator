@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the model.aspects module.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -80,7 +80,7 @@
    "Return non-nil if CONSTRAINTS mandate that the step LEFT should be
     executed before the step RIGHT."))
 
-(defgeneric extend! (job aspect spec)
+(defgeneric extend! (aspect spec output target)
   (:method-combination progn))
 
 ;; Default behavior
@@ -92,7 +92,10 @@
 (defmethod step-constraints ((aspect t) (phase t) (step t))
   '())
 
-(defmethod extend! progn ((job t) (aspect list) (spec t))
+(defmethod extend! progn ((aspect list)
+                          (spec   t)
+                          (output jenkins.api:job/project)
+                          (target (eql :jenkins)))
   ;; Apply aspects, respecting declared ordering, and sort generated
   ;; steps (i.e. builders and publishers) according to declared
   ;; ordering.
@@ -100,7 +103,7 @@
          (aspects (util:sort-with-partial-order
                    (copy-list aspect) #'aspect<))
          ((&flet sort-phase (phase read write)
-            (let ((unsorted    (funcall read job))
+            (let ((unsorted    (funcall read output))
                   (constraints (constraints-table phase)))
               (when unsorted
                 (log:trace "~@<~@(~A~)er constraint~P:~@:_~
@@ -118,21 +121,21 @@
                   (log:debug "~@<Sorted ~(~A~)er~P:~@:_~
                               ~@<~{• ~A~^~@:_~}~@:>~@:>"
                              phase (length sorted) sorted)
-                  (funcall write sorted job)))))))
+                  (funcall write sorted output)))))))
 
     ;; Methods on `extend!' add entries to `*step-constraints*' and
     ;; push builders onto (builders job).
-    (reduce (lambda (job aspect)
+    (reduce (lambda (output aspect)
               (restart-case
-                  (extend! job aspect spec)
+                  (extend! aspect spec output target)
                 (continue (&optional condition)
                   :report (lambda (stream)
                             (format stream "~@<Skip applying aspect ~A ~
                                             to ~A.~@:>"
-                                    aspect job))
+                                    aspect output))
                   (declare (ignore condition))
-                  job)))
-            aspects :initial-value job)
+                  output)))
+            aspects :initial-value output)
 
     (sort-phase 'build   #'jenkins.api:builders   #'(setf jenkins.api:builders))
     (sort-phase 'publish #'jenkins.api:publishers #'(setf jenkins.api:publishers))))

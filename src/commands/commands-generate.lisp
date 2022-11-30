@@ -1,6 +1,6 @@
 ;;;; commands-generate.lisp --- Generate different kinds of output based on a distribution.
 ;;;;
-;;;; Copyright (C) 2018, 2019, 2020 Jan Moringen
+;;;; Copyright (C) 2018, 2019, 2020, 2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -146,3 +146,21 @@
          (("--set" "-D")  "overwrites"    "VARIABLE-NAME=VALUE")
 
          ,@option-mapping-clauses))))
+
+;;; Command for Jenkins target
+
+(progn
+  (define-generate-command (:generate-jenkins :jenkins)
+    . #.(append
+         #1='(("--delete-other"         "delete-other?")
+              ("--delete-other-pattern" "delete-other-pattern" "REGEX")
+
+              (("--base-uri" "-b")      "base-uri"             "URI")
+              (("--username" "-u")      "username"             "LOGIN")
+              (("--password" "-p")      "password"             "PASSWORD"))
+         '((("--api-token" "-t")     "api-token"            "API-TOKEN"))))
+
+  (define-generate-command (:generate :jenkins) ; Backward compatibility
+    . #.(append
+         #1#
+         '((("--api-token" "-t" "-a") "api-token" "API-TOKEN")))))

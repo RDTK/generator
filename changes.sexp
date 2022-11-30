@@ -1,6 +1,14 @@
 ((:release "0.35" nil
 
   (:enhancement
+   "The generator can now produce output for targets other than
+    Jenkins jobs. The" (:verb "generate") "command will be supported
+    for backward compatibility, but the new" (:verb "generate-jenkins")
+   "command should be used in newly written invocations. Additional targets
+    will follow the same pattern, namely" (:verb "generate-TARGET") "and
+    will accept target-specific commandline options to the command.")
+
+  (:enhancement
    "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
     download server now seems to reply with a 308 redirect otherwise.")
 

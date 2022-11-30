@@ -7,7 +7,7 @@
 (cl:in-package #:build-generator.deployment.jenkins)
 
 (defmethod deploy:deploy ((thing project::job) (target target))
-  (let+ ((id        (jenkins-job-id))
+  (let+ ((id        (jenkins-job-id thing))
          (kind      (let+ (((kind &optional plugin)
                             (ensure-list (var:value thing :kind))))
                       (if plugin

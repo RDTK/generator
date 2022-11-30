@@ -1,95 +1,10 @@
 ;;;; command-generate.lisp --- Generate Jenkins jobs for a distribution.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
 (cl:in-package #:build-generator.commands)
-
-(defclass generate (distribution-input-mixin
-                    mode-mixin
-                    jenkins-access-mixin)
-  ((delete-other?        :initarg  :delete-other?
-                         :type     boolean
-                         :reader   delete-other?
-                         :initform nil
-                         :documentation
-                         #.(format nil "Delete previously ~
-                            automatically generated jobs when they ~
-                            are not re-created in this generation ~
-                            run."))
-   (delete-other-pattern :initarg  :delete-other-pattern
-                         :type     (or null string)
-                         :reader   delete-other-pattern
-                         :initform nil
-                         :documentation
-                         #.(format nil "When deleting previously ~
-                            automatically generated jobs, only ~
-                            consider jobs whose name matches the ~
-                            regular expression REGEX.~@
-                            ~@
-                            The default value corresponds to the ~
-                            common case of deleting only jobs ~
-                            belonging to previous versions of the ~
-                            distribution(s) being generated, i.e. the ~
-                            regular expression ~
-                            (DISTRIBUTION-NAME₁|DISTRIBUTION-NAME₂|…)$.")))
-  (:documentation
-   "Generate Jenkins jobs for a given distribution."))
-
-(service-provider:register-provider/class
- 'command :generate :class 'generate)
-
-(build-generator.commandline-options:define-option-mapping
-    (*command-schema* "generate")
-  (&rest                    "distributions"        "DISTRIBUTION-NAME"   t)
-
-  (("--mode" "-m")          "mode"                 "MODE")
-  (("--set" "-D")           "overwrites"           "VARIABLE-NAME=VALUE")
-
-  ("--delete-other"         "delete-other?")
-  ("--delete-other-pattern" "delete-other-pattern" "REGEX")
-
-  (("--base-uri" "-b")      "base-uri"             "URI")
-  (("--username" "-u")      "username"             "LOGIN")
-  (("--password" "-p")      "password"             "PASSWORD")
-  (("--api-token" "-t" "-a") "api-token"            "API-TOKEN"))
-
-(defmethod command-execute ((command generate))
-  (let+ (((&accessors-r/o distributions mode overwrites
-                          delete-other? delete-other-pattern)
-          command)
-         ((&values distributions projects)
-          (generate-load distributions mode overwrites
-                         :generator-version (generator-version)
-                         :cache-directory   *cache-directory*))
-         (distributions
-          (generate-analyze distributions projects
-                            :generator-version (generator-version)
-                            :temp-directory    *temp-directory*
-                            :cache-directory   *cache-directory*
-                            :age-limit         *age-limit*))
-         (distributions
-          (as-phase (:instantiate)
-            (mapcan (lambda (distribution-spec)
-                      (when-let ((distribution (model:instantiate distribution-spec)))
-                        (list distribution)))
-                    distributions))))
-    (as-phase (:check-access ; :continuable? nil
-               )
-              (check-distribution-access distributions))
-    (let* ((target (deploy:make-target
-                    :jenkins
-                    :delete-other?        delete-other?
-                    :delete-other-pattern delete-other-pattern))
-           (jobs   (as-phase (:deploy)
-                     (deploy:deploy distributions target))))
-      (as-phase (:list-credentials)
-        (build-generator.deployment.jenkins::list-credentials jobs))
-      (as-phase (:display-messages)
-        (map nil #'display-messages distributions)))))
-
-;;; Functions
 
 (defun generate-load (distributions mode overwrites
                       &key generator-version
@@ -170,22 +85,3 @@
          (distributions (as-phase (:resolve/distribution)
                           (map 'list #'resolve-versions distributions))))
     (values distributions analyzed-projects)))
-
-(defun display-messages (distribution &key (stream *standard-output*))
-  (let+ ((first? t)
-         ((&labels display-message (object message)
-            (if first?
-                (setf first? nil)
-                (format stream "~2%"))
-            (format stream "Message for ~/print-items:format-print-items/~@
-                            ~@
-                            ~2@T~@<~@;~A~:>"
-                    (print-items:print-items object) message)))
-         ((&labels maybe-display-message (object variable)
-            (when-let ((message (var:value object variable nil)))
-              (display-message object message)))))
-    (maybe-display-message distribution :message)
-    (map nil (rcurry #'maybe-display-message :message)
-         (project:versions distribution))
-    (unless first?
-      (fresh-line stream))))

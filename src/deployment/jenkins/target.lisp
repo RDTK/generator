@@ -7,10 +7,57 @@
 (cl:in-package #:build-generator.deployment.jenkins)
 
 (defclass target ()
-  ((%delete-other?        :initarg :delete-other?
-                          :reader  delete-other?)
-   (%delete-other-pattern :initarg :delete-other-pattern
-                          :reader  delete-other-pattern)))
+  ((base-uri             :initarg  :base-uri
+                         :type     puri:uri
+                         :reader   base-uri
+                         :initform (puri:uri "https://localhost:8080")
+                         :documentation
+                         "Jenkins base URI.")
+   (username             :initarg  :username
+                         :type     (or null string)
+                         :reader   username
+                         :initform nil
+                         :documentation
+                         "Username for Jenkins authentication.")
+   (password             :initarg  :password
+                         :type     (or null string)
+                         :reader   password
+                         :initform nil
+                         :documentation
+                         "Password for Jenkins authentication.")
+   (api-token            :initarg  :api-token
+                         :type     (or null string)
+                         :reader   api-token
+                         :initform nil
+                         :documentation
+                         "API token for Jenkins authentication.")
+   (delete-other?        :initarg  :delete-other?
+                         :type     boolean
+                         :reader   delete-other?
+                         :initform nil
+                         :documentation
+                         #.(format nil "Delete previously ~
+                            automatically generated jobs when they ~
+                            are not re-created in this generation ~
+                            run."))
+   (delete-other-pattern :initarg  :delete-other-pattern
+                         :type     (or null string)
+                         :reader   delete-other-pattern
+                         :initform nil
+                         :documentation
+                         #.(format nil "When deleting previously ~
+                            automatically generated jobs, only ~
+                            consider jobs whose name matches the ~
+                            regular expression REGEX.~@
+                            ~@
+                            The default value corresponds to the ~
+                            common case of deleting only jobs ~
+                            belonging to previous versions of the ~
+                            distribution(s) being generated, i.e. the ~
+                            regular expression ~
+                            (DISTRIBUTION-NAME₁|DISTRIBUTION-NAME₂|…)$.")))
+  (:documentation
+   "Generate Jenkins jobs for given distribution(s)."))
 
 (service-provider:register-provider/class
  'deploy:target :jenkins :class 'target)
@@ -19,20 +66,36 @@
   (unless (every (of-type 'project:distribution) thing)
     (return-from deploy:deploy (call-next-method)))
 
-  (let+ (((jobs orchestration-jobs &ign)
-          (reduce (lambda+ ((all-jobs all-orchestration-jobs all-views) distribution)
-                    (let+ (((&values jobs orchestration-jobs views)
-                            (deploy:deploy distribution target)))
-                      (list (append all-jobs               jobs)
-                            (append all-orchestration-jobs orchestration-jobs)
-                            (append all-views              views))))
-                  thing :initial-value '(() () ())))
-         (all-jobs     (append jobs orchestration-jobs))
-         (jenkins-jobs (mappend #'model:implementations all-jobs)))
-    (when (delete-other? target)
-      (with-simple-restart (continue "~@<Do not delete other jobs~@:>")
-        (delete-other-jobs
-         thing jenkins-jobs (delete-other-pattern target))))))
+  (let+ (((&accessors-r/o base-uri username password api-token) target)
+         (credentials (cond (api-token
+                             (jenkins.api:make-token-credentials
+                              username api-token))
+                            ((and username password)
+                             (jenkins.api:make-username+password-credentials
+                              username password))))
+         (endpoint    (jenkins.api:make-endpoint
+                       base-uri :credentials credentials)))
+    (progn ; TODO as-phase (:verify-jenkins)
+      (jenkins.api::verify-jenkins :endpoint endpoint))
+
+    (jenkins.api:with-endpoint (endpoint)
+      (let+ (((jobs orchestration-jobs &ign)
+              (reduce (lambda+ ((all-jobs all-orchestration-jobs all-views) distribution)
+                        (let+ (((&values jobs orchestration-jobs views)
+                                (deploy:deploy distribution target)))
+                          (list (append all-jobs               jobs)
+                                (append all-orchestration-jobs orchestration-jobs)
+                                (append all-views              views))))
+                      thing :initial-value '(() () ())))
+             (all-jobs     (append jobs orchestration-jobs))
+             (jenkins-jobs (mappend #'model:implementations all-jobs)))
+        (when (delete-other? target)
+          (with-simple-restart (continue "~@<Do not delete other jobs~@:>")
+            (delete-other-jobs
+             thing jenkins-jobs (delete-other-pattern target))))
+
+        (progn ; TODO as-phase (:list-credentials)
+          (list-credentials jenkins-jobs))))))
 
 ;;; Deleting jobs
 

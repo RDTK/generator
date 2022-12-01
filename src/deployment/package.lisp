@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the deployment module.
 ;;;;
-;;;; Copyright (C) 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2018-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -12,6 +12,8 @@
    #:more-conditions)
 
   (:local-nicknames
+   (#:util    #:build-generator.util)
+
    (#:model   #:build-generator.model)
    (#:var     #:build-generator.model.variables)
    (#:project #:build-generator.model.project)
@@ -36,4 +38,16 @@
   (:export
    #:target                         ; service name
 
-   #:make-target))
+   #:make-target)
+
+  ;; String utilities
+  (:export
+   #:job-full-name
+
+   #:print-heading)
+
+  ;; `command-mixin'
+  (:export
+   #:command-mixin
+
+   #:command))

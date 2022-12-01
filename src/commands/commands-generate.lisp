@@ -164,3 +164,13 @@
     . #.(append
          #1#
          '((("--api-token" "-t" "-a") "api-token" "API-TOKEN")))))
+
+;;; Command for Dockerfile target
+
+(define-generate-command (:generate-dockerfile :dockerfile)
+  (("--output-directory" "-o") "output-directory" "DIRECTORY"             t)
+
+  (("--base-image" "-b")       "base-image"       "IMAGE-NAME[:TAG-NAME]" t)
+  (("--platform" "-p")         "platform"         "PLATFORM")
+
+  (("--run-strategy" "-s")     "run-strategy"     "STRATEGY"))

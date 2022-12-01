@@ -9,6 +9,12 @@
     will accept target-specific commandline options to the command.")
 
   (:enhancement
+   "The new" (:verb "generate-dockerfile") "command can be used to
+    place into a specified output directory a Dockerfile with
+    supporting scripts that build one or more distributions within a
+    Docker container.")
+
+  (:enhancement
    "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
     download server now seems to reply with a 308 redirect otherwise.")
 

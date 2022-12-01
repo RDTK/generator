@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the util module.
 ;;;;
-;;;; Copyright (C) 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2018-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -28,6 +28,7 @@
 
   ;; Strings
   (:export
+   #:maybe-truncate
    #:safe-name
 
    #:edit-distance

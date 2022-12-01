@@ -174,3 +174,8 @@
   (("--platform" "-p")         "platform"         "PLATFORM")
 
   (("--run-strategy" "-s")     "run-strategy"     "STRATEGY"))
+
+;;; Command for Makefile target
+
+(define-generate-command (:generate-makefile :makefile)
+  (("--output-directory" "-o") "output-directory" "DIRECTORY" t))

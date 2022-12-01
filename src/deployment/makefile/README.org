@@ -1,0 +1,90 @@
+* Introduction
+
+  This target generates a [[https://www.gnu.org/software/make/manual/make.html#Introduction][Makefile]] which builds, installs or tests the specified projects on the local machine without employing a CI Server or CI Service.
+  The generated Makefile has a rule for each project and dependencies between projects are expressed as dependencies between rules.
+  The build can be parallelized by invoking =make= with ~make -j NUMBER-OF-PROCESSES …~.
+
+* Noteworthy Technical Details
+
+** TODO Stamps
+
+   The generated Makefile writes "stamp" files to track already finished work.
+   This allows resuming incomplete builds but also means that certain changes such as source code changes in project repositories are not picked up.
+
+** TODO Name Mangling
+
+** ONESHELL
+
+   We emit
+
+   #+BEGIN_SRC makefile
+     .ONESHELL:
+     SHELL = /bin/bash
+     .SHELLFLAGS = -ec
+   #+END_SRC
+
+   at the top of the Makefile.
+   This causes =make= to invoke the shell such that it executes the recipe lines of each rule as a single chunk instead of one shell invocation per line (or multiple continuation lines using "\").
+   Note that we have to pass =-c= to the shell so it doesn't attempt to execute the shell code chunk as a command.
+
+** Recipe Prefixes
+
+   + =@= prefix :: silent
+
+   + =+= prefix :: use to run certain recipe lines despite commandline
+                   options that would prevent that:
+
+                   #+BEGIN_QUOTE
+                   The ‘-n’, ‘-t’, and ‘-q’ options do not affect recipe lines that begin with ‘+’ characters or contain the strings ‘$(MAKE)’ or ‘${MAKE}’.
+                   #+END_QUOTE
+
+                   but also:
+
+                   #+BEGIN_QUOTE
+                   If .ONESHELL is provided, then only the first line
+                   of the recipe will be checked for the special
+                   prefix characters (‘@’, ‘-’, and ‘+’). Subsequent
+                   lines will include the special characters in the
+                   recipe line when the SHELL is invoked. If you want
+                   your recipe to start with one of these special
+                   characters you’ll need to arrange for them to not
+                   be the first characters on the first line, perhaps
+                   by adding a comment or similar. For example, this
+                   would be a syntax error in Perl because the first
+                   ‘@’ is removed by make:
+                   #+END_QUOTE
+
+                   But that's not all:
+
+                   #+BEGIN_QUOTE
+                   As a special feature, if SHELL is determined to be
+                   a POSIX-style shell, the special prefix characters
+                   in “internal” recipe lines will be removed before
+                   the recipe is processed. This feature is intended
+                   to allow existing makefiles to add the .ONESHELL
+                   special target and still run properly without
+                   extensive modifications. Since the special prefix
+                   characters are not legal at the beginning of a line
+                   in a POSIX shell script this is not a loss in
+                   functionality.
+                   #+END_QUOTE
+
+                   crazy, right?
+
+   This is a problem because me generate recipes such as
+
+   #+BEGIN_SRC makefile
+     foo:
+             (
+             cat <<'EOF' | patch …
+             …
+             +foo
+             +bar
+             …
+             EOF
+             )
+   #+END_SRC
+
+   from which make will helpfully strip the =+= prefixes. How convenient.
+
+** TODO Parallel Execution and Nested =make= Invocations

@@ -15,6 +15,12 @@
     Docker container.")
 
   (:enhancement
+   "The new" (:verb "generate-makefile") "command can be used to write
+    a Makefile into a specified output directory. When executed that
+    Makefile builds and/or installs one or more distributions in the
+    filesystem.")
+
+  (:enhancement
    "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
     download server now seems to reply with a 308 redirect otherwise.")
 

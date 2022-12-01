@@ -1,0 +1,6 @@
+* Introduction
+
+  When this target is used, the generator directly builds the specified projects on the local machine without generating intermediate build instructions such as Makefiles and without employing containers, a CI server or CI service.
+  Only full builds (as opposed to incremental ones) are supported since the progress of an incomplete build cannot be persisted.
+  Dependencies between projects and individual steps within a project are respected.
+  Individual steps can be executed in parallel.

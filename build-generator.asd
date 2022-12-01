@@ -228,6 +228,19 @@
                               (:file     "target")
                               (:file     "aspects")))
 
+                (:module     "deployment-build"
+                 :pathname   "src/deployment/build"
+                 :depends-on ("model"
+                              "model-project"
+                              "model-aspects"
+                              "deployment")
+                 :serial     t
+                 :components ((:file     "package")
+                              (:file     "model")
+                              (:file     "target")
+                              (:file     "aspects")
+                              (:file     "execution")))
+
                 (:module     "report"
                  :pathname   "src/report"
                  :depends-on ("util" "model-project")

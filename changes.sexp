@@ -21,6 +21,11 @@
     filesystem.")
 
   (:enhancement
+   "The new" (:verb "build") "command builds or installs one or more
+    distributions in the filesystem under the direct control of the
+    generator process.")
+
+  (:enhancement
    "Use HTTPS URL scheme in download URL for" (:verb "jenkins.war") ". The
     download server now seems to reply with a 308 redirect otherwise.")
 

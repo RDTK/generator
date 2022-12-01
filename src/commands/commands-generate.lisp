@@ -1,6 +1,6 @@
 ;;;; commands-generate.lisp --- Generate different kinds of output based on a distribution.
 ;;;;
-;;;; Copyright (C) 2018, 2019, 2020, 2022 Jan Moringen
+;;;; Copyright (C) 2018-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -179,3 +179,9 @@
 
 (define-generate-command (:generate-makefile :makefile)
   (("--output-directory" "-o") "output-directory" "DIRECTORY" t))
+
+;;; Command for build target
+
+(define-generate-command (:build :build)
+  (("--working-directory" "-w") "working-directory"         "DIRECTORY" t)
+  ("--delete-working-directory" "delete-working-directory?" "BOOLEAN"))

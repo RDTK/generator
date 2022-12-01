@@ -103,26 +103,27 @@
             comment rule-name (map 'list #'util:safe-name dependencies))
     ;; Write rule body (called "recipe" in the make documentation).
     (when command
-      (pprint-logical-block (stream (list command) :per-line-prefix prefix)
-        (format stream "@~
-                        echo -en '\\e[1mExecuting ~A\\e[0m\\n'~@
-                        +(~@
-                          set -e~@
-                          ~@[~
-                            cd '~A'~@
-                            export WORKSPACE=\"$$(pwd)\"~@
-                          ~]~
-                          ~@
-                          ~A~@:_~
-                        ) > '~A' 2>&1~@
-                        if [ $$? -ne 0 ] ; then~@
-                        ~2@Techo -en '\\e[35m'~@
-                        ~2@Tcat '~:*~A'~@
-                        ~2@Techo -en '\\e[0m'~@
-                        ~2@Texit 1~@
-                        fi~@
-                        touch '~4:*~A'"
-                rule-name directory (escape-dollars command) log-file))
+      (let ((shell-string (escape-dollars (maybe-base64-encode command))))
+        (pprint-logical-block (stream (list command) :per-line-prefix prefix)
+          (format stream "@~
+                          echo -en '\\e[1mExecuting ~A\\e[0m\\n'~@
+                          +(~@
+                            set -e~@
+                            ~@[~
+                              cd '~A'~@
+                              export WORKSPACE=\"$$(pwd)\"~@
+                            ~]~
+                            ~@
+                            ~A~@:_~
+                          ) > '~A' 2>&1~@
+                          if [ $$? -ne 0 ] ; then~@
+                          ~2@Techo -en '\\e[35m'~@
+                          ~2@Tcat '~:*~A'~@
+                          ~2@Techo -en '\\e[0m'~@
+                          ~2@Texit 1~@
+                          fi~@
+                          touch '~4:*~A'"
+                  rule-name directory shell-string log-file)))
       (terpri stream))
     (terpri stream)))
 

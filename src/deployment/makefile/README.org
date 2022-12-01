@@ -27,51 +27,40 @@
    This causes =make= to invoke the shell such that it executes the recipe lines of each rule as a single chunk instead of one shell invocation per line (or multiple continuation lines using "\").
    Note that we have to pass =-c= to the shell so it doesn't attempt to execute the shell code chunk as a command.
 
-** Recipe Prefixes
+** Recipe Line Prefixes
+
+   Recipe lines starting with certain characters are treated specially by =make=:
 
    + =@= prefix :: silent
 
-   + =+= prefix :: use to run certain recipe lines despite commandline
-                   options that would prevent that:
+   + =-= prefix :: TODO
+
+   + =+= prefix :: use to run certain recipe lines despite commandline options that would prevent that:
 
                    #+BEGIN_QUOTE
                    The ‘-n’, ‘-t’, and ‘-q’ options do not affect recipe lines that begin with ‘+’ characters or contain the strings ‘$(MAKE)’ or ‘${MAKE}’.
                    #+END_QUOTE
 
-                   but also:
+   But also:
 
-                   #+BEGIN_QUOTE
-                   If .ONESHELL is provided, then only the first line
-                   of the recipe will be checked for the special
-                   prefix characters (‘@’, ‘-’, and ‘+’). Subsequent
-                   lines will include the special characters in the
-                   recipe line when the SHELL is invoked. If you want
-                   your recipe to start with one of these special
-                   characters you’ll need to arrange for them to not
-                   be the first characters on the first line, perhaps
-                   by adding a comment or similar. For example, this
-                   would be a syntax error in Perl because the first
-                   ‘@’ is removed by make:
-                   #+END_QUOTE
+   #+BEGIN_QUOTE
+   If .ONESHELL is provided, then only the first line of the recipe will be checked for the special prefix characters (‘@’, ‘-’, and ‘+’).
+   Subsequent lines will include the special characters in the recipe line when the SHELL is invoked.
+   If you want your recipe to start with one of these special characters you’ll need to arrange for them to not be the first characters on the first line, perhaps by adding a comment or similar.
+   For example, this would be a syntax error in Perl because the first ‘@’ is removed by make:
+   #+END_QUOTE
 
-                   But that's not all:
+   But that's not all:
 
-                   #+BEGIN_QUOTE
-                   As a special feature, if SHELL is determined to be
-                   a POSIX-style shell, the special prefix characters
-                   in “internal” recipe lines will be removed before
-                   the recipe is processed. This feature is intended
-                   to allow existing makefiles to add the .ONESHELL
-                   special target and still run properly without
-                   extensive modifications. Since the special prefix
-                   characters are not legal at the beginning of a line
-                   in a POSIX shell script this is not a loss in
-                   functionality.
-                   #+END_QUOTE
+   #+BEGIN_QUOTE
+   As a special feature, if SHELL is determined to be a POSIX-style shell, the special prefix characters in “internal” recipe lines will be removed before the recipe is processed.
+   This feature is intended to allow existing makefiles to add the .ONESHELL special target and still run properly without extensive modifications.
+   Since the special prefix characters are not legal at the beginning of a line in a POSIX shell script this is not a loss in functionality.
+   #+END_QUOTE
 
-                   crazy, right?
+   Crazy, right?
 
-   This is a problem because me generate recipes such as
+   This is a problem because we generate recipes such as
 
    #+BEGIN_SRC makefile
      foo:
@@ -85,6 +74,21 @@
              )
    #+END_SRC
 
-   from which make will helpfully strip the =+= prefixes. How convenient.
+   from which =make= will helpfully strip the =+= prefixes. How convenient.
+
+   To work around the whole problem, we recognize recipes containing the problematic line prefixes and generate a replacement recipe of the following form:
+
+   #+BEGIN_SRC shell
+     OLD_IFS="${IFS}"
+     export IFS=''
+     commands=$(echo "export IFS='${OLD_IFS}'" && cat <<'EOF' | base64 -d
+     BASE64-ENCODED-ORIGINAL-RECIPE
+     EOF
+     )
+     eval ${command}
+   #+END_SRC
+
+   Ignoring the =IFS= shenanigans, this reads the base64-encoded original recipe from a here-document, decodes it and stores it in the ~commands~ variable.
+   It then executes the recipe using ~eval~.
 
 ** TODO Parallel Execution and Nested =make= Invocations

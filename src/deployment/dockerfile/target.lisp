@@ -117,17 +117,19 @@
 (defun make-staging-process (staging-image staging-directory
                              base-image    target-directory
                              dependencies prepare build finish run-strategy)
-  (let* ((build (make-instance 'stage :name         "Build"
-                                      :base-image   staging-image
-                                      :run-strategy run-strategy
-                                      :steps        (append dependencies prepare build)))
-         (copy  (make-instance 'copy :from-stage build
-                                     :source     staging-directory
-                                     :target     target-directory))
-         (final (make-instance 'stage :name         "Final"
-                                      :base-image   base-image
-                                      :run-strategy run-strategy
-                                      :steps        (append (list copy) finish))))
+  (let* ((build-steps (append dependencies prepare build))
+         (build       (make-instance 'stage :name         "Build"
+                                            :base-image   staging-image
+                                            :run-strategy run-strategy
+                                            :steps        build-steps))
+         (copy        (make-instance 'copy-step :from-stage build
+                                                :source     staging-directory
+                                                :target     target-directory))
+         (final-steps (append dependencies (list copy) finish))
+         (final       (make-instance 'stage :name         "Final"
+                                            :base-image   base-image
+                                            :run-strategy run-strategy
+                                            :steps        final-steps)))
     (make-instance 'dockerfile :stages (list build final))))
 
 (defmethod deploy:deploy ((thing sequence) (target dockerfile-target))

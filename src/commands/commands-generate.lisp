@@ -171,9 +171,10 @@
   (("--output-directory" "-o") "output-directory" "DIRECTORY"             t)
 
   (("--base-image" "-b")       "base-image"       "IMAGE-NAME[:TAG-NAME]" t)
+  (("--staging-image" "-s")    "staging-image"    "IMAGE-NAME[:TAG-NAME]")
   (("--platform" "-p")         "platform"         "PLATFORM")
 
-  (("--run-strategy" "-s")     "run-strategy"     "STRATEGY"))
+  (("--run-strategy" "-r")     "run-strategy"     "STRATEGY"))
 
 ;;; Command for Makefile target
 

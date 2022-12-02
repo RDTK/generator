@@ -20,8 +20,13 @@
                      :reader   staging-image
                      :initform nil
                      :documentation
-                     #.(format nil "The Docker image in which builds
-                        should be performed."))
+                     #.(format nil "The Docker image in which builds ~
+                        should be performed.~@
+                        ~@
+                        Dependencies installed into and intermediate ~
+                        results built in the corresponding container ~
+                        can be omitted from the final image to save ~
+                        space."))
    (base-image       :initarg  :base-image
                      :type     string
                      :reader   base-image
@@ -40,7 +45,7 @@
                         If not specified, an attempt is made to derive ~
                         the platform from the specified base image.~@
                         ~@
-                        It is a fatal error is the platform is not ~
+                        It is a fatal error if the platform is not ~
                         specified and cannot be derived from the base ~
                         image."))
    (run-strategy     :initarg  :run-strategy
@@ -51,15 +56,15 @@
                      :documentation
                      #.(format nil "Controls whether the commands for ~
                         one project are executed as a single RUN ~
-                        command or multiple RUN COMMANDS.~@
+                        command or multiple RUN commands.~@
                         ~@
                         A single RUN command is more efficient in ~
-                        terms of image build time and of the resulting ~
-                        storage efficiency of the resulting image.~@
+                        terms of image build time and the storage layout ~
+                        of the resulting image.~@
                         ~@
-                        Multiple RUN commands are better debugging and ~
-                        interactive development since build steps can ~
-                        be cached on a finer granularity.")))
+                        Multiple RUN commands are better for debugging ~
+                        and interactive development since build steps ~
+                        can be cached with a finer granularity.")))
   (:default-initargs
    :output-directory (more-conditions:missing-required-initarg 'dockerfile-target :output-directory)
    :base-image       (more-conditions:missing-required-initarg 'dockerfile-target :base-image))

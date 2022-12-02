@@ -42,7 +42,7 @@
 ;;; Step
 ;;;
 ;;; A somewhat self-contained operation that is executed as part of a
-;;; stage to modify the state of container in a particular way.
+;;; stage to modify the state of the container in a particular way.
 
 (defclass title-mixin ()
   ((%title :initarg :title

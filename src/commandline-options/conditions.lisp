@@ -1,6 +1,6 @@
 ;;;; conditions.lisp --- Conditions signaled by the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -90,11 +90,20 @@
   ()
   (:report
    (lambda (condition stream)
-     (let+ (((&accessors-r/o context option) condition))
+     (let+ (((&accessors-r/o (context-name context) option) condition)
+            (positional? (integerp option))
+            (matches     (unless positional?
+                           (when-let* ((context     (find-options context-name
+                                                                  :if-does-not-exist nil))
+                                       (designators (mappend #'designators context))
+                                       (names       (remove-if-not #'stringp designators)))
+                             (util:closest-matches option names :limit 3)))))
        (format stream "~@<~:[\"~A\" is not a known option of~;A ~
                        positional option at position ~D is not valid ~
-                       for~] the \"~A\" context.~@:>"
-               (integerp option) option context))))
+                       for~] the \"~A\" context.~@[ Closest match~
+                       ~[~;~:;es~]: ~{~A~^, ~}.~]~@:>"
+               positional? option context-name
+               (when matches (length matches)) matches))))
   (:documentation
    "Signaled when a specified option does not exist."))
 

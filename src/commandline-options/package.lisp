@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the commandline-options module.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,6 +10,9 @@
    #:alexandria
    #:let-plus
    #:more-conditions)
+
+  (:local-nicknames
+   (#:util #:build-generator.util))
 
   ;; Conditions
   (:export

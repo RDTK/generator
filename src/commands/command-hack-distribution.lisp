@@ -1,6 +1,6 @@
 ;;;; command-hack-distribution.lisp --- Checkout distributions into a workspace.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -12,7 +12,9 @@
   ((bare? :initarg  :bare?
           :type     boolean
           :reader   bare?
-          :initform nil))
+          :initform nil
+          :documentation
+          "Create \"bare\" repositories when supported."))
   (:documentation
    "Make distribution(s) available for development in local workspaces."))
 

@@ -107,6 +107,6 @@
                          (aspects:extend! aspect spec stream :sub-directory-command)))
               (step    (unless (emptyp command)
                          (shell-command aspect command))))
-    (aspects::register-constraints aspect 'aspects::build step 'aspects::git '())
+    (aspects::register-constraints aspect 'aspects::build step 'aspects::mercurial '())
     (push step (builders output)))
   output)

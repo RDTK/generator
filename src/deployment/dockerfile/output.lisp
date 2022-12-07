@@ -71,6 +71,9 @@
 (defmethod dockerfile ((context stream-context))
   (dockerfile (parent context)))
 
+(defmethod run-strategy ((context stream-context))
+  (run-strategy (parent context)))
+
 ;;; Output for `dockerfile'
 
 (defmethod output ((object dockerfile) (context context))
@@ -146,7 +149,8 @@
 
 (defmethod output ((object dockerfile-job) (context stream-context))
   (deploy:print-heading (stream1 context) (model:name object))
-  (write-scripts-and-run-commands object :one-file-per-builder context))
+  (let ((run-strategy (run-strategy context)))
+    (write-scripts-and-run-commands object run-strategy context)))
 
 ;;; Scripts
 

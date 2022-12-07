@@ -29,23 +29,27 @@
   ((%directory :initarg  :directory
                :reader   directory)
    (%rules     :initarg  :rules
+               :type     list
                :accessor rules
                :initform '()))
+  (:default-initargs
+   :directory (more-conditions:missing-required-initarg 'project-rules :directory))
   (:documentation
    "A collection of `rule' instances for one project."))
 
 (defun make-project-rules (specification directory)
-  (make-instance 'project-rules
-                 :directory     directory
-                 :specification specification))
+  (make-instance 'project-rules :directory     directory
+                                :specification specification))
 
 ;;; `rule'
 
 (defclass rule (deploy:command-mixin
                 print-items:print-items-mixin)
   ((%name         :initarg  :name
+                  :type     string
                   :reader   name)
    (%dependencies :initarg  :dependencies
+                  :type     list
                   :accessor dependencies
                   :initform '())
    (%early?       :initarg  :early?
@@ -83,7 +87,7 @@
            (constraints/raw (var:value aspect variable nil))
            (constraints     (mapcar #'aspects::parse-constraint constraints/raw)))
       (log:debug "~@<Constraints for ~A in ~A~:@_~
-                  ~/aspects::format-constraints/~@:>"
+                  ~/build-generator.model.aspects::format-constraints/~@:>"
                  step variable constraints)
       constraints)))
 

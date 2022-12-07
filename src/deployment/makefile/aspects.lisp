@@ -21,9 +21,9 @@
               (tag     (or (find-symbol (subseq (symbol-name name) (length "ASPECT-"))
                                         '#:build-generator.model.aspects)
                            (error "Something is wrong with the aspect tag of ~A" aspect)))
-              (step    (make-rule (model:name aspect) command :builder-class tag)))
-    (aspects::register-constraints aspect 'aspects::build step tag '())
-    (push step (rules output)))
+              (rule    (make-rule (model:name aspect) command :builder-class tag)))
+    (aspects::register-constraints aspect 'aspects::build rule tag '())
+    (push rule (rules output)))
   output)
 
 (defmethod aspects:extend! ((aspect list)
@@ -38,7 +38,7 @@
                    (copy-list aspect) #'aspects:aspect<)))
 
     ;; Methods on `extend!' add entries to `*step-constraints*' and
-    ;; push builders onto (builders job).
+    ;; push builders onto (rules output).
     (reduce (lambda (output aspect)
               (aspects:extend! aspect spec output target))
             aspects :initial-value output)
@@ -52,13 +52,14 @@
                         ~2@T~@<~/build-generator.model.aspects:format-constraints/~@:>~
                       ~}~^~@:_~}~@:>~
                     ~@:>"
-                   'aspects::build (hash-table-count constraints)
+                   'aspects::build
+                   (hash-table-count constraints)
                    (hash-table-alist constraints))
-
-        (map nil (lambda (step)
-                   (setf (dependencies step)
-                         (remove-if-not (rcurry #'aspects::step< step constraints)
-                                        rules)))
+        ;; Compute rule dependencies based on aspect constraints.
+        (mapc (lambda (rule)
+                (setf (dependencies rule)
+                      (remove-if-not (rcurry #'aspects::step< rule constraints)
+                                     rules)))
              rules))))
 
   output)
@@ -70,9 +71,9 @@
                             (output project-rules)
                             (target (eql :makefile)))
   (let* ((command (aspects:extend! aspect spec 'string :command))
-         (step    (make-rule (model:name aspect) command :early? t)))
-    (aspects::register-constraints aspect 'aspects::build step 'aspects::archive '((:before t)))
-    (push step (rules output)))
+         (rule    (make-rule (model:name aspect) command :early? t)))
+    (aspects::register-constraints aspect 'aspects::build rule 'aspects::archive '((:before t)))
+    (push rule (rules output)))
   output)
 
 (defmethod aspects:extend! ((aspect aspects::aspect-sloccount)
@@ -88,12 +89,12 @@
   (when-let* ((command (with-output-to-string (stream)
                          (aspects:extend! aspect spec stream :command)
                          (aspects:extend! aspect spec stream :sub-directory-command)))
-              (step    (unless (emptyp command)
+              (rule    (unless (emptyp command)
                          (make-rule (model:name aspect) command
                                     :early? t
                                     :builder-class 'aspects::git))))
-    (aspects::register-constraints aspect 'aspects::build step 'aspects::git '())
-    (push step (rules output)))
+    (aspects::register-constraints aspect 'aspects::build rule 'aspects::git '())
+    (push rule (rules output)))
   output)
 
 (defmethod aspects:extend! ((aspect aspects::aspect-mercurial)
@@ -103,10 +104,10 @@
   (when-let* ((command (with-output-to-string (stream)
                          (aspects:extend! aspect spec stream :command)
                          (aspects:extend! aspect spec stream :sub-directory-command)))
-              (step    (unless (emptyp command)
+              (rule    (unless (emptyp command)
                          (make-rule (model:name aspect) command
                                     :early?        t
                                     :builder-class 'aspects::mercurial))))
-    (aspects::register-constraints aspect 'aspects::build step 'aspects::mercurial '())
-    (push step (rules output)))
+    (aspects::register-constraints aspect 'aspects::build rule 'aspects::mercurial '())
+    (push rule (rules output)))
   output)

@@ -39,7 +39,7 @@
                   (copy-list aspect) #'aspects:aspect<)))
 
     ;; Methods on `extend!' add entries to `*step-constraints*' and
-    ;; push builders onto (builders job).
+    ;; push builders onto (builders output).
     (reduce (lambda (output aspect)
               (aspects:extend! aspect spec output target))
             aspects :initial-value output)
@@ -50,7 +50,7 @@
         (log:trace "~@<~@(~A~)er constraint~P:~@:_~
                       ~@<~{• ~{~
                         ~A ~A:~A ~@:_~
-                        ~2@T~@<~/build-generator.model.aspects:format-constraints/~@:>~
+                        ~2@T~@<~/build-generator.model.aspects::format-constraints/~@:>~
                       ~}~^~@:_~}~@:>~
                     ~@:>"
                    'aspects::build
@@ -60,9 +60,9 @@
         ;; Try to sort steps according to CONSTRAINTS.
         (let ((sorted (util:sort-with-partial-order
                        unsorted (rcurry #'aspects::step< constraints))))
-          (log:debug "~@<Sorted builder~P:~@:_~
+          (log:debug "~@<Sorted builder~P for ~A:~@:_~
                       ~@<~{• ~A~^~@:_~}~@:>~@:>"
-                      (length sorted) sorted)
+                      (length sorted) output sorted)
           (setf (builders output) sorted)))))
 
   output)

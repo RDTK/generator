@@ -1,6 +1,6 @@
 ;;;; catalog.lisp --- Write XML catalog describing recipes.
 ;;;;
-;;;; Copyright (C) 2015, 2016, 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2015-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -320,6 +320,11 @@
         (emit-system-dependencies object)
         ;; Included projects
         (map nil #'project-version-dependency (project:versions object)))
+
+      (when-let ((replication (catalog-value object :replication)))
+        (cxml:with-element "replication" (cxml:text replication)))
+      (when-let ((message (var:value object :message nil)))
+        (cxml:with-element "message" (cxml:text message)))
 
       ;; Resources
       (emit-resources object)

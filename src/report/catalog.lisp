@@ -181,11 +181,7 @@
                    (cxml:text value)))
            values))))
 
-(defun emit-system-dependencies (object
-                                 &key
-                                 (platforms '(("ubuntu" "trusty" "x86_64")
-                                              ("ubuntu" "xenial" "x86_64")
-                                              ("ubuntu" "bionic" "x86_64"))))
+(defun emit-system-dependencies (object platforms)
   (labels ((platform (name version &rest rest-spec)
              (when-let* ((platform (list* name version rest-spec))
                          (requires (with-simple-restart
@@ -269,7 +265,12 @@
                  :reader   person-style
                  :initform nil)
    (persons      :accessor persons
-                 :initform '())))
+                 :initform '())
+   (platforms    :initarg  :platforms
+                 :reader   platforms
+                 :initform '(("ubuntu" "trusty" "x86_64")
+                             ("ubuntu" "xenial" "x86_64")
+                             ("ubuntu" "bionic" "x86_64")))))
 
 (defmethod report :around ((object t) (style catalog) (target stream))
   (with-condition-translation (((error report-error)
@@ -317,7 +318,7 @@
       ;; Dependencies
       (cxml:with-element "dependencies"
         ;; System dependencies
-        (emit-system-dependencies object)
+        (emit-system-dependencies object (platforms style))
         ;; Included projects
         (map nil #'project-version-dependency (project:versions object)))
 
@@ -383,7 +384,7 @@
       ;; Dependencies
       (cxml:with-element "dependencies"
         ;; System dependencies
-        (emit-system-dependencies object)
+        (emit-system-dependencies object (platforms style))
 
         ;; Project dependencies.
         (map nil #'project-version-dependency (model:direct-dependencies object)))
@@ -456,12 +457,15 @@
 ;;; Entry point
 
 (defmethod report ((object t) (style (eql :catalog)) (target t))
-  (let ((style  (make-instance 'catalog :gdpr? :opt-in))
-        (object (if (and (typep object '(and sequence (not null)))
-                         (typep (first-elt object) 'project:distribution))
-                    (make-instance 'distributions :distributions object)
-                    object)))
-    (report object style target)))
+  (destructuring-bind (target . platforms) target ; HACK
+    (let ((style  (apply #'make-instance 'catalog
+                         :gdpr? :opt-in
+                         (when platforms (list :platforms platforms))))
+          (object (if (and (typep object '(and sequence (not null)))
+                           (typep (first-elt object) 'project:distribution))
+                      (make-instance 'distributions :distributions object)
+                      object)))
+      (report object style target))))
 
 (defclass distributions ()
   ((distributions :initarg :distributions

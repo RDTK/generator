@@ -1,6 +1,6 @@
 ;;;; command-report.lisp --- Generate report for distributions.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2022 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -9,11 +9,32 @@
 (defclass report (distribution-input-mixin
                   mode-mixin
                   output-directory-mixin)
-  ((kind :initarg :kind
-         :type    (or null (cons (member :json :graph :catalog)))
-         :reader  kind
-         :documentation
-         "The kind(s) of report(s) that should be generated."))
+  ((kind     :initarg :kind
+             :type    (or null (cons (member :json :graph :catalog)))
+             :reader  kind
+             :documentation
+             "The kind(s) of report(s) that should be generated.")
+   (platform :initarg :platform
+             :type     (or null (cons string))
+             :reader   platform
+             :initform '()
+             :documentation
+             #.(format nil "If the specified report kind includes ~
+                platform dependencies, the platform(s) for which ~
+                dependencies should be computed.~@
+                ~@
+                A platform is specified as a space-separated sequence ~
+                of increasingly specific component strings:~@
+                ~@
+                ~2@TSYSTEM-NAME [SYSTEM-VERSION [ARCHITECTURE]]~@
+                ~@
+                Examples:~@
+                ~@
+                • \"ubuntu\"~@
+                ~@
+                • \"ubuntu bionic\"~@
+                ~@
+                • \"ubuntu bionic x86_64\"")))
   (:documentation
    #.(format nil "Generate one or more reports for given ~
       distribution(s).~@
@@ -35,10 +56,12 @@
   (("-D" "--set")              "overwrites"       "VARIABLE-NAME=VALUE")
 
   (("-k" "--kind")             "kind"             "KIND"                t)
-  (("-o" "--output-directory") "output-directory" "DIRECTORY"           t))
+  (("-o" "--output-directory") "output-directory" "DIRECTORY"           t)
+  (("-p" "--platform")         "platform"         "PLATFORM-SPEC"))
 
 (defmethod command-execute ((command report))
-  (let+ (((&accessors-r/o distributions mode overwrites kind output-directory) command)
+  (let+ (((&accessors-r/o distributions mode overwrites kind platform output-directory)
+          command)
          ((&values distributions projects)
           (generate-load distributions mode overwrites
                          :generator-version (generator-version)
@@ -61,5 +84,12 @@
                    (when (eq kind :graph)
                      (unless (setf cl-dot:*dot-path* (cl-dot::find-dot))
                        (error "~@<Could not find dot program.~@:>")))
-                   (build-generator.report:report distributions kind output-directory))))
+                   (let ((target (if (eq kind :catalog)
+                                     (let ((platforms (mapcar (lambda (platform)
+                                                                (split-sequence:split-sequence
+                                                                 #\Space platform :remove-empty-subseqs t))
+                                                              platform)))
+                                       (cons output-directory platforms)) ; HACK
+                                     output-directory)))
+                     (build-generator.report:report distributions kind target)))))
          kind)))

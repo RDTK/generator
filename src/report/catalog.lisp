@@ -200,7 +200,13 @@
            (dependency (dependency)
              (cxml:with-element "dependency"
                (cxml:text dependency))))
-    (map nil (curry #'apply #'platform) platforms)))
+    (if-let ((local-platforms (catalog-value object :platforms)))
+      (mapcar (lambda (platform)
+                (let ((platform (split-sequence:split-sequence
+                                 #\Space platform :remove-empty-subseqs t)))
+                  (apply #'platform platform)))
+              local-platforms)
+      (map nil (curry #'apply #'platform) platforms))))
 
 (defun emit-resources (object)
   (let+ (((&flet resource (type variable)

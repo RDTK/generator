@@ -43,7 +43,7 @@
          (content (read-file-into-string file))
          (cst     (with-input-from-string (stream content)
                     (eclector.concrete-syntax-tree:read stream)))
-         (version (cst:second (cst:first cst)))
+         (version (cst:raw (cst:second (cst:first cst))))
          (date    (cst:third (cst:first cst))))
     (destructuring-bind (start . end) (cst:source date)
       (multiple-value-bind (second minute hour day month year)
@@ -52,6 +52,8 @@
         (unless (null (cst:raw date))
           (error "~@<There already is a release date in the entry for release ~A.~@:>"
                  version))
+        (format *trace-output* "Finalizing release notes for version ~A, date is ~D-~2,'0D-~2,'0D~%"
+                version year month day)
         (setf content (format nil "~A~
                                    \"~D-~2,'0D-~2,'0D\"~
                                    ~A"
@@ -67,6 +69,7 @@
                     (eclector.concrete-syntax-tree:read stream)))
          (release (cst:first cst))
          (start   (car (cst:source release))))
+    (format *trace-output* "Adding empty change log section for ~A~%" version)
     (setf content (format nil "~A~
                                ~(~S~)~@
                                ~@
@@ -91,13 +94,18 @@
                          ~@
                          * changes.sexp (release ~:*~A): added release date~%"
                     this-release/string))
-
     ;; Create release branch and release tag.
-    (branch this-release/string)
-    (tag (format nil "release-~A" this-release/string))
+    (let ((branch-name this-release/string)
+          (tag-name    (format nil "release-~A" this-release/string)))
+      (format *trace-output* "Creating branch ~S and tag ~S~%"
+              branch-name tag-name)
+      (branch branch-name)
+      (tag tag-name))
 
     ;; Bump version in version-string.sexp and create new section in
     ;; changes.sexp
+    (format *trace-output* "Bumping version ~{~A~^.~} → ~{~A~^.~}~%"
+            this-version/list next-version/list)
     (bump-version next-version/list)
     (add-release next-release/string)
     (commit (format nil "Version bump ~A -> ~A in version-string.sexp~@

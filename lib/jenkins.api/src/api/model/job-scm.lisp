@@ -1,6 +1,6 @@
 ;;;; job-scm.lisp --- Model classes for SCM implementations.
 ;;;;
-;;;; Copyright (C) 2012-2019 Jan Moringen
+;;;; Copyright (C) 2012-2019, 2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -60,6 +60,8 @@
                             :xpath    "extensions/hudson.plugins.git.extensions.impl.SubmoduleOption/recursiveSubmodules/text()")
     (shallow?               :type     boolean
                             :xpath    "extensions/hudson.plugins.git.extensions.impl.CloneOption/shallow/text()")
+    (lfs?                   :type     (boolean/element "hudson.plugins.git.extensions.impl.GitLFSPull")
+                            :xpath    "extensions")
     (internal-tag?          :type     (boolean/element "hudson.plugins.git.extensions.impl.PerBuildTag")
                             :xpath    "extensions")
     (browser-kind           :type     git-browser

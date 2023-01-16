@@ -1,6 +1,6 @@
 ;;;; git.lisp --- Analysis of git repositories.
 ;;;;
-;;;; Copyright (C) 2012-2019, 2021 Jan Moringen
+;;;; Copyright (C) 2012-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -22,13 +22,16 @@
                            +ssh-askpass-variable-name+)
                     (sb-ext:posix-environ))))
 
-(defun %run-git (spec directory &key interactive)
+(defun %run-git (spec directory &key interactive allow-lfs)
   (let+ (((&values global-options environment)
           (if interactive
               (values () (environment-with-ssh-askpass-overwritten))
               `("-c" ,(format nil "core.askpass=~A"
                               +disable-git-credentials-helper-program+)
-                "-c" "core.sshCommand=ssh -oBatchMode=true"))))
+                "-c" "core.sshCommand=ssh -oBatchMode=true"
+                ,@(unless allow-lfs
+                    '("-c" "filter.lfs.smudge=git-lfs smudge --skip -- %f"
+                      "-c" "filter.lfs.process=git-lfs filter-process --skip"))))))
     (run `("git" ,@global-options ,@spec)
          directory :environment environment)))
 

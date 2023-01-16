@@ -31,7 +31,10 @@
 
   (:enhancement
    "Consume and produce both the current and the legacy Jenkins permission
-    configuration format."))
+    configuration format.")
+
+  (:enhancement
+   "Git LFS (large file storage) is now supported."))
 
  (:release "0.34" "2022-05-31"
 

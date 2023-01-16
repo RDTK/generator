@@ -1,6 +1,6 @@
 ;;;; aspects-scm.lisp --- Definitions of SCM-related aspects
 ;;;;
-;;;; Copyright (C) 2012-2022 Jan Moringen
+;;;; Copyright (C) 2012-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -125,9 +125,13 @@
 
        This is sometimes called a \"recursive clone\".")
      ((shallow?                       nil)  :type boolean
-       :documentation
+      :documentation
       "Should a shallow clone, that is not fetching only recent and
        not the full repository history, be performed?")
+     ((lfs?                           nil)  :type boolean
+      :documentation
+      "Should GIT LFS (Large File Storage) content be fetched and checked
+       out?")
      (((:sub-directory sub-directory) nil)  :type string))
   "Configures a GIT repository in the generated job.
 
@@ -153,6 +157,7 @@
                          :clean-before-checkout? clean-before-checkout?
                          :checkout-submodules?   checkout-submodules?
                          :shallow?               shallow?
+                         :lfs?                   lfs?
                          :local-branch           local-branch
                          :internal-tag?          nil)))
 
@@ -171,11 +176,11 @@
                     (target (eql :sub-directory-command)))
   (destructuring-bind (url username password credentials branches local-branch
                        clone-timeout wipe-out-workspace? clean-before-checkout?
-                       checkout-submodules? shallow? sub-directory)
+                       checkout-submodules? shallow? lfs? sub-directory)
       (aspect-process-parameters aspect)
     (declare (ignore url username password credentials branches local-branch
                      clone-timeout wipe-out-workspace? clean-before-checkout?
-                     checkout-submodules? shallow?))
+                     checkout-submodules? shallow? lfs?))
     (when sub-directory
       (focus-sub-directory-command output sub-directory :exclude '(".git")))))
 
@@ -185,13 +190,15 @@
                     (target (eql :command)))
   (destructuring-bind (url username password credentials branches local-branch
                        clone-timeout wipe-out-workspace? clean-before-checkout?
-                       checkout-submodules? shallow? sub-directory)
+                       checkout-submodules? shallow? lfs? sub-directory)
       (aspect-process-parameters aspect)
     (declare (ignore username password credentials local-branch
                      clone-timeout wipe-out-workspace? clean-before-checkout?
                      sub-directory))
-    (format output "git clone~:[~; --recursive~]~:[~; --depth=1~] -b ~A ~A .~%"
-            checkout-submodules? shallow? (first branches) url)))
+    (format output "git clone~:[~; --recursive~]~:[~; --depth=1~] -b ~A ~A .~@
+                    ~:[~;git lfs pull~%~]
+                    ~%"
+            checkout-submodules? shallow? (first branches) url lfs?)))
 
 (define-aspect (git-repository-browser
                 :job-var     job

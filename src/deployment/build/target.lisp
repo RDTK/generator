@@ -1,6 +1,6 @@
 ;;;; target.lisp --- Target definition for directly building software.
 ;;;;
-;;;; Copyright (C) 2018-2022 Jan Moringen
+;;;; Copyright (C) 2018-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -10,7 +10,7 @@
 
 (defclass build-target ()
   ((working-directory         :initarg :working-directory
-                              :type    pathname ; TODO directory-pathname
+                              :type    (and pathname (satisfies uiop:directory-pathname-p))
                               :reader  working-directory
                               :documentation
                               #.(format nil "A directory into which ~

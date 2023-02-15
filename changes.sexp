@@ -34,7 +34,12 @@
     configuration format.")
 
   (:enhancement
-   "Git LFS (large file storage) is now supported."))
+   "Git LFS (large file storage) is now supported.")
+
+  (:enhancement
+   "The commands" (:verb "build") "," (:verb "generate-dockerfile") "and"
+   (:verb "generate-makefile") "now handle arguments to directory-related
+   commandline options better when the trailing slash is omitted."))
 
  (:release "0.34" "2022-05-31"
 

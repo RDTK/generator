@@ -1,6 +1,6 @@
 ;;;; protocol.lisp --- Protocol provided by the commands module.
 ;;;;
-;;;; Copyright (C) 2017, 2018, 2019 Jan Moringen
+;;;; Copyright (C) 2017-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -33,6 +33,29 @@
 (defvar *command-schema*
   (configuration.options.service-provider:service-schema
    (service-provider:find-service 'command)))
+
+;;; Recognize a slot type of the form
+;;;
+;;;  (and pathname (satisfies uiop:directory-pathname-p)
+;;;
+;;; and replace that type with
+;;; `configuration.options:directory-pathname'. This is necessary
+;;; because slots belonging to classes in the deployment module cannot
+;;; use the latter type specifier directly since the deployment module
+;;; is part of the core build-generator system which should not depend
+;;; on the configuration.options system.
+(defmethod configuration.options.mop:slot-schema-item-type :around ((class     t)
+                                                                    (slot-name t)
+                                                                    (slot-type cons))
+  (if (typep slot-type '(cons (eql and)
+                              (cons (eql pathname)
+                                    (cons (cons (eql satisfies)
+                                                (cons (eql uiop:directory-pathname-p)
+                                                 null))
+                                     null))))
+      (configuration.options.mop:slot-schema-item-type
+       class slot-name 'configuration.options:directory-pathname)
+      (call-next-method)))
 
 ;;; High-level interface: find, instantiate and execute a command
 

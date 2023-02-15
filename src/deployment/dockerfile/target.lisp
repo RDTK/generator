@@ -1,6 +1,6 @@
 ;;;; target.lisp --- Target definition for generating a Dockerfiles.
 ;;;;
-;;;; Copyright (C) 2018-2022 Jan Moringen
+;;;; Copyright (C) 2018-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -9,7 +9,7 @@
 (defclass dockerfile-target ()
   (;; Configuration
    (output-directory :initarg  :output-directory ; TODO mixin to share with makefile-target
-                     :type     pathname
+                     :type     (and pathname (satisfies uiop:directory-pathname-p))
                      :reader   output-directory
                      :documentation
                      #.(format nil "The directory into which the ~

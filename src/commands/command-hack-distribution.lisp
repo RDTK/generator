@@ -1,6 +1,6 @@
 ;;;; command-hack-distribution.lisp --- Checkout distributions into a workspace.
 ;;;;
-;;;; Copyright (C) 2017-2022 Jan Moringen
+;;;; Copyright (C) 2017-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -48,23 +48,13 @@
                             :temp-directory    *temp-directory*)))
     ;; Check projects into output directory.
     (as-phase (:retrieve/project)
-      (build-generator.analysis::with-git-cache ()
-        (let ((git-cache       build-generator.analysis::*git-cache*)
-              (cache-directory *cache-directory*))
-          (with-sequence-progress (:retrieve/project projects)
-            (lparallel:pmapc
-             (lambda (project)
-               (progress "~/print-items:format-print-items/"
-                         (print-items:print-items project))
-               (more-conditions::without-progress
-                 (let ((build-generator.analysis::*git-cache*     git-cache)
-                       (build-generator.analysis::*cache-version* generator-version))
-                   (with-simple-restart
-                       (continue "~@<Skip project ~A.~@:>" project)
-                     (access-project project output-directory
-                                     :cache-directory cache-directory
-                                     :bare?           bare?)))))
-             :parts most-positive-fixnum projects)))))
+      (if bare?
+          (retrieve-bare-repositories projects output-directory
+                                      :cache-directory   *cache-directory*
+                                      :generator-version generator-version)
+          (retrieve-projects projects output-directory
+                             :cache-directory   *cache-directory*
+                             :generator-version generator-version)))
     ;; Report unresolved platform requirements.
     (as-phase (:check-platform-requirements)
       (let+ (((&values unresolved platform)
@@ -78,29 +68,68 @@
 
 ;;; Utilities
 
+(defun pmap-with-caches (function sequence &key generator-version)
+  (build-generator.analysis::with-git-cache ()
+    (let ((git-cache build-generator.analysis::*git-cache*))
+      (with-sequence-progress (:retrieve/project sequence)
+        (lparallel:pmapc
+         (lambda (item)
+           (progress "~/print-items:format-print-items/"
+                     (print-items:print-items item))
+           (more-conditions::without-progress
+             (let ((build-generator.analysis::*git-cache*     git-cache)
+                   (build-generator.analysis::*cache-version* generator-version))
+               (with-simple-restart
+                   (continue "~@<Skip ~A.~@:>" item)
+                 (funcall function item)))))
+         :parts most-positive-fixnum sequence)))))
+
 (defun output-directory-for-project (output-directory name &optional version)
   (let ((directory `(:relative ,@(ensure-list name)
                                ,@(when version (ensure-list version)))))
     (merge-pathnames (make-pathname :directory directory) output-directory)))
 
-(defun access-project (project output-directory &key cache-directory bare?)
-  (log:debug "~@<Retrieving ~A into ~S~@:>"
-             project output-directory)
-  (let ((groups (group-project-versions-for-analysis project)))
-    (mapc (lambda+ ((info . versions))
-            (when-let ((repository (getf info :repository)))
-              (let ((other-info (remove-from-plist info :repository)))
-                (if bare?
-                    (access-project-repository
-                     project versions repository other-info output-directory
-                     :cache-directory cache-directory)
-                    (mapc (rcurry #'access-project-version
-                                  repository other-info output-directory
-                                  :cache-directory cache-directory)
-                          versions)))))
-          groups)))
+;;; Retrieving bare repositories
 
-(defun access-project-repository (project versions repository info output-directory
+(defclass repository-access (print-items:print-items-mixin)
+  ((%repository :initarg  :repository
+                :reader   repository)
+   (%versions   :accessor versions
+                :initform nil)
+   (%other-info :initarg  :other-info
+                :reader   other-info)))
+
+(defmethod print-items:print-items append ((object repository-access))
+  `((:repository                      "~A"             ,(repository object))
+    ((:versions (:after :repository)) " ~D version~:P" ,(length (versions object)))))
+
+(defun retrieve-bare-repositories (projects output-directory
+                                   &key cache-directory generator-version)
+  (let ((repositories (make-hash-table :test #'equal)))
+    (mapc (lambda (project)
+            (let ((groups (group-project-versions-for-analysis project)))
+              (mapc (lambda+ ((info . versions))
+                      (when-let ((repository (getf info :repository)))
+                        (let ((access (ensure-gethash
+                                       repository repositories
+                                       (let ((other-info (remove-from-plist info :repository)))
+                                         (make-instance 'repository-access
+                                                        :repository repository
+                                                        :other-info other-info)))))
+                          (unionf (versions access) versions))))
+                    groups)))
+          projects)
+    (pmap-with-caches
+     (lambda (access)
+       (let ((repository (repository access))
+             (versions   (versions access))
+             (other-info (other-info access)))
+         (access-project-repository
+          repository versions other-info output-directory
+          :cache-directory cache-directory)))
+     (hash-table-values repositories) :generator-version generator-version)))
+
+(defun access-project-repository (repository versions info output-directory
                                   &key cache-directory)
   (let* ((project-name (split-sequence:split-sequence
                         #\/ (project::apply-replacements
@@ -112,6 +141,27 @@
            :cache-directory cache-directory
            :bare?           t
            info)))
+
+;;; Retrieving projects
+
+(defun retrieve-projects (projects output-directory &key cache-directory
+                                                         generator-version)
+  (pmap-with-caches (lambda (project)
+                      (access-project project output-directory
+                                      :cache-directory cache-directory))
+                    projects :generator-version generator-version))
+
+(defun access-project (project output-directory &key cache-directory)
+  (log:debug "~@<Retrieving ~A into ~S~@:>" project output-directory)
+  (let ((groups (group-project-versions-for-analysis project)))
+    (mapc (lambda+ ((info . versions))
+            (when-let ((repository (getf info :repository)))
+              (let ((other-info (remove-from-plist info :repository)))
+                (mapc (rcurry #'access-project-version
+                              repository other-info output-directory
+                              :cache-directory cache-directory)
+                      versions))))
+          groups)))
 
 (defun access-project-version (version repository info output-directory
                                &key cache-directory)
@@ -128,8 +178,8 @@
 
 (defgeneric access-source (source kind target &key &allow-other-keys)
   (:method ((source puri:uri) (kind t) (target pathname) &key)
-    (error "Making ~A repositories available locally is not ~
-            implemented."
+    (error "~@<Making ~A repositories available locally is not ~
+            implemented.~@:>"
            kind)))
 
 (defmethod access-source ((source puri:uri)

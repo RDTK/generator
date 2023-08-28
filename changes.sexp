@@ -1,6 +1,11 @@
 ((:release "0.35" nil
 
   (:enhancement
+   "When a project which uses GIT SCM specifies a sub directory, Jenkins
+    SCM polling is now configured to ignore repository changes outside
+    of that sub directory.")
+
+  (:enhancement
    "The generator can now produce output for targets other than
     Jenkins jobs. The" (:verb "generate") "command will be supported
     for backward compatibility, but the new" (:verb "generate-jenkins")

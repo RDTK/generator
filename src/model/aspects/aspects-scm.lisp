@@ -142,24 +142,30 @@
    If CREDENTIALS is supplied, a corresponding entry has to be created
    in the global Jenkins credentials configuration."
   ;; Configure GIT scm plugin.
-  (let* ((url/parsed  (puri:uri url))
-         (credentials (or credentials
-                          (unless (model:check-access aspect :public)
-                            (puri:uri-host url/parsed)))))
+  (let* ((url/parsed      (puri:uri url))
+         (credentials     (or credentials
+                              (unless (model:check-access aspect :public)
+                                (puri:uri-host url/parsed))))
+         ;; If SUB-DIRECTORY has been supplied, configure Jenkins SCM
+         ;; polling to ignore changes in the repository outside of the
+         ;; specified sub directory.
+         (include-regions (when sub-directory
+                            (list (format nil "^~A/.*" sub-directory)))))
     (setf (jenkins.api:repository job)
           (make-instance 'jenkins.api:scm/git
-                         :url                    (build-generator.analysis::format-git-url
-                                                  url/parsed username password)
-                         :credentials            credentials
-                         :branches               branches
-                         :clone-timeout          clone-timeout
-                         :wipe-out-workspace?    wipe-out-workspace?
-                         :clean-before-checkout? clean-before-checkout?
-                         :checkout-submodules?   checkout-submodules?
-                         :shallow?               shallow?
-                         :lfs?                   lfs?
-                         :local-branch           local-branch
-                         :internal-tag?          nil)))
+                         :url                         (build-generator.analysis::format-git-url
+                                                       url/parsed username password)
+                         :credentials                 credentials
+                         :branches                    branches
+                         :clone-timeout               clone-timeout
+                         :wipe-out-workspace?         wipe-out-workspace?
+                         :poll-ignore-include-regions include-regions
+                         :clean-before-checkout?      clean-before-checkout?
+                         :checkout-submodules?        checkout-submodules?
+                         :shallow?                    shallow?
+                         :lfs?                        lfs?
+                         :local-branch                local-branch
+                         :internal-tag?               nil)))
 
   ;; If a specific sub-directory of the repository has been requested,
   ;; move the contents of that sub-directory to the top-level

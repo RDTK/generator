@@ -1,5 +1,9 @@
 ((:release "0.35" nil
 
+  (:bugfix
+   "Generating Jenkins jobs for projects which use the" (:verb "archive")
+   "scm no longer fails.")
+
   (:enhancement
    "The Jenkins installation performed by the" (:verb "install-jenkins")
    "command now includes the" (:verb "permissive-script-security") "plugin

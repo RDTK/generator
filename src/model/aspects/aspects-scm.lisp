@@ -41,7 +41,7 @@
   ;; Generate archive download and extraction as a shell builder.
   (let ((command (extend! aspect spec 'string :command)))
     (push (constraint! (build ((:before t)))
-            (make-instance 'jenkins.api.builder/shell :command command))
+            (make-instance 'jenkins.api:builder/shell :command command))
           (jenkins.api:builders job))))
 
 (defmethod extend! ((aspect aspect-archive)

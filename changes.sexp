@@ -1,4 +1,6 @@
-((:release "0.35" "2023-10-09"
+((:release "0.36" nil)
+
+ (:release "0.35" "2023-10-09"
 
   (:bugfix
    "Generating Jenkins jobs for projects which use the" (:verb "archive")

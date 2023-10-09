@@ -26,6 +26,8 @@ if [ ! -f "${keystore}" ] ; then
 fi
 
 # Execute the process
-exec java -jar "${root}/jenkins.war"                                  \
+exec java                                                             \
+       -Dpermissive-script-security.enabled=true                      \
+       -jar "${root}/jenkins.war"                                     \
        --httpsPort=8080 --httpPort=-1                                 \
        --httpsKeyStore="${keystore}" --httpsKeyStorePassword=keystore

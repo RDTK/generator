@@ -1,6 +1,13 @@
 ((:release "0.35" nil
 
   (:enhancement
+   "The Jenkins installation performed by the" (:verb "install-jenkins")
+   "command now includes the" (:verb "permissive-script-security") "plugin
+    which circumvents the approval mechanism for Groovy scripts. Please
+    review the security implications before using a Jenkins installation
+    created using the" (:verb "install-jenkins") "command.")
+
+  (:enhancement
    "When a project which uses GIT SCM specifies a sub directory, Jenkins
     SCM polling is now configured to ignore repository changes outside
     of that sub directory.")

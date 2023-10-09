@@ -1,6 +1,6 @@
 ;;;; command-install-jenkins.lisp --- Install a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2017-2022 Jan Moringen
+;;;; Copyright (C) 2017-2023 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -29,7 +29,7 @@
        :test #'string=))))
 
 (defparameter *default-extra-plugins*
-  '("extra-columns"))
+  '("extra-columns" "permissive-script-security"))
 
 ;;; Jenkins installation profiles
 

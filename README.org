@@ -46,7 +46,7 @@
 
 * Building
 
-  The following steps are intended to achieve the following
+  The following steps are intended to achieve the following:
 
   + building the master version of the build generator
 

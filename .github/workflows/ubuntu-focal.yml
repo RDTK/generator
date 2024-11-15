@@ -23,17 +23,17 @@ jobs:
 
 
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -82,7 +82,7 @@ jobs:
           mv -v cl-architecture.service-provider-master.tar.gz artifacts/
 
       - name: upload-artifact-cl-architecture.service-provider@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: artifacts
@@ -107,17 +107,17 @@ jobs:
 
 
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -166,7 +166,7 @@ jobs:
           mv -v cl-architecture.builder-protocol-master.tar.gz artifacts/
 
       - name: upload-artifact-cl-architecture.builder-protocol@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: artifacts
@@ -191,17 +191,17 @@ jobs:
 
 
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -250,7 +250,7 @@ jobs:
           mv -v cl-model.transform.trace-future.tar.gz artifacts/
 
       - name: upload-artifact-cl-model.transform.trace@future
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-model.transform.trace@future
           path: artifacts
@@ -275,32 +275,32 @@ jobs:
 
 
       - name: download-artifact-cl-model.transform.trace@future
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-model.transform.trace@future
           path: upstream
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-cl-architecture.service-provider@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -349,7 +349,7 @@ jobs:
           mv -v cl-text.source-location-future.tar.gz artifacts/
 
       - name: upload-artifact-cl-text.source-location@future
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-text.source-location@future
           path: artifacts
@@ -374,32 +374,32 @@ jobs:
 
 
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-cl-parser.ini@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-parser.ini@master
           path: upstream
       - name: download-artifact-cl-architecture.service-provider@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -448,7 +448,7 @@ jobs:
           mv -v cl-configuration.options-master.tar.gz artifacts/
 
       - name: upload-artifact-cl-configuration.options@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-configuration.options@master
           path: artifacts
@@ -473,22 +473,22 @@ jobs:
 
 
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -537,7 +537,7 @@ jobs:
           mv -v cl-parser.ini-master.tar.gz artifacts/
 
       - name: upload-artifact-cl-parser.ini@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-parser.ini@master
           path: artifacts
@@ -562,22 +562,22 @@ jobs:
 
 
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -626,7 +626,7 @@ jobs:
           mv -v cl-language.yaml-future.tar.gz artifacts/
 
       - name: upload-artifact-cl-language.yaml@future
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-language.yaml@future
           path: artifacts
@@ -651,27 +651,27 @@ jobs:
 
 
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-cl-architecture.service-provider@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -720,7 +720,7 @@ jobs:
           mv -v rosetta-cl-master.tar.gz artifacts/
 
       - name: upload-artifact-rosetta-cl@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: rosetta-cl@master
           path: artifacts
@@ -745,32 +745,32 @@ jobs:
 
 
       - name: download-artifact-cl-architecture.service-provider@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: upstream
       - name: download-artifact-rosetta-cl@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: rosetta-cl@master
           path: upstream
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -819,7 +819,7 @@ jobs:
           mv -v rosetta-project-cl-master.tar.gz artifacts/
 
       - name: upload-artifact-rosetta-project-cl@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: rosetta-project-cl@master
           path: artifacts
@@ -843,62 +843,62 @@ jobs:
           fetch-depth: 0
 
       - name: download-artifact-rosetta-project-cl@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: rosetta-project-cl@master
           path: upstream
       - name: download-artifact-rosetta-cl@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: rosetta-cl@master
           path: upstream
       - name: download-artifact-cl-model.transform.trace@future
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-model.transform.trace@future
           path: upstream
       - name: download-artifact-cl-text.source-location@future
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-text.source-location@future
           path: upstream
       - name: download-artifact-cl-language.yaml@future
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-language.yaml@future
           path: upstream
       - name: download-artifact-cl-architecture.builder-protocol@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.builder-protocol@master
           path: upstream
       - name: download-artifact-cl-parser.ini@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-parser.ini@master
           path: upstream
       - name: download-artifact-cl-architecture.service-provider@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-architecture.service-provider@master
           path: upstream
       - name: download-artifact-cl-configuration.options@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-configuration.options@master
           path: upstream
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
       - name: download-artifact-cl-launch@master
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: cl-launch@master
           path: upstream
@@ -978,7 +978,7 @@ jobs:
           mv -v build-generator-master.tar.gz  build-generator-master-install.tar.gz  install/bin/build-generator artifacts/
 
       - name: upload-artifact-build-generator@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: build-generator@master
           path: artifacts
@@ -1024,7 +1024,7 @@ jobs:
           mv -v sbcl.tar.gz artifacts/
 
       - name: upload-artifact-sbcl@sbcl-2.1.8
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: artifacts
@@ -1049,12 +1049,12 @@ jobs:
 
 
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
       - name: download-artifact-quicklisp@current
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: quicklisp@current
           path: upstream
@@ -1108,7 +1108,7 @@ jobs:
           mv -v cl-launch-master.tar.gz artifacts/
 
       - name: upload-artifact-cl-launch@master
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: cl-launch@master
           path: artifacts
@@ -1127,7 +1127,7 @@ jobs:
 
 
       - name: download-artifact-sbcl@sbcl-2.1.8
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: sbcl@sbcl-2.1.8
           path: upstream
@@ -1181,7 +1181,7 @@ jobs:
           mv -v quicklisp-current.tar.gz artifacts/
 
       - name: upload-artifact-quicklisp@current
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: quicklisp@current
           path: artifacts

@@ -114,12 +114,18 @@
   "jenkins.install.UpgradeWizard.state"
   :test #'string=)
 
+(define-constant +jenkins-install-util-state-filename+
+  "jenkins.install.InstallUtil.lastExecVersion"
+  :test #'string=)
+
 (define-step (jenkins/write-wizard-state)
     (destination-directory version)
-  (let ((wizard-state-filename (merge-pathnames +jenkins-wizard-state-filename+
-                                                destination-directory)))
-    (with-output-to-file (stream wizard-state-filename)
-      (write-string version stream))))
+  (flet ((write-one (filename)
+           (let ((filename (merge-pathnames filename destination-directory)))
+             (with-output-to-file (stream filename)
+               (write-string version stream)))))
+    (write-one +jenkins-wizard-state-filename+)
+    (write-one +jenkins-install-util-state-filename+)))
 
 ;;; `jenkins/install-plugins[-with-dependencies]' steps
 

@@ -631,7 +631,7 @@ jobs:
           name: cl-language.yaml@future
           path: artifacts
 
-  rosetta-cl_master:
+  rosetta-cl_main:
     runs-on: ubuntu-20.04
     needs: [cl-launch_master,quicklisp_current,cl-architecture_service-provider_master,cl-architecture_builder-protocol_master]
     steps:
@@ -647,7 +647,7 @@ jobs:
       - name: git.repository
         run: |
           export WORKSPACE=$(pwd)
-          git clone -b master https://code.cor-lab.de/git/rosetta.git.cl .
+          git clone -b main https://github.com/rdtk/rosetta .
 
 
       - name: download-artifact-cl-architecture.builder-protocol@master
@@ -706,28 +706,28 @@ jobs:
           # Package source code
           temp=$(mktemp -u).tar.gz
           tar \
-            --transform 's#^\.\(.*\)#rosetta-cl-master\1#'            \
+            --transform 's#^\.\(.*\)#rosetta-cl-main\1#'            \
             --exclude sloccount.sc --exclude fasl-cache --exclude upstream --exclude .git --exclude .svn  \
             -czf "${temp}"                                                         \
             .
-          mv "${temp}" "rosetta-cl-master.tar.gz"
+          mv "${temp}" "rosetta-cl-main.tar.gz"
 
 
       - name: gather-artifacts
         run: |
           export WORKSPACE=$(pwd)
           mkdir -p artifacts
-          mv -v rosetta-cl-master.tar.gz artifacts/
+          mv -v rosetta-cl-main.tar.gz artifacts/
 
-      - name: upload-artifact-rosetta-cl@master
+      - name: upload-artifact-rosetta-cl@main
         uses: actions/upload-artifact@v4
         with:
-          name: rosetta-cl@master
+          name: rosetta-cl@main
           path: artifacts
 
-  rosetta-project-cl_master:
+  rosetta-project-cl_main:
     runs-on: ubuntu-20.04
-    needs: [cl-launch_master,quicklisp_current,cl-architecture_builder-protocol_master,rosetta-cl_master]
+    needs: [cl-launch_master,quicklisp_current,cl-architecture_builder-protocol_master,rosetta-cl_main]
     steps:
       - name: install-platform-dependencies
         run: |
@@ -741,7 +741,7 @@ jobs:
       - name: git.repository
         run: |
           export WORKSPACE=$(pwd)
-          git clone -b master https://code.cor-lab.de/git/rosetta.git.project-cl .
+          git clone -b main https://github.com/rdtk/rosetta-project .
 
 
       - name: download-artifact-cl-architecture.service-provider@master
@@ -749,10 +749,10 @@ jobs:
         with:
           name: cl-architecture.service-provider@master
           path: upstream
-      - name: download-artifact-rosetta-cl@master
+      - name: download-artifact-rosetta-cl@main
         uses: actions/download-artifact@v4
         with:
-          name: rosetta-cl@master
+          name: rosetta-cl@main
           path: upstream
       - name: download-artifact-cl-architecture.builder-protocol@master
         uses: actions/download-artifact@v4
@@ -805,28 +805,28 @@ jobs:
           # Package source code
           temp=$(mktemp -u).tar.gz
           tar \
-            --transform 's#^\.\(.*\)#rosetta-project-cl-master\1#'            \
+            --transform 's#^\.\(.*\)#rosetta-project-cl-main\1#'            \
             --exclude sloccount.sc --exclude fasl-cache --exclude upstream --exclude .git --exclude .svn  \
             -czf "${temp}"                                                         \
             .
-          mv "${temp}" "rosetta-project-cl-master.tar.gz"
+          mv "${temp}" "rosetta-project-cl-main.tar.gz"
 
 
       - name: gather-artifacts
         run: |
           export WORKSPACE=$(pwd)
           mkdir -p artifacts
-          mv -v rosetta-project-cl-master.tar.gz artifacts/
+          mv -v rosetta-project-cl-main.tar.gz artifacts/
 
-      - name: upload-artifact-rosetta-project-cl@master
+      - name: upload-artifact-rosetta-project-cl@main
         uses: actions/upload-artifact@v4
         with:
-          name: rosetta-project-cl@master
+          name: rosetta-project-cl@main
           path: artifacts
 
   build-generator_master:
     runs-on: ubuntu-20.04
-    needs: [cl-launch_master,quicklisp_current,cl-configuration_options_master,cl-language_yaml_future,cl-text_source-location_future,rosetta-cl_master,rosetta-project-cl_master]
+    needs: [cl-launch_master,quicklisp_current,cl-configuration_options_master,cl-language_yaml_future,cl-text_source-location_future,rosetta-cl_main,rosetta-project-cl_main]
     steps:
       - name: install-platform-dependencies
         run: |
@@ -842,15 +842,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: download-artifact-rosetta-project-cl@master
+      - name: download-artifact-rosetta-project-cl@main
         uses: actions/download-artifact@v4
         with:
-          name: rosetta-project-cl@master
+          name: rosetta-project-cl@main
           path: upstream
-      - name: download-artifact-rosetta-cl@master
+      - name: download-artifact-rosetta-cl@main
         uses: actions/download-artifact@v4
         with:
-          name: rosetta-cl@master
+          name: rosetta-cl@main
           path: upstream
       - name: download-artifact-cl-model.transform.trace@future
         uses: actions/download-artifact@v4

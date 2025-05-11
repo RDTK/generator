@@ -1,6 +1,6 @@
 ;;;; job-publisher.lisp --- Model classes for publisher implementations .
 ;;;;
-;;;; Copyright (C) 2012-2021 Jan Moringen
+;;;; Copyright (C) 2012-2021, 2024 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -243,45 +243,41 @@
 
   ((issues-recorder "io.jenkins.plugins.analysis.core.steps.IssuesRecorder"
                     :plugin "warnings-ng@8.10.1")
-   ((analysis-tools                  :type      analysis-tool
-                                     :xpath     ("analysisTools/*"
-                                                 :if-multiple-matches :all)
-                                     :initform  '())
-    (filters                         :type      string
-                                     :xpath     ("filters/text()"
-                                                 :if-multiple-matches :all)
-                                     :optional? nil
-                                     :initform  '())
+   ((analysis-tools          :type      analysis-tool
+                             :xpath     ("analysisTools/*"
+                                         :if-multiple-matches :all)
+                             :initform  '())
+    (filters                 :type      string
+                             :xpath     ("filters/text()"
+                                         :if-multiple-matches :all)
+                             :optional? nil
+                             :initform  '())
     ;; Control
-    (is-enabled-for-failure?         :type      boolean
-                                     :xpath     "isEnabledForFailure/text()"
-                                     :initform  t)
-    (ignore-quality-gate?            :type      boolean
-                                     :xpath     "ignoreQualityGate/text()"
-                                     :optional? nil
-                                     :initform  nil)
-    (ignore-failed-builds?           :type      boolean
-                                     :xpath     "ignoreFailedBuilds/text()"
-                                     :optional? nil
-                                     :initform  nil)
+    (is-enabled-for-failure? :type      boolean
+                             :xpath     "isEnabledForFailure/text()"
+                             :initform  t)
+    (ignore-quality-gate?    :type      boolean
+                             :xpath     "ignoreQualityGate/text()"
+                             :optional? nil
+                             :initform  nil)
     ;; Assessment
-    (healthy-threshold               :type      non-negative-integer
-                                     :xpath     "healthy/text()"
-                                     :optional? nil
-                                     :initform  0)
-    (unhealthy-threshold             :type      non-negative-integer
-                                     :xpath     "unhealthy/text()"
-                                     :optional? nil
-                                     :initform  0)
-    (minimum-severity                :type      string
-                                     :xpath     "minimumSeverity/name/text()"
-                                     :optional? nil
-                                     :initform  "HIGH")
+    (healthy-threshold       :type      non-negative-integer
+                             :xpath     "healthy/text()"
+                             :optional? nil
+                             :initform  0)
+    (unhealthy-threshold     :type      non-negative-integer
+                             :xpath     "unhealthy/text()"
+                             :optional? nil
+                             :initform  0)
+    (minimum-severity        :type      string
+                             :xpath     "minimumSeverity/name/text()"
+                             :optional? nil
+                             :initform  "HIGH")
     ;; Blame
-    (blame-disabled?                 :type      boolean
-                                     :xpath     "isBlameDisabled/text()"
-                                     :optional? nil
-                                     :initform  nil))
+    (blame-disabled?         :type      boolean
+                             :xpath     "isBlameDisabled/text()"
+                             :optional? nil
+                             :initform  nil))
    (:name-slot nil))
 
   ((checkstyle "hudson.plugins.checkstyle.CheckStylePublisher"

@@ -1,6 +1,6 @@
 ;;;; command-install-jenkins.lisp --- Install a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2017-2023 Jan Moringen
+;;;; Copyright (C) 2017-2023, 2025 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -73,12 +73,12 @@
                             tailored."))
    ;; Jenkins download
    (jenkins-download-url :initarg  :jenkins-download-url
-                         :type     puri:uri
+                         :type     (or null puri:uri)
                          :reader   jenkins-download-url
-                         :initform steps:+default-jenkins-download-url+
+                         :initform nil
                          :documentation
                          #.(format nil "URL from which the Jenkins ~
-                            archive should be downloaded."))
+                            core archive should be downloaded."))
    (plugins              :initarg  :plugins
                          :type     (or null (cons string list))
                          :reader   plugins
@@ -189,18 +189,24 @@
               profile
               (list required-plugins) (list extra-plugins) (list plugins))
     (as-phase (:install)
-      (with-trivial-progress (:install/core)
-        (steps:execute (steps:make-step :jenkins/install-core) nil
-                       :destination-directory output-directory
-                       :url                   jenkins-download-url)
-        (setf jenkins-version
-              (steps:execute (steps:make-step :jenkins/determine-version) nil
-                             :destination-directory output-directory)))
+      (multiple-value-bind (update-info core-version core-url)
+          (steps:execute (steps:make-step :jenkins/get-update-info) nil)
+        (log:info "~@<From update info, got core version ~A and URL ~A.~@:>"
+                  core-version core-url)
+        (with-trivial-progress (:install/core)
+          (steps:execute (steps:make-step :jenkins/install-core) nil
+                         :destination-directory output-directory
+                         :url                   (or jenkins-download-url
+                                                    core-url))
+          (setf jenkins-version
+                (steps:execute (steps:make-step :jenkins/determine-version) nil
+                               :destination-directory output-directory)))
 
-      (steps:execute
-       (steps:make-step :jenkins/install-plugins-with-dependencies) nil
-       :destination-directory output-directory
-       :plugins               all-plugins))
+        (steps:execute
+         (steps:make-step :jenkins/install-plugins) nil
+         :update-info           update-info
+         :destination-directory output-directory
+         :plugins               all-plugins)))
 
     (as-phase (:configure)
       (steps:execute (steps:make-step :jenkins/write-wizard-state) nil

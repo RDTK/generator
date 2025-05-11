@@ -1,6 +1,6 @@
 ;;;; package.lisp --- Package definition for the steps module.
 ;;;;
-;;;; Copyright (C) 2014-2019 Jan Moringen
+;;;; Copyright (C) 2014-2025 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -39,7 +39,4 @@
   ;; Jenkins install steps
   (:export
    #:jenkins-username?
-   #:jenkins-username
-
-   #:+default-jenkins-download-url+
-   #:+jenkins-plugins-base-url+))
+   #:jenkins-username))

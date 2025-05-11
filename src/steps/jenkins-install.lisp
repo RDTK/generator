@@ -86,13 +86,8 @@
 
 ;;; `jenkins/install-core' step
 
-(define-constant +default-jenkins-download-url+
-    (puri:uri "https://archives.jenkins.io/war-stable/latest/jenkins.war")
-  :test #'puri:uri=)
-
 (define-step (jenkins/install-core)
-    ((url                  +default-jenkins-download-url+)
-     destination-directory)
+    (url destination-directory)
   "Download the Jenkins archive into a specified directory."
   (ensure-jenkins-directory-state :not-present destination-directory)
   (let ((pathname (merge-pathnames "jenkins.war" destination-directory)))
@@ -127,15 +122,76 @@
     (write-one +jenkins-wizard-state-filename+)
     (write-one +jenkins-install-util-state-filename+)))
 
-;;; `jenkins/install-plugins[-with-dependencies]' steps
+;;; `jenkins/get-update-info', `jenkins-download-plugins' and `jenkins/install-plugins' steps
+
+(define-constant +default-jenkins-update-url+
+    (puri:uri "https://westeurope.cloudflare.jenkins.io/current/update-center.actual.json")
+  :test #'puri:uri=)
+
+(defun download-update-info (&key (url +default-jenkins-update-url+))
+  (multiple-value-bind (body code headers origin reply-stream close-stream? reason)
+      (let ((drakma:*text-content-types* (list* '("application" . "json")
+                                                drakma:*text-content-types*)))
+        (drakma:http-request url))
+    (declare (ignore origin reply-stream close-stream?))
+    (unless (<= 200 code 299)
+      (error "~@<Download from ~A failed with code ~D: ~A.~@:>"
+             url code reason))
+    (let ((content-type (assoc-value headers :content-type)))
+      (unless (equal #1="application/json" content-type)
+        (error "~@<Expected content-type ~A but got ~A.~@:>"
+               #1# content-type)))
+    body))
+
+(define-step (jenkins/get-update-info)
+    ()
+  (with-trivial-progress (:jenkins/get-update-info)
+    (let* ((body    (download-update-info)) ; TODO: retry
+           (info    (let ((json:*json-identifier-name-to-lisp* #'identity)
+                          (json:*identifier-name-to-key*       #'identity))
+                      (json:decode-json-from-string body)))
+           (core    (assoc-value info "core" :test #'equal))
+           (version (assoc-value core "version" :test #'equal))
+           (url     (assoc-value core "url" :test #'equal)))
+      (values info version url))))
+
+(defun collect-download-urls (update-info plugin-names)
+  (let ((plugins        (assoc-value update-info "plugins" :test #'equal))
+        (seen           (make-hash-table :test #'equal))
+        (names-and-urls '()))
+    (labels ((find-plugin (name)
+               (assoc name plugins :test #'equal))
+             (visit-dependency (dependency reason)
+               (let ((name      (assoc-value dependency "name"     :test #'equal))
+                     (optional? (assoc-value dependency "optional" :test #'equal))
+                     (version   (assoc-value dependency "version"  :test #'equal)))
+                 (unless optional?
+                   (let ((reason (format nil "required by ~A" reason)))
+                     (consider name version reason)))))
+             (visit (name info &optional required-version)
+               (declare (ignore required-version))
+               (let ((version      (assoc-value info "version"      :test #'equal))
+                     (url          (assoc-value info "url"          :test #'equal))
+                     (dependencies (assoc-value info "dependencies" :test #'equal)))
+                 (declare (ignore version))
+                 (pushnew (cons name url) names-and-urls :test #'equal)
+                 (mapc (rcurry #'visit-dependency name) dependencies)))
+             (consider (name &optional version reason)
+               (unless (gethash name seen)
+                 (setf (gethash name seen) t)
+                 (if-let ((cell (find-plugin name)))
+                   (destructuring-bind (name . info) cell
+                     (visit name info version))
+                   (cerror "Do not install the plugin and continue"
+                           "~@<Could not find information for plugin `~A'~
+                            ~@[ version ~A~]~@[ ~A~].~@:>"
+                           name version reason)))))
+      (mapc #'consider plugin-names))
+    names-and-urls))
 
 (define-constant +jenkins-plugin-directory+
   #P"plugins/"
   :test #'equalp)
-
-(define-constant +jenkins-plugin-manifest-filename+
-  "META-INF/MANIFEST.MF"
-  :test #'string=)
 
 (define-constant +jenkins-plugins-base-url+
     (puri:uri "https://updates.jenkins-ci.org/stable/latest/")
@@ -147,69 +203,28 @@
                                   :defaults +jenkins-plugin-directory+)
                    base-directory))
 
-(defun jenkins-plugin-url (name &key (base-url +jenkins-plugins-base-url+))
-  (puri:merge-uris (format nil "~A.hpi" name) base-url))
-
-(defgeneric jenkins-plugin-dependencies (thing)
-  (:method ((thing string))
-    (let+ ((clean (ppcre:regex-replace-all
-                   #.(format nil "~C~%(:? )?" #\Return) thing
-                   (lambda (whole space)
-                     (declare (ignore whole))
-                     (if (emptyp space) (string #\Newline) ""))
-                   :simple-calls t))
-           ((&flet parse-dependency (spec)
-              (ppcre:register-groups-bind (name version optional?)
-                  ("([^:]+):([^;]+)(;resolution:=optional)?" spec)
-                (list name version (when optional? t))))))
-      (ppcre:register-groups-bind (dependencies)
-          ("Plugin-Dependencies: +(.+)" clean)
-        (mapcar #'parse-dependency
-                (split-sequence:split-sequence #\, dependencies)))))
-  (:method ((thing pathname))
-    (jenkins-plugin-dependencies
-     (zip:with-zipfile (zip thing)
-       (let ((manifest (zip:get-zipfile-entry +jenkins-plugin-manifest-filename+ zip)))
-         (sb-ext:octets-to-string (zip:zipfile-entry-contents manifest)))))))
-
-(define-sequence-step (jenkins/install-plugins plugin plugins
-                       :execution :parallel
-                       :progress  nil)
+(define-sequence-step (jenkins/download-plugins name-and-url plugins
+                                                :execution :parallel)
     (destination-directory)
   "Add specified plugins to an existing Jenkins installation."
-  (progress :install/plugin nil "~A" plugin)
-  (let ((pathname (jenkins-plugin-pathname destination-directory plugin))
-        (url      (jenkins-plugin-url plugin)))
-    (unless (probe-file pathname)
-      (log:info "~@<Installing ~A from ~A into ~A.~@:>" plugin url pathname)
-      (analysis::download-file url pathname)
-      (jenkins-plugin-dependencies pathname))))
+  (destructuring-bind (name . url) name-and-url
+    (progress "~A" name)
+    (let ((pathname (jenkins-plugin-pathname destination-directory name)))
+      (unless (probe-file pathname)
+        (log:info "~@<Installing `~A' from ~A into ~A.~@:>" name url pathname)
+        (analysis::download-file url pathname)))))
 
-(define-step (jenkins/install-plugins-with-dependencies)
-    (destination-directory plugins)
+(define-step (jenkins/install-plugins)
+    (update-info destination-directory plugins)
   "Add plugins to a Jenkins installation, honoring plugin dependencies."
-  (let+ ((step      (make-step :jenkins/install-plugins))
-         (installed '())
-         ((&flet install (round plugins)
-            (log:info "~@<Installing plugins with dependencies round ~
-                       ~D: ~{~A~^, ~}.~@:>"
-                      round plugins)
-            (appendf installed plugins)
-            (let* ((dependencies (execute
-                                  step :context
-                                  :destination-directory destination-directory
-                                  :plugins               plugins))
-                   (dependencies (mapcar #'first
-                                         (remove-if #'third
-                                                    (mappend #'identity dependencies))))
-                   (dependencies (remove-duplicates dependencies :test #'string=)))
-              (set-difference dependencies installed :test #'string=)))))
-    (with-trivial-progress (:install/plugin)
-      (ensure-directories-exist (jenkins-plugin-pathname
-                                 destination-directory "dummy"))
-      (loop :for i :from 0
-            :for missing = plugins :then (install i missing)
-            :while missing))))
+  (log:info "~@<Installing plugins with dependencies: ~{~A~^, ~}.~@:>"
+            plugins)
+  (let ((names-and-urls (collect-download-urls update-info plugins)))
+    (ensure-directories-exist (jenkins-plugin-pathname
+                               destination-directory "dummy"))
+    (execute (make-step :jenkins/download-plugins) nil
+             :destination-directory destination-directory
+             :plugins               names-and-urls)))
 
 ;;; `jenkins/install-config-files' step
 

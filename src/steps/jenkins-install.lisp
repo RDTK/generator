@@ -1,6 +1,6 @@
 ;;;; jenkins-install.lisp --- Steps for setting up a Jenkins instance.
 ;;;;
-;;;; Copyright (C) 2015-2024 Jan Moringen
+;;;; Copyright (C) 2015-2025 Jan Moringen
 ;;;;
 ;;;; Author: Jan Moringen <jmoringe@techfak.uni-bielefeld.de>
 
@@ -240,6 +240,8 @@
           entry))
     (progress "~(~A~):~A" profile name)
     (let ((destination-file (merge-pathnames name destination-directory)))
+      (log:info "~@<Installing ~A -> ~A with mode ~A~@:>"
+                name destination-file mode)
       (ensure-directories-exist destination-file)
       (write-byte-vector-into-file content destination-file
                                    :if-exists :supersede)

@@ -163,8 +163,7 @@
 
     ;; Actual rules
     (map nil (lambda (rule)
-               (with-simple-restart
-                   (continue "~@<Skip ~A~@:>" rule)
+               (with-simple-restart (continue "~@<Skip ~A~@:>" rule)
                  (let ((dependencies (append
                                       (map 'list #'rule-name
                                            (list* ensure-directory

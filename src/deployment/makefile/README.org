@@ -35,7 +35,7 @@
 
    + =-= prefix :: TODO
 
-   + =+= prefix :: use to run certain recipe lines despite commandline options that would prevent that:
+   + =+= prefix :: used to run certain recipe lines despite commandline options that would prevent that:
 
                    #+BEGIN_QUOTE
                    The ‘-n’, ‘-t’, and ‘-q’ options do not affect recipe lines that begin with ‘+’ characters or contain the strings ‘$(MAKE)’ or ‘${MAKE}’.

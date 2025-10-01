@@ -7,17 +7,16 @@
 (cl:in-package #:build-generator.commands)
 
 (defun collect-inputs (spec)
-  (cond
-    ((wild-pathname-p spec)
-     (directory spec))
-    ((pathnamep spec)
-     (if-let ((truename (probe-file spec)))
-       (list truename)
-       (project::object-error
-        (list (list spec "included here" :error))
-        "~@<File does not exist: ~A.~@:>" spec)))
-    (t
-     (error "~@<Invalid input specification: ~S.~@:>" spec))))
+  (cond ((wild-pathname-p spec)
+         (directory spec))
+        ((pathnamep spec)
+         (if-let ((truename (probe-file spec)))
+           (list truename)
+           (project::object-error
+            (list (list spec "included here" :error))
+            "~@<File does not exist: ~A.~@:>" spec)))
+        (t
+         (error "~@<Invalid input specification: ~S.~@:>" spec))))
 
 (defun locate-specifications (kind patterns repository &key (if-no-match #'error))
   (with-simple-restart (continue "~@<Do not load ~A specifications.~@:>" kind)

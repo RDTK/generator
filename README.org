@@ -40,9 +40,9 @@
 
        + The [[https://github.com/scymtym/text.source-location][text.source-location]] project
 
-       + The [[https://code.cor-lab.org/projects/rosetta][rosetta]] project
+       + The [[https://github.com/rdtk/rosetta][rosetta]] project
 
-         + The [[https://code.cor-lab.org/projects/rosetta][rosetta-project]] project
+         + The [[https://github.com/rdtk/rosetta-project][rosetta-project]] project
 
 * Building
 

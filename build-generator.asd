@@ -225,6 +225,7 @@
                  :serial     t
                  :components ((:file     "package")
                               (:file     "util")
+                              (:file     "makefile")
                               (:file     "target")
                               (:file     "aspects")))
 

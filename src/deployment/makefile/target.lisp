@@ -22,29 +22,29 @@
 (service-provider:register-provider/class
  'deploy:target :makefile :class 'makefile-target)
 
-;;; `project-rules'
+;;; `project-rule-infos'
 
-(defclass project-rules (model:implementation-mixin
-                         aspects::aspect-builder-defining-mixin)
-  ((%directory :initarg  :directory
-               :reader   directory)
-   (%rules     :initarg  :rules
-               :type     list
-               :accessor rules
-               :initform '()))
+(defclass project-rule-infos (model:implementation-mixin
+                              aspects::aspect-builder-defining-mixin)
+  ((%directory  :initarg  :directory
+                :reader   directory)
+   (%rule-infos :initarg  :rules
+                :type     list
+                :accessor rule-infos
+                :initform '()))
   (:default-initargs
-   :directory (more-conditions:missing-required-initarg 'project-rules :directory))
+   :directory (more-conditions:missing-required-initarg 'project-rule-infos :directory))
   (:documentation
-   "A collection of `rule' instances for one project."))
+   "A collection of `rule-info' instances for one project."))
 
-(defun make-project-rules (specification directory)
+(defun make-project-rule-infos (specification directory)
   (make-instance 'project-rules :directory     directory
                                 :specification specification))
 
-;;; `rule'
+;;; `rule-info'
 
-(defclass rule (deploy:command-mixin
-                print-items:print-items-mixin)
+(defclass rule-info (deploy:command-mixin
+                     print-items:print-items-mixin)
   ((%name         :initarg  :name
                   :type     string
                   :reader   name)
@@ -65,21 +65,21 @@
                    :reader builder-class
                    :initform nil))
   (:default-initargs
-   :name (more-conditions:missing-required-initarg 'rule :name)))
+   :name (more-conditions:missing-required-initarg 'rule-info :name)))
 
-(defun make-rule (name command &key (dependencies '()) early? builder-class)
-  (make-instance 'rule :name          name
-                       :command       command
-                       :dependencies  dependencies
-                       :early?        early?
-                       :builder-class builder-class))
+(defun make-rule-info (name command &key (dependencies '()) early? builder-class)
+  (make-instance 'rule-info :name          name
+                            :command       command
+                            :dependencies  dependencies
+                            :early?        early?
+                            :builder-class builder-class))
 
 (defmethod print-items:print-items append ((object rule))
   `(((:name (:before :command)) "~A " ,(name object))))
 
 (defmethod aspects::step-constraints ((aspect aspects::aspect-builder-defining-mixin)
                                       (phase  (eql 'aspects::build))
-                                      (step   rule))
+                                      (step   rule-info))
   (when-let ((builder-class (builder-class step)))
     (let* ((variable        (let ((*package* (find-package '#:keyword)))
                               (symbolicate  '#:aspect.builder-constraints.
@@ -91,49 +91,13 @@
                  step variable constraints)
       constraints)))
 
-(defun make-ensure-directory-rule (directory)
-  (make-rule "ensure-directory" (format nil "mkdir -p '~A'" directory)))
-
 ;;;
-
-(defun write-rule (stream name &key dependencies directory command comment)
-  (let* ((rule-name (util:safe-name name))
-         (log-file  (format nil "~A.log" rule-name))
-         (prefix    (string #\Tab)))
-    ;; Write comment and rule head.
-    (format stream "~@[# ~A~%~]~
-                    ~A:~{ ~A~}~@
-                    "
-            comment rule-name (map 'list #'util:safe-name dependencies))
-    ;; Write rule body (called "recipe" in the make documentation).
-    (when command
-      (let ((shell-string (escape-dollars (maybe-base64-encode command))))
-        (pprint-logical-block (stream (list command) :per-line-prefix prefix)
-          (format stream "@~
-                          echo -en '\\e[1mExecuting ~A\\e[0m\\n'~@
-                          +(~@
-                            set -e~@
-                            ~@[~
-                              cd '~A'~@
-                              export WORKSPACE=\"$$(pwd)\"~@
-                            ~]~
-                            ~@
-                            ~A~@:_~
-                          ) > '~A' 2>&1~@
-                          if [ $$? -ne 0 ] ; then~@
-                          ~2@Techo -en '\\e[35m'~@
-                          ~2@Tcat '~:*~A'~@
-                          ~2@Techo -en '\\e[0m'~@
-                          ~2@Texit 1~@
-                          fi~@
-                          touch '~4:*~A'"
-                  rule-name directory shell-string log-file)))
-      (terpri stream))
-    (terpri stream)))
 
 (defmethod deploy:deploy ((thing project::job) (target makefile-target))
   (let* ((directory (deploy:job-full-name thing))
-         (output    (make-project-rules thing directory)))
+         (output    (make-instance 'project-rule-infos
+                                   :specification thing
+                                   :directory     directory)))
     (push output (model:implementations thing))
 
     ;; Apply aspects, respecting declared ordering, and sort generated
@@ -142,62 +106,98 @@
 
     output))
 
-(defun write-project-rules (stream thing)
+(defun make-ensure-directory-rule (directory)
+  (make-instance 'rule-info :name    "ensure-directory"
+                            :command (format nil "mkdir -p '~A'" directory)))
+
+(defun finalize-project-rules (thing &key extra-dependencies)
   (let+ ((specification        (model:specification thing))
          (name                 (deploy:job-full-name specification))
          (directory            (directory thing))
-         (rules                (rules thing))
+         (rule-infos           (rule-infos thing))
          (project-dependencies (map 'list #'deploy:job-full-name
                                     (model:direct-dependencies
                                      specification)))
-         (ensure-directory     (make-ensure-directory-rule
-                                directory))
-         ((&flet rule-name (rule)
-            (format nil "~A-~A" name (name rule)))))
-    ;; Header/separator
-    (deploy:print-heading stream name)
-
-    ;; Preparation rule
-    (write-rule stream (rule-name ensure-directory)
-                :command (deploy:command ensure-directory))
-
-    ;; Actual rules
-    (map nil (lambda (rule)
-               (with-simple-restart (continue "~@<Skip ~A~@:>" rule)
-                 (let ((dependencies (append
-                                      (map 'list #'rule-name
-                                           (list* ensure-directory
-                                                  (dependencies rule)))
-                                      (unless (early? rule)
-                                        project-dependencies))))
-                   (write-rule stream (rule-name rule)
+         (ensure-directory     (make-ensure-directory-rule directory))
+         (final-rules          '()))
+    (labels ((full-name (rule-name)
+               (format nil "~A-~A" name rule-name))
+             (rule-name (rule-info)
+               (full-name (name rule-info)))
+             (add-rule (name command &rest args)
+               (push (apply #'make-instance 'rule :name    name
+                                                  :command command
+                                                  args)
+                     final-rules)))
+      ;; Header/separator
+      ;; (deploy:print-heading stream name)
+      ;; Interface rule
+      (add-rule name nil :dependencies (map 'list #'rule-name rule-infos))
+      ;; Preparation rule
+      (add-rule (rule-name ensure-directory) (deploy:command ensure-directory)
+                :dependencies extra-dependencies)
+      ;; Actual rules
+      (map nil (lambda (rule-info)
+                 (with-simple-restart (continue "~@<Skip ~A~@:>" rule-info)
+                   (let ((dependencies (append
+                                        (map 'list #'rule-name
+                                             (list* ensure-directory
+                                                    (dependencies rule-info)))
+                                        (unless (early? rule-info)
+                                          project-dependencies)
+                                        extra-dependencies)))
+                     (add-rule (rule-name rule-info) (deploy:command rule-info)
                                :dependencies dependencies
-                               :directory    directory
-                               :command      (deploy:command rule)))))
-         rules)
-
-    ;; Interface rule
-    (write-rule stream name :dependencies (map 'list #'rule-name rules))
-    name))
+                               :directory    directory))))
+           rule-infos)
+      (values (nreverse final-rules) name))))
 
 (defmethod deploy:deploy ((thing sequence) (target makefile-target))
   (unless (every (of-type 'project:distribution) thing)
     (return-from deploy:deploy (call-next-method)))
 
-  (let ((deployed-things (call-next-method))
-        (makefile        (merge-pathnames "Makefile" (output-directory target)))
-        (project-rules   '())
-        (interface-rules '()))
-    ;; Generate rule text for all projects and collect the names of
+  (let* ((deployed-things         (call-next-method))
+         (directory               (output-directory target))
+         (makefile                (merge-pathnames "Makefile" directory))
+         (rules                   '())
+         (interface-rule-names    '())
+         (prepare-hook-rule-names '())
+         (finish-hook-rule-names  '()))
+    ;; Prepare hooks
+    (map nil (lambda (distribution)
+               (when-let ((command (var:value distribution :prepare-hook/unix nil)))
+                 (let* ((name      (model:name distribution))
+                        (rule-name (format nil "~A-~(~A~)" name :prepare-hook/unix))
+                        (rule      (make-instance 'rule :name      rule-name
+                                                        :command   command
+                                                        :directory directory)))
+                   (push rule-name prepare-hook-rule-names)
+                   (appendf rules (list rule)))))
+         thing)
+    ;; Generate rules for all projects and collect the names of
     ;; interface rules.
     (map nil (lambda (thing)
                (with-simple-restart (continue "~@<Skip ~A~@:>" thing)
-                 (let* ((stream         (make-string-output-stream))
-                        (interface-rule (write-project-rules stream thing)))
-                   (push (get-output-stream-string stream) project-rules)
-                   (push interface-rule interface-rules))))
+                 (multiple-value-bind (project-rules interface-rule-name)
+                     (finalize-project-rules
+                      thing :extra-dependencies prepare-hook-rule-names)
+                   (appendf rules project-rules)
+                   (push interface-rule-name interface-rule-names))))
          deployed-things)
-
+    ;; Finish hooks
+    (map nil (lambda (distribution)
+               (when-let ((command (var:value distribution #2=:finish-hook/unix nil)))
+                 (let* ((name         (model:name distribution))
+                        (rule-name    (format nil "~A-~(~A~)" name #2#))
+                        (dependencies (append prepare-hook-rule-names
+                                              interface-rule-names))
+                        (rule         (make-instance 'rule :name         rule-name
+                                                           :dependencies dependencies
+                                                           :command      command
+                                                           :directory    directory)))
+                   (push rule-name finish-hook-rule-names)
+                   (appendf rules (list rule)))))
+         thing)
     ;; Write the Makefile.
     (ensure-directories-exist makefile)
     (with-output-to-file (stream makefile :if-exists :supersede)
@@ -211,10 +211,21 @@
       (format stream ".ONESHELL:~@
                       SHELL = /bin/bash~@
                       .SHELLFLAGS = -c~@
-                      ~2%")
+                      ~%")
+      (format stream ".PHONY: ~{~A~^ ~}~3%"
+              (list* "all" (map 'list #'name (remove-if-not #'phony? rules))))
 
       ;; Add an "all" rule for convenience.
-      (write-rule stream "all" :dependencies interface-rules)
+      (write-rule stream "all" :dependencies (append interface-rule-names
+                                                     finish-hook-rule-names))
 
       ;; Write project rules.
-      (format stream "~{~A~^~2%~}" project-rules))))
+      (map nil (lambda (rule)
+                 (write-rule stream (name rule)
+                             :dependencies (dependencies rule)
+                             :directory    (directory rule)
+                             :command      (deploy:command rule)
+                                        ; :comment      (comment rule)
+                             )
+                 (format stream "~2%"))
+           rules))))

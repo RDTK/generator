@@ -165,12 +165,11 @@
          (finish-hook-rule-names  '()))
     ;; Prepare hooks
     (map nil (lambda (distribution)
-               (when-let ((command (var:value distribution :prepare-hook/unix nil)))
+               (when-let ((command (var:value distribution #1=:prepare-hook/unix nil)))
                  (let* ((name      (model:name distribution))
-                        (rule-name (format nil "~A-~(~A~)" name :prepare-hook/unix))
-                        (rule      (make-instance 'rule :name      rule-name
-                                                        :command   command
-                                                        :directory directory)))
+                        (rule-name (format nil "~A-~(~A~)" name #1#))
+                        (rule      (make-instance 'rule :name    rule-name
+                                                        :command command)))
                    (push rule-name prepare-hook-rule-names)
                    (appendf rules (list rule)))))
          thing)
@@ -193,8 +192,7 @@
                                               interface-rule-names))
                         (rule         (make-instance 'rule :name         rule-name
                                                            :dependencies dependencies
-                                                           :command      command
-                                                           :directory    directory)))
+                                                           :command      command)))
                    (push rule-name finish-hook-rule-names)
                    (appendf rules (list rule)))))
          thing)
